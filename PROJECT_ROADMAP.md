@@ -90,6 +90,7 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 - `grill-with-docs` skill installed for next session
 - Scope + Game shape theme — V1 locked as a roguelite cricket-career
 - `CONTEXT.md` domain glossary + ADRs 0001 (target market) & 0002 (V1 shape)
+- Git repo initialised + pushed to GitHub (private: `github.com/nico101rsa/cricket-sim`)
 
 ---
 
