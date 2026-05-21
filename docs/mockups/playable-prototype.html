@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Playable Match v2 — with Card Portraits</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #1a1a22;
+    color: #eee;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow-x: hidden;
+  }
+  .stage { text-align: center; }
+  .pre-info {
+    color: #888; font-size: 13px; margin-bottom: 14px;
+    max-width: 340px; line-height: 1.5;
+  }
+  .pre-info b { color: #ffd166; }
+  .restart-btn {
+    margin-top: 16px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #eee;
+    padding: 8px 18px; border-radius: 20px;
+    font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+
+  /* PHONE FRAME */
+  .phone {
+    background: #0d0d12;
+    border: 3px solid #2a2a35;
+    border-radius: 36px;
+    width: 340px;
+    height: 700px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+  }
+  .phone-notch {
+    width: 90px; height: 22px;
+    background: #000; border-radius: 14px;
+    margin: -12px auto 8px;
+    flex-shrink: 0;
+  }
+
+  /* CHROME */
+  .chrome { flex-shrink: 0; }
+  .bc-header {
+    background: linear-gradient(90deg, #c41e3a 0%, #8b0000 100%);
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(196,30,58,0.3);
+  }
+  .bc-header .team-bat {
+    background: rgba(0,0,0,0.35);
+    padding: 2px 7px; border-radius: 4px; font-weight: 700;
+  }
+  .bc-header .vs { opacity: 0.6; font-size: 10px; }
+  .bc-scorebar {
+    background: #16161e;
+    border: 1px solid rgba(196,30,58,0.4);
+    border-radius: 8px;
+    margin-top: 6px;
+    padding: 8px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+  }
+  .bc-scorebar .score-big {
+    font-size: 24px; font-weight: 800; color: #ffd166; line-height: 1;
+    transition: transform 0.25s ease;
+  }
+  .bc-scorebar .score-big.bump { transform: scale(1.15); }
+  .bc-scorebar .score-meta {
+    font-size: 9px; color: #aaa; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 2px;
+  }
+  .bc-scorebar .target { text-align: right; color: #f5a623; font-size: 10px; }
+  .bc-scorebar .target b { font-size: 16px; color: #fff; display:block; }
+  .bc-scorebar .target .sub { font-size: 9px; opacity: 0.7; }
+  .bc-commentary {
+    background: rgba(255,255,255,0.04);
+    border-left: 2px solid #f5a623;
+    padding: 6px 10px;
+    font-size: 10px;
+    font-style: italic;
+    color: #ccc;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 26px;
+  }
+  .bc-commentary .lang {
+    background: #f5a623; color: #000; padding: 1px 5px;
+    border-radius: 3px; font-size: 8px; font-weight: 700; font-style: normal;
+    flex-shrink: 0;
+  }
+
+  /* BODY */
+  .body {
+    flex: 1;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* FF indicator */
+  .ff-indicator {
+    background: rgba(245,166,35,0.12);
+    border: 1px dashed rgba(245,166,35,0.4);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 9px;
+    text-align: center;
+    color: #f5a623;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    margin-bottom: 8px;
+  }
+  .ff-indicator .progress {
+    flex: 1; height: 3px; background: rgba(255,255,255,0.1);
+    margin: 0 10px; border-radius: 2px; overflow: hidden;
+  }
+  .ff-indicator .progress .bar {
+    height: 100%; background: #f5a623; width: 0;
+    transition: width linear;
+  }
+
+  /* DATA-VIZ */
+  .viz-grid { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .viz-panel {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .viz-label {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 1px;
+    color: #888; margin-bottom: 4px;
+  }
+  .viz-runrate { display: flex; justify-content: space-between; align-items: center; }
+  .viz-runrate .crr {
+    font-size: 24px; font-weight: 800; color: #ffd166; line-height: 1;
+  }
+  .viz-runrate .crr-label {
+    font-size: 7px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .viz-runrate .rrr-wrap { text-align: right; color: #ef6c6c; }
+  .viz-runrate .rrr { font-size: 16px; font-weight: 700; color: #fff; }
+  .viz-runrate .rrr-label {
+    font-size: 7px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .viz-overs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .viz-ball {
+    aspect-ratio: 1; border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+    transition: transform 0.25s, background 0.25s;
+  }
+  .viz-ball.d { color: #555; }
+  .viz-ball.r1, .viz-ball.r2, .viz-ball.r3 { background: #1e3a5f; color: #6ec1e4; }
+  .viz-ball.b { background: #ffd166; color: #000; }
+  .viz-ball.s { background: #ef6c6c; color: #000; }
+  .viz-ball.w { background: #c41e3a; color: #fff; }
+  .viz-partnership-bar {
+    height: 8px; background: rgba(255,255,255,0.08);
+    border-radius: 4px; overflow: hidden; margin-top: 6px;
+  }
+  .viz-partnership-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a90e2, #ffd166);
+    width: 0; transition: width 0.4s ease;
+  }
+  /* partnership panel with portraits */
+  .viz-pship-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .viz-pship-batter {
+    display: flex; gap: 6px; align-items: center;
+    flex: 1; min-width: 0;
+  }
+  .viz-pship-info {
+    font-size: 10px; line-height: 1.3;
+    min-width: 0;
+  }
+  .viz-pship-info .nm {
+    font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .viz-pship-info .nm.strike { color: #ffd166; }
+  .viz-pship-info .runs { font-size: 9px; opacity: 0.7; }
+  .viz-bowler-strip {
+    background: rgba(196,30,58,0.12);
+    border-left: 2px solid #c41e3a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .viz-bowler-info { flex: 1; font-size: 10px; }
+  .viz-bowler-info .nm { font-weight: 700; color: #ef6c6c; }
+  .viz-bowler-info .sub { font-size: 9px; opacity: 0.7; }
+
+  /* === CARD PORTRAIT === */
+  .portrait {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 0 12px rgba(0,0,0,0.4);
+  }
+  .portrait.team-mumbai {
+    background: linear-gradient(180deg, #1e3a5f, #0f1f33);
+    border: 1.5px solid #4a90e2;
+  }
+  .portrait.team-chennai {
+    background: linear-gradient(180deg, #5a4810, #2a1f08);
+    border: 1.5px solid #ffd166;
+  }
+  .portrait.elite {
+    border-color: #ffd166;
+    box-shadow: 0 0 14px rgba(255,209,102,0.5);
+  }
+  .portrait.rookie {
+    border-color: #6ec1e4;
+  }
+  .portrait-face {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #e0b48a, #b8855e);
+    box-shadow: inset -4px -5px 10px rgba(0,0,0,0.3);
+  }
+  .portrait-face.dark {
+    background: radial-gradient(circle at 35% 35%, #8b6a4a, #4a3220);
+  }
+  .portrait-face.tan {
+    background: radial-gradient(circle at 35% 35%, #c8956a, #7a5030);
+  }
+  .portrait-eyes {
+    position: absolute;
+    display: flex; justify-content: space-between;
+  }
+  .portrait-eye {
+    background: #1a0a0a;
+    border-radius: 50%;
+  }
+  .portrait-beard {
+    position: absolute;
+    background: #1a0808;
+    border-radius: 0 0 25px 25px / 0 0 14px 14px;
+  }
+  .portrait-beard.grey {
+    background: linear-gradient(180deg, #3a2515, #5a4030);
+  }
+  .portrait-helmet {
+    position: absolute;
+    border-radius: 28px 28px 4px 4px;
+    border: 1.5px solid #5d4a0e;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .portrait-helmet.gold {
+    background: linear-gradient(180deg, #f5cb50, #b8860b);
+  }
+  .portrait-helmet.yellow {
+    background: linear-gradient(180deg, #ffe066, #d4a017);
+  }
+  .portrait-helmet.dirty::before {
+    content: '';
+    position: absolute;
+    top: 30%; left: 18%;
+    width: 30%; height: 22%;
+    background: rgba(60,30,10,0.7);
+    border-radius: 4px;
+  }
+  .portrait-helmet.dirty::after {
+    content: '';
+    position: absolute;
+    bottom: 18%; right: 15%;
+    width: 18%; height: 14%;
+    background: rgba(50,25,8,0.5);
+    border-radius: 3px;
+  }
+  .portrait-cap {
+    position: absolute;
+    border-radius: 25px 25px 4px 4px;
+    border: 1px solid #062654;
+  }
+  .portrait-cap.blue {
+    background: linear-gradient(180deg, #2a98ff, #0d47a1);
+  }
+  .portrait-cap.yellow {
+    background: linear-gradient(180deg, #ffe066, #d4a017);
+    border-color: #8b6914;
+  }
+  .portrait-jersey {
+    position: absolute;
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+  }
+  .portrait-jersey.blue {
+    background: linear-gradient(180deg, #1e88e5, #0d47a1);
+  }
+  .portrait-jersey.yellow {
+    background: linear-gradient(180deg, #ffd744, #c08800);
+  }
+  .portrait-number {
+    position: absolute;
+    font-weight: 900;
+    color: rgba(255,255,255,0.7);
+    z-index: 2;
+  }
+  .portrait-badge {
+    position: absolute;
+    background: #d4af37;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 800;
+    z-index: 3;
+    letter-spacing: 0.3px;
+  }
+  .portrait-badge.rookie { background: #6ec1e4; }
+  .portrait-badge.star { background: #f5a623; }
+  .portrait-stars {
+    position: absolute;
+    color: #ffd166;
+    z-index: 3;
+    letter-spacing: 0.5px;
+  }
+
+  /* Portrait sizes */
+  .portrait.size-med {
+    width: 64px; height: 80px;
+  }
+  .size-med .portrait-face { width: 36px; height: 36px; top: 20px; left: 50%; transform: translateX(-50%); }
+  .size-med .portrait-eyes { top: 14px; left: 8px; right: 8px; }
+  .size-med .portrait-eye { width: 4px; height: 5px; }
+  .size-med .portrait-beard { bottom: 0; left: 8px; right: 8px; height: 12px; }
+  .size-med .portrait-helmet { top: 8px; left: 50%; transform: translateX(-50%); width: 44px; height: 24px; }
+  .size-med .portrait-cap { top: 14px; left: 50%; transform: translateX(-50%); width: 38px; height: 12px; }
+  .size-med .portrait-jersey { bottom: -6px; left: -4px; right: -4px; height: 24px; }
+  .size-med .portrait-number { bottom: 3px; left: 50%; transform: translateX(-50%); font-size: 9px; }
+  .size-med .portrait-badge { top: 2px; left: 2px; font-size: 6px; padding: 1px 3px; }
+  .size-med .portrait-stars { bottom: 3px; right: 3px; font-size: 7px; }
+
+  .portrait.size-tiny {
+    width: 26px; height: 32px;
+  }
+  .size-tiny .portrait-face { width: 16px; height: 16px; top: 7px; left: 50%; transform: translateX(-50%); }
+  .size-tiny .portrait-eyes { display: none; }
+  .size-tiny .portrait-beard { display: none; }
+  .size-tiny .portrait-helmet { top: 2px; left: 50%; transform: translateX(-50%); width: 20px; height: 10px; }
+  .size-tiny .portrait-cap { top: 5px; left: 50%; transform: translateX(-50%); width: 18px; height: 6px; }
+  .size-tiny .portrait-jersey { bottom: -2px; left: -2px; right: -2px; height: 12px; }
+  .size-tiny .portrait-number { display: none; }
+  .size-tiny .portrait-badge { display: none; }
+  .size-tiny .portrait-stars { display: none; }
+  .size-tiny.elite {
+    box-shadow: 0 0 8px rgba(255,209,102,0.6);
+  }
+
+  /* REIGNS CARD */
+  .reigns-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    padding: 6px;
+    animation: fadeIn 0.3s;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .rm-banner {
+    background: linear-gradient(90deg, #f5a623, #ef6c6c);
+    color: #000; text-align: center; padding: 5px;
+    border-radius: 6px; font-size: 11px; font-weight: 800;
+    letter-spacing: 2px;
+    animation: pulse 1.4s infinite; flex-shrink: 0;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.75; } }
+  .rm-card {
+    flex: 1;
+    background: linear-gradient(160deg, #2c1a4d, #160929);
+    border-radius: 14px;
+    margin-top: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    transition: transform 0.3s ease;
+  }
+  .rm-card.shake-left { transform: translateX(-30px) rotate(-3deg); opacity: 0.6; }
+  .rm-card.shake-right { transform: translateX(30px) rotate(3deg); opacity: 0.6; }
+  .rm-context {
+    text-align: center;
+    font-size: 10px;
+    color: #ffd166;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+  .rm-actor {
+    background: rgba(0,0,0,0.5);
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .rm-actor .actor-info { flex: 1; text-align: left; }
+  .rm-actor .actor-name {
+    font-size: 16px; font-weight: 800; color: #ef6c6c;
+  }
+  .rm-actor .actor-tag {
+    font-size: 10px; opacity: 0.75; margin-top: 2px;
+  }
+  .rm-actor .actor-stats {
+    font-size: 9px; opacity: 0.6; margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .rm-scene {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px;
+    margin: 4px 0;
+  }
+  .rm-narration {
+    font-style: italic;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: center;
+    color: #eee;
+    margin-bottom: 10px;
+  }
+  .rm-narration b { color: #ffd166; font-style: normal; }
+  .rm-swipe-row { display: flex; gap: 8px; }
+  .rm-swipe {
+    flex: 1; padding: 10px; border-radius: 10px;
+    text-align: center; font-size: 11px; border: none;
+    color: #fff; cursor: pointer; font-family: inherit;
+    transition: transform 0.1s;
+  }
+  .rm-swipe:active { transform: scale(0.96); }
+  .rm-swipe.left {
+    background: linear-gradient(135deg, #1e3a5f, #0f1f33);
+    border: 1px solid #4a90e2;
+  }
+  .rm-swipe.right {
+    background: linear-gradient(135deg, #4a1818, #2a0808);
+    border: 1px solid #ef6c6c;
+  }
+  .rm-swipe .verb { font-size: 14px; font-weight: 800; }
+  .rm-swipe.left .verb { color: #6ec1e4; }
+  .rm-swipe.right .verb { color: #ef6c6c; }
+  .rm-swipe .stake { font-size: 9px; opacity: 0.75; margin-top: 3px; }
+
+  /* CENTER CARDS */
+  .center-card {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 20px;
+  }
+  .center-card .big {
+    font-size: 36px; font-weight: 800; color: #ffd166;
+    margin-bottom: 8px; line-height: 1.1;
+  }
+  .center-card .sub {
+    font-size: 13px; opacity: 0.8; margin-bottom: 14px; line-height: 1.5;
+  }
+  .center-card .ctx { font-size: 11px; opacity: 0.6; margin-bottom: 20px; }
+  .start-btn {
+    background: linear-gradient(90deg, #c41e3a, #ef6c6c);
+    color: #fff; border: none;
+    padding: 14px 32px; border-radius: 25px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    letter-spacing: 1px; font-family: inherit;
+    box-shadow: 0 6px 18px rgba(196,30,58,0.4);
+    transition: transform 0.1s;
+  }
+  .start-btn:active { transform: scale(0.96); }
+
+  /* RESULT */
+  .result-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 16px;
+  }
+  .result-headline {
+    font-size: 28px; font-weight: 900; line-height: 1.1; margin-bottom: 4px;
+  }
+  .result-headline.won { color: #6ec1e4; }
+  .result-headline.lost { color: #ef6c6c; }
+  .result-margin { font-size: 13px; opacity: 0.8; margin-bottom: 16px; }
+  .result-scores {
+    display: flex; flex-direction: column; gap: 8px;
+    margin-bottom: 18px; width: 100%;
+  }
+  .result-line {
+    background: rgba(255,255,255,0.04);
+    padding: 10px 14px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-size: 13px;
+  }
+  .result-line b { color: #ffd166; }
+  .moments-recap {
+    width: 100%;
+    background: rgba(196,30,58,0.08);
+    border-left: 3px solid #c41e3a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 10px;
+    text-align: left;
+    margin-bottom: 16px;
+  }
+  .moments-recap .title {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+    color: #ef6c6c; margin-bottom: 6px;
+  }
+  .moments-recap ul { padding-left: 16px; line-height: 1.5; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="pre-info">
+      <b>Playable mock v2</b> — now with Card Portrait avatars.<br>
+      Watch the key-moment cards and the partnership/bowler panels.
+    </div>
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="chrome">
+        <div class="bc-header">
+          <span class="team-bat" id="bat-team">MUMBAI 🏏</span>
+          <span class="vs">vs</span>
+          <span id="bowl-team">CHENNAI</span>
+        </div>
+        <div class="bc-scorebar">
+          <div>
+            <div class="score-big" id="score-big">0/0</div>
+            <div class="score-meta" id="score-meta">0.0 ov · CRR 0.0</div>
+          </div>
+          <div class="target">
+            <span class="sub" id="target-label">FIRST INNINGS</span>
+            <b id="target-val">—</b>
+            <span class="sub" id="target-sub">set the target</span>
+          </div>
+        </div>
+        <div class="bc-commentary">
+          <span class="lang">हि</span>
+          <span class="text" id="comm">"Toss won. Mumbai elect to bat."</span>
+        </div>
+      </div>
+      <div class="body" id="body"></div>
+    </div>
+    <button class="restart-btn" onclick="location.reload()">↻ Restart match</button>
+  </div>
+
+<script>
+// ============================================================
+// PLAYER ROSTER — each player has a procedural visual identity
+// ============================================================
+
+const PLAYERS = {
+  // Mumbai (your team)
+  SHARMA:    { team:'mumbai', role:'bat',  captain:true, veteran:true, beard:'grey', face:'tan',  stars:4, number:10, badge:'CAPT', helmet:'gold', dirty:true },
+  ROHIT:     { team:'mumbai', role:'bat',  veteran:true, beard:true,   face:'tan',  stars:3, number:45, helmet:'gold', dirty:false },
+  SURYA:     { team:'mumbai', role:'bat',  beard:false,                face:'tan',  stars:3, number:63, helmet:'gold', dirty:false },
+  BUMRAH:    { team:'mumbai', role:'bowl', star:true,                  face:'dark', stars:4, number:93, badge:'STAR', cap:'blue' },
+  CHAHAL:    { team:'mumbai', role:'bowl', beard:false,                face:'tan',  stars:3, number:3,  cap:'blue' },
+  'VARUN-CV':{ team:'mumbai', role:'bowl', beard:true,                 face:'tan',  stars:3, number:4,  cap:'blue' },
+
+  // Chennai (opponent)
+  WAHAB:     { team:'chennai', role:'bowl', beard:true,                face:'tan',  stars:3, number:17, cap:'yellow' },
+  KHAN:      { team:'chennai', role:'bowl', star:true, veteran:true, beard:'grey', face:'tan', stars:4, number:22, badge:'STAR', cap:'yellow' },
+  PATEL:     { team:'chennai', role:'bowl', beard:false,               face:'tan',  stars:2, number:8,  cap:'yellow' },
+  'GAYLE-Jr':{ team:'chennai', role:'bat', beard:true,                 face:'dark', stars:3, number:333, helmet:'yellow' },
+  'KOHLI-Jr':{ team:'chennai', role:'bat', beard:true,                 face:'tan',  stars:3, number:18, helmet:'yellow' },
+  'DHONI-Jr':{ team:'chennai', role:'bat', captain:true, veteran:true, beard:false, face:'tan', stars:4, number:7,  badge:'CAPT', helmet:'yellow', dirty:true },
+};
+
+function renderPortrait(key, size) {
+  const p = PLAYERS[key];
+  if (!p) return '';
+  const sizeCls = size === 'med' ? 'size-med' : 'size-tiny';
+  const teamCls = 'team-' + p.team;
+  const tierCls = p.captain || p.star ? 'elite' : (p.stars <= 2 ? 'rookie' : '');
+
+  let html = `<div class="portrait ${sizeCls} ${teamCls} ${tierCls}">`;
+
+  // jersey first (behind)
+  if (p.role === 'bat') {
+    html += `<div class="portrait-jersey ${p.team === 'mumbai' ? 'blue' : 'yellow'}"></div>`;
+  } else {
+    html += `<div class="portrait-jersey ${p.team === 'mumbai' ? 'blue' : 'yellow'}"></div>`;
+  }
+
+  // face
+  const faceCls = p.face === 'dark' ? 'dark' : (p.face === 'tan' ? 'tan' : '');
+  html += `<div class="portrait-face ${faceCls}"></div>`;
+
+  // eyes (med only)
+  if (size === 'med') {
+    html += `<div class="portrait-eyes"><div class="portrait-eye"></div><div class="portrait-eye"></div></div>`;
+  }
+
+  // beard (med only)
+  if (size === 'med' && p.beard) {
+    const beardCls = p.beard === 'grey' ? 'grey' : '';
+    html += `<div class="portrait-beard ${beardCls}"></div>`;
+  }
+
+  // helmet or cap (on top)
+  if (p.role === 'bat') {
+    const dirtyCls = p.dirty ? 'dirty' : '';
+    html += `<div class="portrait-helmet ${p.helmet} ${dirtyCls}"></div>`;
+  } else {
+    html += `<div class="portrait-cap ${p.cap}"></div>`;
+  }
+
+  // number (med only)
+  if (size === 'med' && p.number) {
+    html += `<div class="portrait-number">${p.number}</div>`;
+  }
+
+  // badge (med only)
+  if (size === 'med' && p.badge) {
+    const badgeCls = p.badge === 'CAPT' ? '' : (p.badge === 'STAR' ? 'star' : 'rookie');
+    html += `<div class="portrait-badge ${badgeCls}">${p.badge}</div>`;
+  }
+
+  // stars (med only)
+  if (size === 'med' && p.stars) {
+    const filled = '★'.repeat(p.stars);
+    const empty  = '☆'.repeat(4 - p.stars);
+    html += `<div class="portrait-stars">${filled}${empty}</div>`;
+  }
+
+  html += `</div>`;
+  return html;
+}
+
+// ============================================================
+// MATCH STATE
+// ============================================================
+
+const state = {
+  innings: 1,
+  score: 0, wickets: 0, overs: 0, balls: 0,
+  target: null,
+  batting: 'mumbai',
+  batters: { strike: 'SHARMA', nonStrike: 'ROHIT' },
+  partnership: { runs: 0, balls: 0 },
+  currentOver: [],
+  bowler: 'WAHAB',
+  middleApproach: null,
+  deathPlan: null,
+  bowlingChange: null,
+  starBat: null,
+  myInningsScore: 0,
+  myInningsWickets: 0,
+};
+
+function $(id) { return document.getElementById(id); }
+function setText(id, t) { $(id).textContent = t; }
+function setComm(t) {
+  const el = $('comm');
+  el.style.opacity = 0;
+  setTimeout(() => { el.textContent = t; el.style.opacity = 1; }, 200);
+}
+function updateScorebar() {
+  const ov = state.overs + (state.balls > 0 ? '.' + state.balls : '.0');
+  const crr = (state.overs + state.balls/6) > 0 ? (state.score / (state.overs + state.balls/6)).toFixed(1) : '0.0';
+  $('score-big').textContent = state.score + '/' + state.wickets;
+  $('score-big').classList.add('bump');
+  setTimeout(() => $('score-big').classList.remove('bump'), 250);
+  $('score-meta').textContent = ov + ' ov · CRR ' + crr;
+}
+function setTarget(label, val, sub) {
+  setText('target-label', label);
+  setText('target-val', val);
+  setText('target-sub', sub);
+}
+function bodyHTML(html) { $('body').innerHTML = html; }
+
+function ord(n) {
+  return ['st','nd','rd'][((n+90)%100-10)%10-1] || 'th';
+}
+
+// === VIZ panel ===
+function renderViz() {
+  const oversDecimal = state.overs + state.balls/6;
+  const crr = oversDecimal > 0 ? (state.score / oversDecimal).toFixed(1) : '0.0';
+  let rrrLine = '';
+  if (state.innings === 2 && state.target) {
+    const need = state.target - state.score;
+    const ballsLeft = (20 - state.overs)*6 - state.balls;
+    const rrr = ballsLeft > 0 ? (need / (ballsLeft/6)).toFixed(1) : '∞';
+    rrrLine = `
+      <div class="rrr-wrap">
+        <div class="rrr">${rrr}</div>
+        <div class="rrr-label">Required · need ${need} in ${ballsLeft}</div>
+      </div>`;
+  } else {
+    rrrLine = `
+      <div class="rrr-wrap">
+        <div class="rrr">${state.score}</div>
+        <div class="rrr-label">runs · ${state.wickets} down</div>
+      </div>`;
+  }
+
+  let oversHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const b = state.currentOver[i];
+    if (b === undefined) {
+      oversHTML += '<div class="viz-ball" style="opacity:.3">?</div>';
+    } else {
+      oversHTML += `<div class="viz-ball ${b.cls}">${b.txt}</div>`;
+    }
+  }
+
+  const psBarWidth = Math.min(100, state.partnership.runs * 1.5);
+  const wktNum = state.wickets + 1;
+
+  return `
+    <div class="ff-indicator">
+      <span>▶▶ AUTO-SIM</span>
+      <div class="progress"><div class="bar" id="ff-bar"></div></div>
+      <span id="ff-time">…</span>
+    </div>
+    <div class="viz-grid">
+      <div class="viz-panel">
+        <div class="viz-label">${state.innings === 2 ? 'Required vs Current' : 'Run rate'}</div>
+        <div class="viz-runrate">
+          <div>
+            <div class="crr">${crr}</div>
+            <div class="crr-label">Current RR</div>
+          </div>
+          ${rrrLine}
+        </div>
+      </div>
+      <div class="viz-panel">
+        <div class="viz-label">This Over · ${state.bowler}</div>
+        <div class="viz-overs" id="viz-overs">${oversHTML}</div>
+      </div>
+      <div class="viz-panel">
+        <div class="viz-label">${wktNum}${ord(wktNum)} Wicket Partnership · ${state.partnership.runs} (${state.partnership.balls})</div>
+        <div class="viz-pship-row">
+          <div class="viz-pship-batter">
+            ${renderPortrait(state.batters.strike, 'tiny')}
+            <div class="viz-pship-info">
+              <div class="nm strike">★ ${state.batters.strike}</div>
+              <div class="runs">on strike</div>
+            </div>
+          </div>
+          <div class="viz-pship-batter">
+            ${renderPortrait(state.batters.nonStrike, 'tiny')}
+            <div class="viz-pship-info">
+              <div class="nm">${state.batters.nonStrike}</div>
+              <div class="runs">non-strike</div>
+            </div>
+          </div>
+        </div>
+        <div class="viz-partnership-bar"><div class="fill" style="width:${psBarWidth}%"></div></div>
+      </div>
+      <div class="viz-bowler-strip">
+        ${renderPortrait(state.bowler, 'tiny')}
+        <div class="viz-bowler-info">
+          <div class="nm">${state.bowler} bowling</div>
+          <div class="sub">${state.innings === 1 ? 'Over ' + (state.overs+1) : 'Defending ' + state.target}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function makeBall(outcome) {
+  let cls, txt, runs = 0, wicket = false;
+  switch (outcome) {
+    case 'dot': cls = 'd'; txt = '·'; break;
+    case '1':   cls = 'r1'; txt = '1'; runs = 1; break;
+    case '2':   cls = 'r2'; txt = '2'; runs = 2; break;
+    case '3':   cls = 'r3'; txt = '3'; runs = 3; break;
+    case '4':   cls = 'b';  txt = '4'; runs = 4; break;
+    case '6':   cls = 's';  txt = '6'; runs = 6; break;
+    case 'W':   cls = 'w';  txt = 'W'; wicket = true; break;
+  }
+  return { cls, txt, runs, wicket };
+}
+
+function applyBall(outcome, commentary) {
+  const b = makeBall(outcome);
+  state.score += b.runs;
+  if (b.wicket) state.wickets += 1;
+  state.balls += 1;
+  state.partnership.runs += b.runs;
+  state.partnership.balls += 1;
+  state.currentOver.push(b);
+  if (state.balls >= 6) {
+    state.overs += 1;
+    state.balls = 0;
+    state.currentOver = [];
+  }
+  if (commentary) setComm(commentary);
+  updateScorebar();
+  $('body').innerHTML = renderViz();
+}
+
+function runSim(duration, balls, onDone) {
+  bodyHTML(renderViz());
+  const bar = $('ff-bar');
+  const start = Date.now();
+  bar.style.transition = `width ${duration}ms linear`;
+  setTimeout(() => bar.style.width = '100%', 30);
+
+  const interval = duration / balls.length;
+  balls.forEach((b, i) => {
+    setTimeout(() => applyBall(b.outcome, b.comm), interval * (i + 0.5));
+  });
+
+  const tick = setInterval(() => {
+    const remain = Math.max(0, duration - (Date.now() - start));
+    if ($('ff-time')) $('ff-time').textContent = (remain/1000).toFixed(1) + 's';
+    if (remain <= 0) clearInterval(tick);
+  }, 100);
+
+  setTimeout(onDone, duration + 200);
+}
+
+// === REIGNS MOMENT — now takes actorKey, looks up portrait ===
+function showMoment(opts) {
+  const portraitHTML = opts.actorKey ? renderPortrait(opts.actorKey, 'med') : '';
+  bodyHTML(`
+    <div class="reigns-overlay">
+      <div class="rm-banner">⚡ KEY MOMENT ⚡</div>
+      <div class="rm-card" id="rm-card">
+        <div class="rm-context">${opts.context}</div>
+        <div class="rm-actor">
+          ${portraitHTML}
+          <div class="actor-info">
+            <div class="actor-name">${opts.actorName}</div>
+            <div class="actor-tag">${opts.actorTag}</div>
+            ${opts.actorStats ? '<div class="actor-stats">' + opts.actorStats + '</div>' : ''}
+          </div>
+        </div>
+        <div class="rm-scene">${opts.scene}</div>
+        <div class="rm-narration">${opts.narration}</div>
+        <div class="rm-swipe-row">
+          <button class="rm-swipe left" id="rm-left">
+            <div class="verb">← ${opts.left.verb}</div>
+            <div class="stake">${opts.left.stake}</div>
+          </button>
+          <button class="rm-swipe right" id="rm-right">
+            <div class="verb">${opts.right.verb} →</div>
+            <div class="stake">${opts.right.stake}</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  `);
+  $('rm-left').onclick = () => {
+    $('rm-card').classList.add('shake-left');
+    setTimeout(() => opts.onChoose('left'), 350);
+  };
+  $('rm-right').onclick = () => {
+    $('rm-card').classList.add('shake-right');
+    setTimeout(() => opts.onChoose('right'), 350);
+  };
+}
+
+function showCenter(big, sub, ctx, btnLabel, onClick) {
+  bodyHTML(`
+    <div class="center-card">
+      <div class="big">${big}</div>
+      <div class="sub">${sub}</div>
+      ${ctx ? `<div class="ctx">${ctx}</div>` : ''}
+      <button class="start-btn" id="start-btn">${btnLabel}</button>
+    </div>
+  `);
+  $('start-btn').onclick = onClick;
+}
+
+// ============================================================
+// MATCH SCRIPT
+// ============================================================
+
+function start() {
+  setComm('"Toss won. Mumbai elect to bat. The crowd is electric."');
+  showCenter('MATCH ON', 'Mumbai bat first · T20 · flat pitch', 'Defend a total — your call after this innings.', 'TAP TO START INNINGS', () => phase1_simPP());
+}
+
+function phase1_simPP() {
+  setComm('"Sharma punching it through the off side..."');
+  state.bowler = 'WAHAB';
+  runSim(4500, [
+    {outcome:'1', comm:'"Pushed to mid-on."'},
+    {outcome:'4', comm:'"FOUR! Through covers."'},
+    {outcome:'dot', comm:'"Beaten outside off."'},
+    {outcome:'1'},
+    {outcome:'W', comm:'"GOT HIM! Rohit edges to the keeper."'},
+    {outcome:'2'},
+    {outcome:'4', comm:'"Punched through point!"'},
+    {outcome:'1'},
+  ], () => {
+    state.batters.strike = 'SURYA';
+    state.batters.nonStrike = 'SHARMA';
+    phase2_momentPP();
+  });
+}
+
+function phase2_momentPP() {
+  state.score = 47; state.wickets = 1; state.overs = 6; state.balls = 0;
+  state.currentOver = [];
+  state.batters.strike = 'SHARMA';
+  state.batters.nonStrike = 'SURYA';
+  updateScorebar();
+
+  showMoment({
+    context: 'Powerplay done · 14 overs left',
+    actorKey: 'SHARMA',
+    actorName: 'CAPT. SHARMA',
+    actorTag: 'Set the middle-overs gear',
+    actorStats: '23(15) · 8yr veteran',
+    scene: '🧠',
+    narration: '47/1 — solid platform. <b>Anchor</b> and accelerate at death, or <b>hunt</b> the bowling now?',
+    left:  { verb: 'ANCHOR', stake: 'Steady · 1 wicket max' },
+    right: { verb: 'HUNT',   stake: 'Risky · big total' },
+    onChoose: (c) => {
+      state.middleApproach = c;
+      setComm(c === 'left' ? '"Captain calls for the long game."' : '"Mumbai going on the offensive."');
+      phase3_simMiddle();
+    }
+  });
+}
+
+function phase3_simMiddle() {
+  state.bowler = 'KHAN';
+  const balls = state.middleApproach === 'left'
+    ? [
+      {outcome:'1',comm:'"Pushed to mid-wicket."'},
+      {outcome:'dot'},
+      {outcome:'2',comm:'"Worked through midwicket."'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"FOUR! Driven straight."'},
+      {outcome:'1'},
+      {outcome:'2'},
+      {outcome:'1'},
+      {outcome:'dot'},
+      {outcome:'4',comm:'"Late cut, beautifully timed!"'},
+      {outcome:'1'},
+      {outcome:'dot'},
+    ]
+    : [
+      {outcome:'4',comm:'"Lifted over cover for FOUR!"'},
+      {outcome:'2'},
+      {outcome:'6',comm:'"SIX! Over long-on!"'},
+      {outcome:'dot'},
+      {outcome:'1'},
+      {outcome:'W',comm:'"OUT! Caught at deep midwicket."'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"Driven through extra cover!"'},
+      {outcome:'dot'},
+      {outcome:'2'},
+      {outcome:'1'},
+      {outcome:'6',comm:'"BANG! Into the stand!"'},
+    ];
+  runSim(7000, balls, () => phase4_momentDeath());
+}
+
+function phase4_momentDeath() {
+  if (state.middleApproach === 'left') {
+    state.score = 105; state.wickets = 2;
+  } else {
+    state.score = 128; state.wickets = 3;
+    state.batters.strike = 'SURYA';
+  }
+  state.overs = 16; state.balls = 0;
+  state.currentOver = [];
+  updateScorebar();
+
+  const ctxScore = state.score + '/' + state.wickets + ' · 4 overs left';
+
+  showMoment({
+    context: ctxScore + ' · Death overs',
+    actorKey: state.batters.strike,
+    actorName: state.batters.strike,
+    actorTag: state.middleApproach==='left' ? 'Time to accelerate' : 'Push or hold?',
+    actorStats: 'On strike · ' + (state.middleApproach==='left' ? 'set' : 'fresh'),
+    scene: '💀',
+    narration: 'Death overs. <b>Twos & fours</b> (steady) or <b>six-or-bust</b> (mayhem)?',
+    left:  { verb: '2s & 4s', stake: 'Reliable 50+' },
+    right: { verb: 'BIG HITS', stake: 'Boom or bust' },
+    onChoose: (c) => {
+      state.deathPlan = c;
+      setComm(c === 'left' ? '"Pacing the death, smart cricket."' : '"Going for broke — bring it!"');
+      phase5_simDeath();
+    }
+  });
+}
+
+function phase5_simDeath() {
+  const balls = state.deathPlan === 'left'
+    ? [
+      {outcome:'4',comm:'"Cracked through cover."'},
+      {outcome:'1'}, {outcome:'2'},
+      {outcome:'4',comm:'"FOUR more!"'},
+      {outcome:'1'}, {outcome:'2'}, {outcome:'1'}, {outcome:'dot'},
+      {outcome:'4',comm:'"Slapped over point!"'},
+      {outcome:'2'}, {outcome:'1'},
+      {outcome:'W',comm:'"WICKET in the final over!"'},
+    ]
+    : [
+      {outcome:'6',comm:'"SIX! Into the second tier!"'},
+      {outcome:'W',comm:'"OUT! Holed out to long-off."'},
+      {outcome:'6',comm:'"ANOTHER SIX!"'},
+      {outcome:'dot'},
+      {outcome:'W',comm:'"GONE! Two-in-three!"'},
+      {outcome:'6',comm:'"And still going big — SIX!"'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"FOUR to finish the over!"'},
+      {outcome:'W'},
+      {outcome:'2'},
+      {outcome:'6',comm:'"What a strike — SIX!"'},
+      {outcome:'1'},
+    ];
+  runSim(3500, balls, () => phase6_inningsEnd());
+}
+
+function phase6_inningsEnd() {
+  const total = state.middleApproach === 'left'
+    ? (state.deathPlan === 'left' ? 162 : 158)
+    : (state.deathPlan === 'left' ? 178 : 175);
+  const wkts = state.middleApproach === 'left'
+    ? (state.deathPlan === 'left' ? 5 : 6)
+    : (state.deathPlan === 'left' ? 7 : 8);
+  state.score = total;
+  state.wickets = wkts;
+  state.overs = 20; state.balls = 0;
+  state.myInningsScore = total;
+  state.myInningsWickets = wkts;
+  updateScorebar();
+  setTarget('1ST INNINGS', total, 'final total');
+
+  showCenter(
+    'MUMBAI ' + total + '/' + wkts,
+    'Innings break — Chennai need ' + (total+1) + ' to win',
+    'Now you defend. Bowling change, field set, final-over yorkers — your calls.',
+    'START THE CHASE',
+    () => phase7_setupBowl()
+  );
+}
+
+function phase7_setupBowl() {
+  state.innings = 2;
+  state.target = state.score + 1;
+  state.score = 0; state.wickets = 0; state.overs = 0; state.balls = 0;
+  state.currentOver = [];
+  state.batters = { strike: 'GAYLE-Jr', nonStrike: 'KOHLI-Jr' };
+  state.partnership = { runs: 0, balls: 0 };
+  state.bowler = 'BUMRAH';
+  setText('bat-team', 'CHENNAI 🏏');
+  setText('bowl-team', 'MUMBAI');
+  setTarget('CHASING', state.target, 'in 120 balls');
+  updateScorebar();
+  setComm('"Bumrah opens with the new ball. Two slips, gully..."');
+  setTimeout(phase8_simTheirPP, 800);
+}
+
+function phase8_simTheirPP() {
+  runSim(5000, [
+    {outcome:'dot',comm:'"Beaten on the outside edge."'},
+    {outcome:'4',comm:'"Edge for FOUR through the slips."'},
+    {outcome:'1'},
+    {outcome:'dot'},
+    {outcome:'6',comm:'"SIX! Pulled over square leg!"'},
+    {outcome:'2'},
+    {outcome:'4',comm:'"Driven through covers."'},
+    {outcome:'W',comm:'"BOWLED! Bumrah strikes!"'},
+    {outcome:'1'},
+    {outcome:'dot'},
+    {outcome:'1'},
+    {outcome:'4',comm:'"Cut through point."'},
+  ], () => {
+    state.batters.strike = 'DHONI-Jr';
+    phase9_momentBowlingChange();
+  });
+}
+
+function phase9_momentBowlingChange() {
+  state.score = 48; state.wickets = 1; state.overs = 6; state.balls = 0;
+  state.currentOver = [];
+  state.batters.strike = 'DHONI-Jr';
+  state.batters.nonStrike = 'KOHLI-Jr';
+  updateScorebar();
+
+  showMoment({
+    context: 'Powerplay done · they need ' + (state.target - state.score) + ' in 84',
+    actorKey: 'BUMRAH',
+    actorName: 'BUMRAH 1/24',
+    actorTag: 'Tiring · pull him?',
+    actorStats: 'Star bowler · 4-over spell',
+    scene: '🔄',
+    narration: 'Their captain <b>DHONI-Jr</b> just walked in. Bring on a <b>spinner</b> to choke, or <b>wildcard</b> mystery?',
+    left:  { verb: 'SPINNER', stake: 'Reliable · dries up runs' },
+    right: { verb: 'WILDCARD', stake: 'Mystery · could collapse them' },
+    onChoose: (c) => {
+      state.bowlingChange = c;
+      state.bowler = c === 'left' ? 'CHAHAL' : 'VARUN-CV';
+      setComm(c === 'left' ? '"Spinner on — settled, classical."' : '"Mystery spin — keeper standing up!"');
+      phase10_simMiddleBowl();
+    }
+  });
+}
+
+function phase10_simMiddleBowl() {
+  const balls = state.bowlingChange === 'left'
+    ? [
+      {outcome:'dot'}, {outcome:'1'}, {outcome:'dot'},
+      {outcome:'2'}, {outcome:'1'}, {outcome:'dot'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"Swept fine for FOUR."'},
+      {outcome:'1'},
+      {outcome:'W',comm:'"STUMPED! Down the track and missed."'},
+      {outcome:'2'}, {outcome:'1'},
+    ]
+    : [
+      {outcome:'6',comm:'"SIX! Read the googly perfectly."'},
+      {outcome:'dot'},
+      {outcome:'W',comm:'"BOWLED him! Carrom ball did it."'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"FOUR! Reverse sweep."'},
+      {outcome:'W',comm:'"AGAIN! Caught short third man!"'},
+      {outcome:'dot'},
+      {outcome:'1'}, {outcome:'2'}, {outcome:'dot'},
+      {outcome:'1'}, {outcome:'4'},
+    ];
+  runSim(7000, balls, () => phase11_momentStarBat());
+}
+
+function phase11_momentStarBat() {
+  state.score = state.bowlingChange === 'left' ? 78 : 70;
+  state.wickets = state.bowlingChange === 'left' ? 2 : 3;
+  state.overs = 13; state.balls = 0;
+  state.currentOver = [];
+  state.batters.strike = 'DHONI-Jr';
+  updateScorebar();
+
+  const need = state.target - state.score;
+  const balls = 42;
+
+  showMoment({
+    context: 'DHONI-Jr on 49 · need ' + need + ' in ' + balls,
+    actorKey: 'DHONI-Jr',
+    actorName: 'DHONI-Jr · 49(35)',
+    actorTag: 'Their finisher · dangerous',
+    actorStats: 'Captain · 4★ · 12yr veteran',
+    scene: '🎯',
+    narration: 'He\'s got the strike. Choke him with <b>defensive field</b> or push him with an <b>attacking trap</b>?',
+    left:  { verb: 'DEFENSIVE', stake: 'Boundary riders out' },
+    right: { verb: 'TRAP', stake: 'Slips & gully in' },
+    onChoose: (c) => {
+      state.starBat = c;
+      setComm(c === 'left' ? '"Field spread for the boundaries."' : '"Catchers crowding the bat!"');
+      phase12_simLateBowl();
+    }
+  });
+}
+
+function phase12_simLateBowl() {
+  const balls = state.starBat === 'left'
+    ? [
+      {outcome:'1'}, {outcome:'1'},
+      {outcome:'2',comm:'"DHONI-Jr to 52 — fifty!"'},
+      {outcome:'1'}, {outcome:'dot'}, {outcome:'2'},
+      {outcome:'1'},
+      {outcome:'4',comm:'"FOUR. They keep finding the gaps."'},
+      {outcome:'1'}, {outcome:'1'}, {outcome:'2'}, {outcome:'1'},
+    ]
+    : [
+      {outcome:'4',comm:'"Driven through the open mid-off."'},
+      {outcome:'W',comm:'"GOT HIM! Edged to slip!"'},
+      {outcome:'1'}, {outcome:'4'}, {outcome:'dot'},
+      {outcome:'W',comm:'"And another — caught short fine leg!"'},
+      {outcome:'1'},
+      {outcome:'6',comm:'"SIX over deep cover."'},
+      {outcome:'1'}, {outcome:'2'}, {outcome:'dot'}, {outcome:'1'},
+    ];
+  runSim(5000, balls, () => phase13_finalOver());
+}
+
+function phase13_finalOver() {
+  if (state.starBat === 'left') {
+    state.score = state.target - 14;
+    state.wickets = state.bowlingChange === 'left' ? 3 : 4;
+  } else {
+    state.score = state.target - 11;
+    state.wickets = state.bowlingChange === 'left' ? 5 : 6;
+  }
+  state.overs = 19; state.balls = 0;
+  state.currentOver = [];
+  state.bowler = 'BUMRAH';
+  updateScorebar();
+  setComm('"Bumrah back for the final over. ' + (state.target - state.score) + ' to win."');
+
+  setTimeout(() => finalBall(1, []), 800);
+}
+
+function finalBall(ballNum, results) {
+  const remaining = state.target - state.score;
+  const wktsLeft = 10 - state.wickets;
+
+  if (ballNum > 6 || remaining <= 0 || wktsLeft <= 0) {
+    return phaseResult();
+  }
+
+  showMoment({
+    context: 'Final over · ball ' + ballNum + ' of 6',
+    actorKey: 'BUMRAH',
+    actorName: 'BUMRAH bowling',
+    actorTag: 'Need ' + remaining + ' off ' + (7 - ballNum) + ' · ' + wktsLeft + ' wkt left',
+    actorStats: 'Star bowler · 4★',
+    scene: '⚡',
+    narration: 'Pick your delivery:',
+    left:  { verb: 'YORKER', stake: 'Block dot or single' },
+    right: { verb: 'SLOWER', stake: 'Risk six, get wicket' },
+    onChoose: (c) => {
+      const r = Math.random();
+      let outcome;
+      if (c === 'left') {
+        if (r < 0.35) outcome = 'dot';
+        else if (r < 0.7) outcome = '1';
+        else if (r < 0.85) outcome = '2';
+        else if (r < 0.95) outcome = 'W';
+        else outcome = '4';
+      } else {
+        if (r < 0.3) outcome = 'W';
+        else if (r < 0.55) outcome = '6';
+        else if (r < 0.75) outcome = 'dot';
+        else if (r < 0.9) outcome = '4';
+        else outcome = '1';
+      }
+      const comms = {
+        'dot': '"Blocked! Dot ball."',
+        '1':   '"Worked for a single."',
+        '2':   '"Pushed for two."',
+        '4':   '"FOUR! Slapped away!"',
+        '6':   '"SIX! Into the night sky!"',
+        'W':   '"GONE! Bumrah strikes!"',
+      };
+      applyBall(outcome, comms[outcome]);
+      setTimeout(() => finalBall(ballNum + 1, [...results, outcome]), 1100);
+    }
+  });
+}
+
+function phaseResult() {
+  const won = state.score < state.target;
+  const margin = won
+    ? (state.target - state.score - 1) + ' runs'
+    : (10 - state.wickets) + ' wickets';
+  const headline = won ? 'WON BY ' + margin : 'LOST BY ' + margin;
+  const headlineCls = won ? 'won' : 'lost';
+
+  const momentSummary = [];
+  if (state.middleApproach) momentSummary.push('PP exit: <b>' + (state.middleApproach==='left'?'Anchor':'Hunt') + '</b>');
+  if (state.deathPlan) momentSummary.push('Death plan: <b>' + (state.deathPlan==='left'?'2s & 4s':'Big hits') + '</b>');
+  if (state.bowlingChange) momentSummary.push('Bowling change: <b>' + (state.bowlingChange==='left'?'Spinner':'Wildcard') + '</b>');
+  if (state.starBat) momentSummary.push('Star bat field: <b>' + (state.starBat==='left'?'Defensive':'Trap') + '</b>');
+
+  bodyHTML(`
+    <div class="result-screen">
+      <div class="result-headline ${headlineCls}">${headline}</div>
+      <div class="result-margin">vs Chennai Kings · 6 May, IPL</div>
+      <div class="result-scores">
+        <div class="result-line">
+          <span>MUMBAI 1st innings</span>
+          <span><b>${state.myInningsScore}/${state.myInningsWickets}</b> (20)</span>
+        </div>
+        <div class="result-line">
+          <span>CHENNAI 2nd innings</span>
+          <span><b>${state.score}/${state.wickets}</b> (${state.overs}.${state.balls})</span>
+        </div>
+      </div>
+      <div class="moments-recap">
+        <div class="title">Your key decisions</div>
+        <ul>
+          ${momentSummary.map(m => '<li>' + m + '</li>').join('')}
+        </ul>
+      </div>
+      <button class="start-btn" onclick="location.reload()">PLAY AGAIN</button>
+    </div>
+  `);
+  setComm(won ? '"What a defense! Mumbai win it."' : '"Chennai chase it down. Heartbreaker."');
+}
+
+start();
+</script>
+</body>
+</html>

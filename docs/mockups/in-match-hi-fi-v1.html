@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>In-Match Screen · Hi-Fi v1</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --bg-2: #16161e;
+    --bezel: #0d0d12;
+    --bezel-edge: #2a2a35;
+    --red: #c41e3a;
+    --red-dark: #8b0000;
+    --red-bright: #ef6c6c;
+    --gold: #ffd166;
+    --gold-warn: #f5a623;
+    --green: #2ecc71;
+    --green-dark: #16a34a;
+    --blue: #4a90e2;
+    --blue-bright: #6ec1e4;
+    --blue-mum-1: #1e88e5;
+    --blue-mum-2: #0d47a1;
+    --yellow-che-1: #ffd744;
+    --yellow-che-2: #c08800;
+    --white-soft: rgba(255,255,255,0.85);
+    --white-mid: rgba(255,255,255,0.65);
+    --white-dim: rgba(255,255,255,0.45);
+    --white-faint: rgba(255,255,255,0.25);
+    --surface: rgba(255,255,255,0.04);
+    --surface-2: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+
+    /* country palette (defaults = India red) */
+    --country-1: #c41e3a;
+    --country-2: #8b0000;
+    --country-glow: rgba(196,30,58,0.35);
+    --country-accent: #ef6c6c;
+  }
+  body[data-country="india"] { --country-1:#c41e3a; --country-2:#8b0000; --country-glow: rgba(196,30,58,0.35); --country-accent:#ef6c6c; }
+  body[data-country="aus"]   { --country-1:#0E703F; --country-2:#063a20; --country-glow: rgba(14,112,63,0.45); --country-accent:#FFCD00; }
+  body[data-country="eng"]   { --country-1:#1E2761; --country-2:#0a1238; --country-glow: rgba(30,39,97,0.5); --country-accent:#C8102E; }
+  body[data-country="sa"]    { --country-1:#007749; --country-2:#003e26; --country-glow: rgba(0,119,73,0.45); --country-accent:#FFB81C; }
+  body[data-country="nz"]    { --country-1:#262626; --country-2:#000000; --country-glow: rgba(0,0,0,0.6); --country-accent:#cccccc; }
+  body[data-country="pak"]   { --country-1:#01411C; --country-2:#001b0a; --country-glow: rgba(1,65,28,0.5); --country-accent:#7CB342; }
+  body[data-country="sri"]   { --country-1:#1F4788; --country-2:#0d2654; --country-glow: rgba(31,71,136,0.45); --country-accent:#FFCC00; }
+  body[data-country="wi"]    { --country-1:#7B1A1A; --country-2:#3a0808; --country-glow: rgba(123,26,26,0.45); --country-accent:#FFD700; }
+  body[data-country="ban"]   { --country-1:#006A4E; --country-2:#003524; --country-glow: rgba(0,106,78,0.45); --country-accent:#F42A41; }
+  body[data-country="afg"]   { --country-1:#1A4097; --country-2:#0a1f4d; --country-glow: rgba(26,64,151,0.45); --country-accent:#D32011; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 36px 28px 100px;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(196,30,58,0.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(74,144,226,0.06), transparent 45%),
+      var(--bg);
+    min-height: 100vh;
+  }
+
+  .page-head { max-width: 1200px; margin: 0 auto 28px; }
+  .page-head h1 {
+    font-size: 32px; font-weight: 800;
+    margin: 0; letter-spacing: -0.5px;
+    color: white;
+  }
+  .page-head h1 .accent { color: var(--gold); }
+  .page-head .sub {
+    font-size: 14px;
+    color: var(--white-mid);
+    margin: 6px 0 0;
+    max-width: 700px;
+    line-height: 1.5;
+  }
+  .stamp {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--bg);
+    font-weight: 800;
+    padding: 3px 10px 4px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-left: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  /* tweaks bar */
+  .tweaks-bar {
+    max-width: 1200px;
+    margin: 0 auto 32px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
+    font-size: 13px;
+    color: var(--white-mid);
+  }
+  .tweaks-bar .lbl {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--white-dim);
+    font-weight: 700;
+  }
+  .tweaks-bar .group { display: flex; gap: 4px; }
+  .pill {
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    color: var(--white-mid);
+    padding: 5px 12px;
+    border-radius: 18px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .pill:hover { background: var(--surface); color: white; }
+  .pill.active {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
+    font-weight: 700;
+  }
+
+  /* canvas of phones */
+  .canvas {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 48px 32px;
+    justify-items: center;
+  }
+  .frame {
+    display: flex; flex-direction: column;
+    align-items: center;
+    max-width: 360px;
+  }
+  .frame-label {
+    margin-top: 18px;
+    color: var(--gold);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+  }
+  .frame-sub {
+    font-size: 12px;
+    color: var(--white-dim);
+    margin-top: 4px;
+    text-align: center;
+    max-width: 340px;
+    line-height: 1.4;
+  }
+
+  /* ─── phone bezel ─── */
+  .phone {
+    width: 340px;
+    height: 720px;
+    background: var(--bezel);
+    border: 3px solid var(--bezel-edge);
+    border-radius: 42px;
+    padding: 14px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.05),
+      inset 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .phone * { box-sizing: border-box; }
+  .notch {
+    width: 96px; height: 22px;
+    background: #000;
+    border-radius: 14px;
+    margin: -8px auto 8px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .notch::before, .notch::after {
+    content: '';
+    position: absolute;
+    top: 50%; transform: translateY(-50%);
+    background: #1a1a22;
+    border-radius: 50%;
+  }
+  .notch::before { left: 12px; width: 5px; height: 5px; box-shadow: inset 0 0 0 1px #2a2a35; }
+  .notch::after { right: 16px; width: 7px; height: 7px; background: #2a2a2a; }
+
+  /* ─── header ─── */
+  .header {
+    background: linear-gradient(95deg, var(--country-1) 0%, var(--country-2) 100%);
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px var(--country-glow);
+    color: white;
+    letter-spacing: 0.3px;
+  }
+  .header .team-bat {
+    background: rgba(0,0,0,0.4);
+    padding: 3px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.5px;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 12px;
+  }
+  .header .team-bat .bat-emoji { font-size: 11px; }
+  .header .vs {
+    opacity: 0.7;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+  .header .away {
+    opacity: 0.92;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+  }
+  .header .venue {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.32);
+    padding: 2px 6px 2px 7px;
+    border-radius: 5px;
+    line-height: 1;
+  }
+  .header .venue .v-name {
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-size: 9px;
+    font-weight: 700;
+    opacity: 0.85;
+  }
+  .header .stadium-icon {
+    border-radius: 2px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+
+  /* ─── scorebar ─── */
+  .scorebar {
+    background: var(--bg-2);
+    border: 1px solid rgba(196,30,58,0.4);
+    border-radius: 10px;
+    padding: 6px 11px;
+    margin-top: 6px;
+    display: flex; align-items: center; gap: 10px;
+    flex-shrink: 0;
+  }
+  .scorebar .score-big {
+    font-size: 22px; font-weight: 800;
+    color: var(--gold);
+    letter-spacing: -0.5px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+  }
+  .scorebar .meta {
+    flex: 1;
+    font-size: 10px;
+    color: var(--white-mid);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .scorebar .meta .crr-ar {
+    font-size: 10px;
+    color: var(--green);
+    margin-left: 1px;
+  }
+  .scorebar .meta .innings {
+    display: block;
+    font-size: 8.5px;
+    color: var(--white-dim);
+    letter-spacing: 1.5px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .stadium-icon { vertical-align: middle; flex-shrink: 0; }
+  .scorebar .par-block {
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .scorebar .par-num {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--blue-bright);
+    line-height: 1;
+  }
+  .scorebar .par-num.neg { color: var(--red-bright); }
+  .scorebar .par-sub {
+    display: block;
+    font-size: 8.5px;
+    color: var(--white-dim);
+    letter-spacing: 0.5px;
+    margin-top: 3px;
+    text-transform: uppercase;
+  }
+
+  /* ─── batter chips ─── */
+  .batters {
+    margin-top: 7px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 6px 9px;
+    display: flex; gap: 9px; align-items: center;
+    min-width: 0;
+  }
+  .chip.strike {
+    background: rgba(255,209,102,0.1);
+    border-color: rgba(255,209,102,0.5);
+    box-shadow: 0 0 12px rgba(255,209,102,0.12);
+  }
+  .chip-info { flex: 1; min-width: 0; }
+  .chip-info .nm {
+    font-weight: 700;
+    font-size: 12px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+    line-height: 1.1;
+  }
+  .chip.strike .chip-info .nm { color: var(--gold); }
+  .chip-info .runs {
+    font-size: 10px;
+    color: var(--white-mid);
+    font-variant-numeric: tabular-nums;
+    margin-top: 3px;
+    letter-spacing: 0.2px;
+    line-height: 1.2;
+  }
+  .chip-info .intent {
+    font-size: 9px;
+    color: var(--gold);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chip:not(.strike) .chip-info .intent {
+    color: var(--white-mid);
+    font-weight: 600;
+  }
+  .chip-info .runs .star { color: var(--gold); margin-right: 1px; }
+  .chip-info .stars-line { color: var(--gold); }
+
+  /* ─── split-bg portraits ─── */
+  .sp {
+    position: relative;
+    border: 1.5px solid white;
+    border-radius: 5px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    --skill-top: #cad3dc;
+    --skill-bot: #8a939e;
+    --conf-top: #d9b04a;
+    --conf-bot: #8a6510;
+  }
+  .sp.team-mum { border-color: var(--blue); }
+  .sp.team-che { border-color: var(--gold); }
+  /* skill */
+  .sp.skill-4 { --skill-top: #ffe6a0; --skill-bot: #f5a623; }
+  .sp.skill-3 { --skill-top: #c8e4f8; --skill-bot: #4a90e2; }
+  .sp.skill-2 { --skill-top: #d8dde2; --skill-bot: #7a838e; }
+  .sp.skill-1 { --skill-top: #5a5d66; --skill-bot: #2a2d36; }
+  /* conf */
+  .sp.conf-hot { --conf-top: #ddbb55; --conf-bot: #a07e10; }
+  .sp.conf-steady { --conf-top: #6fcf72; --conf-bot: #2a8a42; }
+  .sp.conf-tired { --conf-top: #a07040; --conf-bot: #5a3820; }
+  .sp.conf-cold { --conf-top: #6a6258; --conf-bot: #383228; }
+
+  .sp .bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      var(--skill-top) 0%, var(--skill-bot) 49%,
+      var(--conf-top) 51%, var(--conf-bot) 100%);
+  }
+  .sp .horizon {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0,0,0,0.4);
+    z-index: 1;
+  }
+  .sp.skill-4 .bg::before {
+    content: '';
+    position: absolute;
+    top: 12%; right: 12%;
+    width: 22%; aspect-ratio: 1;
+    background: radial-gradient(circle, #fff8c8, #ffd166 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(255,209,102,0.6);
+  }
+  .sp .face {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #d9a577, #a87147);
+    border: 1px solid rgba(0,0,0,0.6);
+    z-index: 3;
+  }
+  .sp .face.tan { background: radial-gradient(circle at 35% 35%, #c8956a, #7a5030); }
+  .sp .face.dark { background: radial-gradient(circle at 35% 35%, #8b6a4a, #4a3220); }
+  .sp .helmet {
+    position: absolute;
+    background: linear-gradient(180deg, #f5cb50, #b8860b);
+    border: 1px solid rgba(0,0,0,0.6);
+    z-index: 4;
+  }
+  .sp .helmet.dirty::after {
+    content: '';
+    position: absolute;
+    top: 30%; left: 22%;
+    width: 36%; height: 28%;
+    background: rgba(60,30,10,0.65);
+    border-radius: 4px;
+  }
+  .sp .cap {
+    position: absolute;
+    background: linear-gradient(180deg, #2a98ff, #0d47a1);
+    border: 1px solid rgba(0,0,0,0.6);
+    z-index: 4;
+  }
+  .sp .cap.gold { background: linear-gradient(180deg, #f5cb50, #b8860b); }
+  .sp .num {
+    position: absolute;
+    font-weight: 900;
+    color: rgba(255,255,255,0.85);
+    z-index: 5;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+    font-variant-numeric: tabular-nums;
+  }
+  .sp .stars-corner {
+    position: absolute;
+    top: 2px; right: 2px;
+    color: var(--gold);
+    background: rgba(0,0,0,0.6);
+    padding: 1px 4px;
+    font-size: 8px;
+    border-radius: 3px;
+    z-index: 5;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .sp .badge-corner {
+    position: absolute;
+    top: 2px; left: 2px;
+    background: var(--gold);
+    color: var(--bg);
+    padding: 1px 4px;
+    font-weight: 800;
+    font-size: 8px;
+    border-radius: 3px;
+    z-index: 5;
+    letter-spacing: 0.3px;
+  }
+
+  /* sizes */
+  .sp.tiny { width: 28px; height: 34px; }
+  .sp.tiny .face { width: 14px; height: 14px; top: 7px; left: 50%; transform: translateX(-50%); }
+  .sp.tiny .helmet { top: 2px; left: 50%; transform: translateX(-50%); width: 20px; height: 9px; border-radius: 10px 10px 2px 2px; }
+  .sp.tiny .cap { top: 4px; left: 50%; transform: translateX(-50%); width: 18px; height: 6px; border-radius: 9px 9px 2px 2px; }
+  .sp.tiny .num, .sp.tiny .stars-corner, .sp.tiny .badge-corner { display: none; }
+
+  .sp.med { width: 72px; height: 92px; }
+  .sp.med .face { width: 34px; height: 34px; top: 19px; left: 50%; transform: translateX(-50%); }
+  .sp.med .helmet { top: 6px; left: 50%; transform: translateX(-50%); width: 50px; height: 23px; border-radius: 26px 26px 4px 4px; }
+  .sp.med .cap { top: 13px; left: 50%; transform: translateX(-50%); width: 42px; height: 13px; border-radius: 21px 21px 3px 3px; }
+  .sp.med .num { bottom: 6px; left: 50%; transform: translateX(-50%); font-size: 14px; }
+  .sp.med .stars-corner { font-size: 9px; padding: 1px 4px; }
+  .sp.med .badge-corner { font-size: 9px; padding: 1px 5px; }
+
+  /* km-actor portraits match auto-sim style — no stars, no badges, no num */
+  .km-actor .sp .stars-corner,
+  .km-actor .sp .badge-corner,
+  .km-actor .sp .num { display: none !important; }
+
+  /* ─── bowler row ─── */
+  .bowler-row {
+    margin-top: 6px;
+    background: linear-gradient(90deg, rgba(196,30,58,0.18) 0%, rgba(196,30,58,0.08) 100%);
+    border: 1px solid rgba(196,30,58,0.4);
+    border-radius: 9px;
+    padding: 7px 10px;
+    display: flex; gap: 9px; align-items: center;
+    flex-shrink: 0;
+  }
+  .bowler-row .lbl {
+    font-size: 9px;
+    color: var(--red-bright);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    flex-shrink: 0;
+  }
+  .bowler-row .info { flex: 1; min-width: 0; line-height: 1.15; }
+  .bowler-row .nm { font-weight: 700; color: var(--red-bright); font-size: 12px; letter-spacing: 0.3px; }
+  .bowler-row .stat {
+    font-size: 9px;
+    color: var(--white-mid);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 600;
+    margin-top: 2px;
+    line-height: 1.1;
+  }
+  .bowler-row .figures {
+    font-size: 14px; font-weight: 800;
+    color: white;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.3px;
+  }
+  .bowler-row .figures .ov {
+    font-size: 10px;
+    opacity: 0.6;
+    margin-left: 3px;
+    font-weight: 600;
+  }
+
+  /* ─── stats strip ─── */
+  .stats-strip {
+    margin-top: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 6px 11px;
+    display: flex; align-items: center; gap: 11px;
+    flex-shrink: 0;
+    font-size: 10px;
+  }
+  .stats-strip .cell { display: flex; align-items: center; gap: 5px; }
+  .stats-strip .k {
+    font-size: 8px;
+    color: var(--white-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 700;
+  }
+  .stats-strip .divider {
+    width: 1px; height: 14px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .mini-grad {
+    display: inline-block;
+    width: 44px; height: 7px;
+    background: linear-gradient(90deg, var(--red-bright) 0%, var(--gold-warn) 30%, var(--gold) 50%, #a8d864 70%, var(--green) 100%);
+    border-radius: 3px;
+    position: relative;
+    border: 1px solid var(--border-strong);
+  }
+  .mini-grad .needle {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: white;
+    box-shadow: 0 0 4px rgba(255,255,255,0.6);
+    border-radius: 1px;
+  }
+  .field-pill {
+    display: inline-flex; align-items: center; gap: 3px;
+    background: rgba(196,30,58,0.2);
+    border: 1px solid var(--red-bright);
+    color: var(--red-bright);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+  }
+  .drs-pips { display: inline-flex; gap: 3px; }
+  .drs-pips .pip {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(46,204,113,0.6);
+  }
+  .drs-pips .pip.used {
+    background: rgba(255,255,255,0.15);
+    box-shadow: none;
+  }
+
+  /* ─── hero / chart ─── */
+  .hero {
+    flex: 1; margin-top: 8px;
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .chart {
+    flex: 1; min-height: 0;
+    background:
+      linear-gradient(180deg,
+        rgba(45,60,92,0.6) 0%,
+        rgba(45,60,92,0.6) 58%,
+        rgba(36,52,38,0.7) 58%,
+        rgba(28,40,30,0.8) 100%);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 10px 24px;
+    position: relative;
+    display: flex; align-items: flex-end; gap: 4px;
+    overflow: hidden;
+  }
+  /* chart's stadium scene — A1: floodlights + sparse crowd silhouettes + moon center-right */
+  .chart .moon {
+    position: absolute;
+    top: 18px; left: 62%;
+    width: 13px; height: 13px;
+    background: #f4ecd1;
+    border-radius: 50%;
+    box-shadow:
+      0 0 10px rgba(244,236,209,0.65),
+      inset -2px -2px 2px rgba(0,0,0,0.15);
+    z-index: 1;
+  }
+  .chart .flood {
+    position: absolute;
+    top: 18px;
+    width: 12px;
+    height: 7px;
+    background: linear-gradient(180deg, #fffbcc 0%, #ffd166 100%);
+    border-radius: 1px;
+    box-shadow: 0 0 14px rgba(255,251,204,0.55);
+    z-index: 1;
+    border: 1px solid #6b5a1a;
+  }
+  .chart .flood.l { left: 14px; }
+  .chart .flood.r { right: 14px; }
+  .chart .flood::after {
+    content: '';
+    position: absolute;
+    top: 7px; left: 50%;
+    transform: translateX(-50%);
+    width: 1.5px; height: 10px;
+    background: #1f1d1a;
+  }
+  .chart .crowd-layer {
+    position: absolute;
+    top: 22px; left: 0; right: 0;
+    height: 48%;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 70%, transparent 100%);
+            mask-image: linear-gradient(180deg, rgba(0,0,0,0.9) 70%, transparent 100%);
+  }
+  .chart .crowd-layer svg {
+    width: 100%; height: 100%;
+  }
+  .chart .chart-lbl {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-size: 9px;
+    color: var(--white-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.8px;
+    font-weight: 700;
+    z-index: 2;
+  }
+  .chart .winprob {
+    position: absolute;
+    top: 8px; right: 12px;
+    font-size: 12px; font-weight: 800;
+    color: var(--green);
+    letter-spacing: 0.3px;
+    z-index: 2;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex; gap: 2px; align-items: center;
+  }
+  .chart .winprob .ar { font-size: 10px; }
+
+  /* bars */
+  .bar {
+    flex: 1;
+    background: var(--blue);
+    border-radius: 3px 3px 0 0;
+    min-width: 0;
+    position: relative;
+    z-index: 2;
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.2);
+  }
+  .bar.boundary {
+    background: var(--gold);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.3), 0 0 8px rgba(255,209,102,0.4);
+  }
+  .bar.wkt {
+    background: var(--red);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.2), 0 0 6px rgba(196,30,58,0.4);
+  }
+  .bar.now {
+    background:
+      repeating-linear-gradient(45deg,
+        var(--gold) 0px, var(--gold) 4px,
+        var(--red) 4px, var(--red) 5px);
+    animation: pulseBar 1.4s infinite;
+    box-shadow: 0 0 10px rgba(255,209,102,0.5);
+  }
+
+  .chart .axis {
+    position: absolute;
+    bottom: 5px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between;
+    font-size: 8px;
+    color: var(--white-dim);
+    font-variant-numeric: tabular-nums;
+    z-index: 3;
+    pointer-events: none;
+    letter-spacing: 0.5px;
+  }
+
+  /* ─── CRR worm overlay ─── */
+  .crr-overlay {
+    position: absolute;
+    top: 24px; bottom: 24px;
+    left: 10px; right: 10px;
+    pointer-events: none;
+    z-index: 4;
+  }
+  .crr-overlay svg { width: 100%; height: 100%; overflow: visible; }
+  .crr-line {
+    fill: none;
+    stroke: white;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter:
+      drop-shadow(0 0 6px rgba(255,255,255,0.5))
+      drop-shadow(0 1px 2px rgba(0,0,0,0.6));
+  }
+  .crr-dot {
+    fill: white;
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 0.8;
+  }
+  .crr-now {
+    fill: var(--gold);
+    stroke: white;
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 8px rgba(255,209,102,0.9));
+  }
+  .crr-now-halo {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 1;
+    opacity: 0.6;
+    animation: crrPulse 1.4s infinite;
+  }
+  .target-line {
+    fill: none;
+    stroke: rgba(239,108,108,0.55);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 3;
+  }
+  .target-lbl {
+    fill: var(--red-bright);
+    font-size: 8px;
+    font-weight: 700;
+    font-family: inherit;
+    letter-spacing: 0.5px;
+  }
+  .worm-label {
+    position: absolute;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    pointer-events: none;
+    line-height: 1;
+    white-space: nowrap;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    z-index: 5;
+  }
+  .worm-label.target {
+    color: var(--red-bright);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.7);
+  }
+  .worm-label.crr-now-label {
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 4px rgba(255,209,102,0.6);
+  }
+  .crr-legend {
+    position: absolute;
+    bottom: 24px; left: 12px;
+    z-index: 5;
+    display: inline-flex;
+    gap: 9px;
+    font-size: 8px;
+    color: var(--white-mid);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    background: rgba(0,0,0,0.4);
+    padding: 3px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    backdrop-filter: blur(4px);
+  }
+  .crr-legend .item { display: inline-flex; align-items: center; gap: 4px; }
+  .crr-legend .sw {
+    width: 12px; height: 0;
+    border-top: 2px solid white;
+    border-radius: 1px;
+  }
+  .crr-legend .sw.dash { border-top-style: dashed; border-top-color: var(--red-bright); border-top-width: 1.5px; }
+
+  /* ─── jokers — compact pill version ─── */
+  .jokers {
+    margin-top: 7px;
+    display: flex; gap: 5px;
+    flex-shrink: 0;
+  }
+  .joker {
+    flex: 1;
+    background: linear-gradient(160deg, #2e1a4a, #160929);
+    border: 1.2px solid var(--border-strong);
+    border-radius: 7px;
+    padding: 5px 4px 6px;
+    text-align: center;
+    position: relative;
+    min-width: 0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    min-height: 58px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 2px;
+  }
+  .joker.common { border-color: rgba(255,255,255,0.2); }
+  .joker.rare {
+    border-color: var(--blue);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5), 0 0 0 1px rgba(74,144,226,0.3);
+  }
+  .joker.legendary {
+    border-color: var(--gold);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5), 0 0 10px rgba(255,209,102,0.35);
+    background: linear-gradient(160deg, #3a2a4e, #1d0e2e);
+  }
+  .joker .icon { font-size: 15px; line-height: 1; }
+  .joker .nm {
+    font-size: 8.5px;
+    font-weight: 700;
+    color: #f8e8a6;
+    letter-spacing: 0.2px;
+    line-height: 1.1;
+    max-width: 100%;
+    text-transform: uppercase;
+    text-wrap: balance;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  .joker .effect {
+    font-size: 7.5px;
+    color: var(--white-mid);
+    line-height: 1.15;
+    font-weight: 600;
+    max-width: 100%;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.2px;
+    text-wrap: balance;
+    word-break: break-word;
+  }
+  .joker .rarity-pip {
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 6px; height: 6px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.4);
+  }
+  .joker.rare .rarity-pip { background: var(--blue); box-shadow: 0 0 3px rgba(74,144,226,0.7); }
+  .joker.legendary .rarity-pip { background: var(--gold); box-shadow: 0 0 5px rgba(255,209,102,0.9); }
+  .joker.empty {
+    background: rgba(255,255,255,0.02);
+    border-style: dashed;
+    border-color: rgba(255,255,255,0.15);
+    box-shadow: none;
+  }
+  .joker.empty .nm, .joker.empty .effect { color: var(--white-dim); }
+  .joker.empty .icon { color: var(--white-dim); opacity: 0.6; }
+  .joker .synergy {
+    position: absolute;
+    bottom: -6px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--gold);
+    color: var(--bg);
+    font-size: 6.5px;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 6px;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    z-index: 5;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+
+  /* ─── commentary ─── */
+  .commentary {
+    margin-top: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold-warn);
+    padding: 7px 11px;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--white-soft);
+    display: flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+    border-radius: 0 7px 7px 0;
+    line-height: 1.3;
+  }
+  .commentary .lang {
+    background: var(--gold-warn);
+    color: var(--bg);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    font-style: normal;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── dock ─── */
+  .dock {
+    margin-top: 9px;
+    display: flex; gap: 11px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .thinking {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    height: 50px;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    font-size: 11px;
+    color: var(--white-mid);
+    letter-spacing: 0.5px;
+  }
+  .dots { display: inline-flex; gap: 4px; }
+  .dots span {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.6);
+    animation: bob 1.2s infinite ease-in-out;
+  }
+  .dots span:nth-child(2) { animation-delay: 0.2s; }
+  .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  button.boost {
+    width: 66px; height: 66px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 32%, #2c2f38 0%, #14161c 70%, #0a0c12 100%);
+    border: 2.5px solid #3a3f4a;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    color: rgba(255,255,255,0.55);
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    box-shadow:
+      0 4px 12px rgba(0,0,0,0.5),
+      inset 0 2px 3px rgba(0,0,0,0.45),
+      inset 0 -2px 3px rgba(255,255,255,0.04);
+    position: relative;
+    flex-shrink: 0;
+    cursor: not-allowed;
+    overflow: hidden;
+    isolation: isolate;
+    transition: border-color 0.4s, color 0.4s, cursor 0s;
+  }
+  /* water fill — proportional bottom-to-top, driven by JS every frame.
+     No height transition: JS sets --fill ~60×/sec, so any CSS easing on top
+     of that fights the smooth proportional rise and produces visible stalls
+     near the class-change thresholds (charging → available → full). */
+  button.boost .water {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: var(--fill, 0%);
+    background: linear-gradient(180deg,
+      #5be39a 0%,
+      #2db365 60%,
+      #1e8a4f 100%);
+    z-index: 1;
+    transition: background 0.4s;
+  }
+  /* highlight strip at the water surface */
+  button.boost .water::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 2px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.55), rgba(255,255,255,0));
+    pointer-events: none;
+  }
+  /* charging state: water below full — stays vibrant so contrast holds against dark bg */
+  button.boost.charging .water {
+    background: linear-gradient(180deg,
+      #6aa888 0%,
+      #4f8a6e 100%);
+  }
+  /* button content sits above the water */
+  button.boost .bolt {
+    font-size: 24px; line-height: 1;
+    position: relative; z-index: 2;
+    filter: grayscale(0.6) brightness(0.85);
+    transition: filter 0.4s;
+  }
+  button.boost .word {
+    font-size: 9px; margin-top: 2px; font-weight: 800;
+    position: relative; z-index: 2;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  /* available state (≥50%): pressable but partial-strength */
+  button.boost.available {
+    border-color: #2db365;
+    color: white;
+    cursor: pointer;
+    transition: border-color 0.4s, box-shadow 0.4s;
+    box-shadow:
+      0 4px 12px rgba(0,0,0,0.5),
+      inset 0 2px 3px rgba(0,0,0,0.45),
+      inset 0 -2px 3px rgba(255,255,255,0.04),
+      0 0 calc(var(--glow, 0) * 14px) rgba(46,204,113, calc(var(--glow, 0) * 0.7));
+  }
+  button.boost.available .bolt {
+    filter: none;
+    text-shadow: 0 0 6px rgba(76,220,137,calc(var(--glow, 0) * 0.7));
+  }
+  /* full state (=100%): match the original sharp green orb */
+  button.boost.full {
+    border-color: #15803d;
+    color: white;
+    cursor: pointer;
+    box-shadow:
+      0 6px 18px rgba(46,204,113,0.45),
+      0 2px 4px rgba(0,0,0,0.5),
+      inset 0 2px 2px rgba(255,255,255,0.35),
+      inset 0 -3px 4px rgba(0,0,0,0.3),
+      0 0 18px rgba(46,204,113,0.7);
+    animation: boostBoxGlow 2.4s infinite;
+  }
+  /* at full, swap the linear water for the original radial-gradient orb look.
+     Height stays driven by JS (100% at this point) — no override so the
+     transition into .full is purely a background swap, not a size jump. */
+  button.boost.full .water {
+    background: radial-gradient(circle at 32% 32%, #4cdc89 0%, #1ea750 60%, #0e5c2a 100%);
+  }
+  button.boost.full .water::before { display: none; }
+  button.boost.full .pct { opacity: 0; }
+  button.boost.full .bolt {
+    filter: none;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  }
+  button.boost.full .word { text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+  button.boost.full::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
+    box-shadow: 0 0 18px rgba(46,204,113,0.7);
+    opacity: 0.5;
+    animation: boostGlow 2.4s infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+  button.boost.full.urgent { animation: boostBoxGlowUrgent 0.9s infinite; }
+  @keyframes boostBoxGlow {
+    0%, 100% {
+      box-shadow:
+        0 6px 18px rgba(46,204,113,0.45),
+        0 2px 4px rgba(0,0,0,0.5),
+        inset 0 2px 2px rgba(255,255,255,0.35),
+        inset 0 -3px 4px rgba(0,0,0,0.3),
+        0 0 14px rgba(46,204,113,0.5);
+    }
+    50% {
+      box-shadow:
+        0 6px 18px rgba(46,204,113,0.55),
+        0 2px 4px rgba(0,0,0,0.5),
+        inset 0 2px 2px rgba(255,255,255,0.35),
+        inset 0 -3px 4px rgba(0,0,0,0.3),
+        0 0 24px rgba(46,204,113,0.95);
+    }
+  }
+  @keyframes boostBoxGlowUrgent {
+    0%, 100% { box-shadow: 0 6px 18px rgba(46,204,113,0.5), inset 0 2px 2px rgba(255,255,255,0.35), inset 0 -3px 4px rgba(0,0,0,0.3), 0 0 14px rgba(46,204,113,0.7); }
+    50%      { box-shadow: 0 6px 24px rgba(46,204,113,0.85), inset 0 2px 2px rgba(255,255,255,0.5), inset 0 -3px 4px rgba(0,0,0,0.3), 0 0 32px rgba(46,204,113,1); }
+  }
+  /* fill-level pct label tucked top-right */
+  button.boost .pct {
+    position: absolute;
+    top: -2px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    border: 1px solid var(--border-strong);
+    color: rgba(255,255,255,0.85);
+    font-size: 8.5px;
+    padding: 1px 5px;
+    border-radius: 8px;
+    z-index: 4;
+    letter-spacing: 0.3px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+  button.boost.ready .pct {
+    background: #4cdc89;
+    color: var(--bg);
+    border-color: #4cdc89;
+  }
+  button.boost.available .pct {
+    background: rgba(76,220,137,0.95);
+    color: var(--bg);
+    border-color: #4cdc89;
+  }
+  button.boost .pct { transition: opacity 0.3s, background 0.3s; }
+  /* lifecycle demo loop */
+  @keyframes fillCycle {
+    0%   { height: 5%; }
+    70%  { height: 100%; }
+    85%  { height: 100%; }
+    87%  { height: 5%; }
+    100% { height: 5%; }
+  }
+  button.boost.demo .water { animation: fillCycle 14s ease-in-out infinite; transition: none; }
+  @keyframes waveBob {
+    0%, 100% { transform: translateX(0) translateY(0); }
+    50%      { transform: translateX(-8%) translateY(-1.5px); }
+  }
+
+  /* ─── key-moment overlay ─── */
+  .km-overlay {
+    position: absolute;
+    inset: 17px;
+    border-radius: 26px;
+    background: rgba(0,0,0,0.78);
+    backdrop-filter: blur(8px) saturate(0.8);
+    -webkit-backdrop-filter: blur(8px) saturate(0.8);
+    z-index: 10;
+    padding: 12px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .km-banner {
+    background: linear-gradient(90deg, var(--gold-warn), var(--red-bright));
+    color: var(--bg);
+    text-align: center;
+    padding: 7px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 2.5px;
+    flex-shrink: 0;
+    animation: bannerPulse 1.4s infinite;
+    box-shadow: 0 4px 12px rgba(245,166,35,0.4);
+  }
+  .km-banner.boost {
+    background: linear-gradient(90deg, var(--green), var(--green-dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(46,204,113,0.4);
+  }
+  .km-card {
+    flex: 1; margin-top: 10px;
+    background: linear-gradient(160deg, #2c1a4a, #160929);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 14px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .km-card.boost {
+    background: linear-gradient(160deg, #1a4a2c, #082515);
+  }
+  .km-context {
+    text-align: center;
+    font-size: 10px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: 700;
+  }
+  .km-card.boost .km-context { color: #6dd49a; }
+  .km-actor {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 10px;
+    display: flex; gap: 12px; align-items: center;
+    margin-top: 10px;
+  }
+  .km-actor .info { flex: 1; text-align: left; min-width: 0; }
+  .km-actor .name {
+    font-size: 18px; font-weight: 800;
+    color: white;
+    line-height: 1;
+    letter-spacing: 0.3px;
+  }
+  .km-actor .tag {
+    font-size: 11px;
+    color: var(--gold);
+    margin-top: 5px;
+    line-height: 1.2;
+  }
+  .km-actor .stat {
+    font-size: 9px;
+    color: var(--white-mid);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+  .km-prompt {
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.4;
+    color: white;
+    font-weight: 500;
+    padding: 0 4px;
+    margin: 10px 0;
+  }
+  .km-prompt b {
+    color: var(--gold);
+    font-weight: 800;
+  }
+  .km-card.boost .km-prompt b { color: #6dd49a; }
+  .km-swipes {
+    display: flex; gap: 8px;
+  }
+  .km-swipe {
+    flex: 1;
+    background: linear-gradient(135deg, #1e3a5f, #0f1f33);
+    border: 1.5px solid var(--blue);
+    border-radius: 9px;
+    padding: 10px 8px;
+    text-align: center;
+    color: white;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .km-swipe.r {
+    background: linear-gradient(135deg, #4a1818, #2a0808);
+    border-color: var(--red-bright);
+  }
+  .km-swipe.g {
+    background: linear-gradient(135deg, #1a4a2c, #082515);
+    border-color: var(--green);
+  }
+  .km-swipe .verb {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--blue-bright);
+    letter-spacing: 0.3px;
+  }
+  .km-swipe.r .verb { color: var(--red-bright); }
+  .km-swipe.g .verb { color: #6dd49a; }
+  .km-swipe .stake {
+    font-size: 9px;
+    color: var(--white-mid);
+    margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
+
+  /* ─── animations ─── */
+  @keyframes bob {
+    0%,80%,100% { transform: translateY(0); opacity: 0.4; }
+    40% { transform: translateY(-4px); opacity: 1; }
+  }
+  @keyframes pctTickUp {
+    from { content: '0%'; }
+    to   { content: '100%'; }
+  }
+  @keyframes pulseBar {
+    0%,100% { opacity: 1; transform: scaleY(1); }
+    50% { opacity: 0.88; transform: scaleY(1.03); transform-origin: bottom; }
+  }
+  @keyframes boostGlow {
+    0%,100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.06); }
+  }
+  @keyframes boostUrgent {
+    0%,100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.12); }
+  }
+  @keyframes crrPulse {
+    0% { r: 4; opacity: 0.7; }
+    100% { r: 11; opacity: 0; }
+  }
+  @keyframes bannerPulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.75; }
+  }
+
+  /* ─── footer notes ─── */
+  .footer-notes {
+    max-width: 1200px;
+    margin: 60px auto 0;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 28px;
+    color: var(--white-mid);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .footer-notes h3 {
+    color: white;
+    font-size: 17px;
+    margin: 0 0 8px;
+    font-weight: 700;
+  }
+  .footer-notes h4 {
+    color: var(--gold);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 18px 0 6px;
+    font-weight: 700;
+  }
+  .footer-notes ul { padding-left: 18px; margin: 4px 0; }
+  .footer-notes .col2 { columns: 2; column-gap: 36px; }
+  .footer-notes code {
+    background: var(--surface-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .footer-notes b { color: white; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>In-Match Screen <span class="accent">·</span> Hi-Fi <span class="stamp">v1</span></h1>
+  <p class="sub">v9·1 polished. Three states: auto-sim (95% of match time), key-moment Reigns card (~5%), and the manager boost interrupt.</p>
+</div>
+
+<div class="tweaks-bar">
+  <span class="lbl">Countries:</span>
+  <div class="group" id="region-group">
+    <button class="pill active" data-region="india">🇮🇳 India</button>
+    <button class="pill" data-region="aus">🇦🇺 Australia</button>
+    <button class="pill" data-region="eng">🏴󠁧󠁢󠁥󠁮󠁧󠁿 England</button>
+    <button class="pill" data-region="sa">🇿🇦 South Africa</button>
+    <button class="pill" data-region="nz">🇳🇿 New Zealand</button>
+    <button class="pill" data-region="pak">🇵🇰 Pakistan</button>
+    <button class="pill" data-region="sri">🇱🇰 Sri Lanka</button>
+    <button class="pill" data-region="wi">🌴 West Indies</button>
+    <button class="pill" data-region="ban">🇧🇩 Bangladesh</button>
+    <button class="pill" data-region="afg">🇦🇫 Afghanistan</button>
+  </div>
+</div>
+
+<div class="canvas">
+
+  <div class="frame">
+    <div class="phone">
+      <div class="notch"></div>
+
+      <div class="header">
+        <span class="team-bat">MUMBAI <span class="bat-emoji">🏏</span></span>
+        <span class="vs">vs</span>
+        <span class="away">CHENNAI</span>
+      </div>
+
+      <div class="scorebar">
+        <div class="score-big">53/1</div>
+        <div class="meta">
+          <span class="innings">1ST INNINGS</span>
+          6.4 ov · CRR 8.4 <span class="crr-ar">↑</span>
+        </div>
+        <div class="par-block">
+          <div class="par-num">−0.05</div>
+          <div class="par-sub">vs target RR</div>
+        </div>
+      </div>
+
+      <div class="batters">
+        <div class="chip strike">
+          <div class="sp tiny team-mum skill-4 conf-hot">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">SHARMA</div>
+            <div class="runs">32* (18)</div>
+            <div class="intent">Attacking</div>
+          </div>
+        </div>
+        <div class="chip">
+          <div class="sp tiny team-mum skill-3 conf-steady">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">SURYA</div>
+            <div class="runs">15* (12)</div>
+            <div class="intent">Consolidating</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bowler-row">
+        <span class="lbl">BOWL</span>
+        <div class="sp tiny team-che skill-2 conf-tired">
+          <div class="bg"></div><div class="horizon"></div>
+          <div class="cap gold"></div><div class="face tan"></div>
+        </div>
+        <div class="info">
+          <div class="nm">PATEL</div>
+          <div class="stat">Medium · Tired</div>
+        </div>
+        <div class="figures">0/22<span class="ov">(3.0)</span></div>
+      </div>
+
+      <div class="hero">
+        <div class="chart">
+          <span class="flood l"></span>
+          <span class="flood r"></span>
+          <div class="moon"></div>
+          <div class="crowd-layer">
+            <svg viewBox="0 0 400 110" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" data-rows="4" data-step="12" data-fl="0.65" data-fr="0.65">
+              <path d="M0 100 Q200 24 400 100 L400 110 L0 110 Z" fill="rgba(0,0,0,0.42)"/>
+            </svg>
+          </div>
+
+          <div class="crr-overlay">
+            <svg viewBox="0 0 200 100" preserveAspectRatio="none">
+              <line class="target-line" x1="0" y1="52" x2="200" y2="52"/>
+              <path class="crr-line" d="M5 28 L15 43 L25 44 L35 53.5 L45 50 L55 52 L65 52.3"/>
+              <circle class="crr-dot" cx="5" cy="28" r="1.6"/>
+              <circle class="crr-dot" cx="15" cy="43" r="1.6"/>
+              <circle class="crr-dot" cx="25" cy="44" r="1.6"/>
+              <circle class="crr-dot" cx="35" cy="53.5" r="1.6"/>
+              <circle class="crr-dot" cx="45" cy="50" r="1.6"/>
+              <circle class="crr-dot" cx="55" cy="52" r="1.6"/>
+              <circle class="crr-now-halo" cx="65" cy="52.3" r="4"/>
+              <circle class="crr-now" cx="65" cy="52.3" r="2.6"/>
+            </svg>
+            <span class="worm-label target" style="right: 4px; top: 46%;">target 8.0</span>
+            <span class="worm-label crr-now-label" style="left: 36%; top: 47%;">7.95</span>
+          </div>
+
+          <div class="bar boundary" style="height: 70%;"></div>
+          <div class="bar" style="height: 45%;"></div>
+          <div class="bar" style="height: 55%;"></div>
+          <div class="bar wkt" style="height: 25%;"></div>
+          <div class="bar boundary" style="height: 65%;"></div>
+          <div class="bar" style="height: 40%;"></div>
+          <div class="bar now" style="height: 38%;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+          <div class="bar" style="height: 8%; opacity: 0.18; background: rgba(255,255,255,0.15); box-shadow: none;"></div>
+
+          <div class="crr-legend">
+            <span class="item"><span class="sw"></span>CRR</span>
+            <span class="item"><span class="sw dash"></span>target</span>
+          </div>
+
+          <div class="axis">
+            <span>1</span><span>5</span><span>7 ↑</span><span>15</span><span>20</span>
+          </div>
+        </div>
+
+        <div class="jokers">
+          <div class="joker common">
+            <span class="rarity-pip"></span>
+            <div class="icon">🛡</div>
+            <div class="nm">PP Pressure</div>
+            <div class="effect">+15% bndry</div>
+          </div>
+          <div class="joker rare">
+            <span class="rarity-pip"></span>
+            <div class="icon">🌶</div>
+            <div class="nm">Hot Streak</div>
+            <div class="effect">×2 if 3 in row</div>
+            <span class="synergy">+ pairs Captain</span>
+          </div>
+          <div class="joker legendary">
+            <span class="rarity-pip"></span>
+            <div class="icon">👑</div>
+            <div class="nm">Captain's Word</div>
+            <div class="effect">+10% next KM</div>
+          </div>
+          <div class="joker empty">
+            <div class="icon">+</div>
+            <div class="nm">slot 4</div>
+            <div class="effect">earn</div>
+          </div>
+        </div>
+
+        <div class="commentary">
+          <span class="lang">हि</span>
+          <span>"Mumbai's CRR holding around 8 — right on target. Patel under pressure now."</span>
+        </div>
+
+        <div class="dock">
+          <div class="thinking">
+            <span>next ball</span>
+            <span class="dots"><span></span><span></span><span></span></span>
+          </div>
+          <button class="boost charging" id="boost-btn">
+            <div class="water"></div>
+            <span class="pct" id="boost-pct">5%</span>
+            <span class="bolt">⚡</span>
+            <span class="word">BOOST</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">01 · Auto-sim</div>
+    <div class="frame-sub">PP exit · CRR worm holding target · synergy on Captain · 95% of match time</div>
+  </div>
+
+  <div class="frame">
+    <div class="phone">
+      <div class="notch"></div>
+
+      <div class="header">
+        <span class="team-bat">MUMBAI <span class="bat-emoji">🏏</span></span>
+        <span class="vs">vs</span>
+        <span class="away">CHENNAI</span>
+      </div>
+
+      <div class="scorebar">
+        <div class="score-big">53/1</div>
+        <div class="meta">
+          <span class="innings">1ST INNINGS</span>
+          6.0 ov · CRR 8.8 <span class="crr-ar">↑</span>
+        </div>
+        <div class="par-block">
+          <div class="par-num">+5</div>
+          <div class="par-sub">vs target RR</div>
+        </div>
+      </div>
+
+      <div class="batters">
+        <div class="chip strike">
+          <div class="sp tiny team-mum skill-4 conf-hot">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">SHARMA</div>
+            <div class="runs">32* (18)</div>
+            <div class="intent">Attacking</div>
+          </div>
+        </div>
+        <div class="chip">
+          <div class="sp tiny team-mum skill-3 conf-steady">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">SURYA</div>
+            <div class="runs">15* (12)</div>
+            <div class="intent">Consolidating</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bowler-row">
+        <span class="lbl">BOWL</span>
+        <div class="sp tiny team-che skill-2 conf-tired">
+          <div class="bg"></div><div class="horizon"></div>
+          <div class="cap gold"></div><div class="face tan"></div>
+        </div>
+        <div class="info">
+          <div class="nm">PATEL</div>
+          <div class="stat">Medium · Tired</div>
+        </div>
+        <div class="figures">0/22<span class="ov">(3.0)</span></div>
+      </div>
+
+      <div class="km-overlay" style="position: absolute; inset: auto; top: 244px; right: 17px; bottom: 17px; left: 17px;">
+        <div class="km-banner">⚡ POWERPLAY EXIT ⚡</div>
+        <div class="km-card">
+          <div class="km-context">53/1 · PP done · attack or anchor</div>
+          <div class="km-actor">
+            <div class="sp med team-mum skill-4 conf-hot">
+              <div class="bg"></div><div class="horizon"></div>
+              <div class="helmet"></div><div class="face tan"></div>
+              <span class="num">10</span>
+              <span class="badge-corner">C</span>
+              <span class="stars-corner">★★★★</span>
+            </div>
+            <div class="info">
+              <div class="name">SHARMA</div>
+              <div class="tag">on 32, firing</div>
+              <div class="stat">elite · hot · captain's word ready</div>
+            </div>
+          </div>
+          <div class="km-prompt">PP done with <b>5 above par</b>. Anchor for the build, or keep <b>hunting</b> while Patel's rattled?</div>
+          <div class="km-swipes">
+            <button class="km-swipe">
+              <div class="verb">← ANCHOR</div>
+              <div class="stake">safe 170+ floor</div>
+            </button>
+            <button class="km-swipe r">
+              <div class="verb">HUNT →</div>
+              <div class="stake">push for 200, risk wkt</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">02 · Key Moment</div>
+    <div class="frame-sub">Reigns card · matchup stays visible up top · choice with stakes · ~5% of match time</div>
+  </div>
+
+  <div class="frame">
+    <div class="phone">
+      <div class="notch"></div>
+
+      <div class="header">
+        <span class="team-bat">CHENNAI <span class="bat-emoji">🏏</span></span>
+        <span class="vs">vs</span>
+        <span class="away">MUMBAI</span>
+      </div>
+
+      <div class="scorebar">
+        <div class="score-big">110/3</div>
+        <div class="meta">
+          <span class="innings">CHASING 163</span>
+          14.2 ov · CRR 7.7
+        </div>
+        <div class="par-block">
+          <div class="par-num neg">−0.4</div>
+          <div class="par-sub">vs req RR</div>
+        </div>
+      </div>
+
+      <div class="batters">
+        <div class="chip strike">
+          <div class="sp tiny team-che skill-4 conf-hot">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet dirty"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">DHONI-Jr</div>
+            <div class="runs">49* (35)</div>
+            <div class="intent">Slogging</div>
+          </div>
+        </div>
+        <div class="chip">
+          <div class="sp tiny team-che skill-2 conf-steady">
+            <div class="bg"></div><div class="horizon"></div>
+            <div class="helmet"></div><div class="face tan"></div>
+          </div>
+          <div class="chip-info">
+            <div class="nm">JADEJA-Jr</div>
+            <div class="runs">12* (9)</div>
+            <div class="intent">Searching for Single</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bowler-row">
+        <span class="lbl">BOWL</span>
+        <div class="sp tiny team-mum skill-4 conf-hot">
+          <div class="bg"></div><div class="horizon"></div>
+          <div class="cap"></div><div class="face dark"></div>
+        </div>
+        <div class="info">
+          <div class="nm">BUMRAH</div>
+          <div class="stat">Fast · On Fire</div>
+        </div>
+        <div class="figures">1/22<span class="ov">(3.0)</span></div>
+      </div>
+
+      <div class="km-overlay" style="position: absolute; inset: auto; top: 244px; right: 17px; bottom: 17px; left: 17px;">
+        <div class="km-banner boost">⚡ MANAGER BOOST ⚡</div>
+        <div class="km-card boost">
+          <div class="km-context">Timeout · 2 boosts remaining</div>
+          <div class="km-actor">
+            <div class="sp med team-mum skill-4 conf-hot">
+              <div class="bg"></div><div class="horizon"></div>
+              <div class="cap"></div><div class="face dark"></div>
+              <span class="num">93</span>
+              <span class="badge-corner" style="background: var(--green); color: white;">STAR</span>
+              <span class="stars-corner">★★★★</span>
+            </div>
+            <div class="info">
+              <div class="name">YOUR CALL</div>
+              <div class="tag" style="color: #6dd49a;">DHONI-Jr looks set on 49</div>
+              <div class="stat">burn a boost · 2 of 3 left</div>
+            </div>
+          </div>
+          <div class="km-prompt"><b>Pep talk</b> (+20% dot 6 balls) or <b>field switch</b> (force rotation)?</div>
+          <div class="km-swipes">
+            <button class="km-swipe g">
+              <div class="verb">← PEP TALK</div>
+              <div class="stake">+20% dot · 6 balls</div>
+            </button>
+            <button class="km-swipe g">
+              <div class="verb">FIELD SWITCH →</div>
+              <div class="stake">force rotation</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">03 · Boost Used</div>
+    <div class="frame-sub">Green Reigns variant · manager interrupts mid-sim · 3 per match max</div>
+  </div>
+
+</div>
+
+<div class="footer-notes">
+  <h3>What changed from wireframe to hi-fi</h3>
+  <ul>
+    <li><b>Aesthetic</b> matches the locked match-screen-final.html — dark slate bg, red gradient header, gold accent, system font stack, tabular nums on all stats</li>
+    <li><b>Portraits</b> get real depth: skill-tier sky gradients (gold sun for elite), confidence-tier ground, soft shadows, helmet/cap detail</li>
+    <li><b>CRR worm</b> rendered as a white line w/ glow over the bars — pulsing gold halo at current position</li>
+    <li><b>Stadium scene</b> in chart bg is now a proper night sky w/ crowd-light dots + moon + bowl silhouette</li>
+    <li><b>Boost button</b> 66px round w/ radial gradient + inner/outer shadows + animated glow halo</li>
+    <li><b>Jokers</b> get rarity glow (legendary has gold cast), real card depth, synergy badge as a gold pill</li>
+    <li><b>Key-moment overlay</b> uses backdrop-blur, gradient card, proper button states</li>
+  </ul>
+
+  <h4>Things to test in real play</h4>
+  <div class="col2">
+    <ul>
+      <li>Tap area on the boost button — 66px hits the 44px iOS minimum comfortably</li>
+      <li>Bar colours still readable when chart bg sceneshifts (day vs night) — check w/ region tweak</li>
+      <li>Hindi pill <code>हि</code> font availability across Android — fall back to system Devanagari</li>
+      <li>CRR worm legibility against bars — test in bright sunlight + on small screens (3GB Android constraint)</li>
+    </ul>
+    <ul>
+      <li>Boost glow at 3 vs 2 vs 1 vs 0 — should ramp visually (currently uniform)</li>
+      <li>Animations on low-end Android — pulse + glow may need to disable on devices in low-power mode</li>
+      <li>Key-moment swipe gesture — buttons are tappable, but swipe-left/swipe-right is the Reigns ergonomic</li>
+      <li>Cover the 6 other states next: wicket crisis, milestone ball, bowling change, field set, DRS review, final over ball-by-ball</li>
+    </ul>
+  </div>
+
+  <h4>Next round options</h4>
+  <ul>
+    <li>Stress-test more match states (wicket crisis, milestone, bowling change, final over)</li>
+    <li>Build the <b>result screen</b> next so you've got a full match arc in hi-fi</li>
+    <li>Move to other screens (squad, league, pre-match)</li>
+    <li>Build a working clickable prototype connecting these 3 states + transitions</li>
+  </ul>
+</div>
+
+<script>
+  // country palette + team name swap
+  const teamMap = {
+    india: ['MUMBAI', 'CHENNAI'],
+    aus:   ['SYDNEY', 'PERTH'],
+    eng:   ['LONDON', 'MANCHESTER'],
+    sa:    ['CAPE TOWN', 'JO\u2019BURG'],
+    nz:    ['AUCKLAND', 'WELLINGTON'],
+    pak:   ['KARACHI', 'LAHORE'],
+    sri:   ['COLOMBO', 'KANDY'],
+    wi:    ['TRINIDAD', 'JAMAICA'],
+    ban:   ['DHAKA', 'CHITTAGONG'],
+    afg:   ['KABUL', 'KANDAHAR']
+  };
+  function applyCountry(r) {
+    document.body.dataset.country = r;
+    document.querySelectorAll('.header').forEach((h, i) => {
+      const teams = teamMap[r];
+      const homeIdx = i === 2 ? 1 : 0; // phone 3 has away team batting
+      const home = teams[homeIdx];
+      const away = teams[1 - homeIdx];
+      h.querySelector('.team-bat').innerHTML = home + ' <span class="bat-emoji">🏏</span>';
+      h.querySelector('.away').textContent = away;
+    });
+  }
+  document.getElementById('region-group').addEventListener('click', (e) => {
+    const btn = e.target.closest('.pill');
+    if (!btn) return;
+    document.querySelectorAll('#region-group .pill').forEach(p => p.classList.toggle('active', p === btn));
+    applyCountry(btn.dataset.region);
+  });
+  applyCountry('india');
+</script>
+
+
+<script>
+(() => {
+  const ns = 'http://www.w3.org/2000/svg';
+  function bowlY(x) {
+    const t = x / 400;
+    const u = 1 - t;
+    return u*u * 100 + 2*u*t * 24 + t*t * 100;
+  }
+  document.querySelectorAll('.chart .crowd-layer svg').forEach((svg) => {
+    const rows = parseInt(svg.dataset.rows, 10) || 4;
+    const baseStep = parseFloat(svg.dataset.step) || 12;
+    const fullnessLeft = parseFloat(svg.dataset.fl) || 0.65;
+    const fullnessRight = parseFloat(svg.dataset.fr) || 0.65;
+    for (let row = 0; row < rows; row++) {
+      const rowOffset = 5 + row * 9;
+      const headR = Math.max(0.9, 2.4 - row * (1.3 / rows));
+      const opacity = 0.6 - row * (0.35 / rows);
+      const step = baseStep - row * 0.4;
+      for (let x = 4; x < 396; x += step + (Math.random() * 1.5 - 0.5)) {
+        const density = x < 200 ? fullnessLeft : fullnessRight;
+        if (Math.random() > density) continue;
+        const y = bowlY(x) - rowOffset;
+        if (y < 5) continue;
+        if (y >= bowlY(x)) continue;
+        const head = document.createElementNS(ns, 'ellipse');
+        head.setAttribute('cx', x.toFixed(1));
+        head.setAttribute('cy', y.toFixed(1));
+        head.setAttribute('rx', headR.toFixed(2));
+        head.setAttribute('ry', (headR * 1.2).toFixed(2));
+        head.setAttribute('fill', `rgba(0,0,0,${opacity.toFixed(2)})`);
+        svg.appendChild(head);
+      }
+    }
+  });
+})();
+</script>
+<script>
+  // boost water-meter — fills over time; pressable from 50%, full at 100%;
+  // earlier use = weaker boost (the % IS the strength)
+  (() => {
+    const btn = document.getElementById('boost-btn');
+    if (!btn) return;
+    const pct = document.getElementById('boost-pct');
+    const water = btn.querySelector('.water');
+    let fill = 5;
+    let raf;
+    const FILL_SEC = 12; // empty → full
+
+    function applyFill() {
+      // Drive height DIRECTLY on the water node so the rise is strictly
+      // proportional — no var() indirection, no class-based height overrides.
+      water.style.height = fill.toFixed(2) + '%';
+    }
+
+    function setVisualState() {
+      const available = fill >= 50;
+      const full = fill >= 100;
+      btn.classList.toggle('charging', !available);
+      btn.classList.toggle('available', available && !full);
+      btn.classList.toggle('full', full);
+      // glow strength ramps 0→1 across 50%→100%
+      const glow = Math.max(0, Math.min(1, (fill - 50) / 50));
+      btn.style.setProperty('--glow', glow.toFixed(2));
+      pct.textContent = full ? '' : Math.round(fill) + '%';
+    }
+
+    function tick(prev) {
+      const now = performance.now();
+      const dt = (now - prev) / 1000;
+      if (fill < 100) {
+        fill = Math.min(100, fill + (95 / FILL_SEC) * dt);
+        applyFill();
+        setVisualState();
+      }
+      raf = requestAnimationFrame(() => tick(now));
+    }
+    applyFill();
+    setVisualState();
+    raf = requestAnimationFrame(() => tick(performance.now()));
+
+    btn.addEventListener('click', () => {
+      if (fill < 50) return; // not yet available
+      fill = 5;
+      applyFill();
+      setVisualState();
+    });
+  })();
+</script>
+
+</body>
+</html>

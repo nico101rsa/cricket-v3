@@ -1,0 +1,954 @@
+<h2>The game · revised layout v4</h2>
+<p class="subtitle">Bowler is now its own row UNDER the batters · BOOST is a round floating button bottom-right · auto-sim bar fills the remaining width.</p>
+
+<style>
+  .phone {
+    background: #0d0d12;
+    border: 3px solid #2a2a35;
+    border-radius: 32px;
+    width: 310px;
+    height: 660px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    font-family: -apple-system, sans-serif;
+    color: #eee;
+    box-sizing: border-box;
+  }
+  .phone * { box-sizing: border-box; }
+  .phone-notch {
+    width: 80px; height: 20px;
+    background: #000; border-radius: 12px;
+    margin: -10px auto 8px;
+    flex-shrink: 0;
+  }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-top: 14px;
+  }
+  .frame { text-align: center; }
+  .frame-label {
+    margin-top: 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #ffd166;
+    font-weight: 700;
+  }
+  .frame-sub { font-size: 10px; opacity: 0.6; margin-top: 2px; }
+
+  /* chrome */
+  .bc-header {
+    background: linear-gradient(90deg, #c41e3a 0%, #8b0000 100%);
+    border-radius: 8px;
+    padding: 6px 9px;
+    font-size: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .bc-header .team-bat {
+    background: rgba(0,0,0,0.35);
+    padding: 2px 6px; border-radius: 4px; font-weight: 700;
+  }
+  .bc-header .vs { opacity: 0.6; font-size: 9px; }
+  .bc-scorebar {
+    background: #16161e;
+    border: 1px solid rgba(196,30,58,0.4);
+    border-radius: 8px;
+    margin-top: 6px;
+    padding: 7px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .bc-scorebar .score-big {
+    font-size: 22px; font-weight: 800; color: #ffd166; line-height: 1;
+  }
+  .bc-scorebar .score-meta {
+    font-size: 9px; color: #aaa; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 2px;
+  }
+  .bc-scorebar .target { text-align: right; color: #f5a623; font-size: 10px; }
+  .bc-scorebar .target b { font-size: 14px; color: #fff; display: block; }
+  .bc-scorebar .target .sub { font-size: 9px; opacity: 0.7; }
+
+  /* batter strip — 2 chips */
+  .batter-strip {
+    margin-top: 6px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .player-chip {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 5px 7px;
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    border: 1px solid transparent;
+    min-width: 0;
+  }
+  .player-chip.strike {
+    background: rgba(255,209,102,0.1);
+    border-color: rgba(255,209,102,0.5);
+  }
+  .player-chip-info { flex: 1; font-size: 10px; line-height: 1.25; min-width: 0; }
+  .player-chip-info .nm {
+    font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .player-chip.strike .nm { color: #ffd166; }
+  .player-chip-info .runs {
+    font-size: 9px; opacity: 0.75; font-variant-numeric: tabular-nums;
+  }
+  .player-chip-info .runs .star { color: #ffd166; }
+
+  /* bowler row — separate, under batters, full width */
+  .bowler-row {
+    margin-top: 5px;
+    background: rgba(196,30,58,0.1);
+    border: 1px solid rgba(196,30,58,0.45);
+    border-radius: 8px;
+    padding: 5px 7px;
+    display: flex;
+    gap: 7px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .bowler-row .label {
+    font-size: 8px;
+    text-transform: uppercase;
+    color: #ef6c6c;
+    font-weight: 800;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+  }
+  .bowler-row .info { flex: 1; font-size: 10px; line-height: 1.25; min-width: 0; }
+  .bowler-row .info .nm { font-weight: 700; color: #ef6c6c; }
+  .bowler-row .info .stat {
+    font-size: 9px; opacity: 0.75; font-variant-numeric: tabular-nums;
+  }
+  .bowler-row .figures {
+    font-size: 11px; font-weight: 800;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+  .bowler-row .figures .ov {
+    font-size: 9px; opacity: 0.6; margin-left: 2px;
+  }
+
+  /* commentary */
+  .bc-commentary {
+    background: rgba(255,255,255,0.04);
+    border-left: 2px solid #f5a623;
+    padding: 5px 10px;
+    font-size: 9px;
+    font-style: italic;
+    color: #ccc;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .bc-commentary .lang {
+    background: #f5a623; color: #000; padding: 1px 4px;
+    border-radius: 3px; font-size: 7px; font-weight: 700; font-style: normal;
+    flex-shrink: 0;
+  }
+
+  /* body */
+  .body {
+    flex: 1;
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .viz-grid { display: flex; flex-direction: column; gap: 6px; flex: 1; min-height: 0; }
+  .viz-panel {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .viz-label {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 1px;
+    color: #888; margin-bottom: 6px;
+  }
+  .viz-runrate { display: flex; justify-content: space-between; align-items: center; }
+  .viz-runrate .crr { font-size: 26px; font-weight: 800; color: #ffd166; line-height: 1; }
+  .viz-runrate .crr-label {
+    font-size: 7px; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .viz-runrate .rrr-wrap { text-align: right; color: #ef6c6c; }
+  .viz-runrate .rrr { font-size: 16px; font-weight: 700; color: #fff; }
+  .viz-runrate .rrr-label {
+    font-size: 7px; opacity: 0.6; text-transform: uppercase;
+  }
+  .viz-overs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .viz-ball {
+    aspect-ratio: 1; border-radius: 4px;
+    background: rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .viz-ball.d { color: #555; }
+  .viz-ball.r { background: #1e3a5f; color: #6ec1e4; }
+  .viz-ball.b { background: #ffd166; color: #000; }
+  .viz-ball.s { background: #ef6c6c; color: #000; }
+  .viz-ball.w { background: #c41e3a; color: #fff; }
+  .viz-partnership-bar {
+    height: 8px; background: rgba(255,255,255,0.08);
+    border-radius: 4px; overflow: hidden;
+  }
+  .viz-partnership-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4a90e2, #ffd166);
+  }
+  .viz-pship-meta {
+    display: flex; justify-content: space-between;
+    font-size: 10px; margin-bottom: 5px;
+  }
+  .viz-pship-meta b { color: #ffd166; font-variant-numeric: tabular-nums; }
+
+  /* bottom dock — flex with round boost on the right */
+  .bottom-dock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-shrink: 0;
+  }
+  .ff-bar-flex {
+    flex: 1;
+    background: rgba(245,166,35,0.12);
+    border: 1px dashed rgba(245,166,35,0.4);
+    border-radius: 10px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+  }
+  .ff-bar-flex .icon {
+    font-size: 11px; color: #f5a623;
+    font-weight: 800; letter-spacing: 1px;
+  }
+  .ff-bar-flex .bar-outer {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ff-bar-flex .bar-inner {
+    height: 100%; background: #f5a623; width: 55%;
+  }
+  .boost-round {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #4cdc89, #16a34a 70%, #0f6b30);
+    border: 2px solid #15803d;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: #fff;
+    font-weight: 800;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow:
+      0 6px 14px rgba(46,204,113,0.5),
+      inset 0 2px 0 rgba(255,255,255,0.3),
+      inset 0 -2px 0 rgba(0,0,0,0.2);
+    position: relative;
+    flex-shrink: 0;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .boost-round .lightning {
+    font-size: 20px;
+    line-height: 1;
+  }
+  .boost-round .word {
+    font-size: 9px;
+    margin-top: 1px;
+    line-height: 1;
+  }
+  .boost-round .count {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: #ffd166;
+    color: #000;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #15803d;
+  }
+  .boost-round::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(46,204,113,0.7);
+    opacity: 0.6;
+    pointer-events: none;
+    animation: boostGlow 2.4s infinite;
+  }
+  @keyframes boostGlow {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+  }
+
+  /* portraits */
+  .portrait {
+    position: relative;
+    border-radius: 6px;
+    overflow: hidden;
+    flex-shrink: 0;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+  }
+  .portrait.team-mumbai {
+    background: linear-gradient(180deg, #1e3a5f, #0f1f33);
+    border: 1.5px solid #4a90e2;
+  }
+  .portrait.team-chennai {
+    background: linear-gradient(180deg, #5a4810, #2a1f08);
+    border: 1.5px solid #ffd166;
+  }
+  .portrait.elite { border-color: #ffd166; box-shadow: 0 0 10px rgba(255,209,102,0.5); }
+  .portrait.rookie { border-color: #6ec1e4; }
+  .portrait-face {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #e0b48a, #b8855e);
+    box-shadow: inset -4px -5px 10px rgba(0,0,0,0.3);
+  }
+  .portrait-face.dark { background: radial-gradient(circle at 35% 35%, #8b6a4a, #4a3220); }
+  .portrait-face.tan { background: radial-gradient(circle at 35% 35%, #c8956a, #7a5030); }
+  .portrait-eyes { position: absolute; display: flex; justify-content: space-between; }
+  .portrait-eye { background: #1a0a0a; border-radius: 50%; }
+  .portrait-beard {
+    position: absolute;
+    background: #1a0808;
+    border-radius: 0 0 25px 25px / 0 0 14px 14px;
+  }
+  .portrait-beard.grey { background: linear-gradient(180deg, #3a2515, #5a4030); }
+  .portrait-helmet {
+    position: absolute;
+    border-radius: 28px 28px 4px 4px;
+    border: 1.5px solid #5d4a0e;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .portrait-helmet.gold { background: linear-gradient(180deg, #f5cb50, #b8860b); }
+  .portrait-helmet.yellow { background: linear-gradient(180deg, #ffe066, #d4a017); }
+  .portrait-helmet.dirty::before {
+    content: '';
+    position: absolute;
+    top: 30%; left: 18%;
+    width: 30%; height: 22%;
+    background: rgba(60,30,10,0.7);
+    border-radius: 4px;
+  }
+  .portrait-helmet.dirty::after {
+    content: '';
+    position: absolute;
+    bottom: 18%; right: 15%;
+    width: 18%; height: 14%;
+    background: rgba(50,25,8,0.5);
+    border-radius: 3px;
+  }
+  .portrait-cap {
+    position: absolute;
+    border-radius: 25px 25px 4px 4px;
+    border: 1px solid #062654;
+  }
+  .portrait-cap.blue { background: linear-gradient(180deg, #2a98ff, #0d47a1); }
+  .portrait-cap.yellow { background: linear-gradient(180deg, #ffe066, #d4a017); border-color: #8b6914; }
+  .portrait-jersey {
+    position: absolute;
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+  }
+  .portrait-jersey.blue { background: linear-gradient(180deg, #1e88e5, #0d47a1); }
+  .portrait-jersey.yellow { background: linear-gradient(180deg, #ffd744, #c08800); }
+  .portrait-number {
+    position: absolute; font-weight: 900;
+    color: rgba(255,255,255,0.7);
+    z-index: 2;
+  }
+  .portrait-badge {
+    position: absolute;
+    background: #d4af37;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 800;
+    z-index: 3;
+    letter-spacing: 0.3px;
+  }
+  .portrait-badge.star { background: #f5a623; }
+  .portrait-badge.rookie { background: #6ec1e4; }
+  .portrait-stars { position: absolute; color: #ffd166; z-index: 3; letter-spacing: 0.5px; }
+
+  .portrait.size-med { width: 64px; height: 80px; }
+  .size-med .portrait-face { width: 36px; height: 36px; top: 20px; left: 50%; transform: translateX(-50%); }
+  .size-med .portrait-eyes { top: 14px; left: 8px; right: 8px; }
+  .size-med .portrait-eye { width: 4px; height: 5px; }
+  .size-med .portrait-beard { bottom: 0; left: 8px; right: 8px; height: 12px; }
+  .size-med .portrait-helmet { top: 8px; left: 50%; transform: translateX(-50%); width: 44px; height: 24px; }
+  .size-med .portrait-cap { top: 14px; left: 50%; transform: translateX(-50%); width: 38px; height: 12px; }
+  .size-med .portrait-jersey { bottom: -6px; left: -4px; right: -4px; height: 24px; }
+  .size-med .portrait-number { bottom: 3px; left: 50%; transform: translateX(-50%); font-size: 9px; }
+  .size-med .portrait-badge { top: 2px; left: 2px; font-size: 6px; padding: 1px 3px; }
+  .size-med .portrait-stars { bottom: 3px; right: 3px; font-size: 7px; }
+
+  .portrait.size-tiny { width: 28px; height: 34px; }
+  .size-tiny .portrait-face { width: 16px; height: 16px; top: 7px; left: 50%; transform: translateX(-50%); }
+  .size-tiny .portrait-eyes, .size-tiny .portrait-beard,
+  .size-tiny .portrait-number, .size-tiny .portrait-badge, .size-tiny .portrait-stars { display: none; }
+  .size-tiny .portrait-helmet { top: 2px; left: 50%; transform: translateX(-50%); width: 20px; height: 10px; }
+  .size-tiny .portrait-cap { top: 4px; left: 50%; transform: translateX(-50%); width: 18px; height: 6px; }
+  .size-tiny .portrait-jersey { bottom: -2px; left: -2px; right: -2px; height: 12px; }
+  .size-tiny.elite { box-shadow: 0 0 6px rgba(255,209,102,0.6); }
+
+  /* reigns */
+  .reigns-overlay {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex; flex-direction: column;
+    z-index: 10;
+    padding: 6px;
+  }
+  .rm-banner {
+    background: linear-gradient(90deg, #f5a623, #ef6c6c);
+    color: #000; text-align: center; padding: 5px;
+    border-radius: 6px; font-size: 11px; font-weight: 800;
+    letter-spacing: 2px;
+    flex-shrink: 0;
+  }
+  .rm-banner.boost { background: linear-gradient(90deg, #2ecc71, #16a34a); color: #fff; }
+  .rm-card {
+    flex: 1;
+    background: linear-gradient(160deg, #2c1a4d, #160929);
+    border-radius: 12px;
+    margin-top: 8px;
+    padding: 12px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .rm-card.boost-card { background: linear-gradient(160deg, #1a4a2c, #082515); }
+  .rm-context {
+    text-align: center;
+    font-size: 9px;
+    color: #ffd166;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .rm-card.boost-card .rm-context { color: #6dd49a; }
+  .rm-actor {
+    background: rgba(0,0,0,0.5);
+    padding: 8px;
+    border-radius: 8px;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .rm-actor .actor-info { flex: 1; text-align: left; }
+  .rm-actor .actor-name { font-size: 14px; font-weight: 800; color: #ef6c6c; }
+  .rm-actor .actor-tag { font-size: 9px; opacity: 0.75; margin-top: 2px; }
+  .rm-actor .actor-stats {
+    font-size: 8px; opacity: 0.6; margin-top: 3px;
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+  .rm-scene {
+    flex: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+    margin: 4px 0;
+  }
+  .rm-narration {
+    font-style: italic;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: center;
+    color: #eee;
+    margin-bottom: 10px;
+  }
+  .rm-narration b { color: #ffd166; font-style: normal; }
+  .rm-swipe-row { display: flex; gap: 6px; }
+  .rm-swipe {
+    flex: 1; padding: 8px;
+    border-radius: 8px;
+    text-align: center; font-size: 10px;
+    color: #fff;
+  }
+  .rm-swipe.left {
+    background: linear-gradient(135deg, #1e3a5f, #0f1f33);
+    border: 1px solid #4a90e2;
+  }
+  .rm-swipe.right {
+    background: linear-gradient(135deg, #4a1818, #2a0808);
+    border: 1px solid #ef6c6c;
+  }
+  .rm-swipe .verb { font-size: 12px; font-weight: 800; }
+  .rm-swipe.left .verb { color: #6ec1e4; }
+  .rm-swipe.right .verb { color: #ef6c6c; }
+  .rm-swipe .stake { font-size: 8px; opacity: 0.75; margin-top: 2px; }
+
+  /* result */
+  .result-screen {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 12px;
+  }
+  .result-headline {
+    font-size: 26px; font-weight: 900; line-height: 1.1; margin-bottom: 4px;
+    color: #6ec1e4;
+  }
+  .result-margin { font-size: 11px; opacity: 0.8; margin-bottom: 14px; }
+  .result-scores {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-bottom: 14px; width: 100%;
+  }
+  .result-line {
+    background: rgba(255,255,255,0.04);
+    padding: 8px 12px; border-radius: 8px;
+    display: flex; justify-content: space-between; font-size: 11px;
+  }
+  .result-line b { color: #ffd166; }
+  .moments-recap {
+    width: 100%;
+    background: rgba(196,30,58,0.08);
+    border-left: 3px solid #c41e3a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 9px;
+    text-align: left;
+    margin-bottom: 12px;
+  }
+  .moments-recap .title {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 1px;
+    color: #ef6c6c; margin-bottom: 4px;
+  }
+  .moments-recap ul { padding-left: 14px; line-height: 1.5; }
+  .start-btn {
+    background: linear-gradient(90deg, #c41e3a, #ef6c6c);
+    color: #fff; border: none;
+    padding: 10px 24px; border-radius: 20px;
+    font-size: 12px; font-weight: 700;
+    letter-spacing: 1px;
+  }
+</style>
+
+<div class="gallery">
+
+  <!-- FRAME 1: AUTO-SIM -->
+  <div class="frame">
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="bc-header">
+        <span class="team-bat">MUMBAI 🏏</span>
+        <span class="vs">vs</span>
+        <span>CHENNAI</span>
+      </div>
+      <div class="bc-scorebar">
+        <div>
+          <div class="score-big">72/2</div>
+          <div class="score-meta">9.4 ov · CRR 7.6</div>
+        </div>
+        <div class="target">
+          <span class="sub">1ST INNINGS</span>
+          <b>72</b>
+          <span class="sub">runs · 2 down</span>
+        </div>
+      </div>
+
+      <!-- batters row -->
+      <div class="batter-strip">
+        <div class="player-chip strike">
+          <div class="portrait size-tiny team-mumbai elite">
+            <div class="portrait-jersey blue"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet gold dirty"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">SHARMA</div>
+            <div class="runs"><span class="star">★</span> 41* (28)</div>
+          </div>
+        </div>
+        <div class="player-chip">
+          <div class="portrait size-tiny team-mumbai">
+            <div class="portrait-jersey blue"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet gold"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">SURYA</div>
+            <div class="runs">19* (15)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- bowler row (separate, below batters) -->
+      <div class="bowler-row">
+        <span class="label">BOWL</span>
+        <div class="portrait size-tiny team-chennai elite">
+          <div class="portrait-jersey yellow"></div>
+          <div class="portrait-face tan"></div>
+          <div class="portrait-cap yellow"></div>
+        </div>
+        <div class="info">
+          <div class="nm">KHAN</div>
+          <div class="stat">spin · 4★ · 2.4 ov</div>
+        </div>
+        <div class="figures">1/24<span class="ov">(2.4)</span></div>
+      </div>
+
+      <div class="bc-commentary">
+        <span class="lang">हि</span>
+        <span>"Sharma working it for two..."</span>
+      </div>
+
+      <div class="body">
+        <div class="viz-grid">
+          <div class="viz-panel">
+            <div class="viz-label">Run rate</div>
+            <div class="viz-runrate">
+              <div>
+                <div class="crr">7.6</div>
+                <div class="crr-label">Current RR</div>
+              </div>
+              <div class="rrr-wrap">
+                <div class="rrr">72</div>
+                <div class="rrr-label">runs · 2 down</div>
+              </div>
+            </div>
+          </div>
+          <div class="viz-panel">
+            <div class="viz-label">This Over · KHAN</div>
+            <div class="viz-overs">
+              <div class="viz-ball r">1</div>
+              <div class="viz-ball b">4</div>
+              <div class="viz-ball d">·</div>
+              <div class="viz-ball r">2</div>
+              <div class="viz-ball" style="opacity:.3">?</div>
+              <div class="viz-ball" style="opacity:.3">?</div>
+            </div>
+          </div>
+          <div class="viz-panel">
+            <div class="viz-label">3rd Wicket Partnership</div>
+            <div class="viz-pship-meta">
+              <span>SHARMA &amp; SURYA</span>
+              <b>32 (28)</b>
+            </div>
+            <div class="viz-partnership-bar"><div class="fill" style="width:48%"></div></div>
+          </div>
+        </div>
+
+        <div class="bottom-dock">
+          <div class="ff-bar-flex">
+            <span class="icon">▶▶</span>
+            <div class="bar-outer"><div class="bar-inner"></div></div>
+          </div>
+          <button class="boost-round">
+            <span class="lightning">⚡</span>
+            <span class="word">BOOST</span>
+            <span class="count">3</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">1 · AUTO-SIM</div>
+    <div class="frame-sub">Batters row · bowler row below · round green boost</div>
+  </div>
+
+  <!-- FRAME 2: KEY MOMENT -->
+  <div class="frame">
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="bc-header">
+        <span class="team-bat">MUMBAI 🏏</span>
+        <span class="vs">vs</span>
+        <span>CHENNAI</span>
+      </div>
+      <div class="bc-scorebar">
+        <div>
+          <div class="score-big">128/3</div>
+          <div class="score-meta">16.0 ov · CRR 8.0</div>
+        </div>
+        <div class="target">
+          <span class="sub">1ST INNINGS</span>
+          <b>128</b>
+          <span class="sub">4 ov left</span>
+        </div>
+      </div>
+      <div class="batter-strip">
+        <div class="player-chip strike">
+          <div class="portrait size-tiny team-mumbai elite">
+            <div class="portrait-jersey blue"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet gold dirty"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">SHARMA</div>
+            <div class="runs"><span class="star">★</span> 63* (42)</div>
+          </div>
+        </div>
+        <div class="player-chip">
+          <div class="portrait size-tiny team-mumbai">
+            <div class="portrait-jersey blue"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet gold"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">PANDYA</div>
+            <div class="runs">8* (5)</div>
+          </div>
+        </div>
+      </div>
+      <div class="bowler-row">
+        <span class="label">BOWL</span>
+        <div class="portrait size-tiny team-chennai">
+          <div class="portrait-jersey yellow"></div>
+          <div class="portrait-face tan"></div>
+          <div class="portrait-cap yellow"></div>
+        </div>
+        <div class="info">
+          <div class="nm">PATEL</div>
+          <div class="stat">medium · 2★ · 3 ov</div>
+        </div>
+        <div class="figures">0/32<span class="ov">(3)</span></div>
+      </div>
+      <div class="bc-commentary">
+        <span class="lang">हि</span>
+        <span>"Death overs. Coach is up."</span>
+      </div>
+      <div class="body">
+        <div class="reigns-overlay">
+          <div class="rm-banner">⚡ KEY MOMENT ⚡</div>
+          <div class="rm-card">
+            <div class="rm-context">128/3 · 4 overs left · Death overs</div>
+            <div class="rm-actor">
+              <div class="portrait size-med team-mumbai elite">
+                <div class="portrait-jersey blue"></div>
+                <div class="portrait-face tan"></div>
+                <div class="portrait-eyes"><div class="portrait-eye"></div><div class="portrait-eye"></div></div>
+                <div class="portrait-beard grey"></div>
+                <div class="portrait-helmet gold dirty"></div>
+                <div class="portrait-number">10</div>
+                <div class="portrait-badge">CAPT</div>
+                <div class="portrait-stars">★★★★</div>
+              </div>
+              <div class="actor-info">
+                <div class="actor-name">SHARMA</div>
+                <div class="actor-tag">On strike · time to accelerate</div>
+                <div class="actor-stats">63(42) · captain · 8yr veteran</div>
+              </div>
+            </div>
+            <div class="rm-scene">💀</div>
+            <div class="rm-narration">
+              Death overs. <b>Twos &amp; fours</b> (reliable 50+) or <b>six-or-bust</b> (boom or bust)?
+            </div>
+            <div class="rm-swipe-row">
+              <button class="rm-swipe left">
+                <div class="verb">← 2s &amp; 4s</div>
+                <div class="stake">Reliable 50+</div>
+              </button>
+              <button class="rm-swipe right">
+                <div class="verb">BIG HITS →</div>
+                <div class="stake">Boom or bust</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">2 · KEY MOMENT</div>
+    <div class="frame-sub">Matchup (batters + bowler) stays visible above the Reigns overlay</div>
+  </div>
+
+  <!-- FRAME 3: BOOST USED -->
+  <div class="frame">
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="bc-header">
+        <span class="team-bat">CHENNAI 🏏</span>
+        <span class="vs">vs</span>
+        <span>MUMBAI</span>
+      </div>
+      <div class="bc-scorebar">
+        <div>
+          <div class="score-big">110/3</div>
+          <div class="score-meta">14.2 ov · CRR 7.7</div>
+        </div>
+        <div class="target">
+          <span class="sub">CHASING</span>
+          <b>163</b>
+          <span class="sub">need 53 in 34</span>
+        </div>
+      </div>
+      <div class="batter-strip">
+        <div class="player-chip strike">
+          <div class="portrait size-tiny team-chennai elite">
+            <div class="portrait-jersey yellow"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet yellow dirty"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">DHONI-Jr</div>
+            <div class="runs"><span class="star">★</span> 49* (35)</div>
+          </div>
+        </div>
+        <div class="player-chip">
+          <div class="portrait size-tiny team-chennai">
+            <div class="portrait-jersey yellow"></div>
+            <div class="portrait-face tan"></div>
+            <div class="portrait-helmet yellow"></div>
+          </div>
+          <div class="player-chip-info">
+            <div class="nm">JADEJA-Jr</div>
+            <div class="runs">12* (9)</div>
+          </div>
+        </div>
+      </div>
+      <div class="bowler-row">
+        <span class="label">BOWL</span>
+        <div class="portrait size-tiny team-mumbai elite">
+          <div class="portrait-jersey blue"></div>
+          <div class="portrait-face dark"></div>
+          <div class="portrait-cap blue"></div>
+        </div>
+        <div class="info">
+          <div class="nm">BUMRAH</div>
+          <div class="stat">fast · 4★ · 3 ov</div>
+        </div>
+        <div class="figures">1/22<span class="ov">(3)</span></div>
+      </div>
+      <div class="bc-commentary">
+        <span class="lang">हि</span>
+        <span>"Manager has called timeout!"</span>
+      </div>
+      <div class="body">
+        <div class="reigns-overlay">
+          <div class="rm-banner boost">⚡ MANAGER BOOST ⚡</div>
+          <div class="rm-card boost-card">
+            <div class="rm-context">Timeout · 2 boosts left</div>
+            <div class="rm-actor">
+              <div class="portrait size-med team-mumbai elite">
+                <div class="portrait-jersey blue"></div>
+                <div class="portrait-face dark"></div>
+                <div class="portrait-eyes"><div class="portrait-eye"></div><div class="portrait-eye"></div></div>
+                <div class="portrait-cap blue"></div>
+                <div class="portrait-number">93</div>
+                <div class="portrait-badge star">STAR</div>
+                <div class="portrait-stars">★★★★</div>
+              </div>
+              <div class="actor-info">
+                <div class="actor-name">YOUR CALL</div>
+                <div class="actor-tag">DHONI-Jr looks set · burn a boost?</div>
+                <div class="actor-stats">2 of 3 boosts remaining</div>
+              </div>
+            </div>
+            <div class="rm-scene">🎙️</div>
+            <div class="rm-narration">
+              <b>Pep talk</b> (+20% dot, 6 balls) or <b>field switch</b> (force batter rotation)?
+            </div>
+            <div class="rm-swipe-row">
+              <button class="rm-swipe left" style="border-color:#2ecc71">
+                <div class="verb" style="color:#6dd49a">← PEP TALK</div>
+                <div class="stake">+20% dot · 6 balls</div>
+              </button>
+              <button class="rm-swipe right" style="border-color:#2ecc71;background:linear-gradient(135deg,#1a4a2c,#082515)">
+                <div class="verb" style="color:#6dd49a">FIELD SWITCH →</div>
+                <div class="stake">Force strike rotation</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">3 · BOOST USED</div>
+    <div class="frame-sub">Green Reigns overlay · matchup visible above</div>
+  </div>
+
+  <!-- FRAME 4: RESULT -->
+  <div class="frame">
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="bc-header">
+        <span class="team-bat">MUMBAI 🏏</span>
+        <span class="vs">def</span>
+        <span>CHENNAI</span>
+      </div>
+      <div class="bc-scorebar">
+        <div>
+          <div class="score-big" style="color:#6ec1e4">WON</div>
+          <div class="score-meta">by 4 runs</div>
+        </div>
+        <div class="target">
+          <span class="sub">RESULT</span>
+          <b>+1</b>
+          <span class="sub">league point</span>
+        </div>
+      </div>
+      <div class="bc-commentary">
+        <span class="lang">हि</span>
+        <span>"What a defense! Mumbai win it."</span>
+      </div>
+      <div class="body">
+        <div class="result-screen">
+          <div class="result-headline">WON BY 4 RUNS</div>
+          <div class="result-margin">vs Chennai Kings · 18 May, IPL</div>
+          <div class="result-scores">
+            <div class="result-line">
+              <span>MUMBAI 1st</span>
+              <span><b>162/5</b> (20)</span>
+            </div>
+            <div class="result-line">
+              <span>CHENNAI 2nd</span>
+              <span><b>158/8</b> (20)</span>
+            </div>
+          </div>
+          <div class="moments-recap">
+            <div class="title">Your decisions</div>
+            <ul>
+              <li>PP exit: <b>Anchor</b></li>
+              <li>Death plan: <b>2s &amp; 4s</b></li>
+              <li>Bowling change: <b>Spinner</b></li>
+              <li>Boosts used: <b>2/3</b> (pep talk + field switch)</li>
+              <li>Final over: <b>3× Yorker, 2× Slower</b></li>
+            </ul>
+          </div>
+          <button class="start-btn">PLAY AGAIN</button>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">4 · RESULT</div>
+    <div class="frame-sub">Decision recap · boost usage tracked</div>
+  </div>
+
+</div>
+
+<div class="legend" style="margin-top: 28px; background: rgba(255,255,255,0.04); padding: 14px 18px; border-radius: 10px; max-width: 900px; margin-left: auto; margin-right: auto; font-size: 12px;">
+  <h4 style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #ffd166; margin-bottom: 8px;">v4 changes from v3</h4>
+  <ul style="padding-left: 18px; line-height: 1.7;">
+    <li><b>Bowler back to its own row</b> — sits below the two-batter strip · red-tinted full-width chip · shows figures (1/24) and overs (2.4) prominently on the right</li>
+    <li><b>Round green BOOST button</b> — 56px circle · radial green gradient · lightning ⚡ + "BOOST" label · count badge (3) on the corner · pulsing glow · floats next to the auto-sim bar</li>
+    <li><b>Auto-sim bar flex-grows</b> to fill the remaining width left of the round boost</li>
+    <li>Clean vertical reading order: <code>SCORE → BATTERS → BOWLER → COMMENTARY → VIZ PANELS → DOCK</code></li>
+  </ul>
+</div>

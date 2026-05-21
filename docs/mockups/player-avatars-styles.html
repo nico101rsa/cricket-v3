@@ -1,0 +1,875 @@
+<h2>Three art styles for player identity</h2>
+<p class="subtitle">Same two players in each column — a batter (your captain, veteran, gold helmet) and a bowler (rookie). Shown at three sizes: large (squad/profile), medium (Reigns key-moment card), tiny (scorebar). Identity uses our own iconography — no IPL trade-dress.</p>
+
+<style>
+  .legend {
+    background: rgba(255,255,255,0.04);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px auto;
+    max-width: 700px;
+    font-size: 12px;
+  }
+  .legend h4 {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #ffd166; margin-bottom: 6px;
+  }
+  .legend ul { padding-left: 18px; line-height: 1.6; }
+  .legend code {
+    background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px;
+    font-size: 11px; color: #6ec1e4;
+  }
+
+  .styles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+  }
+  .style-col {
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .style-title {
+    font-size: 16px; font-weight: 800; color: #ffd166;
+    margin-bottom: 4px;
+  }
+  .style-sub {
+    font-size: 11px; opacity: 0.7; margin-bottom: 14px; line-height: 1.4;
+  }
+  .scale-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #888; margin: 14px 0 6px;
+  }
+
+  /* === STYLE A: SILHOUETTE === */
+  .a-large {
+    background: linear-gradient(180deg, #1a2a4a, #0a1530);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .a-silhouette {
+    width: 80px; height: 100px;
+    position: relative;
+  }
+  .a-helmet {
+    width: 60px; height: 36px;
+    background: #d4af37;
+    border-radius: 30px 30px 6px 6px;
+    margin: 0 auto;
+    position: relative;
+    border: 2px solid #8b6914;
+  }
+  .a-helmet::before {
+    content: '';
+    position: absolute;
+    bottom: -3px; left: 6px; right: 6px;
+    height: 5px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 0 0 3px 3px;
+  }
+  .a-helmet.dirty::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 8px;
+    width: 14px; height: 8px;
+    background: rgba(101,67,33,0.6);
+    border-radius: 6px;
+    transform: rotate(-15deg);
+  }
+  .a-helmet.dirty .dirty-2 {
+    content: '';
+    position: absolute;
+    bottom: 4px; right: 10px;
+    width: 8px; height: 5px;
+    background: rgba(101,67,33,0.5);
+    border-radius: 4px;
+  }
+  .a-helmet.bowler-cap {
+    height: 18px;
+    border-radius: 25px 25px 4px 4px;
+    width: 50px;
+    background: #1e88e5;
+    border: 1px solid #0d47a1;
+  }
+  .a-helmet.bowler-cap::before { display: none; }
+  .a-body {
+    width: 70px; height: 56px;
+    background: #1e88e5;
+    margin: 4px auto 0;
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+    position: relative;
+  }
+  .a-body.bowler { background: #1e88e5; }
+  .a-bat {
+    position: absolute;
+    right: -10px; top: 30px;
+    width: 6px; height: 50px;
+    background: #c8a872;
+    transform: rotate(45deg);
+    border-radius: 1px;
+    border: 1px solid #8b6914;
+  }
+  .a-ball {
+    position: absolute;
+    left: -10px; top: 38px;
+    width: 12px; height: 12px;
+    background: #c41e3a;
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(196,30,58,0.5);
+  }
+  .a-info {
+    flex: 1;
+    font-size: 11px;
+  }
+  .a-info .name {
+    font-size: 14px; font-weight: 800; color: #ffd166;
+  }
+  .a-info .role {
+    font-size: 10px; opacity: 0.7;
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-top: 2px;
+  }
+  .a-info .badges {
+    display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;
+  }
+  .a-badge {
+    background: rgba(255,209,102,0.15);
+    border: 1px solid rgba(255,209,102,0.5);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 8px;
+    color: #ffd166;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .a-badge.veteran {
+    background: rgba(150,100,50,0.15);
+    border-color: rgba(150,100,50,0.5);
+    color: #d4a76a;
+  }
+  .a-badge.captain {
+    background: rgba(212,175,55,0.2);
+    border-color: rgba(212,175,55,0.6);
+    color: #ffd166;
+  }
+  .a-badge.rookie {
+    background: rgba(110,193,228,0.15);
+    border-color: rgba(110,193,228,0.4);
+    color: #6ec1e4;
+  }
+
+  /* Reigns slot for A */
+  .reigns-slot {
+    background: linear-gradient(160deg, #2c1a4d, #160929);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 6px;
+  }
+  .reigns-actor {
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    padding: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .reigns-actor .a-silhouette { width: 60px; height: 72px; }
+  .reigns-actor .a-helmet { width: 44px; height: 26px; }
+  .reigns-actor .a-helmet.bowler-cap { height: 14px; width: 38px; }
+  .reigns-actor .a-body { width: 50px; height: 40px; margin-top: 2px; }
+  .reigns-actor .a-bat { right: -8px; top: 22px; height: 36px; }
+  .reigns-actor .a-ball { width: 9px; height: 9px; top: 28px; left: -8px; }
+  .reigns-actor .info {
+    flex: 1;
+  }
+  .reigns-actor .name {
+    font-size: 13px; font-weight: 800; color: #ef6c6c;
+  }
+  .reigns-actor .tag {
+    font-size: 9px; opacity: 0.7; margin-top: 2px;
+  }
+
+  /* Tiny scorebar */
+  .scorebar-tiny {
+    background: #16161e;
+    border: 1px solid rgba(196,30,58,0.4);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font-size: 11px;
+    margin-top: 6px;
+  }
+  .tiny-icon {
+    position: relative;
+    width: 24px; height: 28px;
+    flex-shrink: 0;
+  }
+  .tiny-helmet {
+    width: 20px; height: 10px;
+    border-radius: 10px 10px 2px 2px;
+    margin: 0 auto;
+    background: #d4af37;
+  }
+  .tiny-helmet.b { background: #c8a872; }
+  .tiny-helmet.bowler { background: #1e88e5; height: 5px; width: 16px; }
+  .tiny-body {
+    width: 22px; height: 16px;
+    background: #1e88e5;
+    margin: 1px auto 0;
+    clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+  }
+  .scorebar-tiny .nm {
+    font-weight: 700; font-size: 11px;
+  }
+  .scorebar-tiny .runs {
+    margin-left: auto;
+    font-weight: 800; color: #ffd166;
+  }
+
+  /* === STYLE B: CARTOON === */
+  .b-large {
+    background: linear-gradient(180deg, #2a1a4a, #150a30);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .b-cartoon {
+    width: 80px; height: 100px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .b-head {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: #d4a373;
+    margin: 0 auto;
+    position: relative;
+    box-shadow: inset -8px -8px 12px rgba(0,0,0,0.15);
+  }
+  .b-eyes {
+    position: absolute;
+    top: 28px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between;
+  }
+  .b-eye {
+    width: 6px; height: 6px;
+    background: #222;
+    border-radius: 50%;
+  }
+  .b-mouth {
+    position: absolute;
+    bottom: 14px; left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 6px;
+    border: 2px solid #222;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+  }
+  .b-beard {
+    position: absolute;
+    bottom: 0; left: 8px; right: 8px;
+    height: 16px;
+    background: #2a1810;
+    border-radius: 0 0 30px 30px / 0 0 14px 14px;
+  }
+  .b-hair-long {
+    position: absolute;
+    top: -6px; left: -4px; right: -4px;
+    height: 18px;
+    background: #2a1810;
+    border-radius: 50% 50% 30% 30% / 80% 80% 30% 30%;
+  }
+  .b-helmet-big {
+    position: absolute;
+    top: -10px; left: -2px; right: -2px;
+    height: 32px;
+    background: #d4af37;
+    border-radius: 32px 32px 4px 4px;
+    border: 2px solid #8b6914;
+  }
+  .b-helmet-big.dirty::after {
+    content: '';
+    position: absolute;
+    top: 8px; right: 10px;
+    width: 14px; height: 8px;
+    background: rgba(80,50,20,0.7);
+    border-radius: 6px;
+  }
+  .b-cap-big {
+    position: absolute;
+    top: -4px; left: 2px; right: 2px;
+    height: 16px;
+    background: #1e88e5;
+    border: 1px solid #0d47a1;
+    border-radius: 30px 30px 6px 6px;
+  }
+  .b-body {
+    width: 76px; height: 38px;
+    background: #1e88e5;
+    margin: 4px auto 0;
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+    position: relative;
+  }
+  .b-bat-cartoon {
+    position: absolute;
+    right: -12px; top: 28px;
+    width: 9px; height: 50px;
+    background: linear-gradient(180deg, #c8a872, #8b6914);
+    transform: rotate(45deg);
+    border-radius: 2px;
+    border: 1px solid #5d4a0e;
+  }
+  .b-ball-cartoon {
+    position: absolute;
+    left: -12px; top: 32px;
+    width: 14px; height: 14px;
+    background: radial-gradient(circle at 30% 30%, #ef4040, #8b0000);
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(196,30,58,0.6);
+  }
+
+  /* Reigns slot B */
+  .reigns-slot-b {
+    background: linear-gradient(160deg, #4a1820, #200810);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 6px;
+  }
+  .reigns-slot-b .reigns-actor {
+    background: rgba(0,0,0,0.4);
+  }
+  .reigns-actor .b-cartoon { width: 56px; height: 70px; }
+  .reigns-actor .b-head { width: 44px; height: 44px; }
+  .reigns-actor .b-eyes { top: 20px; left: 9px; right: 9px; }
+  .reigns-actor .b-eye { width: 5px; height: 5px; }
+  .reigns-actor .b-mouth { bottom: 10px; width: 11px; height: 5px; }
+  .reigns-actor .b-beard { height: 11px; }
+  .reigns-actor .b-helmet-big { height: 24px; }
+  .reigns-actor .b-helmet-big.dirty::after { top: 6px; right: 8px; width: 10px; height: 6px; }
+  .reigns-actor .b-cap-big { height: 12px; }
+  .reigns-actor .b-body { width: 56px; height: 28px; margin-top: 2px; }
+  .reigns-actor .b-bat-cartoon { right: -10px; top: 18px; height: 36px; width: 7px; }
+  .reigns-actor .b-ball-cartoon { left: -10px; top: 22px; width: 11px; height: 11px; }
+
+  /* Tiny B */
+  .b-tiny-icon {
+    position: relative;
+    width: 30px; height: 30px;
+    flex-shrink: 0;
+  }
+  .b-tiny-head {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: #d4a373;
+    margin: 4px auto 0;
+    position: relative;
+    box-shadow: inset -4px -4px 6px rgba(0,0,0,0.15);
+  }
+  .b-tiny-helmet {
+    position: absolute;
+    top: -4px; left: -2px; right: -2px;
+    height: 14px;
+    background: #d4af37;
+    border-radius: 14px 14px 2px 2px;
+    border: 1px solid #8b6914;
+  }
+  .b-tiny-cap {
+    position: absolute;
+    top: 0; left: -1px; right: -1px;
+    height: 7px;
+    background: #1e88e5;
+    border-radius: 14px 14px 2px 2px;
+  }
+
+  /* === STYLE C: CARD PORTRAIT === */
+  .c-large {
+    background: linear-gradient(180deg, #0a0a1a, #1a1530);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .c-large::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,209,102,0.15), transparent 60%);
+    pointer-events: none;
+  }
+  .c-portrait {
+    width: 88px; height: 110px;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4a2870, #2a1545);
+    border: 2px solid #d4af37;
+    box-shadow:
+      0 0 18px rgba(212,175,55,0.4),
+      inset 0 0 30px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .c-portrait.bowler {
+    background: linear-gradient(180deg, #285a4a, #103025);
+    border-color: #6ec1e4;
+    box-shadow:
+      0 0 18px rgba(110,193,228,0.4),
+      inset 0 0 30px rgba(0,0,0,0.5);
+  }
+  .c-portrait-face {
+    position: absolute;
+    top: 24px; left: 50%;
+    transform: translateX(-50%);
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #e0b48a, #b8855e);
+    box-shadow: inset -8px -10px 15px rgba(0,0,0,0.3);
+  }
+  .c-portrait-eyes {
+    position: absolute;
+    top: 22px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between;
+  }
+  .c-portrait-eyes .ce {
+    width: 5px; height: 7px;
+    background: #1a0a0a;
+    border-radius: 50%;
+  }
+  .c-portrait-beard {
+    position: absolute;
+    bottom: 0; left: 8px; right: 8px;
+    height: 18px;
+    background: #1a0808;
+    border-radius: 0 0 25px 25px / 0 0 14px 14px;
+  }
+  .c-portrait-helmet {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 28px;
+    background: linear-gradient(180deg, #f5cb50, #b8860b);
+    border-radius: 28px 28px 4px 4px;
+    border: 2px solid #5d4a0e;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  }
+  .c-portrait-helmet.dirty::before {
+    content: '';
+    position: absolute;
+    top: 8px; left: 10px;
+    width: 14px; height: 7px;
+    background: rgba(60,30,10,0.7);
+    border-radius: 4px;
+  }
+  .c-portrait-cap {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    width: 50px; height: 14px;
+    background: linear-gradient(180deg, #2a98ff, #0d47a1);
+    border-radius: 25px 25px 4px 4px;
+    border: 1px solid #062654;
+  }
+  .c-portrait-jersey {
+    position: absolute;
+    bottom: -8px; left: -4px; right: -4px;
+    height: 30px;
+    background: linear-gradient(180deg, #1e88e5, #0d47a1);
+    clip-path: polygon(20% 0, 80% 0, 100% 100%, 0 100%);
+  }
+  .c-portrait-number {
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    font-weight: 900;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    z-index: 2;
+  }
+  .c-frame-badge {
+    position: absolute;
+    top: 2px; left: 2px;
+    background: #d4af37;
+    color: #000;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 7px;
+    font-weight: 800;
+    z-index: 3;
+    letter-spacing: 0.5px;
+  }
+  .c-frame-badge.rookie {
+    background: #6ec1e4;
+  }
+  .c-stars {
+    position: absolute;
+    bottom: 2px; right: 4px;
+    color: #ffd166;
+    font-size: 8px;
+    z-index: 3;
+    letter-spacing: 1px;
+  }
+
+  /* Reigns slot C */
+  .reigns-slot-c {
+    background: linear-gradient(160deg, #2a1545, #0a0a25);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 6px;
+  }
+  .reigns-slot-c .reigns-actor {
+    background: rgba(0,0,0,0.4);
+  }
+  .reigns-actor .c-portrait { width: 60px; height: 76px; }
+  .reigns-actor .c-portrait-face { width: 34px; height: 34px; top: 18px; }
+  .reigns-actor .c-portrait-helmet { width: 40px; height: 20px; top: 8px; }
+  .reigns-actor .c-portrait-helmet.dirty::before { top: 5px; left: 7px; width: 10px; height: 5px; }
+  .reigns-actor .c-portrait-cap { width: 36px; height: 10px; top: 12px; }
+  .reigns-actor .c-portrait-eyes { top: 14px; left: 8px; right: 8px; }
+  .reigns-actor .c-portrait-eyes .ce { width: 4px; height: 5px; }
+  .reigns-actor .c-portrait-beard { height: 12px; }
+  .reigns-actor .c-portrait-jersey { height: 22px; }
+  .reigns-actor .c-portrait-number { font-size: 9px; bottom: 3px; }
+  .reigns-actor .c-frame-badge { font-size: 6px; padding: 1px 3px; }
+  .reigns-actor .c-stars { font-size: 7px; }
+
+  /* Tiny C */
+  .c-tiny-icon {
+    position: relative;
+    width: 26px; height: 30px;
+    flex-shrink: 0;
+    border-radius: 4px;
+    background: linear-gradient(180deg, #4a2870, #2a1545);
+    border: 1px solid #d4af37;
+    overflow: hidden;
+  }
+  .c-tiny-icon.bowler {
+    background: linear-gradient(180deg, #285a4a, #103025);
+    border-color: #6ec1e4;
+  }
+  .c-tiny-icon::after {
+    content: '';
+    position: absolute;
+    top: 8px; left: 50%;
+    transform: translateX(-50%);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #d4a373;
+  }
+  .c-tiny-helmet-overlay {
+    position: absolute;
+    top: 3px; left: 50%;
+    transform: translateX(-50%);
+    width: 18px; height: 9px;
+    background: #d4af37;
+    border-radius: 9px 9px 2px 2px;
+    z-index: 2;
+  }
+  .c-tiny-helmet-overlay.cap {
+    background: #1e88e5;
+    height: 5px;
+    top: 4px;
+  }
+
+  .pros-cons {
+    margin-top: 14px;
+    background: rgba(0,0,0,0.3);
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 10px;
+  }
+  .pros-cons .pc-row { display: flex; gap: 8px; }
+  .pros-cons .pc-row b { display: block; font-size: 9px; text-transform: uppercase; opacity: 0.6; margin-bottom: 2px; }
+  .pros-cons .pros { color: #6ec1e4; flex: 1; }
+  .pros-cons .cons { color: #ef6c6c; flex: 1; }
+</style>
+
+<div class="legend">
+  <h4>What you're looking at</h4>
+  <ul>
+    <li><b>Same two players across all three styles:</b> <code>R. SHARMA</code> (your captain — veteran, gold helmet, top-order bat) and <code>A. KUMAR</code> (rookie spinner, blue cap, fresh kit)</li>
+    <li><b>Achievement layer (IP-safe):</b> gold helmet = your captain, gold frame on portrait = elite, blue trim = rookie. No IPL-style cap colours.</li>
+    <li><b>Wear layer:</b> dirty/scuffed helmet on the captain (veteran of many seasons), clean kit on the rookie</li>
+    <li><b>Identity layer:</b> beard on the captain, clean face on the rookie. Hair, build, skin would all vary per-player procedurally — seeded by player ID, never changes.</li>
+  </ul>
+</div>
+
+<div class="styles-grid">
+
+  <!-- === STYLE A: SILHOUETTE === -->
+  <div class="style-col">
+    <div class="style-title">A · Silhouette</div>
+    <div class="style-sub">Flat colour, minimal detail. Helmet shape + jersey colour does the talking. Reads instantly even at thumbnail size.</div>
+
+    <div class="scale-label">LARGE · squad / profile</div>
+    <div class="a-large">
+      <div class="a-silhouette">
+        <div class="a-helmet dirty"><span class="dirty-2"></span></div>
+        <div class="a-body">
+          <div class="a-bat"></div>
+        </div>
+      </div>
+      <div class="a-info">
+        <div class="name">R. SHARMA</div>
+        <div class="role">Top order · LH</div>
+        <div class="badges">
+          <span class="a-badge captain">★ Captain</span>
+          <span class="a-badge veteran">8 yrs</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="a-large" style="margin-top:8px">
+      <div class="a-silhouette">
+        <div class="a-helmet bowler-cap"></div>
+        <div class="a-body bowler">
+          <div class="a-ball"></div>
+        </div>
+      </div>
+      <div class="a-info">
+        <div class="name" style="color:#6ec1e4">A. KUMAR</div>
+        <div class="role">Leg spin · RH</div>
+        <div class="badges">
+          <span class="a-badge rookie">◇ Rookie</span>
+          <span class="a-badge">Year 1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">MEDIUM · Reigns key-moment card</div>
+    <div class="reigns-slot">
+      <div class="reigns-actor">
+        <div class="a-silhouette">
+          <div class="a-helmet bowler-cap"></div>
+          <div class="a-body bowler">
+            <div class="a-ball"></div>
+          </div>
+        </div>
+        <div class="info">
+          <div class="name">A. KUMAR</div>
+          <div class="tag">leg spin · rookie · 0/14</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">TINY · scorebar</div>
+    <div class="scorebar-tiny">
+      <div class="tiny-icon">
+        <div class="tiny-helmet b"></div>
+        <div class="tiny-body"></div>
+      </div>
+      <span class="nm">SHARMA</span>
+      <span style="opacity:.6; font-size:9px">★ Cap</span>
+      <span class="runs">23(15)</span>
+    </div>
+
+    <div class="pros-cons">
+      <div class="pc-row">
+        <div class="pros"><b>Pros</b>Cheap · scales perfectly · low-end Android friendly · 1000s of variations easy</div>
+        <div class="cons"><b>Cons</b>Less personality · feels "icon" not "character" · less collector appeal</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === STYLE B: CARTOON === -->
+  <div class="style-col">
+    <div class="style-title">B · Cartoon</div>
+    <div class="style-sub">Brawl Stars / Subway Surfers energy. Big head, expressive face, real personality. Faces give procedural identity instant pop.</div>
+
+    <div class="scale-label">LARGE · squad / profile</div>
+    <div class="b-large">
+      <div class="b-cartoon">
+        <div class="b-head">
+          <div class="b-eyes"><div class="b-eye"></div><div class="b-eye"></div></div>
+          <div class="b-mouth"></div>
+          <div class="b-beard"></div>
+          <div class="b-helmet-big dirty"></div>
+        </div>
+        <div class="b-body">
+          <div class="b-bat-cartoon"></div>
+        </div>
+      </div>
+      <div class="a-info">
+        <div class="name">R. SHARMA</div>
+        <div class="role">Top order · LH</div>
+        <div class="badges">
+          <span class="a-badge captain">★ Captain</span>
+          <span class="a-badge veteran">8 yrs</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="b-large" style="margin-top:8px">
+      <div class="b-cartoon">
+        <div class="b-head">
+          <div class="b-eyes"><div class="b-eye"></div><div class="b-eye"></div></div>
+          <div class="b-mouth"></div>
+          <div class="b-cap-big"></div>
+        </div>
+        <div class="b-body">
+          <div class="b-ball-cartoon"></div>
+        </div>
+      </div>
+      <div class="a-info">
+        <div class="name" style="color:#6ec1e4">A. KUMAR</div>
+        <div class="role">Leg spin · RH</div>
+        <div class="badges">
+          <span class="a-badge rookie">◇ Rookie</span>
+          <span class="a-badge">Year 1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">MEDIUM · Reigns key-moment card</div>
+    <div class="reigns-slot-b">
+      <div class="reigns-actor">
+        <div class="b-cartoon">
+          <div class="b-head">
+            <div class="b-eyes"><div class="b-eye"></div><div class="b-eye"></div></div>
+            <div class="b-mouth"></div>
+            <div class="b-cap-big"></div>
+          </div>
+          <div class="b-body">
+            <div class="b-ball-cartoon"></div>
+          </div>
+        </div>
+        <div class="info">
+          <div class="name">A. KUMAR</div>
+          <div class="tag">leg spin · rookie · 0/14</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">TINY · scorebar</div>
+    <div class="scorebar-tiny">
+      <div class="b-tiny-icon">
+        <div class="b-tiny-head">
+          <div class="b-tiny-helmet"></div>
+        </div>
+      </div>
+      <span class="nm">SHARMA</span>
+      <span style="opacity:.6; font-size:9px">★ Cap</span>
+      <span class="runs">23(15)</span>
+    </div>
+
+    <div class="pros-cons">
+      <div class="pc-row">
+        <div class="pros"><b>Pros</b>Maximum personality · best for hair/beard differentiation · feels "alive" · huge appeal in IN casual market</div>
+        <div class="cons"><b>Cons</b>Higher art cost · less serious-cricket feel · proportional limits at tiny sizes</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- === STYLE C: CARD PORTRAIT === -->
+  <div class="style-col">
+    <div class="style-title">C · Card Portrait</div>
+    <div class="style-sub">FIFA Ultimate Team / Marvel Snap / Hearthstone. Framed bust, jersey number, achievement badges in the frame. Premium "collect them" feel.</div>
+
+    <div class="scale-label">LARGE · squad / profile</div>
+    <div class="c-large">
+      <div class="c-portrait">
+        <div class="c-frame-badge">CAPT</div>
+        <div class="c-stars">★★★★</div>
+        <div class="c-portrait-face">
+          <div class="c-portrait-eyes"><div class="ce"></div><div class="ce"></div></div>
+          <div class="c-portrait-beard"></div>
+        </div>
+        <div class="c-portrait-helmet dirty"></div>
+        <div class="c-portrait-jersey"></div>
+        <div class="c-portrait-number">10</div>
+      </div>
+      <div class="a-info">
+        <div class="name">R. SHARMA</div>
+        <div class="role">Top order · LH</div>
+        <div class="badges">
+          <span class="a-badge captain">★ Captain</span>
+          <span class="a-badge veteran">8 yrs</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="c-large" style="margin-top:8px">
+      <div class="c-portrait bowler">
+        <div class="c-frame-badge rookie">RKE</div>
+        <div class="c-stars">★★☆☆</div>
+        <div class="c-portrait-face">
+          <div class="c-portrait-eyes"><div class="ce"></div><div class="ce"></div></div>
+        </div>
+        <div class="c-portrait-cap"></div>
+        <div class="c-portrait-jersey"></div>
+        <div class="c-portrait-number">42</div>
+      </div>
+      <div class="a-info">
+        <div class="name" style="color:#6ec1e4">A. KUMAR</div>
+        <div class="role">Leg spin · RH</div>
+        <div class="badges">
+          <span class="a-badge rookie">◇ Rookie</span>
+          <span class="a-badge">Year 1</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">MEDIUM · Reigns key-moment card</div>
+    <div class="reigns-slot-c">
+      <div class="reigns-actor">
+        <div class="c-portrait bowler">
+          <div class="c-frame-badge rookie">RKE</div>
+          <div class="c-stars">★★☆☆</div>
+          <div class="c-portrait-face">
+            <div class="c-portrait-eyes"><div class="ce"></div><div class="ce"></div></div>
+          </div>
+          <div class="c-portrait-cap"></div>
+          <div class="c-portrait-jersey"></div>
+          <div class="c-portrait-number">42</div>
+        </div>
+        <div class="info">
+          <div class="name">A. KUMAR</div>
+          <div class="tag">leg spin · rookie · 0/14</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="scale-label">TINY · scorebar</div>
+    <div class="scorebar-tiny">
+      <div class="c-tiny-icon">
+        <div class="c-tiny-helmet-overlay"></div>
+      </div>
+      <span class="nm">SHARMA</span>
+      <span style="opacity:.6; font-size:9px">★ Cap</span>
+      <span class="runs">23(15)</span>
+    </div>
+
+    <div class="pros-cons">
+      <div class="pc-row">
+        <div class="pros"><b>Pros</b>Premium feel · "I own this player" energy · frame doubles as achievement display · most monetisable</div>
+        <div class="cons"><b>Cons</b>Highest art cost · doesn't shrink to tiny well (need separate icon) · pulls game toward "collector" not "manager"</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend" style="margin-top: 24px;">
+  <h4>IP-safe achievement language proposed</h4>
+  <ul>
+    <li><code>Gold helmet/border</code> — your team captain</li>
+    <li><code>★ stars</code> (1–4) — player tier, like FUT rating without the orange/purple cap pairing</li>
+    <li><code>CAPT / STAR / RKE / VET</code> badges — text on portrait frame, not colour-coded league awards</li>
+    <li><code>Dirty equipment / scuffed helmet</code> — emergent veteran signal as you suggested</li>
+    <li><code>Jersey colour</code> — team identity (you pick palette per franchise)</li>
+    <li>No orange caps, no purple caps, no IPL-derived trade dress anywhere</li>
+  </ul>
+</div>
+
+<p class="subtitle" style="margin-top: 18px; text-align: center;">
+Which art style feels right — A (Silhouette), B (Cartoon), or C (Card Portrait)? Or describe a mix.
+</p>
