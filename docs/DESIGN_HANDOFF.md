@@ -444,29 +444,33 @@ Default = India (red). `body[data-country="aus|eng|sa|nz|pak|sri|wi|ban|afg"]` s
 | Bangladesh 🇧🇩 | `#006A4E / #003524`, accent `#F42A41` |
 | Afghanistan 🇦🇫 | `#1A4097 / #0a1f4d`, accent `#D32011` |
 
-### 16.3 Portrait — evolved to "split-bg" (REPLACES Section 5 fidelity)
+### 16.3 Portrait — full-bg skill, face-as-Form (SUPERSEDES split-bg, 2026-05-26)
 
-The frame is now a horizontal **split** within the portrait BG: top half = sky (skill tier), bottom half = ground (confidence tier), with a 1px horizon line between. Elite (`skill-4`) gets a **golden sun** in the upper-right of the sky.
+**Updated direction.** The horizon split is dropped. The portrait BG now **fills the full frame** and encodes the player's **skill tier**. The player's **facial expression** carries current **Form** (Hot / Steady / Tired / Cold). Both batters *and* bowlers carry Form; the portrait treatment is identical regardless of role.
 
-| Skill tier | Sky | Meaning |
+| Skill tier | Background | Meaning |
 |---|---|---|
 | `skill-4` | gold/amber + ☀ sun | elite (4★) |
 | `skill-3` | sky blue | default (3★) |
 | `skill-2` | silver/grey | 2★ |
 | `skill-1` | charcoal | rookie (1★) |
 
-| Confidence | Ground | Meaning |
+| Form | Facial expression | Meaning |
 |---|---|---|
-| `conf-hot` | gold/amber | in form / streaking |
-| `conf-steady` | green | reliable / current |
-| `conf-tired` | brown | fatigued |
-| `conf-cold` | grey | out of form |
+| `form-hot` | confident / chin-up / slight grin | in form / streaking |
+| `form-steady` | neutral / focused | reliable / current |
+| `form-tired` | drawn / faint frown | fatigued |
+| `form-cold` | downcast / shoulders slumped | out of form |
 
-**Why this matters:** the portrait now carries *two extra layers* (current skill *and* current form) at a glance — no text needed. A veteran with dirty helmet on green ground = experienced and feeling good. A rookie on brown ground = green and struggling. This is a much stronger emergent-storytelling lever than what Section 5 originally specified.
+**Why this matters:** the face is the natural place for emotion. A slumped batter at the crease is universally legible — far more so than a brown ground tile underneath them. The bg stays clean and stable (skill = identity, doesn't change in-Match) while the face actively narrates the live emotional arc.
 
-The achievement/wear/identity 3-layer model from Section 5 still applies on top.
+The achievement / wear / identity 3-layer model from Section 5 still applies on top.
 
-Portrait sizes are now: `tiny` (28×34), `med` (72×92). Large variant TBD for squad screens.
+**Tiny-size note (28×34px).** Facial expressions won't read at tiny size — too few pixels. At `tiny`, Form is signalled by a **coloured outline/glow around the portrait** (gold = hot, green = steady, brown = tired, grey = cold) — the old ground-tier palette, repurposed as a frame accent. Skill stays as the bg fill. Faces handle Form at `med` and `large` sizes; the glow handles `tiny`.
+
+Portrait sizes are still: `tiny` (28×34), `med` (72×92). Large variant TBD for squad screens.
+
+**Earlier "split-bg" treatment** is deprecated — left in version history but no longer the design.
 
 ### 16.4 Player intent indicator (NEW)
 
@@ -519,12 +523,14 @@ The boost is no longer a "3 per match" counter. It's a **water-meter that refill
   - **Charging** (< 50%) — dim, not pressable, shows `5%` / `34%` etc.
   - **Available** (50–99%) — glowing green, ramping
   - **Full** (100%) — max glow, urgent pulse
-- **The fill % IS the boost strength** — use early for a weaker effect, wait for max
-- Click → resets to 5%, starts charging again
+- **The fill % at press IS the boost strength** — use early for a weaker effect, wait for max
+- Click → strength locks at the current fill %, then the meter **drains** ball-by-ball; the boost is active until the meter hits 0%, after which it starts recharging again. Higher fill at press = both stronger *and* longer boost (total effect scales ≈ fill²).
 
-This is much better than the strawman in Section 9. **It solves "should I save my boost?" tension elegantly** — the answer is always a live trade-off between strength and time. The pep-talk / field-switch / substitution menu still appears on click; only the gating model changed.
+This is much better than the strawman in Section 9. **It solves "should I save my boost?" tension elegantly** — the answer is always a live trade-off between strength and time.
 
-Match-length tuning: at ~2:45 per match, a 12-sec recharge gives ~13 max-strength uses possible — natural cap is "as many as you can fit". Adjust the recharge interval to throttle.
+**Update (2026-05-27, supersedes the §9 menu):** the boost has no menu. Pressing applies a side-aware all-Attribute buff (batting Attributes while batting, bowling Attributes while bowling). Magnitude is locked at press from current fill % (50% → half strength, 100% → full). Once pressed, the meter **drains** while the boost is active; the boost ends when the meter reaches 0%, after which recharge begins. Higher fill at press therefore yields both a *stronger* AND *longer* boost — a single-axis trade. The §9 menu (Pep Talk / Field Switch / Substitution / DRS Review / Captain's Word) is dropped in favour of this single, legible action — see ADR 0005.
+
+Match-length tuning: at ~2:45 per match, a 12-sec recharge gives ~13 max-strength uses — too generous. Recommend ~25s recharge (target ~6 max-strength uses per Match); balance-harness tuning territory.
 
 ### 16.9 Dock indicator — "thinking…" (EVOLVED)
 

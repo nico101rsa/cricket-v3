@@ -7,7 +7,7 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 ## Current status
 
 **Phase:** Pre-build · design
-**Next theme:** Gameplay & balance (in-match KMs · sim math · tuning)
+**Next theme:** Jokers & meta loop
 **Where to do it:** Fresh chat
 
 ---
@@ -16,7 +16,7 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 
 Start a new chat. Prime it with:
 
-> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, and `docs/DESIGN_HANDOFF.md`. Scope + Game shape is locked (CONTEXT.md + ADRs 0001–0002). We're at the Gameplay & balance theme: design the 5 remaining Key Moment types, the auto-sim math, and Tour difficulty tuning. Use the `grill-with-docs` skill.
+> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, and `docs/DESIGN_HANDOFF.md`, plus ADRs 0001–0006. Scope, Game shape, and Gameplay & balance are locked. We're at the Jokers & meta loop theme: design the Joker pool (effect types, rarities, synergies, acquisition flow) and the between-Match flow (Joker drafts, Pay spending, Offer screen). The 6-verb typed-effect palette (ADR 0006) is the only lever Jokers can pull. Use the `grill-with-docs` skill.
 
 (`grill-with-docs` from Matt Pocock's skills repo — installed at `~/.claude/skills/grill-with-docs/`. Better than `/superpowers:brainstorming` for conceptual / non-visual work.)
 
@@ -26,7 +26,7 @@ Start a new chat. Prime it with:
 
 1. ~~**Scope**~~ ✅ — V1 locked: SA+AUS roguelite cricket-career (ADR 0002)
 2. ~~**Game shape**~~ ✅ — Career grid (Levels × Tours), Offers/Pay/Affinity (CONTEXT.md)
-3. **Gameplay & balance** — in-match (mostly locked) + 5 remaining KMs + sim math + tuning
+3. ~~**Gameplay & balance**~~ ✅ — sim math (ADR 0004), skill model (ADR 0003), Manager Boost (ADR 0005), 6-verb effect palette (ADR 0006), all 8 KMs designed. Numerical tuning deferred to the balance harness.
 4. **Jokers & meta loop** — pool + rarities + synergies + acquisition + between-match flow
 5. **Around-the-match screens** — pre-match · main menu · onboarding · result · settings
 6. **Visual & audio content** — joker art · backgrounds · icons · music · SFX · commentary bank
@@ -54,13 +54,20 @@ Playtest threads through all of them — continuous, not a discrete item.
 | 2026-05-21 | Career grid: 3 Levels × 8 Tours | Club/City/Province × named tours; overlapping difficulty bands |
 | 2026-05-21 | Career layer: Offers / Pay / Affinity | Light career sim; full club-management deferred |
 | 2026-05-21 | `CONTEXT.md` created | Domain glossary — source of truth for terminology |
+| 2026-05-22 | Skill model locked | ADR 0003 — 3 layers (Tactical / Strategic / Meta), no-dominant-answer, never surface the math |
+| 2026-05-25 | Auto-sim architecture locked | ADR 0004 — headless, deterministic-seedable, ball-by-ball, 2-stage logistic, 4 Attributes (Power/Composure/Attack/Control), only-Player-statted |
+| 2026-05-26 | 5 remaining Key Moments designed | Wicket Crisis, Milestone Ball, Bowling Change, Field Set, DRS Review |
+| 2026-05-26 | Portrait redesign | Full-bg = skill, facial expression = Form (supersedes split-bg, DESIGN_HANDOFF §16.3) |
+| 2026-05-27 | Manager Boost simplified | ADR 0005 — no menu, side-aware all-Attribute buff, drain-on-press, fill² scaling |
+| 2026-05-28 | 6-verb typed-effect palette | ADR 0006 — every in-Match mechanic composes from `setIntent` / `setNextBowler` / `fieldMode` / `buffNextBalls` / `formEvent` / `tryReview` |
+| 2026-05-28 | Theme 3 closed | Gameplay & balance design complete; numerical tuning is balance-harness work |
 
 ---
 
 ## Reference docs
 
 - `CONTEXT.md` — domain glossary · source of truth for terminology
-- `docs/adr/` — design decision records (0001 target market · 0002 V1 game shape)
+- `docs/adr/` — design decision records (0001 target market · 0002 V1 game shape · 0003 skill model · 0004 auto-sim architecture · 0005 Manager Boost no-menu · 0006 typed-effect palette)
 - `docs/DESIGN_HANDOFF.md` — locked design system (chrome, portraits, KMs, IP rules, palette, fonts, motion, country system, hi-fi additions)
 - `docs/RESEARCH_LAUNCH_PLAYBOOK.md` — full launch research (not on build critical path)
 - `docs/mockups/match-screen-final.html` — locked design (4 frames)
@@ -91,6 +98,8 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 - Scope + Game shape theme — V1 locked as a roguelite cricket-career
 - `CONTEXT.md` domain glossary + ADRs 0001 (target market) & 0002 (V1 shape)
 - Git repo initialised + pushed to GitHub (private: `github.com/nico101rsa/cricket-sim`)
+- Gameplay & balance theme — auto-sim architecture (ADR 0004), skill model (ADR 0003), all 8 Key Moments designed, Manager Boost simplified (ADR 0005), 6-verb effect palette (ADR 0006)
+- Portrait redesign — full-bg skill + facial-expression Form supersedes the split-bg model
 
 ---
 

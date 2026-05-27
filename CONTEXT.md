@@ -27,7 +27,7 @@ The championship Match of a Season, contested by the two semi-final winners. A S
 The player's whole journey through one Country's **progression grid** — a 2D space of cells, each cell a (Level × Tour) pair, each cell played as one Season. A new Career starts at the bottom-left cell (Club, Tour 1). Beating a cell opens the cell above (next Tour) and across (next Level). The Career is complete when the Player wins the top Level — wins The Final of Province's Premium tour, which unlocks only after both Club's and City's Premium tours have been won. Not a linear climb: the player fills the grid at their own pace.
 
 **Tour**:
-The difficulty axis — eight named difficulty steps *within* a Level ("up" the grid). In order, easiest to hardest: Practise tour, Home Tour summer, Home Tour winter, Home Tour evening, Away Tour summer, Away Tour winter, Away Tour evening, Premium tour. Home tours are gentler, Away tours harder, the Premium tour the showcase finale (a mixture of conditions). Equivalent to Slay-the-Spire "Ascension" / Balatro "Stake", but as one axis of a 2D grid rather than a single line.
+The difficulty axis — eight named difficulty steps *within* a Level ("up" the grid). In order, easiest to hardest: Practise tour, Home Tour summer, Home Tour winter, Home Tour evening, Away Tour summer, Away Tour winter, Away Tour evening, Premium tour. Home tours are gentler, Away tours harder, the Premium tour the showcase finale (a mixture of conditions). Equivalent to Slay-the-Spire "Ascension" / Balatro "Stake", but as one axis of a 2D grid rather than a single line. Each Tour defines a strength distribution (mean × spread); every team in that Tour's league — including the Player's Team — draws its **battingStrength** and **bowlingStrength** from this distribution at the start of each **Season**. Climbing Tours scales the whole league together; the Player's Team rises with the Tour, not against it.
 _Avoid_: "League" for this concept — "league" is reserved for its natural cricket meaning (a competition).
 
 **Country**:
@@ -47,13 +47,13 @@ A rung on the Country ladder — a content/prestige tier, each with its own comp
 A stacking modifier card acquired between Matches inside a Season. Balatro layer. Common / Rare / Legendary rarity. Up to 4 slots visible during a Match — see DESIGN_HANDOFF §16.7.
 
 **Manager Boost**:
-Mid-Match consumable that interrupts the auto-sim with a green Reigns card. Strength = water-meter fill % at the moment of use — see DESIGN_HANDOFF §16.8.
+Mid-Match action — pressing the green button applies a side-aware all-Attribute boost: **batting Attributes** (`Power`, `Composure`) while batting; **bowling Attributes** (`Attack`, `Control`) while bowling. No menu, no choice — the only decision is *when* to press. Magnitude is locked at press from the water-meter's current fill % (50% fill → half the maximum buff; 100% → full). Once pressed, the meter **drains** during the active boost; when it reaches 0% the boost ends and the meter starts recharging. Higher fill at press therefore gives both a *stronger* and a *longer* boost — a single-axis trade. See DESIGN_HANDOFF §16.8.
 
 **Team**:
-A cricket side the Player plays for — the other ten players around them. Each Team sits at one Level and has a strength. The Team you are on defines your current Level. Stronger Teams pay less.
+The Player's side — the Player plus ten teammates — sitting at one **Level**. Carries two strengths, **battingStrength** and **bowlingStrength**, drawn fresh from the current **Tour**'s distribution at the start of every **Season**. Team identity (name, palette, the Player's **Affinity** with them) persists across Seasons; the strength numbers do not — staying with the same Team still means a fresh strength draw each Season. The Team the Player is on defines the Player's current Level. Stronger Teams pay less and give the Player less playing time.
 
 **Offer**:
-A recruitment proposal from a Team to the Player, generated at the end of every Tour (at least one always available). Accepting an Offer moves the Player to that Team. Offer quality scales with the Player's strength and the current Team's final log position.
+A recruitment proposal from a **Team** to the **Player**, generated at the end of every **Tour** (at least one always available). The Offer shows the Team's current-Season strength snapshot — informative, not a guarantee (future Seasons re-roll within the Team's current Tour's distribution). Accepting an Offer moves the Player to that Team and resets **Affinity**. Offer quality scales with the Player's strength and the current Team's final log position. Cross-**Level** Offers appear only once the Career grid has unlocked the higher-Level cell; beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next Offer set.
 
 **Pay**: *(working name)*
 The career currency, and the single channel of permanent growth. A base contract amount from the current Team, scaled by the Player's on-field performance (runs, wickets, Key Moments won). Spent to upgrade the Player's stats. Core trade-off: stronger Teams pay a lower base — and on a strong Team you play less, which lowers the performance multiplier too.
@@ -63,6 +63,15 @@ A single value tracking the Player's tenure with their current Team. Rises the l
 
 **Seasons played**:
 A lifetime counter of every Season the Player has played, win or lose. The Career-completion metric — finishing the Career in fewer Seasons played is the score to beat ("beat the game in 34 — now beat that"). Because the Player's skills can be fully maxed, Seasons played is the meaningful measure of mastery, not raw power.
+
+**Attribute**:
+The four sim stats every player carries. Batting: **Power** (pushes ball outcomes toward boundaries) and **Composure** (resists dismissal). Bowling: **Attack** (raises wicket chance) and **Control** (restricts runs and extras). The Player's Attributes are real and grow with **Pay**; every other player's are derived from their **Team**'s strength.
+
+**Intent**:
+The team's aggression posture during a Match — one of three bands: Defensive, Balanced, Aggressive. The captain (the Player) sets it via Key Moment decisions; a higher band lifts both scoring and dismissal chance together.
+
+**Form**:
+A temporary per-player performance multiplier reflecting current confidence — shown by the player's facial expression in their portrait (hot / steady / tired / cold, DESIGN_HANDOFF §16.3). Multiplies effective **Attributes** in both ball-rolls (roughly ×0.8 cold → ×1.15 hot). Applies to batters and bowlers alike. Distinct from Attribute: Form is transient, Attributes are persistent. **Per-ball Form ticks are Player-only** (driven by boundaries, dismissals, dot streaks, etc.); every other player's Form is otherwise static within a Match. **Key Moment `formEvent` effects are an exception** — they can adjust anyone's Form (teammate, opponent), but only from explicit Key Moment effects, never from per-ball events. Player Form persists between Matches within a **Season** and resets at Season end, alongside **Jokers**.
 
 ## Relationships
 
@@ -74,12 +83,16 @@ A lifetime counter of every Season the Player has played, win or lose. The Caree
 - A Player **wins a Level** by winning The Final of that Level's Premium tour. Winning Club's and City's Premium tours is **required** to unlock Province's; winning Province's Premium tour completes the **Career**.
 - **Seasons played** ticks up by one for every **Season** — beaten or failed.
 - A **Match** contains 5–8 **Key Moments**.
+- A **Match** is resolved ball-by-ball; each ball is a contest between the batter's and bowler's **Attributes**, modulated by **Intent**, **Form**, conditions, **Jokers** and **Manager Boost**.
+- Only the **Player**'s **Attributes** are real and persistent; every other player's are derived from their **Team**'s strength. The ball-resolution maths is identical regardless of who is involved.
 - **Jokers** are scoped to a **Season** (acquired between Matches, reset at Season end).
 - **Manager Boost** is scoped to a single **Match**.
 - A **Player** plays for one **Team** at a time; the Team sets the current **Level**.
 - An **Offer** comes from a **Team**; accepting it moves the Player to that Team.
 - **Pay** is earned from the current Team and spent on Player upgrades.
 - **Affinity** builds with the current **Team** and resets when an **Offer** is accepted.
+- A **Tour** defines a strength distribution; every team in that Tour's league draws its battingStrength and bowlingStrength from it at the start of each **Season**. The Player's Team scales with whichever Tour the Player is currently playing — staying with the same Team across Tours means a fresh strength draw each Season at the new Tour's level.
+- Moving across **Levels** requires accepting an **Offer** from a Team at the new Level. Beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next end-of-Tour Offer set, provided the Career grid has unlocked the higher cell.
 
 **Level** ("across" the grid) and **Tour** ("up" the grid) are independent grid coordinates. Difficulty rises with both, but the Level bands overlap — promotion to a new Level eases you in via its Practise tour, then ramps past anything the Level below offered.
 
