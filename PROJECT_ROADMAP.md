@@ -30,7 +30,7 @@ Start a new chat. Prime it with:
 4. **Jokers & meta loop** — pool + rarities + synergies + acquisition + between-match flow
 5. **Around-the-match screens** — pre-match · main menu · onboarding · result · settings
 6. **Visual & audio content** — joker art · backgrounds · icons · music · SFX · commentary bank
-7. **Tech foundation** — Godot project · save system · build pipeline
+7. **Tech foundation** — Godot project · save system · build pipeline · **balance harness** (headless sim runner — parameter sweeps over Tour distributions, KM/Joker/Boost coefficients, and the optimal-vs-naive skill-gap metric per ADR 0003/0004)
 
 Playtest threads through all of them — continuous, not a discrete item.
 
@@ -108,3 +108,4 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 - "Successful" = I play it and enjoy it. Anything beyond is bonus.
 - Playtest threads through every theme — budget time for it; fun doesn't emerge from spec docs.
 - If a feature would take >1 weekend to design AND build, decide V1 vs V2 first.
+- **Balance harness** is the tuning workhorse — pure Python or Godot-headless module that runs thousands of Seasons over a parameter grid, measures the optimal-vs-naive skill gap (ADR 0003), and flags overpowered Jokers / underpowered Tour cells. Lives in the Tech foundation theme but every numerical decision from theme 3 onward routes through it. The auto-sim's headless / deterministic-seedable design (ADR 0004) exists precisely to enable this.
