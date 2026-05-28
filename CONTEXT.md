@@ -24,7 +24,7 @@ _Avoid_: "Run" for this unit — it collides with cricket *runs* (the score).
 The championship Match of a Season, contested by the two semi-final winners. A Season does not always end in The Final — lose your semi-final and your Season ends instead in the 3rd-place playoff.
 
 **Career**:
-The player's whole journey through one Country's **progression grid** — a 2D space of cells, each cell a (Level × Tour) pair, each cell played as one Season. A new Career starts at the bottom-left cell (Club, Tour 1). Beating a cell opens the cell above (next Tour) and across (next Level). The Career is complete when the Player wins the top Level — wins The Final of Province's Premium tour, which unlocks only after both Club's and City's Premium tours have been won. Not a linear climb: the player fills the grid at their own pace.
+The player's whole journey through one Country's **progression grid** — a 2D space of cells, each cell a (Level × Tour) pair, each cell played as one Season. A new Career starts at the bottom-left cell (Club, Tour 1). **Starting Team is picked by the Player from the 3 lowest-star Teams** at Club Level — a rookie underdog choice (you don't get parachuted into the top franchise). Beating a cell opens the cell above (next Tour) and across (next Level). The Career is complete when the Player wins the top Level — wins The Final of Province's Premium tour, which unlocks only after both Club's and City's Premium tours have been won. Not a linear climb: the player fills the grid at their own pace.
 
 **Tour**:
 The difficulty axis — eight named difficulty steps *within* a Level ("up" the grid). In order, easiest to hardest: Practise tour, Home Tour summer, Home Tour winter, Home Tour evening, Away Tour summer, Away Tour winter, Away Tour evening, Premium tour. Home tours are gentler, Away tours harder, the Premium tour the showcase finale (a mixture of conditions). Equivalent to Slay-the-Spire "Ascension" / Balatro "Stake", but as one axis of a 2D grid rather than a single line. Each Tour defines a strength distribution (mean × spread); every team in that Tour's league — including the Player's Team — draws its **battingStrength** and **bowlingStrength** from this distribution at the start of each **Season**. Climbing Tours scales the whole league together; the Player's Team rises with the Tour, not against it.
@@ -44,19 +44,34 @@ A rung on the Country ladder — a content/prestige tier, each with its own comp
 - **Win a Level** — win The Final of that Level's Premium tour (its 8th/last Tour). The Level's championship trophy. The three Level-wins are a required, ordered endgame ladder: Province's Premium tour unlocks only after Club's and City's Premium tours are both won. Winning Province's completes the Career.
 
 **Joker**:
-A stacking modifier card acquired between Matches inside a Season. Balatro layer. Common / Rare / Legendary rarity. Up to 4 slots visible during a Match — see DESIGN_HANDOFF §16.7.
+A stacking modifier card purchased with **Tons** at the **Shop**. Balatro layer. Common / Rare / Legendary rarity — cost (in Tons) scales with rarity, such that a Player frequently cannot afford every Joker on offer (deliberate scarcity → the "if only I had more money" feeling). Up to 4 slots visible during a Match — see DESIGN_HANDOFF §16.7. Each Joker is either a passive verb buff or a conditional trigger; the authoring grammar is fixed (ADR 0007) and composes from the 6-verb palette (ADR 0006). **Season-scoped by default** — all owned Jokers reset at Season end, with one exception: at end-of-Season the Player may elect to **carry over** one owned Joker (their choice; "none" is valid) into next Season's starting slots, alongside the free starter Common from that Season's opening Shop.
+
+**Shop**:
+A between-Match meta-loop event where the Player allocates accumulated **Tons**. Up to **5 Shop visits per Season** — fewer if the Player misses the playoffs:
+- 1 at **Season start** — free; pick 1 starter **Joker** from a set of 3 Commons (no Tons cost)
+- 1 **after Match 3** (always)
+- 1 **after Match 5** (always)
+- 1 **before the semi-final** (only if Player finished top 4 in the league phase)
+- 1 **before the championship Match** (The Final or 3rd-place playoff — only if Player made the semi)
+
+At each post-Match Shop the Player may take **one of each** action (zero of an action is fine; the visit is *capped at one per type*, not required to use all four): buy 1 Joker (from a set of 1 Common + 1 Rare + 1 Legendary), upgrade 1 **Attribute** (+1), sell 1 owned Joker for partial Tons refund, **hold** 1 offered Joker. Holding makes that specific offered Joker re-appear in the next Shop's offer set alongside 2 fresh randoms; held offers **expire at Season end** if not bought. Buying a Joker when all 4 slots are full prompts a slot-replacement pick. The Shop is the primary surface for the **Strategic** skill layer (ADR 0003) — the Jokers-vs-Attributes-vs-bank trade-off lives here.
 
 **Manager Boost**:
 Mid-Match action — pressing the green button applies a side-aware all-Attribute boost: **batting Attributes** (`Power`, `Composure`) while batting; **bowling Attributes** (`Attack`, `Control`) while bowling. No menu, no choice — the only decision is *when* to press. Magnitude is locked at press from the water-meter's current fill % (50% fill → half the maximum buff; 100% → full). Once pressed, the meter **drains** during the active boost; when it reaches 0% the boost ends and the meter starts recharging. Higher fill at press therefore gives both a *stronger* and a *longer* boost — a single-axis trade. See DESIGN_HANDOFF §16.8.
 
 **Team**:
-The Player's side — the Player plus ten teammates — sitting at one **Level**. Carries two strengths, **battingStrength** and **bowlingStrength**, drawn fresh from the current **Tour**'s distribution at the start of every **Season**. Team identity (name, palette, the Player's **Affinity** with them) persists across Seasons; the strength numbers do not — staying with the same Team still means a fresh strength draw each Season. The Team the Player is on defines the Player's current Level. Stronger Teams pay less and give the Player less playing time.
+The Player's side — the Player plus ten teammates — sitting at one **Level**. Carries a **★ star rating** on a **0.5–5.0 scale in half-star increments** (10 possible values, displayed `★★★★½` etc.) reflecting franchise strength *relative* to its Level's other Teams: 5.0★ = elite franchise, 0.5★ = perennial cellar-dweller. Star rating is mostly durable across Seasons but mutates Markov-style each Season: roughly **30% chance of a ±0.5 swing** (form change, personnel turnover) and **5% chance of a ±1.0 catastrophic swing** (board fight, manager exit, captain retirement — flavoured in commentary the following Season via `Team.lastSeasonEvent`). Clamped at **0.5 floor and 5.0 ceiling**. Star rating is **invariant across Tours** within a Level — climbing Tours rescales all Teams' absolute strengths up, but preserves ranks. Per-Match actual strengths (`battingStrength`, `bowlingStrength`) derive from the Team's stars + current Tour's distribution + small per-Season noise. Team identity (name, palette, the Player's **Affinity** with them) persists across Seasons. The Team the Player is on defines the Player's current Level. Stronger Teams (higher star rating) pay less and give the Player less playing time. Tuning: durability model ADR 0009; the 20%/5% percentages are V1 strawman, balance-harness tuned.
 
 **Offer**:
-A recruitment proposal from a **Team** to the **Player**, generated at the end of every **Tour** (at least one always available). The Offer shows the Team's current-Season strength snapshot — informative, not a guarantee (future Seasons re-roll within the Team's current Tour's distribution). Accepting an Offer moves the Player to that Team and resets **Affinity**. Offer quality scales with the Player's strength and the current Team's final log position. Cross-**Level** Offers appear only once the Career grid has unlocked the higher-Level cell; beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next Offer set.
+A recruitment proposal from a **Team** to the **Player**. Two trigger points per Season:
 
-**Pay**: *(working name)*
-The career currency, and the single channel of permanent growth. A base contract amount from the current Team, scaled by the Player's on-field performance (runs, wickets, Key Moments won). Spent to upgrade the Player's stats. Core trade-off: stronger Teams pay a lower base — and on a strong Team you play less, which lowers the performance multiplier too.
+- **One mid-Season Offer** (after Match 4): a single take-it-or-leave-it. **Accepting switches Teams immediately** — the Player finishes the Season for the new Team, inheriting their current league position, remaining fixtures, and playoff prospects. **Affinity resets immediately.** The Player's personal stats (runs, wickets, Key Moments won) and **Tons** earned from Matches 1–4 stay with the Player. Narrative: *"This Team isn't going anywhere — take the gamble and join a contender."* Tons / personal stats accumulate normally for the rest of the Season under the new Team.
+- **Three end-of-Season Offers**: a choose-from-three set; staying is always an option. Accepting locks in the move for next Season.
+
+The Offer shows the Team's **★ star rating** (durable identity) plus a current-Season form delta (e.g. "+ above baseline" / "− below baseline"). Stars give the *signal that makes Offers readable* — the Team durability model (ADR 0009) is what makes Offer evaluation a real skill, not a coin flip. Accepting any Offer resets **Affinity**. Offer quality scales with the Player's strength and the current Team's recent league finishes. Cross-**Level** Offers appear only once the Career grid has unlocked the higher-Level cell; beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next end-of-Season Offer set.
+
+**Tons** (₸):
+The career currency. A base contract amount from the current Team, scaled by the Player's on-field performance (runs, wickets, Key Moments won). A single shared pool spent on two things: **Player Attribute upgrades** (permanent growth, Career-scoped) and **Jokers** (Season-scoped power). The central Meta-layer trade-off is allocating Tons between the two — bank for permanent growth, or burn now for this-Season strength. **Tons persist across Seasons** — it is a Career-scoped bank, never reset within a Career. Hoarding (skip Jokers now, bank for an Attribute upgrade later) is a legitimate Meta-layer strategy. Per-Tour scarcity comes from prices scaling with Tour difficulty, not from a clock. Core career trade-off on top: stronger Teams pay a lower base — and on a strong Team you play less, which lowers the performance multiplier too. The ₸ glyph is documented in [ADR 0008](docs/adr/0008-currency-name-and-mark.md); assets live in [`docs/brand/`](docs/brand/).
 
 **Affinity**:
 A single value tracking the Player's tenure with their current Team. Rises the longer the player stays; resets when they accept an Offer to move. Grants a temporary performance bonus (not permanent stat growth). The counterweight to Offers — an Offer tempts a move, Affinity rewards loyalty.
@@ -65,7 +80,7 @@ A single value tracking the Player's tenure with their current Team. Rises the l
 A lifetime counter of every Season the Player has played, win or lose. The Career-completion metric — finishing the Career in fewer Seasons played is the score to beat ("beat the game in 34 — now beat that"). Because the Player's skills can be fully maxed, Seasons played is the meaningful measure of mastery, not raw power.
 
 **Attribute**:
-The four sim stats every player carries. Batting: **Power** (pushes ball outcomes toward boundaries) and **Composure** (resists dismissal). Bowling: **Attack** (raises wicket chance) and **Control** (restricts runs and extras). The Player's Attributes are real and grow with **Pay**; every other player's are derived from their **Team**'s strength.
+The four sim stats every player carries. Batting: **Power** (pushes ball outcomes toward boundaries) and **Composure** (resists dismissal). Bowling: **Attack** (raises wicket chance) and **Control** (restricts runs and extras). The Player's Attributes are real and grow with **Tons**; every other player's are derived from their **Team**'s strength.
 
 **Intent**:
 The team's aggression posture during a Match — one of three bands: Defensive, Balanced, Aggressive. The captain (the Player) sets it via Key Moment decisions; a higher band lifts both scoring and dismissal chance together.
@@ -85,14 +100,14 @@ A temporary per-player performance multiplier reflecting current confidence — 
 - A **Match** contains 5–8 **Key Moments**.
 - A **Match** is resolved ball-by-ball; each ball is a contest between the batter's and bowler's **Attributes**, modulated by **Intent**, **Form**, conditions, **Jokers** and **Manager Boost**.
 - Only the **Player**'s **Attributes** are real and persistent; every other player's are derived from their **Team**'s strength. The ball-resolution maths is identical regardless of who is involved.
-- **Jokers** are scoped to a **Season** (acquired between Matches, reset at Season end).
+- **Jokers** are scoped to a **Season** (acquired at the **Shop** between Matches, reset at Season end — with the single-Joker end-of-Season carry-over exception).
 - **Manager Boost** is scoped to a single **Match**.
 - A **Player** plays for one **Team** at a time; the Team sets the current **Level**.
 - An **Offer** comes from a **Team**; accepting it moves the Player to that Team.
-- **Pay** is earned from the current Team and spent on Player upgrades.
+- **Tons** are earned from the current Team and spent at the post-Match Shop on Player **Attribute** upgrades (permanent) and **Jokers** (Season-scoped) from one shared pool.
 - **Affinity** builds with the current **Team** and resets when an **Offer** is accepted.
 - A **Tour** defines a strength distribution; every team in that Tour's league draws its battingStrength and bowlingStrength from it at the start of each **Season**. The Player's Team scales with whichever Tour the Player is currently playing — staying with the same Team across Tours means a fresh strength draw each Season at the new Tour's level.
-- Moving across **Levels** requires accepting an **Offer** from a Team at the new Level. Beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next end-of-Tour Offer set, provided the Career grid has unlocked the higher cell.
+- Moving across **Levels** requires accepting an **Offer** from a Team at the new Level. Beating a Level-N cell guarantees at least one Level-(N+1) Offer in the next end-of-Season Offer set, provided the Career grid has unlocked the higher cell.
 
 **Level** ("across" the grid) and **Tour** ("up" the grid) are independent grid coordinates. Difficulty rises with both, but the Level bands overlap — promotion to a new Level eases you in via its Practise tour, then ramps past anything the Level below offered.
 

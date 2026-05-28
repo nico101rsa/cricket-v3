@@ -4,7 +4,7 @@ The game's depth must come from learnable, conditional decision-making, not from
 
 - **Tactical** — Key Moment swipes + Manager Boost timing, within a Match.
 - **Strategic** — Joker drafting, within a Season.
-- **Meta** — Offer choice + Pay allocation, across the Career.
+- **Meta** — Offer choice + Tons allocation, across the Career.
 
 To keep that skill real rather than artificial, two rules bind every Key Moment and the auto-sim math:
 

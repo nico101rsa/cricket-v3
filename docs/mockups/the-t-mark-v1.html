@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>The T Mark · v1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper:   #f3eee2;
+    --paper-2: #ece5d3;
+    --paper-3: #e3dac3;
+    --ink:     #15140f;
+    --ink-2:   #2a261d;
+    --ink-mid: #5c5547;
+    --ink-dim: #8a8170;
+    --rule:    #1d1a13;
+    --rule-light: rgba(21,20,15,0.15);
+    --gold:    #c8951b;
+    --gold-2:  #8a6a18;
+    --red:     #a91d2a;
+    --dark:    #15140f;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Newsreader", "Source Serif Pro", Georgia, serif;
+    font-feature-settings: "ss01", "lnum";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,0.5), transparent 50%),
+      radial-gradient(circle at 85% 90%, rgba(0,0,0,0.05), transparent 50%),
+      var(--paper);
+    min-height: 100vh;
+  }
+
+  .sans { font-family: -apple-system, "Helvetica Neue", "Inter Tight", system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", "SF Mono", Menlo, monospace; }
+
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 56px 40px 120px; }
+
+  /* ---------- PAGE HEADER ---------- */
+  .masthead {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    border-bottom: 1.5px solid var(--rule);
+    padding-bottom: 22px;
+    margin-bottom: 56px;
+  }
+  .masthead .left .eyebrow {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2.6px;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    margin-bottom: 14px;
+  }
+  .masthead .left h1 {
+    font-family: "Instrument Serif", "Newsreader", Georgia, serif;
+    font-weight: 400;
+    font-size: 72px;
+    line-height: 0.95;
+    margin: 0;
+    letter-spacing: -1.5px;
+  }
+  .masthead .left h1 em {
+    font-style: italic;
+    color: var(--gold-2);
+  }
+  .masthead .right {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    text-align: right;
+  }
+  .masthead .right .row { margin: 4px 0; }
+  .masthead .right b { color: var(--ink); font-weight: 700; }
+
+  /* ---------- SECTION ---------- */
+  .section { margin-top: 80px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 18px;
+    padding-bottom: 14px;
+    margin-bottom: 28px;
+    border-bottom: 1px solid var(--rule-light);
+  }
+  .section-head .num {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--gold-2);
+    letter-spacing: 1.5px;
+  }
+  .section-head h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: 28px;
+    margin: 0;
+    letter-spacing: -0.4px;
+  }
+  .section-head .meta {
+    margin-left: auto;
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: var(--ink-dim);
+    letter-spacing: 0.6px;
+  }
+
+  /* ---------- HERO MARK ---------- */
+  .hero {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    border-radius: 4px;
+    padding: 60px 60px 50px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before, .hero::after {
+    content: "";
+    position: absolute;
+    background-image:
+      linear-gradient(var(--rule-light) 1px, transparent 1px),
+      linear-gradient(90deg, var(--rule-light) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .hero::before { top: 0; left: 0; right: 0; height: 24px; }
+  .hero::after  { bottom: 0; left: 0; right: 0; height: 24px; }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 56px;
+    align-items: center;
+  }
+  .hero-mark {
+    display: flex; justify-content: center; align-items: center;
+    position: relative;
+  }
+  .hero-mark svg { width: 100%; max-width: 340px; height: auto; }
+  .hero-body h3 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 1.1;
+    margin: 0 0 18px;
+    letter-spacing: -0.5px;
+  }
+  .hero-body h3 em {
+    font-style: italic;
+    color: var(--gold-2);
+  }
+  .hero-body p {
+    font-size: 16px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    margin: 0 0 14px;
+    font-weight: 400;
+  }
+  .hero-body p .small-cap {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    margin-right: 6px;
+  }
+  .hero-body .stamp {
+    display: inline-block;
+    margin-top: 6px;
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    background: var(--gold);
+    color: var(--ink);
+    padding: 4px 10px;
+    border-radius: 3px;
+  }
+
+  /* ---------- LINEAGE ROW ---------- */
+  .lineage {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    background: var(--paper);
+    border: 1px solid var(--rule-light);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .lineage .cell {
+    aspect-ratio: 1 / 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-right: 1px solid var(--rule-light);
+    position: relative;
+    padding: 24px 12px 18px;
+    gap: 12px;
+  }
+  .lineage .cell:last-child { border-right: none; }
+  .lineage .cell .glyph {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 500;
+    font-size: 96px;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .lineage .cell.ours {
+    background: var(--paper-2);
+  }
+  .lineage .cell.ours::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1.5px solid var(--gold);
+    border-radius: 2px;
+    pointer-events: none;
+  }
+  .lineage .cell.ours svg {
+    width: 70px; height: auto;
+  }
+  .lineage .cell .label {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--ink-mid);
+    text-align: center;
+  }
+  .lineage .cell .label b { color: var(--ink); font-weight: 700; display: block; }
+  .lineage .cell.ours .label b { color: var(--gold-2); }
+
+  /* ---------- VARIATIONS STRIP ---------- */
+  .vars-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+  }
+  .var-card {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    border-radius: 4px;
+    padding: 28px 16px 20px;
+    display: flex; flex-direction: column;
+    align-items: stretch; gap: 18px;
+    position: relative;
+  }
+  .var-card.recommended {
+    background: var(--paper-3);
+    border-color: var(--gold);
+  }
+  .var-card.recommended::after {
+    content: "PICK";
+    position: absolute;
+    top: -1px; right: -1px;
+    background: var(--gold);
+    color: var(--ink);
+    font-family: -apple-system, sans-serif;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 1.4px;
+    padding: 4px 9px;
+    border-radius: 0 4px 0 4px;
+  }
+  .var-card .mark-slot {
+    display: flex; justify-content: center; align-items: center;
+    height: 130px;
+  }
+  .var-card .mark-slot svg { height: 110px; width: auto; }
+  .var-card .var-meta {
+    border-top: 1px solid var(--rule-light);
+    padding-top: 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .var-card .var-meta .name {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .var-card .var-meta .desc {
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--ink-mid);
+    font-family: -apple-system, sans-serif;
+    font-weight: 400;
+  }
+  .var-card .var-idx {
+    position: absolute;
+    top: 8px; left: 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.8px;
+  }
+
+  /* ---------- AB DUEL ---------- */
+  .duel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .duel-card {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    padding: 40px;
+    display: flex; flex-direction: column;
+    gap: 20px;
+    border-radius: 4px;
+    position: relative;
+  }
+  .duel-card.win {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .duel-card.win .duel-label,
+  .duel-card.win .duel-pros li::before { color: var(--gold); }
+  .duel-card.win .duel-pros li { color: rgba(243,238,226,0.9); }
+  .duel-card.win .duel-pros li b { color: var(--paper); }
+  .duel-card.win .stat { color: var(--paper); border-color: rgba(255,255,255,0.12); }
+  .duel-card.win .stat span { color: var(--gold); }
+  .duel-card .duel-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold-2);
+  }
+  .duel-card .mark-slot {
+    display: flex; justify-content: center; align-items: center;
+    height: 160px;
+  }
+  .duel-card .mark-slot svg { height: 150px; width: auto; }
+  .duel-card .duel-pros {
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .duel-card .duel-pros li {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    padding-left: 16px;
+    position: relative;
+  }
+  .duel-card .duel-pros li::before {
+    content: "+";
+    position: absolute; left: 0;
+    color: var(--gold-2);
+    font-weight: 700;
+  }
+  .duel-card .duel-pros li b { color: var(--ink); font-weight: 700; }
+  .duel-card .stat {
+    margin-top: 4px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-light);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 11px;
+    color: var(--ink-mid);
+    letter-spacing: 0.5px;
+  }
+  .duel-card .stat span { color: var(--ink); font-weight: 700; }
+
+  /* ---------- SIZE RAMP ---------- */
+  .ramp {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    border-radius: 4px;
+    padding: 40px 36px 32px;
+    overflow: hidden;
+  }
+  .ramp-row .preview { min-width: 0; overflow: hidden; }
+  .ramp-row .preview svg { flex-shrink: 0; }
+  .ramp-row .preview .num { min-width: 0; overflow: hidden; text-overflow: clip; }
+  .ramp-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 220px;
+    align-items: end;
+    gap: 24px;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--rule-light);
+  }
+  .ramp-row:last-child { border-bottom: none; }
+  .ramp-row .size-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    color: var(--ink-dim);
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+  }
+  .ramp-row .size-label b {
+    display: block;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .ramp-row .preview {
+    display: flex; align-items: baseline;
+    gap: 10px;
+  }
+  .ramp-row .preview svg { width: auto; }
+  .ramp-row .preview .num {
+    font-family: "Newsreader", Georgia, serif;
+    font-feature-settings: "tnum";
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .ramp-row .note {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: var(--ink-mid);
+    line-height: 1.45;
+    text-align: right;
+  }
+  .ramp-row .note b { color: var(--ink); font-weight: 700; }
+
+  /* ---------- IN-CONTEXT CHIPS ---------- */
+  .context-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .ctx-card {
+    border-radius: 6px;
+    padding: 28px 28px 24px;
+    position: relative;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    gap: 20px;
+  }
+  .ctx-card.cream {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    color: var(--ink);
+  }
+  .ctx-card.dark {
+    background: var(--dark);
+    color: var(--paper);
+    border: 1px solid #2a261d;
+  }
+  .ctx-card.gold {
+    background: linear-gradient(135deg, var(--gold) 0%, #b07f0e 100%);
+    color: var(--ink);
+    border: 1px solid #8a6a18;
+  }
+  .ctx-card.red {
+    background: var(--red);
+    color: var(--paper);
+    border: 1px solid #7a141e;
+  }
+  .ctx-card .ctx-label {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.65;
+  }
+  .ctx-card .scoreline {
+    display: flex; align-items: baseline;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+  .ctx-card .scoreline .big {
+    font-family: "Newsreader", Georgia, serif;
+    font-weight: 500;
+    font-size: 56px;
+    line-height: 0.9;
+    letter-spacing: -1px;
+    font-feature-settings: "tnum";
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+  }
+  .ctx-card .scoreline .big svg { height: 44px; width: auto; }
+  .ctx-card .scoreline .small {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    opacity: 0.7;
+  }
+  .ctx-card .chip-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .ctx-card .chip {
+    display: inline-flex; align-items: center;
+    gap: 5px;
+    background: rgba(0,0,0,0.06);
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 14px;
+    font-feature-settings: "tnum";
+  }
+  .ctx-card.dark .chip { background: rgba(255,255,255,0.08); }
+  .ctx-card.red .chip  { background: rgba(0,0,0,0.18); }
+  .ctx-card .chip svg { height: 13px; width: auto; }
+  .ctx-card .chip .lbl {
+    font-family: -apple-system, sans-serif;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-right: 2px;
+  }
+
+  /* ---------- COLOUR PLATES ---------- */
+  .plates {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .plate {
+    aspect-ratio: 1 / 1;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .plate .plate-label {
+    position: absolute;
+    bottom: 10px; left: 12px;
+    font-family: -apple-system, sans-serif;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .plate svg { width: 50%; height: auto; }
+  .plate.cream { background: var(--paper-2); color: var(--ink); }
+  .plate.dark  { background: var(--dark); color: var(--paper); }
+  .plate.gold  { background: var(--gold); color: var(--ink); }
+  .plate.red   { background: var(--red); color: var(--paper); }
+
+  /* ---------- CONSTRUCTION ---------- */
+  .construct {
+    background: var(--paper-2);
+    border: 1px solid var(--rule-light);
+    border-radius: 4px;
+    padding: 40px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 40px;
+    align-items: center;
+  }
+  .construct .blueprint {
+    background:
+      linear-gradient(rgba(21,20,15,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(21,20,15,0.06) 1px, transparent 1px),
+      var(--paper);
+    background-size: 20px 20px;
+    border: 1px solid var(--rule-light);
+    aspect-ratio: 4 / 5;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .construct .blueprint svg { width: 70%; height: auto; }
+  .construct .spec h3 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: 28px;
+    margin: 0 0 16px;
+    letter-spacing: -0.4px;
+  }
+  .construct .spec dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 8px 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 12px;
+  }
+  .construct .spec dt {
+    color: var(--ink-mid);
+    letter-spacing: 0.4px;
+  }
+  .construct .spec dd {
+    margin: 0;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .construct .spec dd b { color: var(--gold-2); }
+
+  /* ---------- FINEPRINT ---------- */
+  .fineprint {
+    margin-top: 90px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule-light);
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    color: var(--ink-dim);
+    line-height: 1.7;
+    letter-spacing: 0.2px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  .fineprint b { color: var(--ink); font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- =============================== -->
+  <!-- MASTHEAD -->
+  <!-- =============================== -->
+  <header class="masthead">
+    <div class="left">
+      <div class="eyebrow">Wordmark · Currency-class glyph · v1</div>
+      <h1>The <em>₸</em> Mark</h1>
+    </div>
+    <div class="right">
+      <div class="row">Cricket Sim</div>
+      <div class="row"><b>Brand · monogram exploration</b></div>
+      <div class="row">28 May 2026</div>
+    </div>
+  </header>
+
+  <!-- =============================== -->
+  <!-- HERO -->
+  <!-- =============================== -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-mark">
+        <!-- BIG MARK -->
+        <svg id="hero-svg" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+          <g fill="currentColor">
+            <!-- top crossbar -->
+            <rect x="14" y="22" width="172" height="26" rx="2"/>
+            <!-- vertical stem -->
+            <rect x="86" y="22" width="28" height="200" rx="2"/>
+            <!-- strike (bail) -->
+            <rect x="44" y="78" width="112" height="16" rx="2"/>
+          </g>
+        </svg>
+      </div>
+      <div class="hero-body">
+        <h3>A <em>T</em> struck with a bail, sitting head-on to a wicket.</h3>
+        <p>
+          <span class="small-cap">Concept ·</span>
+          A capital T crossed once below the cap, in the lineage of $, ₹, ¥, ₿, ₱.
+          The strike reads twice: as a currency mark on the stem, and as a
+          cricket bail resting on a stump. T for <em>ton</em>, wicket for cricket.
+        </p>
+        <p>
+          <span class="small-cap">Form ·</span>
+          Geometric sans, monoline, single colour. No serifs that vanish at small
+          size. Sits on the baseline aligned with tabular figures, like $ does.
+        </p>
+        <div class="stamp">Test-match scoreboard. Not arcade.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================== -->
+  <!-- LINEAGE -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">02</span>
+      <h2>Joining the lineage</h2>
+      <span class="meta">Vertical stem + horizontal strike. Older than the game.</span>
+    </div>
+    <div class="lineage">
+      <div class="cell"><div class="glyph">$</div><div class="label">Dollar<b>1785</b></div></div>
+      <div class="cell"><div class="glyph">£</div><div class="label">Pound<b>1660s</b></div></div>
+      <div class="cell"><div class="glyph">¥</div><div class="label">Yen<b>1871</b></div></div>
+      <div class="cell"><div class="glyph">₹</div><div class="label">Rupee<b>2010</b></div></div>
+      <div class="cell"><div class="glyph">₿</div><div class="label">Bitcoin<b>2011</b></div></div>
+      <div class="cell ours">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)">
+          <g fill="currentColor">
+            <rect x="14" y="22" width="172" height="26" rx="2"/>
+            <rect x="86" y="22" width="28" height="200" rx="2"/>
+            <rect x="44" y="78" width="112" height="16" rx="2"/>
+          </g>
+        </svg>
+        <div class="label">The T Mark<b>Today</b></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- VARIATIONS -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">03</span>
+      <h2>Eight directions</h2>
+      <span class="meta">Same skeleton, different temperaments</span>
+    </div>
+    <div class="vars-grid" id="vars-grid"></div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- AB DUEL -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">04</span>
+      <h2>One bail, or two?</h2>
+      <span class="meta">The crucial decision</span>
+    </div>
+    <div class="duel">
+
+      <div class="duel-card">
+        <div class="duel-label">A · One Bail</div>
+        <div class="mark-slot">
+          <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)">
+            <g fill="currentColor">
+              <rect x="14" y="22" width="172" height="26" rx="2"/>
+              <rect x="86" y="22" width="28" height="200" rx="2"/>
+              <rect x="44" y="78" width="112" height="16" rx="2"/>
+            </g>
+          </svg>
+        </div>
+        <ul class="duel-pros">
+          <li><b>Cleanest at 16px.</b> One strike survives any rendering, every device.</li>
+          <li><b>Most "currency".</b> Closest to $, ¥, ₹ — joins the lineage without effort.</li>
+          <li><b>Wicket reading is softer</b> — emerges on a second glance, doesn't shout.</li>
+        </ul>
+        <div class="stat">Pixel cost at 16px: <span>3 horizontals</span> · top, strike, baseline</div>
+      </div>
+
+      <div class="duel-card win">
+        <div class="duel-label">B · Two Bails ★</div>
+        <div class="mark-slot">
+          <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--paper)">
+            <g fill="currentColor">
+              <rect x="14" y="22" width="172" height="26" rx="2"/>
+              <rect x="86" y="22" width="28" height="200" rx="2"/>
+              <rect x="44" y="68" width="112" height="13" rx="2"/>
+              <rect x="44" y="92" width="112" height="13" rx="2"/>
+            </g>
+          </svg>
+        </div>
+        <ul class="duel-pros">
+          <li><b>Unmistakably a wicket.</b> Two bails on a stump is the head-on view, broadcast-graphic.</li>
+          <li><b>Echoes the real ₸ glyph</b> (Kazakh tenge — T with double strike). Joins lineage AND has documented heritage.</li>
+          <li><b>Adds character</b> at display sizes without breaking down at small size if strikes are spaced well.</li>
+        </ul>
+        <div class="stat">Pixel cost at 16px: <span>4 horizontals</span> · needs 2px gap to stay legible</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- SIZE RAMP -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">05</span>
+      <h2>Reading at size</h2>
+      <span class="meta">256 → 16px, side-by-side with tabular figures</span>
+    </div>
+    <div class="ramp" id="ramp"></div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- IN CONTEXT -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">06</span>
+      <h2>In context</h2>
+      <span class="meta">Scoreboard chips · match cards</span>
+    </div>
+    <div class="context-grid">
+
+      <div class="ctx-card cream">
+        <div class="ctx-label">Career career-total · profile header</div>
+        <div class="scoreline">
+          <span class="big">
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+            14,328
+          </span>
+          <span class="small">across 184 innings</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip"><span class="lbl">Avg</span> 47.4</span>
+          <span class="chip"><span class="lbl">SR</span> 138.2</span>
+          <span class="chip"><span class="lbl">100s</span>
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+            42
+          </span>
+        </div>
+      </div>
+
+      <div class="ctx-card dark">
+        <div class="ctx-label">Live match · in-game HUD</div>
+        <div class="scoreline">
+          <span class="big">
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--paper)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+            186 <span style="opacity:0.5;font-size:0.7em;">/4</span>
+          </span>
+          <span class="small">17.2 ov</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip"><span class="lbl">Need</span> 38 (16)</span>
+          <span class="chip"><span class="lbl">RR</span> 10.81</span>
+          <span class="chip"><span class="lbl">CRR</span> 10.77</span>
+        </div>
+      </div>
+
+      <div class="ctx-card gold">
+        <div class="ctx-label">Award · Player-of-the-match badge</div>
+        <div class="scoreline">
+          <span class="big">
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+            127*
+          </span>
+          <span class="small">off 58 balls</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip" style="background:rgba(0,0,0,0.18);"><span class="lbl">4s</span> 14</span>
+          <span class="chip" style="background:rgba(0,0,0,0.18);"><span class="lbl">6s</span> 6</span>
+          <span class="chip" style="background:rgba(0,0,0,0.18);"><span class="lbl">SR</span> 218.97</span>
+        </div>
+      </div>
+
+      <div class="ctx-card red">
+        <div class="ctx-label">Wicket fall · timeline event</div>
+        <div class="scoreline">
+          <span class="big">
+            <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--paper)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+            48
+          </span>
+          <span class="small">b. Bumrah · 14.3 ov</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip"><span class="lbl">Caught</span> by Pant</span>
+          <span class="chip"><span class="lbl">Partnership</span> 67(42)</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- COLOUR PLATES -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">07</span>
+      <h2>One mark, four surfaces</h2>
+      <span class="meta">Single colour, no gradients</span>
+    </div>
+    <div class="plates">
+      <div class="plate cream">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+        <div class="plate-label">Ink on paper</div>
+      </div>
+      <div class="plate dark">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--paper)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+        <div class="plate-label">Cream on ink</div>
+      </div>
+      <div class="plate gold">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--ink)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+        <div class="plate-label">Ink on gold</div>
+      </div>
+      <div class="plate red">
+        <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" style="color:var(--paper)"><g fill="currentColor"><rect x="14" y="22" width="172" height="26" rx="2"/><rect x="86" y="22" width="28" height="200" rx="2"/><rect x="44" y="68" width="112" height="13" rx="2"/><rect x="44" y="92" width="112" height="13" rx="2"/></g></svg>
+        <div class="plate-label">Cream on red</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- CONSTRUCTION -->
+  <!-- =============================== -->
+  <div class="section">
+    <div class="section-head">
+      <span class="num">08</span>
+      <h2>Construction</h2>
+      <span class="meta">Drawn on a 12-column grid · stem-width is 1 unit</span>
+    </div>
+    <div class="construct">
+      <div class="blueprint">
+        <svg viewBox="0 0 240 280" xmlns="http://www.w3.org/2000/svg">
+          <!-- Mark -->
+          <g fill="var(--ink)">
+            <rect x="20" y="28" width="200" height="28" rx="2"/>
+            <rect x="106" y="28" width="28" height="232" rx="2"/>
+            <rect x="56" y="78" width="128" height="14" rx="2"/>
+            <rect x="56" y="104" width="128" height="14" rx="2"/>
+          </g>
+          <!-- Construction lines -->
+          <g stroke="var(--gold)" stroke-width="0.6" fill="none" opacity="0.9" stroke-dasharray="3 3">
+            <!-- baseline -->
+            <line x1="0" y1="260" x2="240" y2="260"/>
+            <!-- cap height -->
+            <line x1="0" y1="28" x2="240" y2="28"/>
+            <!-- stem center -->
+            <line x1="120" y1="0" x2="120" y2="280"/>
+            <!-- left/right of strike -->
+            <line x1="56" y1="0" x2="56" y2="280"/>
+            <line x1="184" y1="0" x2="184" y2="280"/>
+          </g>
+          <!-- Annotations -->
+          <g font-family="JetBrains Mono, monospace" font-size="8" fill="var(--gold-2)">
+            <text x="6" y="26">cap</text>
+            <text x="6" y="258">base</text>
+            <text x="56" y="276" text-anchor="middle">¼w</text>
+            <text x="184" y="276" text-anchor="middle">¾w</text>
+            <text x="124" y="76">strike Y</text>
+          </g>
+          <!-- Stem width marker -->
+          <g stroke="var(--red)" stroke-width="0.8" fill="none">
+            <line x1="106" y1="200" x2="134" y2="200"/>
+            <line x1="106" y1="196" x2="106" y2="204"/>
+            <line x1="134" y1="196" x2="134" y2="204"/>
+          </g>
+          <text x="120" y="216" font-family="JetBrains Mono, monospace" font-size="8" fill="var(--red)" text-anchor="middle">1u stem</text>
+        </svg>
+      </div>
+      <div class="spec">
+        <h3>Specs</h3>
+        <dl>
+          <dt>Cap height</dt>     <dd>10u</dd>
+          <dt>Stem width</dt>     <dd><b>1u</b> (the unit)</dd>
+          <dt>Top crossbar</dt>   <dd>w 8u · h 1u</dd>
+          <dt>Strike width</dt>   <dd>5.6u (70% of crossbar)</dd>
+          <dt>Strike height</dt>  <dd>0.6u each</dd>
+          <dt>Strike 1 (top bail)</dt>   <dd>y = 2.1u from cap</dd>
+          <dt>Strike 2 (lower)</dt>      <dd>y = 3.4u from cap</dd>
+          <dt>Gap between bails</dt>     <dd>0.5u — never less</dd>
+          <dt>Corner radius</dt>  <dd>0.07u — soft, not arcade</dd>
+          <dt>Min display</dt>    <dd>14px · below that, fall to one bail</dd>
+          <dt>Baseline align</dt> <dd>shares baseline with lining figures</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+
+  <!-- =============================== -->
+  <!-- FINEPRINT -->
+  <!-- =============================== -->
+  <div class="fineprint">
+    <div>
+      <b>What this is.</b> A wordmark/glyph for the game's score "currency."
+      Designed to function both as a logo lockup and as an inline character
+      next to tabular numerals — the same role $ plays in a price tag.
+    </div>
+    <div>
+      <b>Why ₸.</b> The Kazakh tenge is the only major currency that already
+      uses a T+strike. We're not the first to think it; we're joining a tiny,
+      well-formed lineage. The cricket reading is the gift on top.
+    </div>
+    <div>
+      <b>What's next.</b> Lock 04B (two-bail). Cut a single-bail fallback
+      for sub-14px. Test against the locked card-portrait headers and
+      scoreboard chips in <code>In-Match Hi-Fi v2 portraits.html</code>.
+    </div>
+    <div>
+      <b>Out of scope here.</b> Wordmark + this glyph as a lockup. Animated
+      reveal. Embossed banknote treatment. Engraved trophy plate. All
+      possible — flag the ones you want next round.
+    </div>
+  </div>
+
+</div>
+
+<!-- =============================== -->
+<!-- SCRIPTS -->
+<!-- =============================== -->
+<script>
+/* ===== mark generators ===== */
+/* All marks are drawn into a 200x240 viewBox (5:6 ratio).
+   Stem center x=100. Cap at y=22. Baseline at y=222.
+   currentColor used for fill so callers can recolor. */
+
+function mark(opts) {
+  const {
+    crossbarH = 26,
+    crossbarInset = 14,
+    crossbarRound = 2,
+    stemW = 28,
+    strikes = 2,            // 1 or 2
+    strikeW = 112,          // total width
+    strikeH = 13,           // per strike
+    strike1Y = 68,          // top strike y
+    strikeGap = 11,         // distance between strikes
+    foot = 0,               // 0 = no foot, else height of slab foot
+    footW = 56,
+  } = opts || {};
+
+  const stemX = (200 - stemW) / 2;
+  const strikeX = (200 - strikeW) / 2;
+  const footX = (200 - footW) / 2;
+
+  let strikesSvg = '';
+  if (strikes === 1) {
+    // Center single strike at ~80 (slightly above middle of stem top portion)
+    const sH = strikeH + 3; // a bit thicker
+    strikesSvg = `<rect x="${(200-strikeW)/2}" y="78" width="${strikeW}" height="${sH}" rx="2"/>`;
+  } else if (strikes === 2) {
+    strikesSvg = `
+      <rect x="${strikeX}" y="${strike1Y}" width="${strikeW}" height="${strikeH}" rx="2"/>
+      <rect x="${strikeX}" y="${strike1Y + strikeH + strikeGap}" width="${strikeW}" height="${strikeH}" rx="2"/>
+    `;
+  }
+
+  let footSvg = '';
+  if (foot > 0) {
+    footSvg = `<rect x="${footX}" y="${222 - foot}" width="${footW}" height="${foot}" rx="2"/>`;
+  }
+
+  return `
+    <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+      <g fill="currentColor">
+        <rect x="${crossbarInset}" y="22" width="${200 - crossbarInset * 2}" height="${crossbarH}" rx="${crossbarRound}"/>
+        <rect x="${stemX}" y="22" width="${stemW}" height="${222 - 22}" rx="${crossbarRound}"/>
+        ${strikesSvg}
+        ${footSvg}
+      </g>
+    </svg>
+  `;
+}
+
+/* italic version: skew + slightly narrower */
+function markItalic(opts) {
+  const inner = mark(opts);
+  return inner.replace(
+    '<g fill="currentColor">',
+    '<g fill="currentColor" transform="skewX(-9) translate(20 0)">'
+  );
+}
+
+/* ===== variations =====
+   Numbered 1-8. Pick = #2 (two-bail standard). */
+const VARS = [
+  {
+    id: '01',
+    name: 'Single Bail',
+    desc: 'Closest to ¥/$ — one strike. Cleanest at 16px. The fallback for sub-14px.',
+    svg: mark({ strikes: 1, crossbarInset: 14, stemW: 28 }),
+  },
+  {
+    id: '02',
+    name: 'Two Bails',
+    desc: 'The recommendation. Unmistakably a wicket. Echoes the real ₸ (tenge).',
+    svg: mark({ strikes: 2, crossbarInset: 14, stemW: 28 }),
+    recommended: true,
+  },
+  {
+    id: '03',
+    name: 'Two Bails · Wide',
+    desc: 'Strikes extend past the cap. Most "bail on stump" — more illustrative.',
+    svg: mark({ strikes: 2, crossbarInset: 14, stemW: 28, strikeW: 144 }),
+  },
+  {
+    id: '04',
+    name: 'Two Bails · Narrow',
+    desc: 'Strikes pulled in tight. Reads more like ₿ — currency-first.',
+    svg: mark({ strikes: 2, crossbarInset: 14, stemW: 28, strikeW: 84 }),
+  },
+  {
+    id: '05',
+    name: 'Slab',
+    desc: 'Adds a small slab foot. Heavier, banknote-engraved feel. For trophy plates.',
+    svg: mark({ strikes: 2, crossbarInset: 14, stemW: 28, foot: 14, footW: 80 }),
+  },
+  {
+    id: '06',
+    name: 'Heavy',
+    desc: 'Thicker stem, thicker bails. For huge marks — packaging, splash screens.',
+    svg: mark({ strikes: 2, crossbarInset: 8, stemW: 40, strikeH: 17, strike1Y: 64, strikeGap: 14, strikeW: 124 }),
+  },
+  {
+    id: '07',
+    name: 'Italic',
+    desc: 'Skewed -9°. Italics signal in-flight scores, projections.',
+    svg: markItalic({ strikes: 2, crossbarInset: 14, stemW: 28 }),
+  },
+  {
+    id: '08',
+    name: 'Compact',
+    desc: 'Narrower top crossbar, taller stem. For when the mark fits beside ⓒ-style chips.',
+    svg: mark({ strikes: 2, crossbarInset: 32, stemW: 26, strikeW: 92 }),
+  },
+];
+
+const varsGrid = document.getElementById('vars-grid');
+varsGrid.innerHTML = VARS.map(v => `
+  <div class="var-card ${v.recommended ? 'recommended' : ''}">
+    <div class="var-idx mono">${v.id}</div>
+    <div class="mark-slot" style="color:var(--ink)">${v.svg}</div>
+    <div class="var-meta">
+      <div class="name">${v.name}</div>
+      <div class="desc">${v.desc}</div>
+    </div>
+  </div>
+`).join('');
+
+/* ===== size ramp =====
+   Show the recommended mark at decreasing sizes next to a number,
+   so user can judge legibility. */
+const recoSvg = mark({ strikes: 2, crossbarInset: 14, stemW: 28 });
+const recoSingle = mark({ strikes: 1, crossbarInset: 14, stemW: 28 });
+
+const RAMP = [
+  { h: 104, num: '14,328',  numSize: 96, note: '<b>Hero scale</b> — splash, packaging, trophy plate.', svg: recoSvg },
+  { h: 72,  num: '186 /4',  numSize: 72,  note: '<b>Display scale</b> — score header, profile total.', svg: recoSvg },
+  { h: 44,  num: '127*',    numSize: 44,  note: '<b>UI scale</b> — match cards, leaderboard rows.', svg: recoSvg },
+  { h: 24,  num: '2,400',   numSize: 24,  note: '<b>Inline scale</b> — chips next to figures.', svg: recoSvg },
+  { h: 18,  num: '47.4',    numSize: 18,  note: '<b>Floor (2-bail)</b> — still readable but bails fuse on low-DPI.', svg: recoSvg },
+  { h: 14,  num: '38',      numSize: 14,  note: '<b>Sub-14px</b> — switch to single-bail fallback.', svg: recoSingle },
+];
+
+document.getElementById('ramp').innerHTML = RAMP.map(r => {
+  // size svg by height
+  const svgSized = r.svg.replace(
+    '<svg ',
+    `<svg style="height:${r.h}px;width:auto;color:var(--ink)" `
+  );
+  return `
+    <div class="ramp-row">
+      <div class="size-label"><b>${r.h}px</b>${r.h <= 18 ? '<br/>danger zone' : ''}</div>
+      <div class="preview">
+        ${svgSized}
+        <span class="num" style="font-size:${r.numSize}px;line-height:1;">${r.num}</span>
+      </div>
+      <div class="note">${r.note}</div>
+    </div>
+  `;
+}).join('');
+</script>
+</body>
+</html>

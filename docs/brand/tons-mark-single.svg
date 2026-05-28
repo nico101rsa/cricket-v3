@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-label="Tons currency mark (single-bail fallback)">
+  <title>Tons (₸) — single-bail fallback for sub-14px</title>
+  <g fill="currentColor">
+    <rect x="14" y="22" width="172" height="26" rx="2"/>
+    <rect x="86" y="22" width="28" height="200" rx="2"/>
+    <rect x="44" y="78" width="112" height="16" rx="2"/>
+  </g>
+</svg>

@@ -10,7 +10,7 @@ A self-contained brief to continue designing this game. Read top-to-bottom — y
 
 Mobile **roguelite cricket-career** that mashes **Balatro** (deck-builder with stacking modifiers — "jokers"), **Reigns** (swipe-decision cards), and **management** (a light career layer) into **~2:45 matches**. You are a single rising **Player** — a cricketer who captains in-Match — climbing a Career grid from club cricket toward the top. The sim auto-plays most of each match in a stats-rich data-viz feed; you make the few decisions that matter. Visual identity is **broadcast-chrome over Card Portrait avatars**, no 3D pitch view. Primary target: **South Africa & Australia**.
 
-We have locked the **in-match screen design** and the game shape (see `CONTEXT.md`). Screens still to design: main menu, pre-match, result, the Career grid, Offers, Pay/upgrade. Squad/draft/scouting screens are deferred with the full management sim — see ADR 0002.
+We have locked the **in-match screen design** and the game shape (see `CONTEXT.md`). Screens still to design: main menu, pre-match, result, the Career grid, Offers, Tons/upgrade. Squad/draft/scouting screens are deferred with the full management sim — see ADR 0002.
 
 ---
 
@@ -25,7 +25,7 @@ You are a single rising cricketer — the **Player** — who captains your team 
 |---|---|---|
 | **Reigns** | Swipe-decision cards · one-thumb · narrative prompts · binary choices | Used for **key moments** during a match (powerplay exit, wicket crisis, death plan, final-over bowling). Also used for **Manager Boost** interventions. |
 | **Balatro** | Deck-builder · stacking modifiers · combos · "jokers" | A **Season** is the roguelite unit: between matches you draft **Jokers** that stack and combo. Jokers reset each Season; your Player's stats persist (rogue*lite*). |
-| **Management** | Career trade-offs over time | A *light* career layer: Teams send **Offers** (team strength vs **Pay**), Pay is performance-scaled and buys Player upgrades, **Affinity** rewards loyalty. The full squad-management sim is deferred — see ADR 0002. |
+| **Management** | Career trade-offs over time | A *light* career layer: Teams send **Offers** (team strength vs **Tons** — see ADR 0008 for the currency mark), Tons are performance-scaled and buy Player upgrades, **Affinity** rewards loyalty. The full squad-management sim is deferred — see ADR 0002. |
 
 ### Match length: 2:45 (locked)
 
@@ -312,7 +312,7 @@ Tip: when feeding these to Claude.ai for further design, **paste the relevant HT
 
 The in-match screen is locked. Everything else is open.
 
-**Note (2026-05-21):** items 3, 4, 9, 11 (squad, player detail, player development, draft/scouting) are deferred with the full management sim — see ADR 0002. New screens this list predates: the **Career grid**, the **Offer** screen, the **Pay/upgrade** screen.
+**Note (2026-05-21):** items 3, 4, 9, 11 (squad, player detail, player development, draft/scouting) are deferred with the full management sim — see ADR 0002. New screens this list predates: the **Career grid**, the **Offer** screen, the **Tons/upgrade** screen.
 
 Suggested order:
 

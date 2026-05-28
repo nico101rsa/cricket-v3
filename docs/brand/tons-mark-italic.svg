@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 240" role="img" aria-label="Tons currency mark (italic — in-flight scores)">
+  <title>Tons (₸) — italic, for projections and in-flight scores</title>
+  <g fill="currentColor" transform="skewX(-9) translate(20 0)">
+    <rect x="14" y="22" width="172" height="26" rx="2"/>
+    <rect x="86" y="22" width="28" height="200" rx="2"/>
+    <rect x="44" y="68" width="112" height="13" rx="2"/>
+    <rect x="44" y="92" width="112" height="13" rx="2"/>
+  </g>
+</svg>
