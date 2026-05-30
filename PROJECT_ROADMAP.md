@@ -7,18 +7,23 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 ## Current status
 
 **Phase:** Pre-build · design
-**Next theme:** Around-the-match screens
-**Where to do it:** Fresh chat
+**Next theme:** Around-the-match screens — **hi-fi mockup pass on claude.ai**
+**Where to do it:** Fresh claude.ai chat — handoff doc ready at `docs/THEME-5-HANDOFF.md`
 
 ---
 
 ## Next session
 
-Start a new chat. Prime it with:
+Theme 5 architecture is locked (Season hub home, Shop/Offer as forced interludes, no Main Menu, single dense hub, versus-style Pre-match). The mockup pass moves to **claude.ai** for hi-fi HTML.
 
-> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, and `docs/DESIGN_HANDOFF.md`, plus ADRs 0001–0009. Scope, Game shape, Gameplay & balance, and Jokers & meta loop are locked. We're at the Around-the-match screens theme: design the screens that wrap a Match — pre-match (opponent + conditions + your build), the **Shop** screen (the side-by-side Tons + Jokers spend per CONTEXT.md), the **Offer** screen (★ rating + form delta UI), main menu, onboarding, result/scorecard, settings. The in-Match screen is locked (`docs/mockups/match-screen-final.html` + DESIGN_HANDOFF §16). Use the `grill-with-docs` skill — or switch to a Claude.ai mockup session if you want to draft hi-fi HTML directly.
+**To continue:**
+1. Open a fresh chat at **claude.ai**
+2. Attach: `docs/THEME-5-HANDOFF.md`, `CONTEXT.md`, `docs/DESIGN_HANDOFF.md`, `docs/mockups/match-screen-final.html`, `docs/mockups/in-match-hi-fi-v1.html`
+3. Paste the prompt from the bottom of `docs/THEME-5-HANDOFF.md`
+4. When the HTML is ready, save it as `docs/mockups/around-the-match-v1.html`
+5. Return here to lock or iterate
 
-(`grill-with-docs` from Matt Pocock's skills repo — installed at `~/.claude/skills/grill-with-docs/`. Better than `/superpowers:brainstorming` for conceptual / non-visual work.)
+(`grill-with-docs` was used to lock architecture before pivoting to claude.ai for visual design.)
 
 ---
 
@@ -66,6 +71,7 @@ Playtest threads through all of them — continuous, not a discrete item.
 | 2026-05-28 | Team strength durability via half-★ Markov rating | ADR 0009 — Teams carry durable 0.5–5★ rating in half-star increments, ~30% ±0.5 / ~5% ±1 per Season + `lastSeasonEvent` flavour string for ±1 swings; makes Offers a real Meta-layer signal. |
 | 2026-05-28 | Meta-loop shape locked | Shop cadence (5 visits/Season Slay-style) · 4 actions per visit (buy/sell/upgrade/hold) · 45-Joker pool across 6 archetypes · Joker carry-over (1 owned, end-of-Season) · slot 4 earned at first Level-win · mid-Season Offer is immediate-switch. |
 | 2026-05-29 | Team durability refined to half-★ + Theme 4 closed | ADR 0009 revised — stars on 0.5–5.0 in half-star increments (was integer 1–5); ±0.5 normal swings, ±1 catastrophic. Theme 4 (Jokers & meta loop) now closed; next theme is Around-the-match screens. |
+| 2026-05-30 | Theme 5 architecture locked, hi-fi pass moved to claude.ai | Decisions: **Season hub** is the persistent home within a Season (`CONTEXT.md` updated); **Shop & Offer** are forced full-screen interludes triggered by cadence (no skip, no hub-overlay); **no Main Menu** (resume-first cold start, settings via corner gear); Season hub is **single dense screen** (no scroll, no tabs); Pre-match is **versus-style** (red-gradient `[A] vs [B]` header continues into Match chrome). Mockup pass spec'd in `docs/THEME-5-HANDOFF.md`; claude.ai produces hi-fi HTML at `docs/mockups/around-the-match-v1.html`. |
 
 ---
 

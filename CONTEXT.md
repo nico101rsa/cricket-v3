@@ -88,6 +88,10 @@ The team's aggression posture during a Match — one of three bands: Defensive, 
 **Form**:
 A temporary per-player performance multiplier reflecting current confidence — shown by the player's facial expression in their portrait (hot / steady / tired / cold, DESIGN_HANDOFF §16.3). Multiplies effective **Attributes** in both ball-rolls (roughly ×0.8 cold → ×1.15 hot). Applies to batters and bowlers alike. Distinct from Attribute: Form is transient, Attributes are persistent. **Per-ball Form ticks are Player-only** (driven by boundaries, dismissals, dot streaks, etc.); every other player's Form is otherwise static within a Match. **Key Moment `formEvent` effects are an exception** — they can adjust anyone's Form (teammate, opponent), but only from explicit Key Moment effects, never from per-ball events. Player Form persists between Matches within a **Season** and resets at Season end, alongside **Jokers**.
 
+**Season hub**:
+The persistent between-Match screen *within* a Season — the "home" the Player returns to after every Match's **Result**. Shows current league position, fixtures remaining, owned **Jokers**, **Tons** balance, **Affinity**, Player **Attributes**, current **Team** identity. Hosts entry points to the **Shop** and **Offer** when their cadence triggers. Distinct from the **Career grid** — the Career grid is the *between-Season* screen (you only see it once a Season ends).
+_Avoid_: "Dashboard", "lobby" — use "Season hub".
+
 ## Relationships
 
 - A **Career** belongs to exactly one **Country**.
