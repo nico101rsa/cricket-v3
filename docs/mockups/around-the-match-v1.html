@@ -1,0 +1,1964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Around-the-Match · Hi-Fi v1</title>
+<style>
+  /* ════════════════════════════════════════════════════════════
+     §16.1 CANONICAL TOKEN SYSTEM  (no hardcoded hexes in markup)
+     ════════════════════════════════════════════════════════════ */
+  :root {
+    --bg: #0f0f14;            --bg-2: #16161e;
+    --bezel: #0d0d12;         --bezel-edge: #2a2a35;
+    --red: #c41e3a;           --red-dark: #8b0000;       --red-bright: #ef6c6c;
+    --gold: #ffd166;          --gold-warn: #f5a623;      --gold-deep: #c9912b;
+    --green: #2ecc71;         --green-dark: #16a34a;
+    --blue: #4a90e2;          --blue-bright: #6ec1e4;
+    --white-soft: rgba(255,255,255,0.85);
+    --white-mid:  rgba(255,255,255,0.65);
+    --white-dim:  rgba(255,255,255,0.45);
+    --white-faint:rgba(255,255,255,0.25);
+    --surface:    rgba(255,255,255,0.04);
+    --surface-2:  rgba(255,255,255,0.07);
+    --surface-3:  rgba(255,255,255,0.10);
+    --border:     rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    /* country palette — default South Africa (ADR 0001 primary target) */
+    --country-1: #007749;     --country-2: #003e26;
+    --country-glow: rgba(0,119,73,0.45);
+    --country-accent: #FFB81C;
+  }
+  /* §16.2 country swap — set on a frame wrapper via data-country */
+  [data-country="sa"]    { --country-1:#007749; --country-2:#003e26; --country-glow:rgba(0,119,73,0.45);  --country-accent:#FFB81C; }
+  [data-country="aus"]   { --country-1:#A86E00; --country-2:#5c3a00; --country-glow:rgba(224,168,40,0.45); --country-accent:#36CE72; }
+  [data-country="india"] { --country-1:#c41e3a; --country-2:#8b0000; --country-glow:rgba(196,30,58,0.35); --country-accent:#ef6c6c; }
+  [data-country="eng"]   { --country-1:#1E2761; --country-2:#0a1238; --country-glow:rgba(30,39,97,0.5);   --country-accent:#C8102E; }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 40px 32px 120px;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(0,119,73,0.10), transparent 42%),
+      radial-gradient(circle at 88% 96%, rgba(74,144,226,0.06), transparent 46%),
+      var(--bg);
+  }
+
+  /* ─── page chrome ─── */
+  .page-head { max-width: 1480px; margin: 0 auto 10px; }
+  .page-head h1 { font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -0.6px; }
+  .page-head h1 .accent { color: var(--gold); }
+  .page-head .sub { font-size: 14px; color: var(--white-mid); margin: 10px 0 0; max-width: 820px; line-height: 1.55; }
+  .stamp {
+    display: inline-block; background: var(--gold); color: var(--bg);
+    font-weight: 800; padding: 3px 10px 4px; border-radius: 6px;
+    font-size: 13px; margin-left: 12px; letter-spacing: 0.5px;
+    text-transform: uppercase; vertical-align: middle;
+  }
+  .legend {
+    max-width: 1480px; margin: 22px auto 4px;
+    display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+    font-size: 12px; color: var(--white-mid);
+    border-top: 1px solid var(--border); padding-top: 18px;
+  }
+  .legend b { color: var(--white-soft); font-weight: 700; }
+
+  /* section band */
+  .band { max-width: 1480px; margin: 56px auto 22px; }
+  .band h2 {
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin: 0 0 4px; font-weight: 800;
+  }
+  .band p { margin: 0; font-size: 13px; color: var(--white-mid); max-width: 760px; line-height: 1.5; }
+  .band .qtag {
+    display:inline-block; margin-left: 8px; font-size: 11px; letter-spacing: 1px;
+    color: var(--bg); background: var(--blue-bright); padding: 2px 7px; border-radius: 5px;
+    font-weight: 800; text-transform: uppercase; vertical-align: middle;
+  }
+
+  /* ─── canvas of phones ─── */
+  .canvas {
+    max-width: 1480px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 52px 36px;
+    align-items: flex-start;
+  }
+  .frame { display: flex; flex-direction: column; align-items: center; width: 340px; }
+  .frame-label { margin-top: 16px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; text-align:center; }
+  .frame-sub { font-size: 12px; color: var(--white-dim); margin-top: 5px; text-align: center; max-width: 320px; line-height: 1.45; }
+  .reco { color: var(--green); font-weight: 700; }
+  .alt  { color: var(--white-dim); }
+
+  /* ─── phone bezel ─── */
+  .phone {
+    width: 340px; height: 636px;
+    background: var(--bezel); border: 3px solid var(--bezel-edge);
+    border-radius: 42px; padding: 13px;
+    display: flex; flex-direction: column; gap: 7px;
+    overflow: hidden; position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .phone * { box-sizing: border-box; }
+  .notch { width: 92px; height: 20px; background:#000; border-radius: 13px; margin: -6px auto 2px; flex-shrink: 0; }
+
+  /* corner controls (gear + info) — present on every screen */
+  .corner { position: absolute; top: 20px; z-index: 40; }
+  .corner.gear { right: 22px; }
+  .corner.info { left: 22px; }
+  .corner button {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong);
+    color: var(--white-mid); font-size: 13px; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ─── shared header (country gradient — §16 evolved chrome) ─── */
+  .topbar {
+    background: linear-gradient(95deg, var(--country-1) 0%, var(--country-2) 100%);
+    border-radius: 11px; padding: 9px 12px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 9px;
+    box-shadow: 0 4px 14px var(--country-glow);
+  }
+  .team-badge {
+    width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.25), rgba(0,0,0,0.25));
+    border: 1.5px solid rgba(255,255,255,0.5);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 13px; letter-spacing: -0.5px;
+  }
+  .team-id { min-width: 0; flex: 1; line-height: 1.15; }
+  .team-id .nm { font-weight: 800; font-size: 14px; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .team-id .meta { font-size: 9.5px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; display:flex; gap:6px; align-items:center; }
+  .stars { color: var(--gold); letter-spacing: 0; font-size: 11px; }
+  .affinity-tag {
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);
+    padding: 1px 5px; border-radius: 4px; font-size: 8.5px; letter-spacing: 0.5px;
+  }
+  .pos-pill {
+    flex-shrink: 0; text-align: center; background: rgba(0,0,0,0.35);
+    border-radius: 7px; padding: 4px 8px; border: 1px solid rgba(255,255,255,0.18);
+  }
+  .pos-pill .p { font-size: 14px; font-weight: 900; line-height: 1; }
+  .pos-pill .l { font-size: 8px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.75); margin-top: 2px; }
+
+  /* tons balance chip */
+  .tons {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tons .gly { color: var(--gold); font-weight: 800; }
+  .tons .val { color: var(--gold); font-weight: 900; letter-spacing: -0.5px; }
+
+  /* ─── <i class="tmark one"></i> Tons mark — canonical brand glyph (docs/brand, ADR 0008) ───
+     A capital T struck by two bails (a head-on wicket). Inherits colour
+     from text via mask + currentColor. Two-bail ≥14px; single-bail below. */
+  :root {
+    --tmark-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Crect x='14' y='22' width='172' height='26' rx='2'/%3E%3Crect x='86' y='22' width='28' height='200' rx='2'/%3E%3Crect x='44' y='68' width='112' height='13' rx='2'/%3E%3Crect x='44' y='92' width='112' height='13' rx='2'/%3E%3C/svg%3E");
+    --tmark-1: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Crect x='14' y='22' width='172' height='26' rx='2'/%3E%3Crect x='86' y='22' width='28' height='200' rx='2'/%3E%3Crect x='44' y='78' width='112' height='16' rx='2'/%3E%3C/svg%3E");
+  }
+  .tmark {
+    display: inline-block; width: 0.62em; height: 0.74em;
+    vertical-align: -0.04em; flex-shrink: 0;
+    background-color: currentColor;
+    -webkit-mask: var(--tmark-2) center / contain no-repeat;
+            mask: var(--tmark-2) center / contain no-repeat;
+  }
+  .tmark.one { -webkit-mask-image: var(--tmark-1); mask-image: var(--tmark-1); }
+  .tons .tmark { width: 0.6em; height: 0.72em; align-self: center; }
+
+  /* panel primitive */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 11px; padding: 9px 11px; flex-shrink: 0;
+  }
+  .panel-h {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1.6px;
+    color: var(--white-dim); font-weight: 800; margin-bottom: 7px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ─── fixtures chain ─── */
+  .fixtures { display: flex; align-items: center; gap: 4px; overflow: hidden; }
+  .fx {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  }
+  .fx .dot {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; border: 1.5px solid var(--border-strong);
+    background: var(--surface-2); color: var(--white-mid);
+  }
+  .fx.win .dot { background: var(--green-dark); border-color: var(--green); color: #fff; }
+  .fx.loss .dot { background: var(--red-dark); border-color: var(--red); color: #fff; }
+  .fx.now .dot {
+    background: var(--country-1); border-color: var(--country-accent); color: #fff;
+    box-shadow: 0 0 0 0 var(--country-glow); animation: pulseNow 1.6s infinite;
+  }
+  @keyframes pulseNow { 0%,100% { box-shadow: 0 0 0 0 var(--country-glow); } 50% { box-shadow: 0 0 0 5px transparent; } }
+  .fx .cap { font-size: 7px; color: var(--white-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .fx.now .cap { color: var(--country-accent); font-weight: 800; }
+  .fx-sep { width: 1px; align-self: stretch; background: var(--border); margin: 0 2px; }
+  .fx-stage .dot { border-radius: 5px; background: linear-gradient(160deg, var(--gold-warn), var(--gold-deep)); color: var(--bg); border-color: var(--gold); font-size: 8px; }
+
+  /* ─── portrait — REAL illustrated art (assets/portraits) ───
+     Reuses existing classes: form-* picks the expression (= Form),
+     skill-* sets the rarity glow ring, team-* sets the side ring,
+     hero-* swaps in the big green/gold split hero illustration.
+     Old CSS-face children (.bg/.lid/.face) are hidden — markup stays valid. */
+  .pt {
+    position: relative; border: 1.5px solid var(--border-strong); border-radius: 8px;
+    overflow: hidden; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+    background-repeat: no-repeat; background-size: cover; background-position: center 22%;
+    background-color: #12121a;
+  }
+  .pt .bg, .pt .lid, .pt .face { display: none; }      /* retire CSS faces */
+  /* face tiles — expression encodes Form */
+  .pt.form-hot    { background-image: url(assets/portraits/face-hot.png); }
+  .pt.form-steady { background-image: url(assets/portraits/face-steady.png); }
+  .pt.form-tired  { background-image: url(assets/portraits/face-tired.png); }
+  .pt.form-cold   { background-image: url(assets/portraits/face-cold.png); }
+  .pt.form-focused{ background-image: url(assets/portraits/face-focused.png); }
+  /* hero illustrations (green/gold split, full body-up) */
+  .pt.hero-cap    { background-image: url(assets/portraits/hero-cap.png);    background-position: center top; }
+  .pt.hero-helmet { background-image: url(assets/portraits/hero-helmet.png); background-position: center top; }
+  .pt.hero-front  { background-image: url(assets/portraits/hero-front.png);  background-position: center top; }
+  .pt.act-celebrate { background-image: url(assets/portraits/act-celebrating.png); background-position: center top; }
+  /* opponent identities (distinct characters) */
+  .pt.opp-beard { background-image: url(assets/portraits/opp-beard.png); background-position: center top; }
+  .pt.opp-light { background-image: url(assets/portraits/opp-light.png); background-position: center top; }
+  .pt.opp-mustache { background-image: url(assets/portraits/opp-mustache.png); background-position: center top; }
+  /* team ring */
+  .pt.team-you { border-color: var(--blue); }
+  .pt.team-opp { border-color: var(--country-accent); }
+  /* skill rarity glow ring (overrides shadow) */
+  .pt.skill-4 { box-shadow: 0 0 0 2px var(--gold),  0 0 13px rgba(255,209,102,0.5), 0 3px 8px rgba(0,0,0,0.5); }
+  .pt.skill-3 { box-shadow: 0 0 0 2px var(--blue),  0 0 10px rgba(74,144,226,0.4), 0 3px 8px rgba(0,0,0,0.5); }
+  .pt.skill-2 { box-shadow: 0 0 0 1.5px #79828d, 0 3px 8px rgba(0,0,0,0.5); }
+  .pt.skill-1 { box-shadow: 0 0 0 1.5px #3a3d46, 0 3px 8px rgba(0,0,0,0.5); }
+  /* corners */
+  .pt .stars-corner { position: absolute; top: 3px; right: 3px; z-index: 6; color: var(--gold); background: rgba(0,0,0,0.65); padding: 1px 4px; font-size: 8px; border-radius: 4px; letter-spacing: 0; font-weight: 700; }
+  .pt .num { position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); z-index: 6; font-weight: 900; color: rgba(255,255,255,0.92); text-shadow: 1px 1px 3px rgba(0,0,0,0.85); font-variant-numeric: tabular-nums; }
+  /* sizes — face tiles are near-square; hero is portrait */
+  .pt.tiny { width: 30px; height: 30px; border-radius: 6px; background-position: center 18%; }
+  .pt.tiny .num, .pt.tiny .stars-corner { display: none; }
+  .pt.med  { width: 70px; height: 74px; }
+  .pt.med .num { font-size: 13px; }
+  .pt.lg   { width: 86px; height: 90px; }
+  .pt.lg .num { font-size: 16px; }
+  .pt.lg .stars-corner { font-size: 9px; padding: 2px 5px; }
+  .pt.hero { width: 92px; height: 122px; border-radius: 9px; }
+  .pt.hero .num { font-size: 15px; }
+  .pt.hero .stars-corner { font-size: 9px; padding: 2px 5px; }
+
+  /* attribute strip */
+  .attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 9px; }
+  .attr { display: flex; flex-direction: column; gap: 2px; }
+  .attr .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .attr .nm { font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--white-mid); font-weight: 700; }
+  .attr .v { font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .attr.bat .v { color: var(--blue-bright); } .attr.bowl .v { color: var(--red-bright); }
+  .attr .bar { height: 4px; border-radius: 2px; background: var(--surface-3); overflow: hidden; }
+  .attr .bar > i { display: block; height: 100%; border-radius: 2px; }
+  .attr.bat .bar > i { background: linear-gradient(90deg, #2f6db5, var(--blue-bright)); }
+  .attr.bowl .bar > i { background: linear-gradient(90deg, var(--red-dark), var(--red-bright)); }
+
+  /* ─── player card (hub) — identity + cricket career stats ─── */
+  .pcard { display: flex; gap: 9px; align-items: stretch; }
+  .pcard .who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .pcard .nm { font-weight: 900; font-size: 15px; letter-spacing: 0.2px; line-height: 1; }
+  .pcard .role { font-size: 9px; color: var(--white-mid); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 3px; }
+  .ovr-row { display: flex; align-items: center; gap: 7px; margin-top: 7px; }
+  .ovr {
+    width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, var(--gold), var(--gold-deep)); color: #2a1a00;
+    box-shadow: 0 2px 8px rgba(255,209,102,0.35); line-height: 1;
+  }
+  .ovr .n { font-size: 17px; font-weight: 900; }
+  .ovr .l { font-size: 6px; font-weight: 800; letter-spacing: 1px; margin-top: 1px; }
+  .form-chip { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 3px 8px; border-radius: 6px; }
+  .form-chip.hot { background: rgba(255,209,102,0.16); color: var(--gold); border: 1px solid var(--gold-deep); }
+  .form-chip.steady { background: rgba(46,204,113,0.14); color: var(--green); border: 1px solid var(--green-dark); }
+  .form-chip.tired { background: rgba(245,166,35,0.12); color: var(--gold-warn); border: 1px solid var(--gold-deep); }
+  .form-chip.cold { background: rgba(196,30,58,0.14); color: var(--red-bright); border: 1px solid var(--red-dark); }
+  /* career stat strip */
+  .cstats { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: auto; }
+  .cgroup { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 5px 4px 6px; }
+  .cgroup .gh { font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 800; margin-bottom: 4px; display: flex; align-items: center; gap: 3px; }
+  .cgroup.bat .gh { color: var(--blue-bright); } .cgroup.bowl .gh { color: var(--red-bright); }
+  .cgroup .line { display: flex; justify-content: space-between; gap: 2px; }
+  .cgroup .s { text-align: center; flex: 1; min-width: 0; }
+  .cgroup .s .v { font-size: 11px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .cgroup .s .k { font-size: 6.5px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--white-dim); margin-top: 2px; }
+
+  /* ─── jokers §16.7 ─── */
+  .jokers { display: flex; gap: 6px; }
+  .jk {
+    flex: 1; min-width: 0; position: relative;
+    border: 1.5px solid rgba(255,255,255,0.2); border-radius: 8px;
+    background: var(--surface-2); padding: 7px 4px 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+  }
+  .jk.rare { border-color: var(--blue); background: linear-gradient(160deg, rgba(74,144,226,0.22), rgba(13,40,80,0.4)); box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 9px rgba(74,144,226,0.28); }
+  .jk.legendary { border-color: var(--gold); background: linear-gradient(160deg, #3a2a4e, #1d0e2e); box-shadow: 0 2px 6px rgba(0,0,0,0.5), 0 0 11px rgba(255,209,102,0.32); }
+  .jk .pip { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.85); border: 1px solid rgba(0,0,0,0.4); }
+  .jk.rare .pip { background: var(--blue); box-shadow: 0 0 4px rgba(74,144,226,0.8); }
+  .jk.legendary .pip { background: var(--gold); box-shadow: 0 0 5px rgba(255,209,102,0.9); }
+  .jk .icon { font-size: 17px; line-height: 1; }
+  .jk .nm { font-size: 8px; font-weight: 800; letter-spacing: 0.3px; text-transform: uppercase; line-height: 1.05; }
+  .jk .eff { font-size: 7.5px; color: var(--white-mid); line-height: 1.1; }
+  .jk.empty { border-style: dashed; background: rgba(255,255,255,0.02); box-shadow: none; justify-content: center; }
+  .jk.empty .icon, .jk.empty .nm { color: var(--white-dim); }
+  .jk .syn { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); font-size: 6.5px; font-weight: 800; padding: 1px 5px; border-radius: 6px; white-space: nowrap; letter-spacing: 0.3px; }
+  .jk .hold { position: absolute; top: 4px; left: 4px; font-size: 9px; color: var(--gold); }
+
+  /* ─── CTA buttons ─── */
+  .cta {
+    margin-top: auto; flex-shrink: 0; width: 100%;
+    background: linear-gradient(95deg, var(--gold-warn), var(--gold)); color: #2a1a00;
+    border: none; border-radius: 13px; padding: 13px; cursor: pointer;
+    font-size: 15px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;
+    box-shadow: 0 6px 18px rgba(255,209,102,0.28), inset 0 1px 0 rgba(255,255,255,0.4);
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .cta.red { background: linear-gradient(95deg, var(--red-dark), var(--red)); color: #fff; box-shadow: 0 6px 18px rgba(196,30,58,0.32), inset 0 1px 0 rgba(255,255,255,0.18); }
+  .cta.ghost { background: var(--surface-2); color: var(--white-soft); border: 1px solid var(--border-strong); box-shadow: none; }
+  .cta.sm { padding: 10px; font-size: 13px; border-radius: 11px; }
+
+  /* generic helpers */
+  .row { display: flex; align-items: center; }
+  .between { justify-content: space-between; }
+  .grow { flex: 1; min-width: 0; }
+  .muted { color: var(--white-dim); }
+  .tnum { font-variant-numeric: tabular-nums; }
+  .scroll-note { position:absolute; }
+
+  /* ─── PRE-MATCH versus chrome ─── */
+  .versus {
+    background: linear-gradient(110deg, var(--country-1) 0%, var(--country-2) 70%, #000 140%);
+    border-radius: 12px; padding: 13px 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    box-shadow: 0 6px 20px var(--country-glow); position: relative; overflow: hidden;
+  }
+  .versus::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% -20%, rgba(255,255,255,0.18), transparent 60%); }
+  .versus .side { position: relative; z-index: 1; flex: 1; min-width: 0; }
+  .versus .side.r { text-align: right; }
+  .versus .side .lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; color: rgba(255,255,255,0.7); }
+  .versus .side .nm { font-size: 18px; font-weight: 900; letter-spacing: -0.4px; line-height: 1.05; }
+  .versus .side .sub { font-size: 9px; color: rgba(255,255,255,0.8); margin-top: 2px; }
+  .versus .vs { position: relative; z-index: 1; flex-shrink: 0; font-size: 13px; font-weight: 900; font-style: italic; color: var(--gold); text-shadow: 0 1px 4px rgba(0,0,0,0.6); padding: 0 2px; }
+
+  .stakes {
+    flex-shrink: 0; text-align: center; border-radius: 9px; padding: 7px;
+    font-size: 11px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase;
+    background: rgba(255,209,102,0.08); border: 1px solid var(--gold); color: var(--gold);
+  }
+  .stakes.final { background: linear-gradient(95deg, rgba(196,30,58,0.3), rgba(255,209,102,0.2)); border-color: var(--gold); color: #fff; box-shadow: 0 0 16px rgba(255,209,102,0.35); font-size: 12px; }
+  .conditions {
+    flex-shrink: 0; text-align: center; font-size: 10px; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--white-mid); padding: 2px;
+  }
+  .conditions b { color: var(--white-soft); }
+
+  .vs-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+  .vs-panel { border-radius: 11px; padding: 9px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .vs-panel.you { background: linear-gradient(170deg, rgba(74,144,226,0.18), rgba(13,40,80,0.28)); border: 1px solid rgba(74,144,226,0.45); }
+  .vs-panel.opp { background: linear-gradient(170deg, var(--country-glow), rgba(0,0,0,0.28)); border: 1px solid var(--country-accent); }
+  .vs-panel .who { font-size: 8px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
+  .vs-panel.you .who { color: var(--blue-bright); } .vs-panel.opp .who { color: var(--country-accent); }
+  .vs-panel .tnm { font-size: 12px; font-weight: 800; text-align: center; line-height: 1.1; }
+  .vs-panel .rating { font-size: 12px; color: var(--gold); letter-spacing: 1px; }
+  .form-pips { display: flex; gap: 3px; }
+  .form-pips i { width: 13px; height: 13px; border-radius: 3px; font-size: 8px; font-weight: 800; display:flex;align-items:center;justify-content:center; }
+  .form-pips i.w { background: var(--green-dark); color: #fff; } .form-pips i.l { background: var(--red-dark); color: #fff; }
+  .vs-panel .flavour { font-size: 8px; font-style: italic; color: var(--white-mid); text-align: center; line-height: 1.25; }
+  .vs-attrs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 8px; width: 100%; }
+  .vs-attrs .a { display:flex; justify-content:space-between; font-size: 8.5px; }
+  .vs-attrs .a .n { color: var(--white-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .vs-attrs .a .v { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  .build-strip { flex-shrink: 0; display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px; }
+  .build-strip .lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--white-dim); font-weight: 800; }
+  .mini-jk { display: flex; gap: 4px; }
+  .mini-jk i { width: 19px; height: 19px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1.5px solid rgba(255,255,255,0.2); background: var(--surface-2); }
+  .mini-jk i.rare { border-color: var(--blue); box-shadow: 0 0 5px rgba(74,144,226,0.4); }
+  .mini-jk i.legendary { border-color: var(--gold); box-shadow: 0 0 6px rgba(255,209,102,0.4); }
+  .boost-pip { margin-left: auto; display: flex; align-items: center; gap: 5px; }
+  .boost-pip .meter { width: 26px; height: 11px; border-radius: 3px; background: var(--surface-3); overflow: hidden; position: relative; border: 1px solid var(--border-strong); }
+  .boost-pip .meter > i { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(0deg, var(--green-dark), var(--green)); }
+  .boost-pip .txt { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+  .boost-pip.ready .txt { color: var(--green); }
+
+  /* ─── SHOP ─── */
+  .shop-top { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(95deg, var(--country-1), var(--country-2)); border-radius: 11px; padding: 9px 12px; box-shadow: 0 4px 14px var(--country-glow); }
+  .shop-top .ctx { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.85); text-align: right; line-height: 1.3; }
+  .shop-top .ctx b { display: block; color: #fff; font-size: 11px; }
+  .col-h { font-size: 9px; text-transform: uppercase; letter-spacing: 1.4px; color: var(--white-dim); font-weight: 800; margin-bottom: 6px; }
+  .up-row { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 9px; padding: 7px 9px; }
+  .up-row .nm { font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 800; width: 42px; flex-shrink: 0; }
+  .up-row.bat .nm { color: var(--blue-bright); } .up-row.bowl .nm { color: var(--red-bright); }
+  .up-row .barwrap { flex: 1; min-width: 0; }
+  .up-row .barwrap .bar { height: 5px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+  .up-row .barwrap .bar > i { display: block; height: 100%; }
+  .up-row.bat .barwrap .bar > i { background: linear-gradient(90deg, #2f6db5, var(--blue-bright)); }
+  .up-row.bowl .barwrap .bar > i { background: linear-gradient(90deg, var(--red-dark), var(--red-bright)); }
+  .up-row .num { font-size: 13px; font-weight: 900; font-variant-numeric: tabular-nums; width: 24px; text-align: right; }
+  .up-chip { flex-shrink: 0; background: linear-gradient(95deg, var(--gold-warn), var(--gold)); color: #2a1a00; border-radius: 8px; padding: 5px 8px; font-size: 10px; font-weight: 900; display: flex; flex-direction: column; align-items: center; line-height: 1.05; min-width: 42px; }
+  .up-chip .plus { font-size: 11px; }
+  .up-chip .cost { font-size: 8px; opacity: 0.85; }
+  .up-chip.cant { background: var(--surface-2); color: var(--white-dim); box-shadow: none; }
+
+  .sjk { position: relative; border-radius: 9px; padding: 8px 6px 7px; display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; border: 1.5px solid rgba(255,255,255,0.2); background: var(--surface-2); }
+  .sjk.rare { border-color: var(--blue); background: linear-gradient(160deg, rgba(74,144,226,0.2), rgba(13,40,80,0.4)); box-shadow: 0 0 9px rgba(74,144,226,0.25); }
+  .sjk.legendary { border-color: var(--gold); background: linear-gradient(160deg, #3a2a4e, #1d0e2e); box-shadow: 0 0 11px rgba(255,209,102,0.3); }
+  .sjk .pip { position: absolute; top: 5px; right: 5px; width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.85); }
+  .sjk.rare .pip { background: var(--blue); } .sjk.legendary .pip { background: var(--gold); }
+  .sjk .hold-pin { position: absolute; top: 4px; left: 5px; font-size: 11px; color: var(--white-dim); cursor: pointer; }
+  .sjk .icon { font-size: 20px; line-height: 1; }
+  .sjk .nm { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.05; }
+  .sjk .eff { font-size: 7.5px; color: var(--white-mid); line-height: 1.15; min-height: 18px; }
+  .sjk .price { font-size: 11px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .sjk .buy { width: 100%; margin-top: 2px; background: var(--surface-3); border: 1px solid var(--border-strong); color: var(--white-soft); border-radius: 6px; padding: 3px; font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; }
+  .sjk .buy.afford { background: linear-gradient(95deg, var(--gold-warn), var(--gold)); color: #2a1a00; border: none; }
+  .sjk .held-tag { position: absolute; bottom: -7px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); font-size: 6.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; letter-spacing: 0.5px; }
+  .owned-row { display: flex; gap: 5px; }
+  .owned-slot { flex: 1; aspect-ratio: 1; border-radius: 8px; border: 1.5px solid rgba(255,255,255,0.2); background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 17px; position: relative; }
+  .owned-slot.rare { border-color: var(--blue); } .owned-slot.legendary { border-color: var(--gold); }
+  .owned-slot.locked { border-style: dashed; color: var(--white-faint); font-size: 9px; }
+  .owned-slot .sell { position: absolute; bottom: -1px; left: 0; right: 0; font-size: 6.5px; background: rgba(0,0,0,0.55); color: var(--white-mid); text-align: center; letter-spacing: 0.3px; }
+  .free-pick-tag { flex-shrink:0; text-align:center; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); font-weight: 800; }
+
+  /* ─── SHOP SCENE — a distinct PLACE (warm "kit room", merchant, hanging tags) ─── */
+  .phone.shop-scene {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(120,72,28,0.30), transparent 55%),
+      radial-gradient(circle at 90% 90%, rgba(70,40,16,0.25), transparent 50%),
+      linear-gradient(180deg, #1a1410 0%, #15110d 60%, #120f0c 100%);
+    border-color: #3a2c1d;
+  }
+  .shop-scene .shop-top { background: linear-gradient(95deg, #5a3c1e, #3a2613); box-shadow: 0 4px 14px rgba(90,60,30,0.4); }
+  /* shopkeeper greeting bar */
+  .keeper-bar { flex-shrink: 0; display: flex; align-items: center; gap: 9px; background: linear-gradient(95deg, rgba(120,80,38,0.22), rgba(60,38,18,0.12)); border: 1px solid rgba(180,130,70,0.3); border-radius: 11px; padding: 7px 9px; }
+  .keeper-av { width: 42px; height: 46px; border-radius: 9px; flex-shrink: 0; background-image: url(assets/portraits/keeper.png); background-size: cover; background-position: center top; border: 1.5px solid #b8854a; box-shadow: 0 0 8px rgba(184,133,74,0.4); }
+  .keeper-say { flex: 1; min-width: 0; }
+  .keeper-say .who { font-size: 8px; text-transform: uppercase; letter-spacing: 1.2px; color: #d9a866; font-weight: 800; }
+  .keeper-say .line { font-size: 10.5px; color: var(--white-soft); font-style: italic; line-height: 1.25; margin-top: 2px; }
+  .keeper-purse { flex-shrink: 0; text-align: center; background: rgba(0,0,0,0.3); border: 1px solid rgba(180,130,70,0.35); border-radius: 8px; padding: 5px 8px; }
+  .keeper-purse .v { font-size: 14px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; line-height: 1; }
+  .keeper-purse .l { font-size: 6.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--white-dim); margin-top: 2px; }
+  /* warm shelf section headers */
+  .shop-scene .col-h { color: #c79a5e; }
+  .shelf { background: linear-gradient(180deg, rgba(60,40,20,0.18), rgba(30,20,10,0.10)); border: 1px solid rgba(150,105,55,0.22); border-radius: 11px; padding: 8px; position: relative; }
+  .shelf::before { content:''; position:absolute; left:8px; right:8px; top:0; height:2px; background: linear-gradient(90deg, transparent, rgba(200,150,80,0.4), transparent); }
+  /* hanging price tag on wares */
+  .sjk.ware { background: linear-gradient(170deg, rgba(70,48,24,0.4), rgba(30,20,12,0.5)); }
+  .sjk .tag { position: absolute; top: -9px; right: -6px; z-index: 5; background: linear-gradient(95deg, var(--gold-warn), var(--gold)); color: #2a1a00; font-size: 9px; font-weight: 900; padding: 2px 6px 3px; border-radius: 3px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); font-variant-numeric: tabular-nums; transform: rotate(4deg); }
+  .sjk .tag::before { content:''; position:absolute; top:4px; left:-3px; width:5px; height:5px; border-radius:50%; background:#2a1a00; }
+
+  /* ─── OFFER ─── */
+  .offer-card { border-radius: 14px; padding: 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 8px; background: linear-gradient(170deg, var(--surface-2), rgba(0,0,0,0.3)); border: 1.5px solid var(--border-strong); position: relative; }
+  .offer-card.promo { border-color: var(--gold); box-shadow: 0 0 22px rgba(255,209,102,0.3); background: linear-gradient(170deg, rgba(255,209,102,0.12), rgba(0,0,0,0.3)); }
+  .promo-tag { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: linear-gradient(95deg, var(--gold-warn), var(--gold)); color: #2a1a00; font-size: 9px; font-weight: 900; letter-spacing: 1.2px; padding: 3px 11px; border-radius: 7px; text-transform: uppercase; white-space: nowrap; }
+  .badge-lg { width: 56px; height: 56px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 20px; letter-spacing: -1px; background: linear-gradient(160deg, var(--country-1), var(--country-2)); border: 2px solid var(--country-accent); box-shadow: 0 4px 14px var(--country-glow); }
+  .offer-card .tnm-lg { font-size: 17px; font-weight: 900; letter-spacing: -0.3px; text-align: center; line-height: 1.05; }
+  .offer-card .rating-lg { font-size: 18px; color: var(--gold); letter-spacing: 1px; }
+  .offer-card .lvl { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--white-mid); }
+  .delta-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; padding: 3px 9px; border-radius: 7px; letter-spacing: 0.3px; }
+  .delta-pill.up { background: rgba(46,204,113,0.16); color: var(--green); border: 1px solid var(--green-dark); }
+  .delta-pill.down { background: rgba(196,30,58,0.16); color: var(--red-bright); border: 1px solid var(--red-dark); }
+  .delta-pill.flat { background: var(--surface-2); color: var(--white-mid); border: 1px solid var(--border-strong); }
+  .terms { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; width: 100%; }
+  .terms .t { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; text-align: center; }
+  .terms .t .lbl { font-size: 7.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--white-dim); }
+  .terms .t .v { font-size: 13px; font-weight: 900; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .terms .t .v.gold { color: var(--gold); }
+  .narrative { font-size: 10px; font-style: italic; color: var(--white-mid); text-align: center; line-height: 1.4; }
+  .offer-btns { display: grid; grid-template-columns: 1fr 1.3fr; gap: 8px; width: 100%; }
+  /* end-of-season triple */
+  .mini-offer { border-radius: 11px; padding: 9px 7px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: linear-gradient(170deg, var(--surface-2), rgba(0,0,0,0.25)); border: 1.5px solid var(--border-strong); position: relative; text-align: center; }
+  .mini-offer.promo { border-color: var(--gold); box-shadow: 0 0 14px rgba(255,209,102,0.28); }
+  .mini-offer.stay { border-color: var(--blue); background: linear-gradient(170deg, rgba(74,144,226,0.16), rgba(0,0,0,0.25)); }
+  .mini-offer .badge-sm { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; background: linear-gradient(160deg, var(--country-1), var(--country-2)); border: 1.5px solid var(--country-accent); }
+  .mini-offer.stay .badge-sm { background: linear-gradient(160deg, var(--blue), #1f5fa8); border-color: var(--blue-bright); }
+  .mini-offer .nm { font-size: 9.5px; font-weight: 800; line-height: 1.05; }
+  .mini-offer .rt { font-size: 11px; color: var(--gold); letter-spacing: 0.5px; }
+  .mini-offer .promo-tag { font-size: 7px; padding: 2px 6px; top: -8px; }
+  .carryover { flex-shrink: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+  .carry-jks { display: flex; gap: 5px; }
+  .carry-jks .cj { flex: 1; aspect-ratio: 1; border-radius: 7px; border: 1.5px solid rgba(255,255,255,0.2); background: var(--surface-2); display: flex; align-items: center; justify-content: center; font-size: 15px; position: relative; cursor: pointer; }
+  .carry-jks .cj.rare { border-color: var(--blue); } .carry-jks .cj.legendary { border-color: var(--gold); }
+  .carry-jks .cj.sel { box-shadow: 0 0 0 2px var(--gold); }
+  .carry-jks .cj.none { border-style: dashed; font-size: 8px; color: var(--white-dim); }
+  .carry-jks .cj .chk { position: absolute; top: -6px; right: -6px; width: 15px; height: 15px; border-radius: 50%; background: var(--gold); color: var(--bg); font-size: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+
+  /* ─── RESULT ─── */
+  .result-head { flex-shrink: 0; text-align: center; padding: 6px 0 2px; }
+  .result-head .verdict { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1; }
+  .result-head .verdict.win { color: var(--gold); text-shadow: 0 0 20px rgba(255,209,102,0.4); }
+  .result-head .verdict.loss { color: var(--red-bright); }
+  .scoreline { flex-shrink: 0; display: flex; align-items: stretch; justify-content: center; gap: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .scoreline .s { flex: 1; text-align: center; padding: 8px 6px; }
+  .scoreline .s.win-s { background: rgba(255,209,102,0.08); }
+  .scoreline .s .t { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--white-mid); }
+  .scoreline .s .r { font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; margin-top: 2px; }
+  .scoreline .s .o { font-size: 8px; color: var(--white-dim); }
+  .scoreline .mid { display: flex; align-items: center; padding: 0 8px; font-size: 9px; color: var(--white-dim); font-weight: 800; }
+  .perf { flex-shrink: 0; display: flex; gap: 10px; align-items: center; }
+  .perf-grid { flex: 1; display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; }
+  .perf-grid .st { background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 4px; text-align: center; }
+  .perf-grid .st .v { font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .perf-grid .st .l { font-size: 7px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--white-dim); margin-top: 3px; }
+  .tons-earned { flex-shrink: 0; background: linear-gradient(95deg, rgba(255,209,102,0.14), rgba(255,209,102,0.04)); border: 1px solid var(--gold); border-radius: 10px; padding: 8px 11px; display: flex; align-items: center; justify-content: space-between; }
+  .tons-earned .big { font-size: 22px; }
+  .tons-earned .brk { font-size: 8.5px; color: var(--white-mid); text-align: right; line-height: 1.4; }
+  .km-recap { flex-shrink: 0; display: flex; gap: 5px; }
+  .km-recap .k { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 5px 3px; text-align: center; font-size: 7px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--white-mid); line-height: 1.2; position: relative; }
+  .km-recap .k .res { position: absolute; top: -6px; right: -4px; width: 14px; height: 14px; border-radius: 50%; font-size: 9px; display: flex; align-items: center; justify-content: center; font-weight: 900; }
+  .km-recap .k .res.ok { background: var(--green-dark); color: #fff; } .km-recap .k .res.no { background: var(--red-dark); color: #fff; }
+  .delta-bars { flex-shrink: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .delta-bars .d { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 8px; }
+  .delta-bars .d .lbl { font-size: 8px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--white-dim); display: flex; justify-content: space-between; }
+  .delta-bars .d .lbl b { color: var(--green); }
+  .delta-bars .d .bar { height: 4px; background: var(--surface-3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
+  .delta-bars .d .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--green-dark), var(--green)); }
+  .confetti { position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none; overflow: hidden; z-index: 30; }
+  .confetti i { position: absolute; width: 6px; height: 9px; opacity: 0.9; animation: fall 2.6s linear infinite; }
+  @keyframes fall { 0% { transform: translateY(-20px) rotate(0); } 100% { transform: translateY(700px) rotate(540deg); } }
+
+  /* ─── CAREER GRID ─── */
+  .career-top { flex-shrink: 0; background: linear-gradient(95deg, var(--country-1), var(--country-2)); border-radius: 11px; padding: 9px 11px; box-shadow: 0 4px 14px var(--country-glow); }
+  .career-top .r1 { display: flex; align-items: center; gap: 8px; }
+  .career-top .flag { font-size: 18px; }
+  .career-top .cn { font-weight: 900; font-size: 14px; flex: 1; }
+  .career-top .r2 { display: flex; justify-content: space-between; margin-top: 7px; gap: 8px; }
+  .career-top .stat { text-align: center; flex: 1; background: rgba(0,0,0,0.28); border-radius: 7px; padding: 4px; }
+  .career-top .stat .v { font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+  .career-top .stat .l { font-size: 7px; text-transform: uppercase; letter-spacing: 0.6px; color: rgba(255,255,255,0.75); margin-top: 3px; }
+  /* career deep-stats panel (uses the empty space on this between-Season screen) */
+  .career-stats { flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; }
+  .cs-tot { display: grid; grid-template-columns: repeat(4,1fr); gap: 5px; }
+  .cs-tot .x { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 3px; text-align: center; }
+  .cs-tot .x .v { font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; display: block; }
+  .cs-tot .x.gold .v { color: var(--gold); }
+  .cs-tot .x .k { font-size: 6.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--white-dim); margin-top: 3px; display: block; }
+  .cs-split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .cs-split .cgroup .line { gap: 4px; }
+  /* regular lattice */
+  .lattice { flex: 1; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+  .lattice .lvl-row { flex: 1; display: flex; gap: 5px; align-items: stretch; }
+  .lattice .lvl-tag { width: 22px; flex-shrink: 0; writing-mode: vertical-rl; transform: rotate(180deg); text-align: center; font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--white-dim); display: flex; align-items: center; justify-content: center; }
+  .cell { flex: 1; border-radius: 7px; border: 1.5px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 13px; position: relative; }
+  .cell.beaten { color: var(--green); border-color: rgba(46,204,113,0.4); background: rgba(46,204,113,0.06); }
+  .cell.won { border-color: var(--gold); background: linear-gradient(160deg, rgba(255,209,102,0.18), rgba(255,209,102,0.04)); box-shadow: 0 0 8px rgba(255,209,102,0.25); }
+  .cell.now { border-color: var(--country-accent); background: var(--country-glow); box-shadow: 0 0 0 0 var(--country-glow); animation: pulseNow 1.6s infinite; font-size: 10px; }
+  .cell.locked { color: var(--white-faint); border-style: dashed; background: transparent; }
+  .lattice .tour-axis { display: flex; gap: 5px; padding-left: 27px; }
+  .lattice .tour-axis span { flex: 1; text-align: center; font-size: 6.5px; color: var(--white-faint); text-transform: uppercase; }
+  /* constellation */
+  .constel { flex: 1; position: relative; min-height: 0; border-radius: 11px; overflow: hidden; background: radial-gradient(circle at 70% 20%, rgba(0,119,73,0.12), transparent 50%), linear-gradient(180deg, #0a0a10, #12121a); border: 1px solid var(--border); }
+  .constel svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .node { position: absolute; width: 26px; height: 26px; border-radius: 50%; transform: translate(-50%,-50%); display: flex; align-items: center; justify-content: center; font-size: 11px; border: 1.5px solid var(--border-strong); background: var(--bg-2); z-index: 2; }
+  .node.beaten { color: var(--green); border-color: var(--green-dark); }
+  .node.won { border-color: var(--gold); background: linear-gradient(160deg, rgba(255,209,102,0.25), rgba(0,0,0,0.3)); box-shadow: 0 0 10px rgba(255,209,102,0.4); }
+  .node.now { border-color: var(--country-accent); background: var(--country-1); box-shadow: 0 0 0 0 var(--country-glow); animation: pulseNow 1.6s infinite; }
+  .node.locked { color: var(--white-faint); border-style: dashed; }
+  .node .you { position: absolute; top: -9px; right: -9px; font-size: 9px; }
+  /* ladder league labels + start badge */
+  .league-lbl { position: absolute; transform: translate(-50%,-50%); z-index: 3; font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--white-mid); background: rgba(0,0,0,0.55); border: 1px solid var(--border-strong); border-radius: 5px; padding: 2px 6px; white-space: nowrap; pointer-events: none; }
+  .league-lbl.done { color: var(--gold); border-color: var(--gold-deep); }
+  .league-lbl.live { color: var(--country-accent); border-color: var(--country-accent); }
+  .constel.lad { background: radial-gradient(circle at 80% 12%, rgba(0,119,73,0.14), transparent 55%), linear-gradient(180deg, #0a0a10, #111119 70%, #0d1a12); }
+
+  /* ─── hub loyalty / next-reward strip (closes the vertical gap, surfaces Affinity) ─── */
+  .loyalty { flex-shrink:0; display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 11px; }
+  .loyalty .ic { font-size:16px; line-height:1; }
+  .loyalty .body { flex:1; min-width:0; }
+  .loyalty .body .top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .loyalty .body .top .l { font-size:8.5px; text-transform:uppercase; letter-spacing:1px; color:var(--white-dim); font-weight:800; white-space:nowrap; }
+  .loyalty .body .top .r { font-size:8.5px; color:var(--country-accent); font-weight:800; white-space:nowrap; }
+  .loyalty .body .bar { height:5px; border-radius:3px; background:var(--surface-3); margin-top:5px; overflow:hidden; }
+  .loyalty .body .bar > i { display:block; height:100%; border-radius:3px; background:linear-gradient(90deg, var(--country-2), var(--country-accent)); }
+
+  /* ─── CAREER RECORDS — global rank + "ah nice" records on the between-Season screen ─── */
+  .rank-hero { flex-shrink:0; display:flex; align-items:center; gap:11px; background:linear-gradient(95deg, rgba(255,209,102,0.14), rgba(255,209,102,0.03)); border:1px solid var(--gold-deep); border-radius:11px; padding:9px 12px; }
+  .rank-hero .rk { display:flex; align-items:baseline; gap:1px; flex-shrink:0; }
+  .rank-hero .rk .hash { font-size:14px; font-weight:900; color:var(--gold); }
+  .rank-hero .rk .n { font-size:27px; font-weight:900; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1; letter-spacing:-1.2px; }
+  .rank-hero .rk .of { font-size:11px; color:var(--white-mid); font-weight:700; margin-left:2px; }
+  .rank-hero .meta { flex:1; min-width:0; }
+  .rank-hero .meta .lbl { font-size:8px; text-transform:uppercase; letter-spacing:0.9px; color:var(--white-dim); font-weight:800; line-height:1.25; }
+  .rank-hero .pctbar { height:5px; border-radius:3px; background:var(--surface-3); margin-top:6px; overflow:hidden; }
+  .rank-hero .pctbar > i { display:block; height:100%; border-radius:3px; background:linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+  .rank-hero .top { flex-shrink:0; text-align:center; padding-left:3px; }
+  .rank-hero .top .pc { font-size:17px; font-weight:900; color:var(--gold); line-height:1; }
+  .rank-hero .top .pl { font-size:7px; text-transform:uppercase; letter-spacing:0.8px; color:var(--white-dim); margin-top:2px; }
+
+  .records { flex-shrink:0; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .rec { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 4px 6px; text-align:center; }
+  .rec .ic { font-size:13px; line-height:1; }
+  .rec .v { font-size:15px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; margin-top:4px; }
+  .rec .k { font-size:6.5px; text-transform:uppercase; letter-spacing:0.4px; color:var(--white-dim); margin-top:3px; line-height:1.15; }
+  .rec.hl { border-color:var(--gold-deep); background:linear-gradient(160deg, rgba(255,209,102,0.10), rgba(255,209,102,0.02)); }
+  .rec.hl .v { color:var(--gold); }
+
+  .drank { flex-shrink:0; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .drank .dr { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:6px 4px; text-align:center; }
+  .drank .dr .v { font-size:14px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+  .drank .dr.bat .v { color:var(--blue-bright); }
+  .drank .dr.bowl .v { color:var(--red-bright); }
+  .drank .dr.all .v { color:var(--gold); }
+  .drank .dr .k { font-size:6.5px; text-transform:uppercase; letter-spacing:0.5px; color:var(--white-dim); margin-top:3px; }
+
+  .book-head { flex-shrink:0; display:flex; align-items:center; gap:10px; }
+  .book-head .ttl { font-size:15px; font-weight:900; letter-spacing:0.2px; line-height:1; }
+  .book-head .ttl small { display:block; font-size:8px; color:var(--white-dim); text-transform:uppercase; letter-spacing:1px; font-weight:800; margin-top:4px; }
+  .book-sec { flex-shrink:0; font-size:9px; text-transform:uppercase; letter-spacing:1.4px; color:var(--gold); font-weight:800; }
+  .book-list { flex-shrink:0; display:flex; flex-direction:column; gap:5px; }
+  .book-row { display:flex; align-items:center; gap:8px; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:7px 9px; }
+  .book-row .ic { font-size:14px; width:17px; text-align:center; flex-shrink:0; }
+  .book-row .nm { font-size:9.5px; color:var(--white-soft); font-weight:700; }
+  .book-row .cx { font-size:8px; color:var(--white-dim); margin-left:auto; font-style:italic; }
+  .book-row .v { font-size:15px; font-weight:900; font-variant-numeric:tabular-nums; flex-shrink:0; min-width:42px; text-align:right; }
+  .book-row.gold .v { color:var(--gold); }
+
+  /* ─── COLLECTION / ACHIEVEMENTS §17 ─── */
+  .coll-hero { flex-shrink:0; display:flex; align-items:center; gap:12px; background:linear-gradient(95deg, rgba(255,209,102,0.14), rgba(255,209,102,0.03)); border:1px solid var(--gold-deep); border-radius:13px; padding:10px 12px; }
+  .ring { --p:61; width:60px; height:60px; border-radius:50%; flex-shrink:0; position:relative; background:conic-gradient(var(--gold) calc(var(--p)*1%), rgba(255,255,255,0.09) 0); display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px rgba(255,209,102,0.2); }
+  .ring::before { content:''; position:absolute; inset:5px; border-radius:50%; background:var(--bezel); }
+  .ring .pc { position:relative; z-index:1; font-size:19px; font-weight:900; color:var(--gold); letter-spacing:-1px; line-height:1; font-variant-numeric:tabular-nums; }
+  .coll-hero .meta { flex:1; min-width:0; }
+  .coll-hero .meta .t { font-size:16px; font-weight:900; letter-spacing:0.2px; line-height:1; }
+  .coll-hero .meta .s { font-size:9px; color:var(--white-dim); text-transform:uppercase; letter-spacing:0.8px; font-weight:800; margin-top:5px; }
+  .coll-hero .meta .s b { color:var(--white-soft); }
+  .coll-hero .rwd { flex-shrink:0; text-align:right; }
+  .coll-hero .rwd .tons { font-size:14px; }
+  .coll-hero .rwd .rl { font-size:7px; text-transform:uppercase; letter-spacing:0.8px; color:var(--white-dim); font-weight:800; margin-top:3px; }
+
+  .sec-lbl { flex-shrink:0; font-size:8.5px; text-transform:uppercase; letter-spacing:1.4px; color:var(--gold); font-weight:800; display:flex; align-items:center; gap:6px; }
+  .sec-lbl .fr { margin-left:auto; color:var(--white-dim); font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:0.5px; }
+
+  .recent { flex-shrink:0; display:flex; gap:6px; }
+  .recent .rb { flex:1; min-width:0; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 4px 6px; text-align:center; }
+  .medal { width:33px; height:33px; border-radius:50%; margin:0 auto; display:flex; align-items:center; justify-content:center; font-size:15px; border:1.5px solid var(--border-strong); background:var(--surface-2); }
+  .medal.common { border-color:var(--green-dark); }
+  .medal.rare { border-color:var(--blue); background:radial-gradient(circle at 50% 30%, rgba(74,144,226,0.3), rgba(0,0,0,0.3)); box-shadow:0 0 9px rgba(74,144,226,0.3); }
+  .medal.legend { border-color:var(--gold); background:radial-gradient(circle at 50% 30%, rgba(255,209,102,0.32), rgba(0,0,0,0.3)); box-shadow:0 0 10px rgba(255,209,102,0.38); }
+  .recent .rb .rn { font-size:8px; font-weight:800; letter-spacing:0.2px; margin-top:5px; line-height:1.1; }
+  .recent .rb .rt { font-size:7px; color:var(--white-dim); text-transform:uppercase; letter-spacing:0.5px; margin-top:2px; }
+
+  .cat-grid { flex:1; min-height:0; display:grid; grid-template-columns:1fr 1fr; gap:6px; align-content:start; }
+  .cat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 9px; }
+  .cat .h { display:flex; align-items:center; gap:6px; }
+  .cat .h .ic { font-size:14px; line-height:1; }
+  .cat .h .nm { font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.4px; line-height:1.05; }
+  .cat .h .fr { margin-left:auto; font-size:9px; font-weight:900; font-variant-numeric:tabular-nums; color:var(--white-mid); flex-shrink:0; }
+  .cat .bar { height:5px; border-radius:3px; background:var(--surface-3); margin-top:8px; overflow:hidden; }
+  .cat .bar > i { display:block; height:100%; border-radius:3px; background:linear-gradient(90deg, var(--country-2), var(--country-accent)); }
+  .cat.gold .h .fr { color:var(--gold); }
+  .cat.gold .bar > i { background:linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+  .cat.done { border-color:var(--gold-deep); background:linear-gradient(160deg, rgba(255,209,102,0.10), rgba(255,209,102,0.02)); }
+
+  .coll-tabs { flex-shrink:0; display:flex; gap:4px; }
+  .coll-tabs .tab { flex:1; text-align:center; font-size:8px; font-weight:800; text-transform:uppercase; letter-spacing:0.3px; padding:6px 1px; border-radius:7px; background:var(--surface); border:1px solid var(--border); color:var(--white-dim); }
+  .coll-tabs .tab.on { background:linear-gradient(95deg,var(--country-1),var(--country-2)); color:#fff; border-color:var(--country-accent); box-shadow:0 2px 8px var(--country-glow); }
+
+  .coll-scroll { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding-right:3px; margin-right:-3px; }
+  .coll-scroll::-webkit-scrollbar { width:4px; }
+  .coll-scroll::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:3px; }
+
+  .ach { display:flex; align-items:center; gap:9px; background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 9px; position:relative; }
+  .ach .bdg { width:34px; height:34px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:16px; border:1.5px solid var(--border-strong); background:var(--surface-2); line-height:1; }
+  .ach .info { flex:1; min-width:0; }
+  .ach .info .nm { font-size:10.5px; font-weight:800; letter-spacing:0.2px; line-height:1.1; }
+  .ach .info .ds { font-size:8px; color:var(--white-dim); line-height:1.25; margin-top:2px; }
+  .ach .info .pbar { height:4px; border-radius:2px; background:var(--surface-3); margin-top:5px; overflow:hidden; max-width:160px; }
+  .ach .info .pbar > i { display:block; height:100%; border-radius:2px; background:linear-gradient(90deg, var(--blue), var(--blue-bright)); }
+  .ach .rt { flex-shrink:0; text-align:right; display:flex; flex-direction:column; align-items:flex-end; gap:3px; }
+  .ach .rt .tons { font-size:11px; }
+  .ach .rt .frac { font-size:9px; font-weight:800; color:var(--blue-bright); font-variant-numeric:tabular-nums; }
+  .ach .rt .st { font-size:7px; text-transform:uppercase; letter-spacing:0.6px; font-weight:800; padding:2px 6px; border-radius:5px; }
+  .ach .rt .st.locked { color:var(--white-faint); border:1px solid var(--border-strong); }
+  /* tiers / states */
+  .ach.done.common .bdg { border-color:var(--green-dark); }
+  .ach.done.rare .bdg { border-color:var(--blue); box-shadow:0 0 8px rgba(74,144,226,0.3); background:linear-gradient(160deg, rgba(74,144,226,0.24), rgba(13,40,80,0.4)); }
+  .ach.done.legend .bdg { border-color:var(--gold); box-shadow:0 0 9px rgba(255,209,102,0.35); background:linear-gradient(160deg,#3a2a4e,#1d0e2e); }
+  .ach.done .check { position:absolute; top:6px; right:8px; font-size:9px; color:var(--green); font-weight:900; }
+  .ach.done.rare .check { color:var(--blue-bright); }
+  .ach.done.legend .check { color:var(--gold); }
+  .ach.locked { opacity:0.6; border-style:dashed; }
+  .ach.locked .bdg { filter:grayscale(1) brightness(0.8); color:var(--white-faint); border-style:dashed; }
+  .ach.locked .info .nm { color:var(--white-mid); }
+
+  .jk-gallery { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .jk-cell { aspect-ratio:1; border-radius:9px; border:1.5px solid var(--border-strong); background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .jk-cell.rare { border-color:var(--blue); box-shadow:0 0 7px rgba(74,144,226,0.28); background:linear-gradient(160deg, rgba(74,144,226,0.2), rgba(13,40,80,0.35)); }
+  .jk-cell.legend { border-color:var(--gold); box-shadow:0 0 8px rgba(255,209,102,0.3); background:linear-gradient(160deg,#3a2a4e,#1d0e2e); }
+  .jk-cell.locked { border-style:dashed; color:var(--white-faint); background:rgba(255,255,255,0.02); font-size:13px; }
+
+  /* ════════════════════════════════════════════════════════════ */
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Around-the-Match Screens <span class="accent">·</span> Hi-Fi <span class="stamp">v1</span></h1>
+  <p class="sub">The six screens that wrap a Match — now using the <b>real illustrated player portraits</b> from the asset library (expression = Form). Hub gains a proper <b>cricket player card</b> (career averages, SR, best figures, OVR). Default palette <b>South Africa</b>; one <b>Australia</b> frame shows the <code>data-country</code> swap. Open questions Q1–Q6 proposed with adjacent frames — read the HTML comment above each pair.</p>
+</div>
+
+<div class="legend">
+  <span><b>Form (face):</b> confident = hot · neutral = steady · focused = tired · scowl = cold</span>
+  <span><b>Skill (ring):</b> gold glow = 4★ · blue = 3★ · silver = 2★ · grey = rookie</span>
+  <span><b>Joker:</b> white = Common · blue = Rare · gold = Legendary</span>
+  <span><b><i class="tmark one"></i></b> = Tons</span>
+</div>
+
+<!-- ════════════════ SECTION 1 — SEASON HUB ════════════════ -->
+<div class="band">
+  <h2>1 · Season Hub</h2>
+  <p>The persistent home <em>within</em> a Season — single dense screen, no scroll, no tabs (architecture decision Q4). Everything visible at once; drill-downs by tap. South Africa default, plus the same screen in the Australia palette to prove the country swap.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Season Hub — South Africa ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner info"><button title="Club · Home Summer tour">i</button></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+
+      <!-- top chrome: team chip + position + tons -->
+      <div class="topbar">
+        <div class="team-badge">CG</div>
+        <div class="team-id">
+          <div class="nm">Cape Gulls</div>
+          <div class="meta"><span class="stars">★★½</span><span class="affinity-tag">AFFINITY ◆◆◆◇</span></div>
+        </div>
+        <div class="pos-pill"><div class="p">3rd</div><div class="l">6 pts</div></div>
+      </div>
+
+      <!-- tons balance band -->
+      <div class="panel row between" style="padding:8px 11px;align-items:center;">
+        <div>
+          <div style="font-size:8.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--white-dim);font-weight:800;">Tons banked</div>
+          <div class="tons" style="font-size:24px;margin-top:1px;"><span class="gly tmark"></span><span class="val">1,240</span></div>
+        </div>
+        <div style="text-align:right;line-height:1.3;">
+          <div style="font-size:9px;color:var(--white-dim);text-transform:uppercase;letter-spacing:1px;">Club · Home Summer</div>
+          <div style="font-size:10px;color:var(--country-accent);font-weight:700;margin-top:2px;">SEASON 2 · MATCH 4 of 7</div>
+        </div>
+      </div>
+
+      <!-- fixtures chain -->
+      <div class="panel">
+        <div class="panel-h">Fixtures <span class="muted" style="letter-spacing:0.5px;">you are here ●</span></div>
+        <div class="fixtures">
+          <div class="fx win"><div class="dot">W</div><div class="cap">vld</div></div>
+          <div class="fx loss"><div class="dot">L</div><div class="cap">hig</div></div>
+          <div class="fx win"><div class="dot">W</div><div class="cap">sun</div></div>
+          <div class="fx now"><div class="dot">●</div><div class="cap">KAR</div></div>
+          <div class="fx"><div class="dot">M5</div><div class="cap">drk</div></div>
+          <div class="fx"><div class="dot">M6</div><div class="cap">bay</div></div>
+          <div class="fx"><div class="dot">M7</div><div class="cap">eag</div></div>
+          <div class="fx-sep"></div>
+          <div class="fx fx-stage"><div class="dot">SF</div><div class="cap">semi</div></div>
+          <div class="fx fx-stage"><div class="dot">🏆</div><div class="cap">final</div></div>
+        </div>
+      </div>
+
+      <!-- player card — identity + cricket career stats -->
+      <div class="panel pcard">
+        <div class="pt hero hero-cap skill-3 form-hot">
+          <span class="stars-corner">★★★</span>
+          <span class="num">07</span>
+        </div>
+        <div class="who">
+          <div class="nm">K. MTHEMBU</div>
+          <div class="role">Top-order bat · Right-arm med</div>
+          <div class="ovr-row">
+            <div class="ovr"><span class="n">74</span><span class="l">OVR</span></div>
+            <span class="form-chip hot">🔥 Hot form</span>
+          </div>
+          <div class="cstats">
+            <div class="cgroup bat">
+              <div class="gh">🏏 Batting</div>
+              <div class="line">
+                <div class="s"><div class="v">34.2</div><div class="k">Avg</div></div>
+                <div class="s"><div class="v">142</div><div class="k">SR</div></div>
+              </div>
+            </div>
+            <div class="cgroup bowl">
+              <div class="gh">🎯 Bowling</div>
+              <div class="line">
+                <div class="s"><div class="v">28.1</div><div class="k">Avg</div></div>
+                <div class="s"><div class="v">7.8</div><div class="k">Econ</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- jokers bench -->
+      <div class="panel">
+        <div class="panel-h">Jokers Bench <span class="muted">3 / 4</span></div>
+        <div class="jokers">
+          <div class="jk common"><span class="pip"></span><span class="icon">🛡</span><span class="nm">Nightwatch</span><span class="eff">+12% comp · last 4</span></div>
+          <div class="jk rare"><span class="pip"></span><span class="icon">🌶</span><span class="nm">Hot Hand</span><span class="eff">×2 · 3 in a row</span><span class="syn">+ Power</span></div>
+          <div class="jk legendary"><span class="pip"></span><span class="icon">👑</span><span class="nm">Captain's Call</span><span class="eff">+10% next KM</span></div>
+          <div class="jk empty"><span class="icon">+</span><span class="nm">Earn at<br>1st Level win</span></div>
+        </div>
+      </div>
+
+      <!-- loyalty / next-reward — closes the gap, surfaces Affinity -->
+      <div class="loyalty">
+        <span class="ic">🤝</span>
+        <div class="body">
+          <div class="top"><span class="l">Affinity · Cape Gulls</span><span class="r">+2% form · next +3% at full</span></div>
+          <div class="bar"><i style="width:72%"></i></div>
+        </div>
+      </div>
+
+      <!-- primary CTA -->
+      <button class="cta">Next Match <span>▶</span></button>
+    </div>
+    <div class="frame-label">Season Hub · South Africa</div>
+    <div class="frame-sub">Single dense screen — team identity, ladder, fixtures, Player snapshot, Jokers, Tons, one CTA. Gear + info in corners.</div>
+  </div>
+
+  <!-- ░░ Season Hub — Australia (data-country swap demo) ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="aus">
+      <div class="notch"></div>
+      <div class="corner info"><button title="City · Away Winter tour">i</button></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="topbar">
+        <div class="team-badge">HR</div>
+        <div class="team-id">
+          <div class="nm">Harbour Reds</div>
+          <div class="meta"><span class="stars">★★★½</span><span class="affinity-tag">AFFINITY ◆◇◇◇</span></div>
+        </div>
+        <div class="pos-pill"><div class="p">1st</div><div class="l">10 pts</div></div>
+      </div>
+      <div class="panel row between" style="padding:8px 11px;align-items:center;">
+        <div>
+          <div style="font-size:8.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--white-dim);font-weight:800;">Tons banked</div>
+          <div class="tons" style="font-size:24px;margin-top:1px;"><span class="gly tmark"></span><span class="val">3,015</span></div>
+        </div>
+        <div style="text-align:right;line-height:1.3;">
+          <div style="font-size:9px;color:var(--white-dim);text-transform:uppercase;letter-spacing:1px;">City · Away Winter</div>
+          <div style="font-size:10px;color:var(--country-accent);font-weight:700;margin-top:2px;">SEASON 6 · MATCH 6 of 7</div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">Fixtures <span class="muted" style="letter-spacing:0.5px;">you are here ●</span></div>
+        <div class="fixtures">
+          <div class="fx win"><div class="dot">W</div><div class="cap">mcg</div></div>
+          <div class="fx win"><div class="dot">W</div><div class="cap">per</div></div>
+          <div class="fx loss"><div class="dot">L</div><div class="cap">ade</div></div>
+          <div class="fx win"><div class="dot">W</div><div class="cap">bne</div></div>
+          <div class="fx win"><div class="dot">W</div><div class="cap">gab</div></div>
+          <div class="fx now"><div class="dot">●</div><div class="cap">SYD</div></div>
+          <div class="fx"><div class="dot">M7</div><div class="cap">hob</div></div>
+          <div class="fx-sep"></div>
+          <div class="fx fx-stage"><div class="dot">SF</div><div class="cap">semi</div></div>
+          <div class="fx fx-stage"><div class="dot">🏆</div><div class="cap">final</div></div>
+        </div>
+      </div>
+      <div class="panel pcard">
+        <div class="pt hero hero-helmet skill-4 form-steady">
+          <span class="stars-corner">★★★★</span>
+          <span class="num">07</span>
+        </div>
+        <div class="who">
+          <div class="nm">K. MTHEMBU</div>
+          <div class="role">Top-order bat · Right-arm med</div>
+          <div class="ovr-row">
+            <div class="ovr"><span class="n">86</span><span class="l">OVR</span></div>
+            <span class="form-chip steady">● Steady</span>
+          </div>
+          <div class="cstats">
+            <div class="cgroup bat">
+              <div class="gh">🏏 Batting</div>
+              <div class="line">
+                <div class="s"><div class="v">41.7</div><div class="k">Avg</div></div>
+                <div class="s"><div class="v">151</div><div class="k">SR</div></div>
+              </div>
+            </div>
+            <div class="cgroup bowl">
+              <div class="gh">🎯 Bowling</div>
+              <div class="line">
+                <div class="s"><div class="v">24.6</div><div class="k">Avg</div></div>
+                <div class="s"><div class="v">7.1</div><div class="k">Econ</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-h">Jokers Bench <span class="muted">4 / 4</span></div>
+        <div class="jokers">
+          <div class="jk rare"><span class="pip"></span><span class="icon">🌶</span><span class="nm">Hot Hand</span><span class="eff">×2 · 3 in a row</span></div>
+          <div class="jk legendary"><span class="pip"></span><span class="icon">👑</span><span class="nm">Captain's Call</span><span class="eff">+10% next KM</span></div>
+          <div class="jk legendary"><span class="pip"></span><span class="icon">⚡</span><span class="nm">Surge</span><span class="eff">boost +25% fill</span></div>
+          <div class="jk common"><span class="pip"></span><span class="icon">🧱</span><span class="nm">Wall</span><span class="eff">−15% dismiss</span></div>
+        </div>
+      </div>
+
+      <!-- loyalty / next-reward -->
+      <div class="loyalty">
+        <span class="ic">🤝</span>
+        <div class="body">
+          <div class="top"><span class="l">Affinity · Harbour Reds</span><span class="r">just joined · building</span></div>
+          <div class="bar"><i style="width:24%"></i></div>
+        </div>
+      </div>
+
+      <button class="cta">Next Match <span>▶</span></button>
+    </div>
+    <div class="frame-label">Season Hub · Australia</div>
+    <div class="frame-sub">Identical layout, <code>data-country="aus"</code> — amber-gold palette + green accent (distinct from SA's green), glow + accent + cap colour all swap from one attribute.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 2 — PRE-MATCH ════════════════ -->
+<div class="band">
+  <h2>2 · Pre-Match <span class="qtag">Q2 · decided</span></h2>
+  <p>Versus-style layout: country header, stakes strip, conditions, two team panels, gold "TAP TO START". <b>Q2 — you chose a single opponent portrait</b>, so the SA frame is the locked direction: their one danger-man (highest ★), now drawn with the <span class="reco">real illustrated art</span> — a distinct bearded rival, not a clone of your captain. The AUS frame keeps the two-portrait version greyed as a rejected reference only.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Pre-match — SA · single opp portrait (RECOMMENDED) ░░ -->
+  <!-- Q2 RECOMMENDATION: ONE portrait. The opponent's single biggest threat reads instantly and
+       keeps the eye on the versus axis. Two portraits doubled the visual weight on the opp side
+       and unbalanced the symmetric you-vs-them framing. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="versus">
+        <div class="side l"><div class="lbl">You play for</div><div class="nm">Cape Gulls</div><div class="sub">★★½ · Home</div></div>
+        <div class="vs">VS</div>
+        <div class="side r"><div class="lbl">Match 4</div><div class="nm">Karoo Kings</div><div class="sub">★★★½ · Away</div></div>
+      </div>
+      <div class="stakes">League Match 4 · Top 4 advance</div>
+      <div class="conditions"><b>HOME</b> · Summer afternoon ☀ · <b>Newlands-style</b> batting deck</div>
+
+      <div class="vs-panels" style="margin-top:2px;">
+        <div class="vs-panel you">
+          <div class="who">Your captain</div>
+          <div class="pt med team-you skill-3 form-hot">
+            <div class="bg"></div><div class="lid helmet"></div>
+            <div class="face tan"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+            <span class="num">07</span>
+          </div>
+          <div class="tnm">K. MTHEMBU</div>
+          <div class="rating">★★★</div>
+          <div class="vs-attrs">
+            <div class="a"><span class="n">Pow</span><span class="v" style="color:var(--blue-bright)">62</span></div>
+            <div class="a"><span class="n">Com</span><span class="v" style="color:var(--blue-bright)">71</span></div>
+            <div class="a"><span class="n">Atk</span><span class="v" style="color:var(--red-bright)">44</span></div>
+            <div class="a"><span class="n">Ctl</span><span class="v" style="color:var(--red-bright)">58</span></div>
+          </div>
+          <div class="affinity-tag" style="background:rgba(74,144,226,0.2);border-color:rgba(74,144,226,0.5);">AFFINITY ◆◆◆◇</div>
+        </div>
+        <div class="vs-panel opp">
+          <div class="who">Their danger man</div>
+          <div class="pt med team-opp skill-4 opp-beard">
+            <div class="bg"></div><div class="lid helmet"></div>
+            <div class="face dark"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+            <span class="num">11</span>
+          </div>
+          <div class="tnm">D. NAIDOO</div>
+          <div class="rating">★★★★</div>
+          <div class="form-pips"><i class="w">W</i><i class="l">L</i><i class="l">L</i><i class="w">W</i></div>
+          <div class="flavour">"Captain retired mid-season — Kings rebuilding around Naidoo."</div>
+        </div>
+      </div>
+
+      <div class="build-strip">
+        <span class="lbl">Build</span>
+        <div class="mini-jk"><i>🛡</i><i class="rare">🌶</i><i class="legendary">👑</i><i style="border-style:dashed;color:var(--white-dim)">+</i></div>
+        <div class="boost-pip ready"><span class="txt">Boost</span><div class="meter"><i style="height:100%"></i></div></div>
+      </div>
+
+      <button class="cta">Tap to Start <span>▶</span></button>
+    </div>
+    <div class="frame-label">Pre-Match · SA · 1 opp portrait <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">One danger-man portrait keeps the symmetric you-vs-them axis clean. Form delta + ★ read instantly.</div>
+  </div>
+
+  <!-- ░░ Pre-match — AUS · two opp portraits (ALTERNATIVE) ░░ -->
+  <!-- Q2 ALTERNATIVE: TWO portraits (top batter + top bowler). More scouting detail, but the opp
+       side outweighs yours and the row gets cramped at 340px. Shown for comparison; we recommend one. -->
+  <div class="frame">
+    <div class="phone" data-country="aus">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="versus">
+        <div class="side l"><div class="lbl">You play for</div><div class="nm">Harbour Reds</div><div class="sub">★★★½ · Home</div></div>
+        <div class="vs">VS</div>
+        <div class="side r"><div class="lbl">Semi-final</div><div class="nm">Gabba Storm</div><div class="sub">★★★★ · Away</div></div>
+      </div>
+      <div class="stakes final">⚡ Semi-Final · Win to reach The Final ⚡</div>
+      <div class="conditions"><b>AWAY</b> · Winter evening 🌙 · seaming conditions</div>
+
+      <div class="vs-panels" style="margin-top:2px;">
+        <div class="vs-panel you">
+          <div class="who">Your captain</div>
+          <div class="pt med team-you skill-4 form-steady">
+            <div class="bg"></div><div class="lid helmet"></div>
+            <div class="face"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+            <span class="num">07</span>
+          </div>
+          <div class="tnm">K. MTHEMBU</div>
+          <div class="rating">★★★★</div>
+          <div class="vs-attrs">
+            <div class="a"><span class="n">Pow</span><span class="v" style="color:var(--blue-bright)">88</span></div>
+            <div class="a"><span class="n">Com</span><span class="v" style="color:var(--blue-bright)">91</span></div>
+            <div class="a"><span class="n">Atk</span><span class="v" style="color:var(--red-bright)">70</span></div>
+            <div class="a"><span class="n">Ctl</span><span class="v" style="color:var(--red-bright)">76</span></div>
+          </div>
+        </div>
+        <div class="vs-panel opp">
+          <div class="who">Two threats</div>
+          <div class="row" style="gap:5px;">
+            <div class="pt med team-opp skill-4 opp-beard" style="width:54px;height:70px;">
+              <div class="bg"></div><div class="lid helmet" style="top:5px;width:38px;height:18px;"></div>
+              <div class="face dark" style="width:28px;height:30px;top:16px;"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+            </div>
+            <div class="pt med team-opp skill-3 opp-mustache" style="width:54px;height:70px;">
+              <div class="bg"></div><div class="lid cap" style="top:6px;width:36px;height:16px;"></div>
+              <div class="face" style="width:28px;height:30px;top:16px;"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+            </div>
+          </div>
+          <div class="tnm" style="font-size:9px;">J. PRETORIUS · M. KHAN</div>
+          <div class="form-pips"><i class="w">W</i><i class="w">W</i><i class="l">L</i><i class="w">W</i></div>
+          <div class="flavour">Top bat ★★★★ · strike bowler ★★★ — defend or attack first?</div>
+        </div>
+      </div>
+
+      <div class="build-strip">
+        <span class="lbl">Build</span>
+        <div class="mini-jk"><i class="rare">🌶</i><i class="legendary">👑</i><i class="legendary">⚡</i><i>🧱</i></div>
+        <div class="boost-pip"><span class="txt muted">Boost 60%</span><div class="meter"><i style="height:60%"></i></div></div>
+      </div>
+
+      <button class="cta">Tap to Start <span>▶</span></button>
+    </div>
+    <div class="frame-label">Pre-Match · AUS · 2 opp portraits <span class="alt">alt</span></div>
+    <div class="frame-sub">Batter + bowler gives more scouting, but crowds the opp panel and unbalances the versus axis.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 3 — SHOP ════════════════ -->
+<div class="band">
+  <h2>3 · Shop <span class="qtag">Q1</span></h2>
+  <p>Forced interlude after Match 3/5/semi/final + free Season-start. <b>Q1 follow-up — you liked the L/R layout but wanted it to feel like its own place</b> (the Slay-the-Spire shop energy). Frame 1 reworks it into <span class="reco">"The Kit Room"</span>: warm lamp-lit backdrop, a kit-man who greets you, and wares that hang with price tags — visually distinct from the cool match screens, same L/R logic underneath. Frame 2 is the T/B alt; Frame 3 the Season-start free-pick.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Shop — L/R split (RECOMMENDED) ░░ -->
+  <!-- Q1 RECOMMENDATION: vertical L/R split. Attributes (permanent growth) and Jokers (Season power)
+       are the two halves of the core Tons trade-off (ADR 0003) — putting them side by side makes the
+       "bank vs burn" decision physically legible. Both columns share the one Tons balance up top. -->
+  <div class="frame">
+    <div class="phone shop-scene" data-country="sa">
+      <div class="notch"></div>
+      <!-- shopkeeper greeting — turns the Shop into a place, not a panel -->
+      <div class="keeper-bar">
+        <div class="keeper-av"></div>
+        <div class="keeper-say">
+          <div class="who">The Kit Manager</div>
+          <div class="line">"Back already? Got fresh Jokers in — or sharpen the lad's game."</div>
+        </div>
+        <div class="keeper-purse"><div class="v"><i class="tmark"></i>1,240</div><div class="l">Purse</div></div>
+      </div>
+      <div class="ctx" style="font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:var(--white-dim);text-align:center;flex-shrink:0;">The Kit Room · after Match 5 · Cape Gulls</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1;min-height:0;">
+        <!-- LEFT: training bench (attribute upgrades) -->
+        <div class="shelf" style="display:flex;flex-direction:column;gap:6px;">
+          <div class="col-h">🏋 Training bench</div>
+          <div class="up-row bat"><span class="nm">Power</span><div class="barwrap"><div class="bar"><i style="width:62%"></i></div></div><span class="num">62</span><div class="up-chip"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>310</span></div></div>
+          <div class="up-row bat"><span class="nm">Compos</span><div class="barwrap"><div class="bar"><i style="width:71%"></i></div></div><span class="num">71</span><div class="up-chip"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>420</span></div></div>
+          <div class="up-row bowl"><span class="nm">Attack</span><div class="barwrap"><div class="bar"><i style="width:44%"></i></div></div><span class="num">44</span><div class="up-chip"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>180</span></div></div>
+          <div class="up-row bowl"><span class="nm">Control</span><div class="barwrap"><div class="bar"><i style="width:58%"></i></div></div><span class="num">58</span><div class="up-chip cant"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>280</span></div></div>
+          <div class="muted" style="font-size:8px;text-align:center;margin-top:2px;line-height:1.3;">Permanent growth · cost scales with skill.</div>
+        </div>
+
+        <!-- RIGHT: the wares (joker market) -->
+        <div class="shelf" style="display:flex;flex-direction:column;gap:7px;min-height:0;">
+          <div class="col-h">🃏 On the counter</div>
+          <div style="display:flex;flex-direction:column;gap:9px;">
+            <div class="sjk ware common"><span class="hold-pin" title="Hold for next Shop">📌</span><span class="icon">🧱</span><span class="nm">Wall</span><span class="eff">−15% dismissal · death</span><button class="buy afford">Buy</button><span class="tag"><i class="tmark one"></i>140</span></div>
+            <div class="sjk ware rare"><span class="hold-pin">📌</span><span class="icon">🌀</span><span class="nm">Spin Web</span><span class="eff">+18% Control vs set</span><button class="buy afford">Buy</button><span class="tag"><i class="tmark one"></i>360</span></div>
+            <div class="sjk ware legendary"><span class="hold-pin" style="color:var(--gold)">📌</span><span class="icon">🔥</span><span class="nm">Inferno</span><span class="eff">×2 boundary · last 3</span><button class="buy afford">Buy</button><span class="tag"><i class="tmark one"></i>820</span><span class="held-tag">HELD</span></div>
+          </div>
+          <div style="margin-top:auto;">
+            <div class="col-h" style="margin-bottom:5px;">↩ Sell back</div>
+            <div class="owned-row">
+              <div class="owned-slot">🛡<span class="sell"><i class="tmark one"></i>55</span></div>
+              <div class="owned-slot rare">🌶<span class="sell"><i class="tmark one"></i>150</span></div>
+              <div class="owned-slot legendary">👑<span class="sell"><i class="tmark one"></i>330</span></div>
+              <div class="owned-slot locked">🔒</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="cta sm" style="margin-top:8px;">Leave the Kit Room <span>▶</span></button>
+    </div>
+    <div class="frame-label">Shop · Kit Room scene <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">Now a <em>place</em>: warm-lit room, Pravesh the kit-man greets you, wares hang with price tags. Distinct from the cool match screens.</div>
+  </div>
+
+  <!-- ░░ Shop — T/B split (ALTERNATIVE) ░░ -->
+  <!-- Q1 ALTERNATIVE: horizontal T/B. Joker market gets a full-width hero row on top (cards breathe,
+       effect text is roomier), Attributes + owned compress below. Trade-off: the bank-vs-burn tension
+       is weaker when the two halves are stacked rather than opposed. Shown for comparison. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="shop-top">
+        <div class="tons" style="font-size:22px;"><span class="gly tmark"></span><span class="val">1,240</span></div>
+        <div class="ctx"><b>Shop · after Match 5</b>Cape Gulls · Club</div>
+      </div>
+
+      <!-- TOP: joker market hero row -->
+      <div class="col-h">Joker market · pick one</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+        <div class="sjk common"><span class="pip"></span><span class="hold-pin">📌</span><span class="icon">🧱</span><span class="nm">Wall</span><span class="eff">−15% dismissal in death overs</span><span class="price"><i class="tmark one"></i>140</span><button class="buy afford">Buy</button></div>
+        <div class="sjk rare"><span class="pip"></span><span class="hold-pin">📌</span><span class="icon">🌀</span><span class="nm">Spin Web</span><span class="eff">+18% Control vs set batters</span><span class="price"><i class="tmark one"></i>360</span><button class="buy afford">Buy</button></div>
+        <div class="sjk legendary"><span class="pip"></span><span class="hold-pin" style="color:var(--gold)">📌</span><span class="icon">🔥</span><span class="nm">Inferno</span><span class="eff">×2 boundary value · last 3 overs</span><span class="price"><i class="tmark one"></i>820</span><button class="buy afford">Buy</button></div>
+      </div>
+
+      <!-- BOTTOM: owned + attributes -->
+      <div class="col-h" style="margin-top:8px;">Your Jokers</div>
+      <div class="owned-row">
+        <div class="owned-slot">🛡<span class="sell">sell <i class="tmark one"></i>55</span></div>
+        <div class="owned-slot rare">🌶<span class="sell">sell <i class="tmark one"></i>150</span></div>
+        <div class="owned-slot legendary">👑<span class="sell">sell <i class="tmark one"></i>330</span></div>
+        <div class="owned-slot locked">🔒</div>
+      </div>
+
+      <div class="col-h" style="margin-top:8px;">Upgrade Attributes</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div class="up-row bat" style="padding:6px 7px;"><span class="nm" style="width:auto;">Pow</span><span class="num">62</span><div class="up-chip" style="min-width:38px;"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>310</span></div></div>
+        <div class="up-row bat" style="padding:6px 7px;"><span class="nm" style="width:auto;">Com</span><span class="num">71</span><div class="up-chip" style="min-width:38px;"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>420</span></div></div>
+        <div class="up-row bowl" style="padding:6px 7px;"><span class="nm" style="width:auto;">Atk</span><span class="num">44</span><div class="up-chip" style="min-width:38px;"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>180</span></div></div>
+        <div class="up-row bowl" style="padding:6px 7px;"><span class="nm" style="width:auto;">Ctl</span><span class="num">58</span><div class="up-chip cant" style="min-width:38px;"><span class="plus">+1</span><span class="cost"><i class="tmark one"></i>280</span></div></div>
+      </div>
+
+      <button class="cta sm" style="margin-top:auto;">Done · Continue <span>▶</span></button>
+    </div>
+    <div class="frame-label">Shop · T/B split <span class="alt">alt</span></div>
+    <div class="frame-sub">Market gets a roomy hero row; Attributes shrink to chips below. Cards breathe — but tension flattens.</div>
+  </div>
+
+  <!-- ░░ Shop — Season-start free-pick (special state) ░░ -->
+  <!-- SPECIAL CASE: Season-start Shop. No Tons spend — Attribute column is hidden. Right column shows
+       3 Commons as a free pick (claim one, rest discarded). Any carried-over Joker pre-fills owned slot 1. -->
+  <div class="frame">
+    <div class="phone shop-scene" data-country="sa">
+      <div class="notch"></div>
+      <div class="keeper-bar">
+        <div class="keeper-av"></div>
+        <div class="keeper-say">
+          <div class="who">The Kit Manager</div>
+          <div class="line">"New season, fresh start. Pick one on the house, lad."</div>
+        </div>
+      </div>
+      <div class="free-pick-tag">★ Pick your free starter Joker ★</div>
+      <div class="muted" style="font-size:9px;text-align:center;margin-top:-2px;line-height:1.35;">No Tons spent at Season start.<br>Choose one — the other two are discarded.</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:6px;">
+        <div class="sjk common"><span class="pip"></span><span class="icon">🛡</span><span class="nm">Nightwatch</span><span class="eff">+12% Composure · last 4 overs</span><button class="buy afford" style="margin-top:6px;">Claim</button></div>
+        <div class="sjk common"><span class="pip"></span><span class="icon">🎯</span><span class="nm">Yorker</span><span class="eff">+10% wicket chance · death</span><button class="buy afford" style="margin-top:6px;">Claim</button></div>
+        <div class="sjk common"><span class="pip"></span><span class="icon">🏃</span><span class="nm">Quick Single</span><span class="eff">+8% strike rotation</span><button class="buy afford" style="margin-top:6px;">Claim</button></div>
+      </div>
+
+      <div class="col-h" style="margin-top:14px;">Your Jokers · 1 carried over</div>
+      <div class="owned-row">
+        <div class="owned-slot legendary">👑<span class="sell" style="color:var(--gold)">CARRIED</span></div>
+        <div class="owned-slot locked" style="border-style:dashed;font-size:8px;">pick</div>
+        <div class="owned-slot locked">🔒</div>
+        <div class="owned-slot locked">🔒</div>
+      </div>
+      <div class="muted" style="font-size:8px;text-align:center;margin-top:6px;line-height:1.3;">👑 Captain's Call carried from last Season.<br>Free starter fills slot 2 once claimed.</div>
+
+      <button class="cta sm" style="margin-top:auto;">Start Season <span>▶</span></button>
+    </div>
+    <div class="frame-label">Shop · Season-start free-pick</div>
+    <div class="frame-sub">No spend; claim 1 of 3 Commons. Carried-over Joker pre-filled in slot 1, marked CARRIED.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 4 — OFFER ════════════════ -->
+<div class="band">
+  <h2>4 · Offer <span class="qtag">Q5</span></h2>
+  <p>Recruitment proposals — the ★ rating + form-delta signal is the readable skill (Team durability, ADR 0009). Two triggers: mid-Season single (after Match 4, accept = switch <em>now</em>, Affinity resets) and end-of-Season choose-from-three + stay. <b>Q5 — where does the carry-over picker live?</b> We recommend <span class="reco">a footer of the Offer screen</span> (one screen, two decisions) over a separate screen — shown in Frame 2.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Offer — mid-Season single ░░ -->
+  <!-- Mid-Season Offer: ONE team, take-it-or-leave-it. ACCEPT switches immediately — finish the Season
+       with the new Team, position inherited, Affinity resets. ★ + form-delta are the primary signal. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div style="text-align:center;flex-shrink:0;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--country-accent);font-weight:800;">A team is calling</div>
+        <div style="font-size:10px;color:var(--white-dim);margin-top:2px;">Mid-Season Offer · after Match 4</div>
+      </div>
+
+      <div class="offer-card" style="margin-top:6px;">
+        <div class="badge-lg">HT</div>
+        <div class="tnm-lg">Highveld Titans</div>
+        <div class="lvl">Club Level · current 2nd</div>
+        <div class="rating-lg">★★★★½</div>
+        <div class="delta-pill up">▲ + above baseline this Season</div>
+        <div class="narrative">"Captain talks up the dressing room — the Titans look like genuine contenders this year."</div>
+        <div class="terms">
+          <div class="t"><div class="lbl">Base per Match</div><div class="v gold"><i class="tmark one"></i> 38</div></div>
+          <div class="t"><div class="lbl">Playing time</div><div class="v">Limited</div></div>
+        </div>
+        <div class="muted" style="font-size:8px;text-align:center;line-height:1.35;">Stronger Team → lower base pay &amp; less time, but a real title shot. Tons + your stats stay with you; <b style="color:var(--red-bright)">Affinity resets</b>.</div>
+      </div>
+
+      <div class="offer-btns" style="margin-top:auto;">
+        <button class="cta red sm" style="margin-top:0;">Decline</button>
+        <button class="cta sm" style="margin-top:0;">Accept · Switch Now</button>
+      </div>
+    </div>
+    <div class="frame-label">Offer · Mid-Season single</div>
+    <div class="frame-sub">★ rating + form-delta dominate. Terms strip shows the strong-team trade-off; Affinity-reset warned.</div>
+  </div>
+
+  <!-- ░░ Offer — end-of-Season triple + carry-over footer (RECOMMENDED Q5) ░░ -->
+  <!-- Q5 RECOMMENDATION: carry-over picker as a FOOTER of the Offer screen. The two decisions (where to
+       go + what to carry) are made in one breath at Season's end, and the single CONFIRM gates on both —
+       fewer forced screens in the end-of-Season ritual (Result → this → Career Grid). A cross-Level Offer
+       carries the gold PROMOTION tag (CONTEXT guarantee). The 4th card is always STAY. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div style="text-align:center;flex-shrink:0;">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--country-accent);font-weight:800;">Season complete · choose your next move</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;flex-shrink:0;margin-top:4px;">
+        <div class="mini-offer promo">
+          <span class="promo-tag">Promotion</span>
+          <div class="badge-sm">CR</div>
+          <div class="nm">City Rovers</div>
+          <div class="rt">★★★½</div>
+          <div class="delta-pill up" style="font-size:8px;padding:2px 6px;">▲ above</div>
+          <div class="lvl" style="font-size:7px;">City · <i class="tmark one"></i>42/M</div>
+        </div>
+        <div class="mini-offer">
+          <div class="badge-sm">KK</div>
+          <div class="nm">Karoo Kings</div>
+          <div class="rt">★★★★</div>
+          <div class="delta-pill flat" style="font-size:8px;padding:2px 6px;">= on base</div>
+          <div class="lvl" style="font-size:7px;">Club · <i class="tmark one"></i>40/M</div>
+        </div>
+        <div class="mini-offer">
+          <div class="badge-sm">VL</div>
+          <div class="nm">Veld Lions</div>
+          <div class="rt">★★½</div>
+          <div class="delta-pill down" style="font-size:8px;padding:2px 6px;">▼ below</div>
+          <div class="lvl" style="font-size:7px;">Club · <i class="tmark one"></i>58/M</div>
+        </div>
+        <div class="mini-offer stay">
+          <div class="badge-sm">CG</div>
+          <div class="nm">Stay · Cape Gulls</div>
+          <div class="rt" style="color:var(--blue-bright);">Affinity ◆◆◆◆</div>
+          <div class="lvl" style="font-size:7px;color:var(--blue-bright);">Loyalty bonus continues</div>
+        </div>
+      </div>
+
+      <!-- carry-over footer -->
+      <div class="carryover" style="margin-top:10px;">
+        <div class="col-h" style="margin-bottom:6px;">Carry over ONE Joker → next Season</div>
+        <div class="carry-jks">
+          <div class="cj">🛡</div>
+          <div class="cj rare">🌶</div>
+          <div class="cj legendary sel">👑<span class="chk">✓</span></div>
+          <div class="cj">🧱</div>
+          <div class="cj none">NONE</div>
+        </div>
+      </div>
+
+      <button class="cta sm" style="margin-top:auto;">Confirm <span>▶</span></button>
+    </div>
+    <div class="frame-label">Offer · End-of-Season triple + carry-over <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">3 Offers + Stay, plus carry-over picker as a footer. One CONFIRM gates on both decisions.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 5 — RESULT ════════════════ -->
+<div class="band">
+  <h2>5 · Result / Scorecard <span class="qtag">Q4</span></h2>
+  <p>Closes the Match arc, broadcast post-match feel, then hands off per the cadence (→ Shop / → Offer / → hub / → Career Grid). <b>Q4 — pacing?</b> We recommend an <span class="reco">animated reveal</span> (verdict → scoreline → personal stats → Tons → recap, ~2.5s) over instant display — it earns the moment. Frame 1 is the static full-state; Frame 2 is the Match-9 <span class="reco">Final-win celebration</span> (confetti, then hands off to the end-of-Season Offer set).</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Result — regular league win ░░ -->
+  <!-- Q4 ANIMATION (described): on enter, reveal in sequence — (1) verdict scales in + settles,
+       (2) scoreline wipes in, (3) perf stat tiles stagger up, (4) Tons counts up from 0 to total,
+       (5) KM recap chips flip to show ✓/✗. ~2.5s total, skippable by tap. Static frame shown here. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="result-head">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--white-dim);">Match 4 · Result</div>
+        <div class="verdict win">WON BY 23 RUNS</div>
+      </div>
+      <div class="scoreline">
+        <div class="s win-s"><div class="t">CAPE</div><div class="r">174/6</div><div class="o">(20 ov)</div></div>
+        <div class="mid">def.</div>
+        <div class="s"><div class="t">KAR</div><div class="r">151/8</div><div class="o">(20 ov)</div></div>
+      </div>
+
+      <div class="perf">
+        <div class="pt lg team-you skill-3 form-hot">
+          <div class="bg"></div><div class="lid helmet"></div>
+          <div class="face tan"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+          <span class="stars-corner">★★★</span><span class="num">07</span>
+        </div>
+        <div class="perf-grid">
+          <div class="st"><div class="v">68</div><div class="l">Runs</div></div>
+          <div class="st"><div class="v">41</div><div class="l">Balls</div></div>
+          <div class="st"><div class="v">166</div><div class="l">SR</div></div>
+          <div class="st"><div class="v">6·2</div><div class="l">4s · 6s</div></div>
+          <div class="st"><div class="v">1/19</div><div class="l">Bowl</div></div>
+          <div class="st"><div class="v">3/4</div><div class="l">KMs won</div></div>
+        </div>
+      </div>
+
+      <div class="tons-earned">
+        <div class="tons big"><span class="gly tmark"></span><span class="val">+68</span></div>
+        <div class="brk">base 50 + perf bonus 18<br>= <b style="color:var(--gold)">68 <i class="tmark one"></i></b> · bank now <i class="tmark one"></i>1,308</div>
+      </div>
+
+      <div>
+        <div class="col-h" style="margin-bottom:5px;">Key Moments faced</div>
+        <div class="km-recap">
+          <div class="k">Powerplay exit<span class="res ok">✓</span></div>
+          <div class="k">Wicket crisis<span class="res no">✗</span></div>
+          <div class="k">Milestone ball<span class="res ok">✓</span></div>
+          <div class="k">Final over<span class="res ok">✓</span></div>
+        </div>
+      </div>
+
+      <div class="delta-bars">
+        <div class="d"><div class="lbl"><span>Affinity</span><b>+1</b></div><div class="bar"><i style="width:75%"></i></div></div>
+        <div class="d"><div class="lbl"><span>Form</span><b>↑ Hot</b></div><div class="bar"><i style="width:90%"></i></div></div>
+      </div>
+
+      <button class="cta sm" style="margin-top:auto;">Continue → Shop <span>▶</span></button>
+    </div>
+    <div class="frame-label">Result · League win</div>
+    <div class="frame-sub">Verdict, broadcast scoreline, personal block, Tons breakdown, KM recap, deltas. Hands off to Shop (cadence).</div>
+  </div>
+
+  <!-- ░░ Result — The Final win (Match 9 celebration) ░░ -->
+  <!-- Match-9 dramatic variant: confetti for The Final win, sombre treatment for elimination (not shown).
+       Hands off to the end-of-Season Offer set rather than the hub. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="confetti">
+        <i style="left:12%;background:var(--gold);animation-delay:0s"></i>
+        <i style="left:28%;background:var(--green);animation-delay:0.5s"></i>
+        <i style="left:44%;background:var(--country-accent);animation-delay:1s"></i>
+        <i style="left:60%;background:var(--gold);animation-delay:0.3s"></i>
+        <i style="left:76%;background:var(--blue-bright);animation-delay:0.8s"></i>
+        <i style="left:88%;background:var(--gold);animation-delay:1.3s"></i>
+      </div>
+      <div class="notch"></div>
+      <div class="result-head">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:800;">🏆 The Final · Champions</div>
+        <div class="verdict win" style="font-size:24px;">WON BY 4 WICKETS</div>
+      </div>
+      <div class="scoreline">
+        <div class="s"><div class="t">KAR</div><div class="r">162/7</div><div class="o">(20 ov)</div></div>
+        <div class="mid">chased</div>
+        <div class="s win-s"><div class="t">CAPE</div><div class="r">164/6</div><div class="o">(19.2)</div></div>
+      </div>
+
+      <div style="flex-shrink:0;text-align:center;background:linear-gradient(160deg,rgba(255,209,102,0.16),rgba(0,0,0,0.2));border:1.5px solid var(--gold);border-radius:12px;padding:12px;box-shadow:0 0 22px rgba(255,209,102,0.3);">
+        <div style="font-size:34px;">🏆</div>
+        <div style="font-size:13px;font-weight:900;letter-spacing:1px;margin-top:4px;">CLUB · HOME SUMMER</div>
+        <div style="font-size:10px;color:var(--white-mid);margin-top:2px;">Season beaten · 1st place · cell cleared</div>
+      </div>
+
+      <div class="perf">
+        <div class="pt lg team-you skill-3 act-celebrate">
+          <div class="bg"></div><div class="lid helmet"></div>
+          <div class="face tan"><span class="brow l"></span><span class="brow r"></span><span class="eye l"></span><span class="eye r"></span><span class="mouth"></span></div>
+          <span class="stars-corner">★★★</span><span class="num">07</span>
+        </div>
+        <div class="perf-grid" style="grid-template-columns:repeat(2,1fr);">
+          <div class="st"><div class="v">73*</div><div class="l">Runs (not out)</div></div>
+          <div class="st"><div class="v">182</div><div class="l">Strike rate</div></div>
+          <div class="st"><div class="v">Player</div><div class="l">of the Final</div></div>
+          <div class="st"><div class="v">4/4</div><div class="l">KMs won</div></div>
+        </div>
+      </div>
+
+      <div class="tons-earned">
+        <div class="tons big"><span class="gly tmark"></span><span class="val">+210</span></div>
+        <div class="brk">base 50 + Final bonus 160<br>= <b style="color:var(--gold)">210 <i class="tmark one"></i></b></div>
+      </div>
+
+      <button class="cta sm" style="margin-top:auto;">Continue → Offers <span>▶</span></button>
+    </div>
+    <div class="frame-label">Result · The Final win <span class="reco">celebration</span></div>
+    <div class="frame-sub">Trophy + confetti for Match 9. Sombre variant for elimination. Hands off to end-of-Season Offers.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 6 — CAREER GRID ════════════════ -->
+<div class="band">
+  <h2>6 · Career Grid <span class="qtag">Q3</span></h2>
+  <p>The between-Season home (only seen once a Season ends). 3 Levels × 8 Tours = the whole Career map. Per your steer, here are the <b>ladder mock-ups</b>: each Level is a <em>rising diagonal</em> of Tours, and the Levels stack upward so the next one begins where the last topped out — a ladder building up bottom-left → top-right. Frame 1 = regular lattice (reference). Frame 2 = <span class="reco">diagonal ladder</span> (parallel rising rows). Frame 3 = <span class="reco">zig-zag staircase</span> (one continuous climb, alternating direction).</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Career Grid — regular lattice (REFERENCE) ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="career-top">
+        <div class="r1"><span class="flag">🇿🇦</span><span class="cn">South Africa</span><span class="tons" style="font-size:15px;"><span class="gly tmark"></span><span class="val">1,520</span></span></div>
+        <div class="r2">
+          <div class="stat"><div class="v">7</div><div class="l">Seasons played</div></div>
+          <div class="stat"><div class="v">Cape Gulls</div><div class="l">Current team</div></div>
+          <div class="stat"><div class="v">1 / 3</div><div class="l">Levels won</div></div>
+        </div>
+      </div>
+
+      <div class="lattice">
+        <div class="lvl-row">
+          <div class="lvl-tag">Prov</div>
+          <div class="cell locked">🔒</div><div class="cell locked"></div><div class="cell locked"></div><div class="cell locked"></div>
+          <div class="cell locked"></div><div class="cell locked"></div><div class="cell locked"></div><div class="cell locked">🔒</div>
+        </div>
+        <div class="lvl-row">
+          <div class="lvl-tag">City</div>
+          <div class="cell beaten">✓</div>
+          <div class="cell now"><div class="team-badge" style="width:18px;height:18px;font-size:8px;border-radius:4px;">CG</div></div>
+          <div class="cell">·</div><div class="cell locked"></div>
+          <div class="cell locked"></div><div class="cell locked"></div><div class="cell locked"></div><div class="cell locked">🔒</div>
+        </div>
+        <div class="lvl-row">
+          <div class="lvl-tag">Club</div>
+          <div class="cell beaten">✓</div><div class="cell beaten">✓</div><div class="cell beaten">✓</div><div class="cell beaten">✓</div>
+          <div class="cell beaten">✓</div><div class="cell beaten">✓</div><div class="cell beaten">✓</div><div class="cell won">🏆</div>
+        </div>
+        <div class="tour-axis">
+          <span>Prac</span><span>H·S</span><span>H·W</span><span>H·E</span><span>A·S</span><span>A·W</span><span>A·E</span><span>Prem</span>
+        </div>
+      </div>
+
+      <div class="career-stats" style="margin-top:2px;">
+        <div class="cs-tot">
+          <div class="x"><span class="v">52</span><span class="k">Matches</span></div>
+          <div class="x"><span class="v">63%</span><span class="k">Win rate</span></div>
+          <div class="x gold"><span class="v">🏆 1</span><span class="k">Titles</span></div>
+          <div class="x gold"><span class="v">74</span><span class="k">OVR</span></div>
+        </div>
+        <div class="cs-split">
+          <div class="cgroup bat"><div class="gh">🏏 Career batting</div><div class="line">
+            <div class="s"><div class="v">34.2</div><div class="k">Avg</div></div>
+            <div class="s"><div class="v">142</div><div class="k">SR</div></div>
+            <div class="s"><div class="v">118*</div><div class="k">HS</div></div>
+          </div></div>
+          <div class="cgroup bowl"><div class="gh">🎯 Career bowling</div><div class="line">
+            <div class="s"><div class="v">28.1</div><div class="k">Avg</div></div>
+            <div class="s"><div class="v">5/24</div><div class="k">Best</div></div>
+            <div class="s"><div class="v">7.8</div><div class="k">Econ</div></div>
+          </div></div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">Career Grid · Lattice <span class="alt">reference</span></div>
+    <div class="frame-sub">The flat baseline — legible, but no feeling of climbing. Empty space below now carries the deep career record.</div>
+  </div>
+
+  <!-- ░░ Career Grid — DIAGONAL LADDER (RECOMMENDED) ░░ -->
+  <!-- Q3 LADDER A: each Level is a rising diagonal row of 8 Tours (bottom-left → up-right, ~a third of the
+       screen of rise). The next Level begins at the LEFT at the height the previous one ENDED — three
+       stacked parallel diagonals connected by a sweeping "promotion" link. Reads as a ladder building up. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="career-top">
+        <div class="r1"><span class="flag">🇿🇦</span><span class="cn">South Africa</span><span class="tons" style="font-size:15px;"><span class="gly tmark"></span><span class="val">1,520</span></span></div>
+        <div class="r2">
+          <div class="stat"><div class="v">7</div><div class="l">Seasons played</div></div>
+          <div class="stat"><div class="v">Cape Gulls</div><div class="l">Current team</div></div>
+          <div class="stat"><div class="v">1 / 3</div><div class="l">Levels won</div></div>
+        </div>
+      </div>
+
+      <div class="cs-tot" style="flex-shrink:0;">
+        <div class="x"><span class="v">52</span><span class="k">Matches</span></div>
+        <div class="x"><span class="v">63%</span><span class="k">Win rate</span></div>
+        <div class="x gold"><span class="v">🏆 1</span><span class="k">Titles</span></div>
+        <div class="x gold"><span class="v">74</span><span class="k">OVR</span></div>
+      </div>
+
+      <div class="constel lad" id="map-ladder">
+        <svg id="lines-ladder"></svg>
+      </div>
+
+      <div style="flex-shrink:0;display:flex;justify-content:center;gap:11px;font-size:7.5px;color:var(--white-dim);text-transform:uppercase;letter-spacing:0.5px;">
+        <span>✓ beaten</span><span style="color:var(--gold);">🏆 won</span><span style="color:var(--country-accent);">● here</span><span>🔒 locked</span>
+      </div>
+    </div>
+    <div class="frame-label">Career Grid · Diagonal Ladder <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">3 rising diagonals, each Level starting where the last topped out. Tap a lit node → Start Season.</div>
+  </div>
+
+  <!-- ░░ Career Grid — ZIG-ZAG STAIRCASE (OPTION) ░░ -->
+  <!-- Q3 LADDER B: one continuous climb. Club runs left→right rising, City doubles back right→left
+       (still rising), Province left→right again — a boustrophedon staircase with no jumps. Feels like
+       one unbroken ascent; slightly harder to read tour order since direction flips per Level. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="career-top">
+        <div class="r1"><span class="flag">🇿🇦</span><span class="cn">South Africa</span><span class="tons" style="font-size:15px;"><span class="gly tmark"></span><span class="val">1,520</span></span></div>
+        <div class="r2">
+          <div class="stat"><div class="v">7</div><div class="l">Seasons played</div></div>
+          <div class="stat"><div class="v">Cape Gulls</div><div class="l">Current team</div></div>
+          <div class="stat"><div class="v">1 / 3</div><div class="l">Levels won</div></div>
+        </div>
+      </div>
+
+      <div class="cs-tot" style="flex-shrink:0;">
+        <div class="x"><span class="v">52</span><span class="k">Matches</span></div>
+        <div class="x"><span class="v">63%</span><span class="k">Win rate</span></div>
+        <div class="x gold"><span class="v">🏆 1</span><span class="k">Titles</span></div>
+        <div class="x gold"><span class="v">74</span><span class="k">OVR</span></div>
+      </div>
+
+      <div class="constel lad" id="map-zig">
+        <svg id="lines-zig"></svg>
+      </div>
+
+      <div style="flex-shrink:0;display:flex;justify-content:center;gap:11px;font-size:7.5px;color:var(--white-dim);text-transform:uppercase;letter-spacing:0.5px;">
+        <span>✓ beaten</span><span style="color:var(--gold);">🏆 won</span><span style="color:var(--country-accent);">● here</span><span>🔒 locked</span>
+      </div>
+    </div>
+    <div class="frame-label">Career Grid · Zig-zag Staircase <span class="reco">option</span></div>
+    <div class="frame-sub">One unbroken climb, direction flips each Level. Most "ascent" feel; tour order is less obvious.</div>
+  </div>
+
+</div>
+
+<!-- ──────── SECTION 6b — CAREER GRID · CAREER RECORDS (NEW) ──────── -->
+<div class="band">
+  <h2>6b · Career Grid — Career Records <span class="qtag">new</span></h2>
+  <p>The Career Grid is the between-Season home — the natural trophy cabinet. These frames put a <b>global player ranking</b> (you, ranked against <em>every</em> player across all Levels &amp; Tours, as if the whole world is one ladder) plus the <b>"ah, nice" records</b> — highest score, best figures, most sixes in an innings, fastest fifty/hundred, Player-of-the-Match count — onto the screen. <span class="reco">Frame 1</span> keeps the diagonal ladder and adds a records rail; <span class="reco">Frame 2</span> is the full Career Record drill-down (rank + discipline ranks + records + totals); Frame 3 shows it in the Australia palette, a further-along Career.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Career Grid — ladder + records rail (RECOMMENDED) ░░ -->
+  <!-- The map stays the navigation hero; a global-rank band sits under the chrome and six record
+       tiles sit beneath the ladder. "View full record" opens the trophy-cabinet sheet (Frame 2). -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="career-top">
+        <div class="r1"><span class="flag">🇿🇦</span><span class="cn">South Africa</span><span class="tons" style="font-size:15px;"><span class="gly tmark"></span><span class="val">1,520</span></span></div>
+        <div class="r2">
+          <div class="stat"><div class="v">7</div><div class="l">Seasons played</div></div>
+          <div class="stat"><div class="v">Cape Gulls</div><div class="l">Current team</div></div>
+          <div class="stat"><div class="v">1 / 3</div><div class="l">Levels won</div></div>
+        </div>
+      </div>
+
+      <!-- global rank hero -->
+      <div class="rank-hero">
+        <div class="rk"><span class="hash">#</span><span class="n">87</span><span class="of">/ 2,112</span></div>
+        <div class="meta"><div class="lbl">Global rank · every player,<br>all Levels & Tours</div><div class="pctbar"><i style="width:96%"></i></div></div>
+        <div class="top"><div class="pc">4%</div><div class="pl">Top</div></div>
+      </div>
+
+      <div class="constel lad" id="map-ladder2"><svg id="lines-ladder2"></svg></div>
+
+      <!-- records rail -->
+      <div class="records">
+        <div class="rec hl"><div class="ic">🏏</div><div class="v">118*</div><div class="k">Highest score</div></div>
+        <div class="rec hl"><div class="ic">🎯</div><div class="v">5/24</div><div class="k">Best bowling</div></div>
+        <div class="rec"><div class="ic">💥</div><div class="v">9</div><div class="k">Most 6s · inns</div></div>
+        <div class="rec"><div class="ic">⚡</div><div class="v">19b</div><div class="k">Fastest 50</div></div>
+        <div class="rec"><div class="ic">💯</div><div class="v">47b</div><div class="k">Fastest 100</div></div>
+        <div class="rec"><div class="ic">🏅</div><div class="v">11</div><div class="k">Player of Match</div></div>
+      </div>
+
+      <button class="cta sm ghost" style="margin-top:6px;">View full record <span>▶</span></button>
+    </div>
+    <div class="frame-label">Career Grid · Ladder + Records <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">Map stays the hero; a global-rank band + six record tiles read at a glance. Tap "View full record" → the trophy cabinet.</div>
+  </div>
+
+  <!-- ░░ Career Grid — full Career Record sheet (the trophy cabinet) ░░ -->
+  <!-- Drill-down from Frame 1. No map — all the room goes to rank (global + per-discipline), the
+       standout records with context, and career totals. ~10 stats given proper weight. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="book-head">
+        <div class="pt med hero-cap skill-3 form-hot"><span class="num">07</span></div>
+        <div class="ttl">K. Mthembu<small>Career Record · Cape Gulls</small></div>
+      </div>
+
+      <div class="rank-hero">
+        <div class="rk"><span class="hash">#</span><span class="n">87</span><span class="of">/ 2,112</span></div>
+        <div class="meta"><div class="lbl">Global rank · every player,<br>all Levels & Tours</div><div class="pctbar"><i style="width:96%"></i></div></div>
+        <div class="top"><div class="pc">4%</div><div class="pl">Top</div></div>
+      </div>
+
+      <div class="drank">
+        <div class="dr bat"><div class="v">#62</div><div class="k">Batting</div></div>
+        <div class="dr bowl"><div class="v">#134</div><div class="k">Bowling</div></div>
+        <div class="dr all"><div class="v">#87</div><div class="k">Overall</div></div>
+      </div>
+
+      <div class="book-sec">Career records</div>
+      <div class="book-list">
+        <div class="book-row gold"><span class="ic">🏏</span><span class="nm">Highest score</span><span class="cx">vs Karoo Kings</span><span class="v">118*</span></div>
+        <div class="book-row gold"><span class="ic">🎯</span><span class="nm">Best bowling</span><span class="cx">vs Sundowners</span><span class="v">5/24</span></div>
+        <div class="book-row"><span class="ic">💥</span><span class="nm">Most sixes · innings</span><span class="cx">in the 118*</span><span class="v">9</span></div>
+        <div class="book-row"><span class="ic">⚡</span><span class="nm">Fastest fifty</span><span class="cx">vs Veld Lions</span><span class="v">19b</span></div>
+        <div class="book-row"><span class="ic">💯</span><span class="nm">Fastest hundred</span><span class="cx">vs Karoo Kings</span><span class="v">47b</span></div>
+        <div class="book-row gold"><span class="ic">🏅</span><span class="nm">Player of the Match</span><span class="cx">career</span><span class="v">×11</span></div>
+      </div>
+
+      <div class="book-sec">Career totals</div>
+      <div class="cs-tot">
+        <div class="x"><span class="v">52</span><span class="k">Matches</span></div>
+        <div class="x"><span class="v">63%</span><span class="k">Win rate</span></div>
+        <div class="x gold"><span class="v">🏆 1</span><span class="k">Titles</span></div>
+        <div class="x gold"><span class="v">74</span><span class="k">OVR</span></div>
+      </div>
+      <div class="cs-tot">
+        <div class="x"><span class="v">34.2</span><span class="k">Bat avg</span></div>
+        <div class="x"><span class="v">142</span><span class="k">Strike rate</span></div>
+        <div class="x"><span class="v">28.1</span><span class="k">Bowl avg</span></div>
+        <div class="x"><span class="v">7.8</span><span class="k">Economy</span></div>
+      </div>
+
+      <button class="cta sm ghost" style="margin-top:auto;">← Back to the Career map</button>
+    </div>
+    <div class="frame-label">Career Grid · Career Record <span class="reco">✓ reco</span></div>
+    <div class="frame-sub">The trophy cabinet: global rank (vs every player, all Levels & Tours), discipline ranks, standout records with context, career totals.</div>
+  </div>
+
+  <!-- ░░ Career Grid — records, Australia palette (further-along Career) ░░ -->
+  <!-- decide-for-me AUS variant. Same ladder + records, AUS palette, a Career two Levels in. -->
+  <div class="frame">
+    <div class="phone" data-country="aus">
+      <div class="notch"></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+      <div class="career-top">
+        <div class="r1"><span class="flag">🇦🇺</span><span class="cn">Australia</span><span class="tons" style="font-size:15px;"><span class="gly tmark"></span><span class="val">4,180</span></span></div>
+        <div class="r2">
+          <div class="stat"><div class="v">18</div><div class="l">Seasons played</div></div>
+          <div class="stat"><div class="v">Harbour Reds</div><div class="l">Current team</div></div>
+          <div class="stat"><div class="v">2 / 3</div><div class="l">Levels won</div></div>
+        </div>
+      </div>
+
+      <div class="rank-hero">
+        <div class="rk"><span class="hash">#</span><span class="n">41</span><span class="of">/ 2,112</span></div>
+        <div class="meta"><div class="lbl">Global rank · every player,<br>all Levels & Tours</div><div class="pctbar"><i style="width:98%"></i></div></div>
+        <div class="top"><div class="pc">2%</div><div class="pl">Top</div></div>
+      </div>
+
+      <div class="constel lad" id="map-ladder3"><svg id="lines-ladder3"></svg></div>
+
+      <div class="records">
+        <div class="rec hl"><div class="ic">🏏</div><div class="v">134*</div><div class="k">Highest score</div></div>
+        <div class="rec hl"><div class="ic">🎯</div><div class="v">6/31</div><div class="k">Best bowling</div></div>
+        <div class="rec"><div class="ic">💥</div><div class="v">11</div><div class="k">Most 6s · inns</div></div>
+        <div class="rec"><div class="ic">⚡</div><div class="v">17b</div><div class="k">Fastest 50</div></div>
+        <div class="rec"><div class="ic">💯</div><div class="v">43b</div><div class="k">Fastest 100</div></div>
+        <div class="rec"><div class="ic">🏅</div><div class="v">16</div><div class="k">Player of Match</div></div>
+      </div>
+
+      <button class="cta sm ghost" style="margin-top:6px;">View full record <span>▶</span></button>
+    </div>
+    <div class="frame-label">Career Grid · Records · Australia <span class="alt">data-country swap</span></div>
+    <div class="frame-sub">Same layout, <code>data-country="aus"</code> — amber-gold palette + green accent swap. A Career two Levels deep (Province live).</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ SECTION 7 — COLLECTION / ACHIEVEMENTS ════════════════ -->
+<div class="band">
+  <h2>7 · Collection <span class="qtag">new</span></h2>
+  <p>The long-haul reward layer — every milestone, first, and joker the player has chased across their whole Career. A persistent <b>trophy cabinet</b> reached from the Career Grid: an overview that shows total completion + per-category progress, then filtered lists with three states — <b>earned</b> (rarity-tinted), <b>in progress</b> (blue progress bar), and <b>locked</b> (dashed silhouette). Earned achievements pay out Tons. South Africa palette.</p>
+</div>
+<div class="canvas">
+
+  <!-- ░░ Collection — Overview ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="sa" data-screen-label="Collection · Overview">
+      <div class="notch"></div>
+      <div class="corner info"><button title="Career-wide · all Levels">i</button></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+
+      <div class="coll-hero">
+        <div class="ring" style="--p:61;"><span class="pc">61%</span></div>
+        <div class="meta">
+          <div class="t">Collection</div>
+          <div class="s"><b>47</b> of 77 earned</div>
+        </div>
+        <div class="rwd">
+          <div class="tons" style="font-size:14px;"><span class="gly tmark"></span><span class="val">2,340</span></div>
+          <div class="rl">Tons from feats</div>
+        </div>
+      </div>
+
+      <div class="sec-lbl">Recently earned</div>
+      <div class="recent">
+        <div class="rb"><div class="medal legend">🏆</div><div class="rn">First Trophy</div><div class="rt">Tour win</div></div>
+        <div class="rb"><div class="medal rare">🎯</div><div class="rn">Three-fer</div><div class="rt">3 wkts</div></div>
+        <div class="rb"><div class="medal common">🏏</div><div class="rn">Half-Century</div><div class="rt">50 runs</div></div>
+      </div>
+
+      <div class="sec-lbl">By category <span class="fr">6 sets</span></div>
+      <div class="cat-grid">
+        <div class="cat"><div class="h"><span class="ic">🏏</span><span class="nm">Batting</span><span class="fr">9/14</span></div><div class="bar"><i style="width:64%"></i></div></div>
+        <div class="cat"><div class="h"><span class="ic">🎯</span><span class="nm">Bowling</span><span class="fr">6/11</span></div><div class="bar"><i style="width:55%"></i></div></div>
+        <div class="cat"><div class="h"><span class="ic">🚩</span><span class="nm">Firsts</span><span class="fr">8/12</span></div><div class="bar"><i style="width:67%"></i></div></div>
+        <div class="cat"><div class="h"><span class="ic">📐</span><span class="nm">Boundaries</span><span class="fr">7/10</span></div><div class="bar"><i style="width:70%"></i></div></div>
+        <div class="cat gold"><div class="h"><span class="ic">👑</span><span class="nm">Jokers</span><span class="fr">14/25</span></div><div class="bar"><i style="width:56%"></i></div></div>
+        <div class="cat gold"><div class="h"><span class="ic">⭐</span><span class="nm">Special</span><span class="fr">3/10</span></div><div class="bar"><i style="width:30%"></i></div></div>
+      </div>
+
+      <div class="ach prog" style="flex-shrink:0;">
+        <div class="bdg">💯</div>
+        <div class="info"><div class="nm">Century · closest unlock</div><div class="ds">Best so far: 87. 13 runs away.</div><div class="pbar"><i style="width:87%"></i></div></div>
+        <div class="rt"><span class="frac">87/100</span></div>
+      </div>
+
+      <button class="cta ghost sm" style="margin-top:0;">Browse all 77 <span>▸</span></button>
+    </div>
+    <div class="frame-label">Collection · Overview</div>
+    <div class="frame-sub">Completion ring, Tons banked from feats, recently-earned medals, and six category sets with progress. Tap a set to drill in.</div>
+  </div>
+
+  <!-- ░░ Collection — Batting & Bowling list ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="sa" data-screen-label="Collection · Batting & Bowling">
+      <div class="notch"></div>
+      <div class="corner info"><button title="Filtered list">i</button></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+
+      <div class="coll-tabs">
+        <div class="tab">All</div>
+        <div class="tab on">Bat</div>
+        <div class="tab on">Bowl</div>
+        <div class="tab">Firsts</div>
+        <div class="tab">Jokers</div>
+      </div>
+
+      <div class="coll-scroll">
+        <div class="sec-lbl">🏏 Batting <span class="fr">9 / 14</span></div>
+
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">🏏</div><div class="info"><div class="nm">Off the Mark</div><div class="ds">Score your first run</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">10</span></div></div></div>
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">5️⃣</div><div class="info"><div class="nm">Half-Century</div><div class="ds">Reach 50 in an innings</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">40</span></div></div></div>
+        <div class="ach prog"><div class="bdg">💯</div><div class="info"><div class="nm">Century</div><div class="ds">Reach 100 in an innings · best 87</div><div class="pbar"><i style="width:87%"></i></div></div><div class="rt"><span class="frac">87/100</span><div class="tons" style="opacity:0.6;"><span class="gly tmark"></span><span class="val">120</span></div></div></div>
+        <div class="ach locked"><div class="bdg">🔥</div><div class="info"><div class="nm">Big Daddy</div><div class="ds">Reach 150 in an innings</div></div><div class="rt"><span class="st locked">Locked</span></div></div>
+        <div class="ach locked"><div class="bdg">2️⃣</div><div class="info"><div class="nm">Double Ton</div><div class="ds">Reach 200 in an innings</div></div><div class="rt"><span class="st locked">Locked</span></div></div>
+        <div class="ach done rare"><span class="check">✓</span><div class="bdg">⚡</div><div class="info"><div class="nm">Strike Force</div><div class="ds">Bat at SR 200+ (min 30 balls)</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">60</span></div></div></div>
+        <div class="ach prog"><div class="bdg">⚓</div><div class="info"><div class="nm">The Anchor</div><div class="ds">Face 50+ balls in an innings · best 41</div><div class="pbar"><i style="width:82%"></i></div></div><div class="rt"><span class="frac">41/50</span></div></div>
+
+        <div class="sec-lbl" style="margin-top:4px;">🎯 Bowling <span class="fr">6 / 11</span></div>
+
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">🩸</div><div class="info"><div class="nm">First Blood</div><div class="ds">Take your first wicket</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">10</span></div></div></div>
+        <div class="ach done rare"><span class="check">✓</span><div class="bdg">🎯</div><div class="info"><div class="nm">Three-fer</div><div class="ds">Take 3 wickets in a match</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">50</span></div></div></div>
+        <div class="ach prog"><div class="bdg">5️⃣</div><div class="info"><div class="nm">Michelle</div><div class="ds">Take 5 wickets in a match · best 4</div><div class="pbar"><i style="width:80%"></i></div></div><div class="rt"><span class="frac">4/5</span><div class="tons" style="opacity:0.6;"><span class="gly tmark"></span><span class="val">120</span></div></div></div>
+        <div class="ach locked legend"><div class="bdg">🎩</div><div class="info"><div class="nm">Hat-Trick</div><div class="ds">3 wickets in 3 balls</div></div><div class="rt"><span class="st locked">Locked</span></div></div>
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">🧱</div><div class="info"><div class="nm">Maiden</div><div class="ds">Bowl a maiden over</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">20</span></div></div></div>
+        <div class="ach prog"><div class="bdg">🪙</div><div class="info"><div class="nm">Economist</div><div class="ds">Concede under 4 an over (4+ overs)</div><div class="pbar"><i style="width:45%"></i></div></div><div class="rt"><span class="frac">4.6</span></div></div>
+      </div>
+    </div>
+    <div class="frame-label">Collection · Batting &amp; Bowling</div>
+    <div class="frame-sub">Filtered, scrollable list. Earned = rarity-tinted badge + Tons paid; in-progress = blue bar + best-so-far; locked = dashed silhouette.</div>
+  </div>
+
+  <!-- ░░ Collection — Firsts & Jokers ░░ -->
+  <div class="frame">
+    <div class="phone" data-country="sa" data-screen-label="Collection · Firsts & Jokers">
+      <div class="notch"></div>
+      <div class="corner info"><button title="Filtered list">i</button></div>
+      <div class="corner gear"><button title="Settings">⚙</button></div>
+
+      <div class="coll-tabs">
+        <div class="tab">All</div>
+        <div class="tab">Bat</div>
+        <div class="tab">Bowl</div>
+        <div class="tab on">Firsts</div>
+        <div class="tab on">Jokers</div>
+      </div>
+
+      <div class="coll-scroll">
+        <div class="sec-lbl">🚩 Firsts &amp; Career <span class="fr">8 / 12</span></div>
+
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">🥇</div><div class="info"><div class="nm">First Win</div><div class="ds">Win your first match</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">25</span></div></div></div>
+        <div class="ach done rare"><span class="check">✓</span><div class="bdg">🎟️</div><div class="info"><div class="nm">First Semi</div><div class="ds">Reach a Tour semi-final</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">50</span></div></div></div>
+        <div class="ach done rare"><span class="check">✓</span><div class="bdg">🏆</div><div class="info"><div class="nm">First Trophy</div><div class="ds">Win a Tour final</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">100</span></div></div></div>
+        <div class="ach prog"><div class="bdg">📋</div><div class="info"><div class="nm">Top of the Log</div><div class="ds">Finish 1st on a Level table · now 3rd</div><div class="pbar"><i style="width:50%"></i></div></div><div class="rt"><span class="frac">3rd</span></div></div>
+        <div class="ach done common"><span class="check">✓</span><div class="bdg">⬆️</div><div class="info"><div class="nm">Promotion</div><div class="ds">Climb Club → City</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">60</span></div></div></div>
+        <div class="ach locked"><div class="bdg">🏛️</div><div class="info"><div class="nm">Province Bound</div><div class="ds">Reach the Province Level</div></div><div class="rt"><span class="st locked">Locked</span></div></div>
+        <div class="ach locked legend"><div class="bdg">🛡️</div><div class="info"><div class="nm">Invincible</div><div class="ds">Win all 7 matches of a Tour</div></div><div class="rt"><span class="st locked">Locked</span></div></div>
+        <div class="ach done rare"><span class="check">✓</span><div class="bdg">🤝</div><div class="info"><div class="nm">Club Loyal</div><div class="ds">Reach full Affinity with a team</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">50</span></div></div></div>
+
+        <div class="sec-lbl" style="margin-top:4px;">👑 Jokers collected <span class="fr">14 / 25</span></div>
+        <div class="jk-gallery">
+          <div class="jk-cell">🛡</div>
+          <div class="jk-cell">🌶</div>
+          <div class="jk-cell rare">🧊</div>
+          <div class="jk-cell legend">👑</div>
+          <div class="jk-cell">🦉</div>
+          <div class="jk-cell rare">⚡</div>
+          <div class="jk-cell">🎣</div>
+          <div class="jk-cell legend">🔥</div>
+          <div class="jk-cell">🧱</div>
+          <div class="jk-cell rare">🌀</div>
+          <div class="jk-cell locked">🔒</div>
+          <div class="jk-cell locked">🔒</div>
+          <div class="jk-cell locked">🔒</div>
+          <div class="jk-cell locked">🔒</div>
+          <div class="jk-cell locked">🔒</div>
+        </div>
+
+        <div class="ach done legend" style="margin-top:2px;"><span class="check">✓</span><div class="bdg">✨</div><div class="info"><div class="nm">Synergy</div><div class="ds">Trigger a Joker synergy in a match</div></div><div class="rt"><div class="tons"><span class="gly tmark"></span><span class="val">80</span></div></div></div>
+        <div class="ach locked legend"><div class="bdg">🗂️</div><div class="info"><div class="nm">Full Set</div><div class="ds">Collect every Joker (25)</div></div><div class="rt"><span class="st locked">11 left</span></div></div>
+      </div>
+    </div>
+    <div class="frame-label">Collection · Firsts &amp; Jokers</div>
+    <div class="frame-sub">Career firsts up top; below, the full Joker deck as a gallery — collected cards glow by rarity, the rest stay locked silhouettes.</div>
+  </div>
+
+</div>
+
+<script>
+/* Career ladder renderer — 3 Levels × 8 Tours laid out as rising diagonals.
+   layout 'ladder'  : three parallel rising rows, each Level starts left at prev Level's end height.
+   layout 'zigzag'  : continuous boustrophedon climb (direction flips each Level).
+   States: beaten · won (Level Final) · now (here) · open (selectable) · locked. */
+(function () {
+  var LEVELS = ['Club','City','Prov'];
+  var TOURS = 8;
+  var START_Y = [88, 60, 32];     // left-start height per Level (Club bottom)
+  var RISE = 25;                   // vertical climb across a Level's 8 tours
+  var X0 = 11, X1 = 89;            // horizontal span
+  var STATE = [
+    /* Club */ ['beaten','beaten','beaten','beaten','beaten','beaten','beaten','won'],
+    /* City */ ['beaten','now','open','locked','locked','locked','locked','locked'],
+    /* Prov */ ['locked','locked','locked','locked','locked','locked','locked','locked']
+  ];
+  /* a further-along Career, used by the Australia records frame */
+  var STATE_AUS = [
+    /* Club */ ['beaten','beaten','beaten','beaten','beaten','beaten','beaten','won'],
+    /* City */ ['beaten','beaten','beaten','beaten','beaten','beaten','beaten','won'],
+    /* Prov */ ['beaten','now','open','locked','locked','locked','locked','locked']
+  ];
+  var ICON = { beaten:'✓', won:'🏆', now:'●', open:'', locked:'🔒' };
+  var NS = 'http://www.w3.org/2000/svg';
+
+  function xFor(l, t, layout){
+    var frac = t/(TOURS-1);
+    var leftToRight = (layout==='ladder') ? true : (l % 2 === 0);
+    return leftToRight ? (X0 + frac*(X1-X0)) : (X1 - frac*(X1-X0));
+  }
+  function yFor(l, t){ return START_Y[l] - (t/(TOURS-1))*RISE; }
+
+  function render(mapId, svgId, layout, state){
+    state = state || STATE;
+    var map = document.getElementById(mapId);
+    if (!map) return;
+    var svg = document.getElementById(svgId);
+    var nodes = [];
+    for (var l=0; l<3; l++) for (var t=0; t<TOURS; t++){
+      nodes.push({ l:l, t:t, x:xFor(l,t,layout), y:yFor(l,t), state:state[l][t] });
+    }
+    function find(l,t){ return nodes.find(function(n){return n.l===l&&n.t===t;}); }
+    // within-Level links
+    nodes.forEach(function(n){
+      var nxt = find(n.l, n.t+1);
+      if (nxt) drawLine(svg, n, nxt, false);
+    });
+    // promotion links (end of Level L → start of Level L+1)
+    for (var l=0; l<2; l++){
+      var endN = find(l, TOURS-1), startN = find(l+1, 0);
+      if (endN && startN) drawLine(svg, endN, startN, true);
+    }
+    // nodes
+    nodes.forEach(function(n){
+      var d = document.createElement('div');
+      d.className = 'node ' + n.state;
+      d.style.left = n.x+'%'; d.style.top = n.y+'%';
+      d.textContent = ICON[n.state] || '';
+      if (n.state==='now'){ var p=document.createElement('span'); p.className='you'; p.textContent='📍'; d.appendChild(p); }
+      map.appendChild(d);
+    });
+    // league labels at each Level's start node
+    for (var l=0; l<3; l++){
+      var s = find(l,0);
+      var lab = document.createElement('div');
+      var cls = state[l].indexOf('won')>=0 ? 'done' : (state[l].indexOf('now')>=0 ? 'live' : '');
+      lab.className = 'league-lbl ' + cls;
+      lab.textContent = LEVELS[l] + (cls==='done' ? ' 🏆' : '');
+      var lr = (layout==='ladder') ? true : (l%2===0);
+      lab.style.left = (lr ? X0 : X1) + '%';
+      lab.style.top = (START_Y[l] + 8) + '%';
+      map.appendChild(lab);
+    }
+  }
+  function drawLine(svg, a, b, promo){
+    var line = document.createElementNS(NS,'line');
+    line.setAttribute('x1', a.x+'%'); line.setAttribute('y1', a.y+'%');
+    line.setAttribute('x2', b.x+'%'); line.setAttribute('y2', b.y+'%');
+    var live = (a.state!=='locked' && b.state!=='locked');
+    line.setAttribute('stroke', live ? 'rgba(255,209,102,0.45)' : 'rgba(255,255,255,0.09)');
+    line.setAttribute('stroke-width', promo ? 1.2 : 2);
+    if (promo) line.setAttribute('stroke-dasharray','3 4');
+    svg.appendChild(line);
+  }
+
+  render('map-ladder','lines-ladder','ladder');
+  render('map-zig','lines-zig','zigzag');
+  render('map-ladder2','lines-ladder2','ladder');
+  render('map-ladder3','lines-ladder3','ladder', STATE_AUS);
+})();
+</script>
+</body>
+</html>

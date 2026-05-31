@@ -56,6 +56,13 @@ A between-Match meta-loop event where the Player allocates accumulated **Tons**.
 
 At each post-Match Shop the Player may take **one of each** action (zero of an action is fine; the visit is *capped at one per type*, not required to use all four): buy 1 Joker (from a set of 1 Common + 1 Rare + 1 Legendary), upgrade 1 **Attribute** (+1), sell 1 owned Joker for partial Tons refund, **hold** 1 offered Joker. Holding makes that specific offered Joker re-appear in the next Shop's offer set alongside 2 fresh randoms; held offers **expire at Season end** if not bought. Buying a Joker when all 4 slots are full prompts a slot-replacement pick. The Shop is the primary surface for the **Strategic** skill layer (ADR 0003) — the Jokers-vs-Attributes-vs-bank trade-off lives here.
 
+**Kit Room**:
+The in-fiction name for the **Shop** — a warm-lit room visually distinct from the cool match screens, the place the Player visits between Matches to spend **Tons**. Mechanically identical to "Shop"; "Kit Room" is the world-facing label used in UI copy and commentary.
+_Avoid_: "Store", "market" — say "Kit Room" in UI, "Shop" in design/code.
+
+**Kit Manager**:
+The non-playable persona who runs the **Kit Room** — a familiar club-staff archetype (the kit-man) who greets the Player on every visit with a contextual line. The first persona in a meta-loop screen; future meta-loop screens (Offer, Career Grid, etc.) may grow their own personas (scout, coach, etc.) following the same pattern.
+
 **Manager Boost**:
 Mid-Match action — pressing the green button applies a side-aware all-Attribute boost: **batting Attributes** (`Power`, `Composure`) while batting; **bowling Attributes** (`Attack`, `Control`) while bowling. No menu, no choice — the only decision is *when* to press. Magnitude is locked at press from the water-meter's current fill % (50% fill → half the maximum buff; 100% → full). Once pressed, the meter **drains** during the active boost; when it reaches 0% the boost ends and the meter starts recharging. Higher fill at press therefore gives both a *stronger* and a *longer* boost — a single-axis trade. See DESIGN_HANDOFF §16.8.
 
@@ -78,6 +85,14 @@ A single value tracking the Player's tenure with their current Team. Rises the l
 
 **Seasons played**:
 A lifetime counter of every Season the Player has played, win or lose. The Career-completion metric — finishing the Career in fewer Seasons played is the score to beat ("beat the game in 34 — now beat that"). Because the Player's skills can be fully maxed, Seasons played is the meaningful measure of mastery, not raw power.
+
+**Career Records**:
+The persistent set of Career-wide highlights the Player has accumulated — visible as a drill-down from the **Career grid**. Two components:
+- **Global rank** — the Player's position against every other player across all Levels & Tours, displayed as `#X / 2,112` (population = 8 Tours × 3 Levels × 8 Teams × 11 players). Computed analytically from the Tour distributions, not by simulating other players (ADR 0011).
+- **Records rail** — derivative stats from the auto-sim: Highest score, Best bowling figures, Most sixes in an innings, Fastest fifty, Fastest hundred, Player of the Match count. Each shows context (e.g. "vs Karoo Kings, in the 118*").
+
+Career Records are persistent across **Seasons** within a Career; they reset only when the Player starts a New Career. They are a *display* surface, not a gameplay surface — no Tons payout, no balance impact, just legacy and the "now beat that" prompt.
+_Avoid_: "Achievements" (that's the deferred Theme 8 Collection layer — a different surface).
 
 **Attribute**:
 The four sim stats every player carries. Batting: **Power** (pushes ball outcomes toward boundaries) and **Composure** (resists dismissal). Bowling: **Attack** (raises wicket chance) and **Control** (restricts runs and extras). The Player's Attributes are real and grow with **Tons**; every other player's are derived from their **Team**'s strength.

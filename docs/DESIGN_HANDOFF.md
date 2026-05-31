@@ -434,15 +434,17 @@ Default = India (red). `body[data-country="aus|eng|sa|nz|pak|sri|wi|ban|afg"]` s
 | Country | Palette |
 |---|---|
 | India 🇮🇳 | `#c41e3a / #8b0000`, accent `#ef6c6c` (default) |
-| Australia 🇦🇺 | `#0E703F / #063a20`, accent `#FFCD00` |
+| Australia 🇦🇺 | `#A86E00 / #5c3a00`, accent `#36CE72` *(amber-gold primary + green accent — emphasis-flipped from SA so they never read alike)* |
 | England 🏴 | `#1E2761 / #0a1238`, accent `#C8102E` |
-| South Africa 🇿🇦 | `#007749 / #003e26`, accent `#FFB81C` |
+| South Africa 🇿🇦 | `#007749 / #003e26`, accent `#FFB81C` *(green primary + gold accent)* |
 | New Zealand 🇳🇿 | `#262626 / #000000`, accent `#cccccc` |
 | Pakistan 🇵🇰 | `#01411C / #001b0a`, accent `#7CB342` |
 | Sri Lanka 🇱🇰 | `#1F4788 / #0d2654`, accent `#FFCC00` |
 | West Indies 🌴 | `#7B1A1A / #3a0808`, accent `#FFD700` |
 | Bangladesh 🇧🇩 | `#006A4E / #003524`, accent `#F42A41` |
 | Afghanistan 🇦🇫 | `#1A4097 / #0a1f4d`, accent `#D32011` |
+
+**Note (2026-05-31):** the previous Australia palette (`#0E703F / #063a20`) was a near-clone of South Africa's green and caused the two nations to render indistinguishably. Both countries authentically wear "green & gold" — the fix preserves both but **flips the emphasis**: SA leads green, AUS leads gold. The accent in each is the other country's primary hue, scaled down. Apply as data-country tokens; do not hardcode the green anywhere.
 
 ### 16.3 Portrait — full-bg skill, face-as-Form (SUPERSEDES split-bg, 2026-05-26)
 
@@ -569,3 +571,61 @@ Everything else in the original doc still holds.
 ---
 
 *Hi-Fi addendum last updated: 2026-05-19.*
+
+---
+
+## 17. Around-the-match design system (claude.ai, 2026-05-31)
+
+Reference: `docs/mockups/around-the-match-v1.html` (16 phone frames across 7 sections) and `docs/design-handoff-from-claude-2026-05-31.md`.
+
+Theme 5 (Around-the-match screens) closed with this hi-fi pass. All architecture decisions are recorded in `docs/adr/0010-around-the-match-navigation-shell.md`; the global-rank model in `docs/adr/0011-global-player-ranking-via-tour-percentile.md`. New patterns introduced below — propagate to any new screen that touches these surfaces.
+
+### 17.1 Season hub — single dense screen (NEW)
+
+The Season hub is the persistent home within a Season (ADR 0010). One screen, no scroll, no tabs. Top-to-bottom: Team chip · league position · ₸ balance → horizontal fixtures node-chain (past W/L dots · current pulsing · upcoming opponent chips) → Player Card Portrait (med, full-bg skill + face-Form per §16.3) + 4-Attribute compact strip → Jokers bench (4 slots, §16.7 rarity styling) → primary gold CTA "Next Match ▶". Drill-downs on tap; everything glance-visible without scrolling.
+
+### 17.2 Pre-match — versus-style (NEW)
+
+Same red-gradient `[YOUR] vs [OPP]` chrome as the locked in-Match screen (§4). Stakes strip (visual weight scales with stakes — subtle for league, blazing for The Final) → conditions strip (Tour name + small icon — 🌙 evening, ☀ summer, ★ premium) → two team panels side-by-side (yours left in blue palette, opp right in country accent; each shows ★ rating + one Card Portrait + Attribute strip / form pips) → your build strip (4 Joker pips + Boost-ready pip) → big gold "TAP TO START ▶" CTA. The header carries directly into the Match's chrome — no transition seam.
+
+### 17.3 Shop — "The Kit Room" scene (NEW)
+
+The Shop is a *place*, not a panel. Vertical L/R split:
+- **LEFT — Training Bench (Attribute upgrades):** 4 rows (Power · Composure · Attack · Control), each `name · current bar · +1 chip · ₸ cost`. Cost scales with current value; unaffordable chips dimmed (`.cant` state).
+- **RIGHT — On the Counter (Joker market):** 3 offer cards (1 Common · 1 Rare · 1 Legendary, §16.7 styling) with Buy + Hold-pin (📌). Held-Joker pre-fills one slot with a `HELD` tag. Below the market: a "↩ Sell back" strip showing your 4 owned slots with per-Joker partial-refund sell action.
+- **Top chrome — Kit Manager bar:** A persona (the Kit Manager — see CONTEXT.md) greets the Player with a contextual line ("Back already? Got fresh Jokers in — or sharpen the lad's game"). Sets the Shop as a warm-lit room visually distinct from the cool match screens.
+- **CTA:** "Leave the Kit Room ▶" — auto-advances to the next screen in the cadence chain.
+
+**Season-start variant:** Attribute column hidden (no Tons spent). Right column shows 3 Commons as a free-pick ("Claim"). Carry-over Joker (if elected last Season) pre-fills owned slot 1 with a `CARRIED` gold tag. CTA: "Start Season ▶".
+
+### 17.4 Offer — single screen, two decisions (NEW)
+
+Mid-Season variant: one Team card centred (badge · name · ★ rating in half-star precision · form-delta pill · `lastSeasonEvent` flavour line if any · contract terms strip — base ₸ per Match + estimated playing time). Two CTAs: red "DECLINE" / gold "ACCEPT — SWITCH NOW".
+
+End-of-Season variant: three Team cards in a row + a fourth "STAY WITH [YOUR TEAM]" card (showing Affinity bonus continuing). Cross-Level Offers (Level-N+1, guaranteed when a cell has been beaten) get a gold glow + "PROMOTION" tag. **The carry-over Joker picker lives as a footer of this same screen** — one screen, two decisions: tap a current owned Joker (or "NONE") to carry into next Season's free starter slot. Single "CONFIRM" CTA at bottom (gates on both decisions made). Eliminates a separate carry-over screen.
+
+The **★ rating + form-delta pill** is the readable skill signal (ADR 0009 — Team durability makes Offers a real Meta-layer choice). Surface it as the visual core of every Team card.
+
+### 17.5 Result — broadcast-style scorecard (NEW)
+
+Closes the Match arc. Headline ("WON BY 23 RUNS" / "LOST BY 4 WICKETS" — gold/red), broadcast scoreline (`MUM 174/6 · CHE 151/8`), personal performance block (your runs · 4s/6s · SR · wickets · economy · KMs won) over a large Card Portrait with current Form face, Tons earned (₸ big number + breakdown "base 50 + perf 18"), decision recap (compact KM cards with ✓/✗), Affinity/Form deltas. Auto-advances per the cadence chain (→ Shop / → Offer / → Season hub / → Career Grid). For Match-9 (Final / 3rd-place playoff) the celebration scales up — fireworks for Final win, sombre for elimination — and hands off into the end-of-Season Offer set.
+
+### 17.6 Career Grid — diagonal ladder topology (NEW)
+
+The 3 Levels × 8 Tours grid is rendered as **three rising parallel diagonals**, each Level starting at the left at the height the previous Level topped out — a ladder building up bottom-left → top-right. Reads as climbing, not a flat lattice. (Alternative: zig-zag staircase — one continuous boustrophedon climb; recorded as an option but the parallel-diagonal version is the recommended default.) Cell states: beaten (✓ faded) · won (🏆 gold) · current/available (pulsing border + team chip) · locked (🔒 dashed). Top chrome: country flag · Country name · ₸ banked · Seasons-played counter (the score-to-beat metric per CONTEXT.md). Country palette throughout.
+
+### 17.7 Career Records — global rank + records rail (NEW)
+
+A drill-down from the Career Grid via a "View full record" CTA. Surfaces:
+- **Global rank hero band:** `#X / 2,112` (population per ADR 0011 — 8 Tours × 3 Levels × 8 Teams × 11 players) · "better than Y%" bar · "Top Z%" pill. Computed analytically from the Tour distributions; no per-rival simulation.
+- **Records rail:** 6 cards — Highest score · Best bowling · Most 6s in an innings · Fastest 50 · Fastest 100 · Player of the Match count. All derivative of existing per-Match stats.
+- **Full Career Record drill-down (separate frame):** the trophy cabinet — global rank + per-discipline ranks (batting / bowling / overall) + records with context ("vs Karoo Kings, in the 118*") + career totals (Avg · SR · HS · Bowl avg · Best · Econ · Win rate · Titles · OVR).
+
+This is the long-haul "now beat that in fewer Seasons" surface (CONTEXT.md `Seasons played`).
+
+### 17.8 What overrides what (this addendum within Theme 5)
+
+- §11 "Screens still to design" — items 1, 2, 5, 6 (main menu / pre-match / league table / result deep-dive) are now realised by §17 (no main menu per ADR 0010; pre-match per 17.2; league table folded into Season hub per 17.1; result deep-dive per 17.5). Items 3, 4, 9, 11 remain deferred (squad/player detail/development/draft — see ADR 0002).
+- Items 7, 8, 12, 13 (season hub / deck builder / onboarding / settings) — Season hub realised per 17.1; deck builder is the Shop per 17.3. Onboarding and settings still to design.
+
+*§17 last updated: 2026-05-31.*
