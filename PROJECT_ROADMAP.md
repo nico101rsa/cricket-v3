@@ -6,21 +6,21 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 
 ## Current status
 
-**Phase:** Pre-build · design
-**Next theme:** Theme 4 content — **author the 45 Jokers** (architecture is locked; content half is unwritten)
-**Where to do it:** Fresh chat, `grill-with-docs` or a structured authoring doc
+**Phase:** Pre-build · design (design phase substantially complete)
+**Last closed:** Theme 4 content (45 Jokers authored) + Theme 5 onboarding (Player Creation spec written) + new Theme 9 added (post-launch Career pressure)
+**Next theme:** Implementation plan for Player Creation (writing-plans skill), then Theme 7 (Tech foundation: Godot project + save system + balance harness)
 
 ---
 
 ## Next session
 
-Theme 5 (Around-the-match screens) is closed — architecture locked in ADR 0010, global-rank model in ADR 0011, hi-fi mockup at `docs/mockups/around-the-match-v1.html`, design-system patterns appended to `docs/DESIGN_HANDOFF.md` §17.
-
-**Next up — Theme 4 content half.** The Joker architecture (grammar / archetypes / count / cadence / rarity / carry-over) is locked in ADR 0007 + CONTEXT.md, but the *45 specific Joker cards* have not been authored. They need to exist before the balance harness (Theme 7) can tune them and before Joker art (Theme 6) can be designed against them.
+**Decision point:** the design half is now substantively complete. The remaining themes (6 Visual & audio, 7 Tech foundation, 8 Long-haul retention) are all build-stage rather than design-stage. The cheapest next move is to convert the Player Creation spec into an implementation plan (writing-plans skill on `docs/superpowers/specs/2026-06-01-player-creation-design.md`) and start the Godot scaffolding work in parallel.
 
 **To continue:**
 
-> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, `docs/adr/0006-typed-effect-palette.md`, `docs/adr/0007-joker-authoring-grammar.md`. Author all 45 Jokers — ~7-8 per archetype (Anchor / Tempo / Strangler / Wicket Hunter / Boost Stack / Reviewer), split across Common / Rare / Legendary rarities, composing only from the 6-verb palette (`setIntent` / `setNextBowler` / `fieldMode` / `buffNextBalls` / `formEvent` / `tryReview`) and the conditional-trigger grammar in ADR 0007. For each Joker: name, archetype, rarity, verb composition, effect text, flavour, ₸ price band. Use `grill-with-docs` or build the authoring table inline.
+> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, `docs/superpowers/specs/2026-06-01-player-creation-design.md`. Invoke the `writing-plans` superpower to convert the spec into a phased implementation plan. The spec already has a §10 "Implementation handoff" section sketching the 9 dependency-ordered steps — use that as the starting outline. Plan should land at `docs/superpowers/plans/2026-06-XX-player-creation-plan.md` and produce ADR 0012 (formalising the hard-permadeath lifecycle decision) as a sibling artifact.
+
+**Alternative next session:** If you want to design Hall of Fame first (sibling spec owed by Theme 5; renders the `LegendsArchive` written by Player Creation), brainstorm that ahead of plan — it'd land cheaper as a single spec rather than scattered through the Player Creation plan.
 
 ---
 
@@ -29,13 +29,12 @@ Theme 5 (Around-the-match screens) is closed — architecture locked in ADR 0010
 1. ~~**Scope**~~ ✅ — V1 locked: SA+AUS roguelite cricket-career (ADR 0002)
 2. ~~**Game shape**~~ ✅ — Career grid (Levels × Tours), Offers/Tons/Affinity (CONTEXT.md)
 3. ~~**Gameplay & balance**~~ ✅ — sim math (ADR 0004), skill model (ADR 0003), Manager Boost (ADR 0005), 6-verb effect palette (ADR 0006), all 8 KMs designed. Numerical tuning deferred to the balance harness.
-4. **Jokers & meta loop** — architecture ✅ + content ⏳
-   - **Architecture ✅** — Shop (5/Season, 4 action types/visit, side-by-side Tons+Jokers) · ~45-Joker pool across 6 archetypes · authoring grammar (ADR 0007) · Carry-Over (1/Season) + Hold (1/Shop) · slot 4 earned at first Level-win · Offer cadence (1 mid-Season immediate-switch + 3 end-of-Season) · Team durability (ADR 0009)
-   - **Content ⏳** — author all 45 specific Jokers (name, verb composition, rarity, archetype, effect text, flavour, ₸ price band). Theme 4 was closed too early on architecture only; the content half is the next session.
-5. ~~**Around-the-match screens**~~ ✅ — Season hub · Pre-match · Shop · Offer · Result · Career Grid · Career Records (ADR 0010 navigation shell · ADR 0011 global rank · hi-fi at `docs/mockups/around-the-match-v1.html` · DESIGN_HANDOFF §17). Onboarding and Settings deferred to a later pass.
-6. **Visual & audio content** — joker art · backgrounds · icons · music · SFX · commentary bank
+4. ~~**Jokers & meta loop**~~ ✅ — Architecture (Shop cadence, authoring grammar ADR 0007, carry-over, Team durability ADR 0009) + Content (all 45 Jokers authored at `docs/joker-pool-v1.md` — 24 Common / 15 Rare / 6 Legendary across 6 archetypes, magnitudes V1 strawman for the balance harness).
+5. ~~**Around-the-match screens**~~ ✅ — Season hub · Pre-match · Shop · Offer · Result · Career Grid · Career Records (ADR 0010 navigation shell · ADR 0011 global rank · hi-fi at `docs/mockups/around-the-match-v1.html` · DESIGN_HANDOFF §17). **Onboarding now closed** — Player Creation spec at `docs/superpowers/specs/2026-06-01-player-creation-design.md` covers the 2-screen Identity → Build flow + hard-permadeath lifecycle. Settings still deferred.
+6. **Visual & audio content** — joker art · backgrounds · icons · music · SFX · commentary bank · **8 portrait sets** (4 Appearance × 2 Country) + Player Creation backgrounds (per Player Creation spec)
 7. **Tech foundation** — Godot project · save system · build pipeline · **balance harness** (headless sim runner — parameter sweeps over Tour distributions, KM/Joker/Boost coefficients, and the optimal-vs-naive skill-gap metric per ADR 0003/0004)
 8. **Long-haul retention** — Collection / Achievements layer (77-feat trophy cabinet across 6 categories with Tons rewards) · streaks · daily prompts · any other replay-extending systems. Deferred until after the build is playable.
+9. **Career pressure & retirement** (post-launch) — auto-drop / non-selection / age-based retirement triggers. Layered on top of the hard-permadeath lifecycle established in the Player Creation spec; trigger anchors on **Player form** (low runs over last K innings, lost KMs), not Team result. Deferred until V1 ships and the Career-as-life baseline loop is playtested — the cheap escape-hatch (Manual retire button) covers the *"I'm stuck"* case in the meantime.
 
 Playtest threads through all of them — continuous, not a discrete item.
 
@@ -73,13 +72,16 @@ Playtest threads through all of them — continuous, not a discrete item.
 | 2026-05-29 | Team durability refined to half-★ + Theme 4 closed | ADR 0009 revised — stars on 0.5–5.0 in half-star increments (was integer 1–5); ±0.5 normal swings, ±1 catastrophic. Theme 4 (Jokers & meta loop) now closed; next theme is Around-the-match screens. |
 | 2026-05-30 | Theme 5 architecture locked, hi-fi pass moved to claude.ai | Decisions: **Season hub** is the persistent home within a Season (`CONTEXT.md` updated); **Shop & Offer** are forced full-screen interludes triggered by cadence (no skip, no hub-overlay); **no Main Menu** (resume-first cold start, settings via corner gear); Season hub is **single dense screen** (no scroll, no tabs); Pre-match is **versus-style** (red-gradient `[A] vs [B]` header continues into Match chrome). Mockup pass spec'd in `docs/THEME-5-HANDOFF.md`; claude.ai produces hi-fi HTML at `docs/mockups/around-the-match-v1.html`. |
 | 2026-05-31 | Theme 5 closed; ADRs 0010 + 0011 written; Theme 4 reopened (content); Theme 8 added | Around-the-match hi-fi accepted (`docs/mockups/around-the-match-v1.html` + `docs/design-handoff-from-claude-2026-05-31.md`). **ADR 0010** captures the navigation shell. **Career Records adopted** (global rank `#X / 2,112` computed analytically from Tour distributions — no per-rival sim) — **ADR 0011**. **Collection / Achievements deferred to new Theme 8** (Long-haul retention). **Theme 4 reopened** as architecture ✅ + content ⏳ — the 45 specific Jokers are unauthored and are now the next session. **Kit Room** / **Kit Manager** added to CONTEXT.md as canonical world-building. Australia palette fix: was a near-clone of SA green; now amber-gold primary + green accent (DESIGN_HANDOFF §16.2 updated). Onboarding + Settings screens deferred to a later pass within Theme 5's spirit. |
+| 2026-06-01 | Theme 4 content closed + Theme 5 onboarding closed + Theme 9 added | All 45 Jokers authored (`docs/joker-pool-v1.md`) across 6 archetypes / 3 rarities, magnitudes V1 strawman for the harness. **Player Creation spec** (`docs/superpowers/specs/2026-06-01-player-creation-design.md`) closes Theme 5's deferred onboarding work: 2-screen Identity → Build flow · 5 decisions (Country / City / Appearance / Name / Attributes) · hard-permadeath lifecycle with Win + Manual retire end-states · live classifier label · 4 Appearance buckets per Country (no textual labels) · cricket-pun name gen (random + re-roll, no manual override). **ADR 0012** to formalise the lifecycle decision at plan time. **New Theme 9 — Career pressure & retirement** (post-launch) holds auto-drop / non-selection / age-based retirement; trigger anchors on Player form not Team result. |
 
 ---
 
 ## Reference docs
 
 - `CONTEXT.md` — domain glossary · source of truth for terminology
-- `docs/adr/` — design decision records (0001 target market · 0002 V1 game shape · 0003 skill model · 0004 auto-sim architecture · 0005 Manager Boost no-menu · 0006 typed-effect palette · 0007 Joker authoring grammar · 0008 currency name + mark · 0009 Team durability · 0010 around-the-match navigation shell · 0011 global rank via Tour-distribution percentile)
+- `docs/adr/` — design decision records (0001 target market · 0002 V1 game shape · 0003 skill model · 0004 auto-sim architecture · 0005 Manager Boost no-menu · 0006 typed-effect palette · 0007 Joker authoring grammar · 0008 currency name + mark · 0009 Team durability · 0010 around-the-match navigation shell · 0011 global rank via Tour-distribution percentile · *0012 Player lifecycle hard-permadeath — owed at plan time*)
+- `docs/joker-pool-v1.md` — all 45 Jokers authored (theme 4 content)
+- `docs/superpowers/specs/` — implementation specs (`2026-06-01-player-creation-design.md` — Player Creation flow + permadeath lifecycle)
 - `docs/brand/` — Tons (₸) currency mark · SVG assets and usage notes
 - `docs/DESIGN_HANDOFF.md` — locked design system (chrome, portraits, KMs, IP rules, palette, fonts, motion, country system, hi-fi addendum §16, around-the-match design system §17)
 - `docs/THEME-5-HANDOFF.md` — claude.ai mockup brief for theme 5 (archival; theme 5 now closed)
@@ -118,8 +120,8 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 - Gameplay & balance theme — auto-sim architecture (ADR 0004), skill model (ADR 0003), all 8 Key Moments designed, Manager Boost simplified (ADR 0005), 6-verb effect palette (ADR 0006)
 - Portrait redesign — full-bg skill + facial-expression Form supersedes the split-bg model
 - Currency naming + mark — **Tons (₸)**, two-bail T glyph (ADR 0008, `docs/brand/`)
-- Jokers & meta loop theme (architecture only) — Shop (5/Season Slay-style, side-by-side Tons + Jokers, 4 action types/visit including Hold), Joker authoring grammar (ADR 0007), ~45-Joker pool across 6 archetypes (Anchor / Tempo / Strangler / Wicket Hunter / Boost Stack / Reviewer), Carry-Over (1 Joker, end-of-Season), slot 4 earned at first Level-win, Offer cadence (1 mid-Season immediate-switch + 3 end-of-Season), Team durability via half-★ Markov rating (ADR 0009) with catastrophic `lastSeasonEvent` commentary flavour. *Content half (authoring the 45 specific Jokers) is still open.*
-- Around-the-match screens theme — Season hub, Pre-match, Shop ("Kit Room" scene with Kit Manager persona), Offer (with carry-over picker as footer), Result, Career Grid (diagonal-ladder topology), Career Records (global rank `#X / 2,112` computed analytically — ADR 0011) all designed in hi-fi (`docs/mockups/around-the-match-v1.html`). Navigation shell — Season hub as home + forced Shop/Offer interludes + no Main Menu — locked in ADR 0010. Australia palette fix (gold primary + green accent). Onboarding + Settings deferred.
+- Jokers & meta loop theme **closed in full** — architecture (Shop cadence, authoring grammar ADR 0007, ~45-Joker pool across 6 archetypes, Carry-Over, slot 4 unlock, Offer cadence, Team durability ADR 0009) plus content (all 45 Jokers authored at `docs/joker-pool-v1.md` — 24 Common / 15 Rare / 6 Legendary, magnitudes V1 strawman pending balance harness).
+- Around-the-match screens theme **closed in full** — Season hub, Pre-match, Shop ("Kit Room" scene with Kit Manager persona), Offer (with carry-over picker as footer), Result, Career Grid (diagonal-ladder topology), Career Records (global rank `#X / 2,112` computed analytically — ADR 0011) all designed in hi-fi (`docs/mockups/around-the-match-v1.html`). Navigation shell — Season hub as home + forced Shop/Offer interludes + no Main Menu — locked in ADR 0010. Australia palette fix (gold primary + green accent). **Onboarding closed** — Player Creation spec at `docs/superpowers/specs/2026-06-01-player-creation-design.md`: 2-screen Identity → Build flow, hard-permadeath lifecycle (Win + Manual retire), 4 Appearance buckets per Country, cricket-pun name gen, 20-point attribute slider, live classifier label. Settings still deferred.
 
 ---
 
