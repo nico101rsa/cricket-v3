@@ -14,13 +14,15 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 
 ## Next session
 
-**Decision point:** the design half is now substantively complete. The remaining themes (6 Visual & audio, 7 Tech foundation, 8 Long-haul retention) are all build-stage rather than design-stage. The cheapest next move is to convert the Player Creation spec into an implementation plan (writing-plans skill on `docs/superpowers/specs/2026-06-01-player-creation-design.md`) and start the Godot scaffolding work in parallel.
+**Decision point:** the design half is now substantively complete. Remaining themes (6 Visual & audio, 7 Tech foundation, 8 Long-haul retention) are all build-stage rather than design-stage. The cheapest next move is to convert the Player Creation spec into an implementation plan.
 
-**To continue:**
+**Parallel async (not blocking Claude Code) — claude.ai hi-fi:** The claude.ai handoff is ready at `docs/PLAYER-CREATION-HANDOFF.md` (covers Player Creation Identity + Build + Hall of Fame). Paste the prompt at the bottom of that doc into a fresh claude.ai conversation with the listed attachments; save the returned HTML to `docs/mockups/player-creation-v1.html`. Can be done anytime.
+
+**To continue (next Claude Code session):**
 
 > Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, `docs/superpowers/specs/2026-06-01-player-creation-design.md`. Invoke the `writing-plans` superpower to convert the spec into a phased implementation plan. The spec already has a §10 "Implementation handoff" section sketching the 9 dependency-ordered steps — use that as the starting outline. Plan should land at `docs/superpowers/plans/2026-06-XX-player-creation-plan.md` and produce ADR 0012 (formalising the hard-permadeath lifecycle decision) as a sibling artifact.
 
-**Alternative next session:** If you want to design Hall of Fame first (sibling spec owed by Theme 5; renders the `LegendsArchive` written by Player Creation), brainstorm that ahead of plan — it'd land cheaper as a single spec rather than scattered through the Player Creation plan.
+**Alternative next session:** If you want to formalise the Hall of Fame as a sibling spec first (claude.ai's hi-fi pass + a short doc would close it), brainstorm that before writing-plans — it'd land cheaper as a single spec rather than scattered through the Player Creation plan.
 
 ---
 
