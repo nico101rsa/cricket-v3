@@ -426,16 +426,16 @@ extends GutTest
 const ClassifierLabel = preload("res://scripts/domain/classifier_label.gd")
 
 func test_enum_has_four_labels():
-    assert_eq(ClassifierLabel.Label.BATTER,       0)
-    assert_eq(ClassifierLabel.Label.WK_BATTER,    1)
-    assert_eq(ClassifierLabel.Label.BOWLER,       2)
-    assert_eq(ClassifierLabel.Label.ALL_ROUNDER,  3)
+    assert_eq(ClassifierLabel.Kind.BATTER,       0)
+    assert_eq(ClassifierLabel.Kind.WK_BATTER,    1)
+    assert_eq(ClassifierLabel.Kind.BOWLER,       2)
+    assert_eq(ClassifierLabel.Kind.ALL_ROUNDER,  3)
 
 func test_display_name_uses_caps_spec_strings():
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.BATTER),      "BATTER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.WK_BATTER),   "WICKET-KEEPER BATTER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.BOWLER),      "BOWLER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.ALL_ROUNDER), "ALL-ROUNDER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.BATTER),      "BATTER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.WK_BATTER),   "WICKET-KEEPER BATTER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.BOWLER),      "BOWLER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.ALL_ROUNDER), "ALL-ROUNDER")
 ```
 
 - [ ] **Step 2: Run the test, verify it fails**
@@ -452,14 +452,16 @@ class_name ClassifierLabel
 extends RefCounted
 
 # Flavour label only — zero impact on auto-sim. See spec §3.5.
-enum Label { BATTER = 0, WK_BATTER = 1, BOWLER = 2, ALL_ROUNDER = 3 }
+# NOTE: the enum is named Kind, not Label — Label collides with Godot's built-in
+# Label node class and breaks ClassifierLabel.Label.* resolution (fixed 2026-06-02).
+enum Kind { BATTER = 0, WK_BATTER = 1, BOWLER = 2, ALL_ROUNDER = 3 }
 
 static func display_name(l: int) -> String:
     match l:
-        Label.BATTER:      return "BATTER"
-        Label.WK_BATTER:   return "WICKET-KEEPER BATTER"
-        Label.BOWLER:      return "BOWLER"
-        Label.ALL_ROUNDER: return "ALL-ROUNDER"
+        Kind.BATTER:      return "BATTER"
+        Kind.WK_BATTER:   return "WICKET-KEEPER BATTER"
+        Kind.BOWLER:      return "BOWLER"
+        Kind.ALL_ROUNDER: return "ALL-ROUNDER"
         _: return ""
 ```
 
@@ -915,59 +917,59 @@ func _attrs(p: int, comp: int, att: int, ctrl: int) -> Attributes:
 
 func test_balanced_default_is_all_rounder():
     var label := Classifier.classify(_attrs(5, 5, 5, 5))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 # --- Batter ---
 
 func test_pure_batter_pattern():
     # Power=8, Composure=8, Attack=2, Control=2 — Composure - Power = 0 (< 2), so Batter not WK
     var label := Classifier.classify(_attrs(8, 8, 2, 2))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 func test_minimal_batter_pattern_at_thresholds():
     # Power=6, Composure=6, Attack=4, Control=4 — Composure - Power = 0 (< 2), Batter
     var label := Classifier.classify(_attrs(6, 6, 4, 4))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 # --- Wicket-keeper Batter (a Batter pattern where Composure leads Power by ≥2) ---
 
 func test_wk_batter_when_composure_leads_power_by_two():
     # Power=6, Composure=8, Attack=2, Control=4 — Comp-Pow = 2, all Batter conds met
     var label := Classifier.classify(_attrs(6, 8, 2, 4))
-    assert_eq(label, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(label, ClassifierLabel.Kind.WK_BATTER)
 
 func test_wk_batter_with_larger_composure_lead():
     var label := Classifier.classify(_attrs(6, 8, 3, 3))
-    assert_eq(label, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(label, ClassifierLabel.Kind.WK_BATTER)
 
 func test_not_wk_batter_when_composure_lead_is_only_one():
     # Power=7, Composure=8, Att=1, Ctrl=4 — Comp-Pow = 1 < 2, falls back to Batter
     var label := Classifier.classify(_attrs(7, 8, 1, 4))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 # --- Bowler ---
 
 func test_pure_bowler_pattern():
     # Power=2, Composure=2, Attack=8, Control=8
     var label := Classifier.classify(_attrs(2, 2, 8, 8))
-    assert_eq(label, ClassifierLabel.Label.BOWLER)
+    assert_eq(label, ClassifierLabel.Kind.BOWLER)
 
 func test_minimal_bowler_pattern_at_thresholds():
     # Power=4, Composure=4, Attack=6, Control=6
     var label := Classifier.classify(_attrs(4, 4, 6, 6))
-    assert_eq(label, ClassifierLabel.Label.BOWLER)
+    assert_eq(label, ClassifierLabel.Kind.BOWLER)
 
 # --- All-rounder fallthrough ---
 
 func test_mixed_high_attack_with_high_composure_is_all_rounder():
     # Power=4, Composure=7, Attack=7, Control=2 — fails Batter (Power<6), fails Bowler (Compos>4)
     var label := Classifier.classify(_attrs(4, 7, 7, 2))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 func test_one_dimension_short_of_batter_is_all_rounder():
     # Power=6, Composure=5, Attack=4, Control=5 — Composure<6
     var label := Classifier.classify(_attrs(6, 5, 4, 5))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 # --- Determinism ---
 
@@ -978,7 +980,7 @@ func test_classifier_is_pure():
     assert_eq(l1, l2)
     # And: mutating a after first call does not affect either label.
     a.power = 1
-    assert_eq(l1, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(l1, ClassifierLabel.Kind.WK_BATTER)
 ```
 
 - [ ] **Step 2: Run, verify FAIL**
@@ -1010,18 +1012,18 @@ static func classify(a: Attributes) -> int:
         and a.control <= BATTER_LO
 
     if bat_family and (a.composure - a.power) >= WK_GAP:
-        return ClassifierLabel.Label.WK_BATTER
+        return ClassifierLabel.Kind.WK_BATTER
     if bat_family:
-        return ClassifierLabel.Label.BATTER
+        return ClassifierLabel.Kind.BATTER
 
     var bowl_family := a.attack >= BOWLER_HI \
         and a.control >= BOWLER_HI \
         and a.power <= BOWLER_LO \
         and a.composure <= BOWLER_LO
     if bowl_family:
-        return ClassifierLabel.Label.BOWLER
+        return ClassifierLabel.Kind.BOWLER
 
-    return ClassifierLabel.Label.ALL_ROUNDER
+    return ClassifierLabel.Kind.ALL_ROUNDER
 ```
 
 - [ ] **Step 4: Run, verify PASS**
