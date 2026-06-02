@@ -6,21 +6,21 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 
 ## Current status
 
-**Phase:** Pre-build · design (design phase substantially complete)
-**Last closed:** Theme 4 content (45 Jokers authored) + Theme 5 onboarding (Player Creation spec written) + new Theme 9 added (post-launch Career pressure)
-**Next theme:** Implementation plan for Player Creation (writing-plans skill), then Theme 7 (Tech foundation: Godot project + save system + balance harness)
+**Phase:** Pre-build · design (design phase substantially complete; first build plan written)
+**Last closed:** Player Creation **implementation plan** written + reviewed twice (`docs/superpowers/plans/2026-06-01-player-creation-plan.md`) — 12 phases, Godot bootstrap → Creation flow → permadeath hooks → ADR 0012. Two open sim questions logged (see Open design questions).
+**Next theme:** Incorporate the parallel claude.ai design outputs (Hall of Fame spec + Player Creation decisions), then **execute** the Player Creation plan (Theme 7 build start).
 
 ---
 
 ## Next session
 
-**Decision point:** the design half is now substantively complete. Remaining themes (6 Visual & audio, 7 Tech foundation, 8 Long-haul retention) are all build-stage rather than design-stage. The cheapest next move is to convert the Player Creation spec into an implementation plan.
-
-**Parallel async (not blocking Claude Code) — claude.ai hi-fi:** The claude.ai handoff is ready at `docs/PLAYER-CREATION-HANDOFF.md` (covers Player Creation Identity + Build + Hall of Fame). Paste the prompt at the bottom of that doc into a fresh claude.ai conversation with the listed attachments; save the returned HTML to `docs/mockups/player-creation-v1.html`. Can be done anytime.
+**Primary task — incorporate the claude.ai design track, then decide execution.** A parallel claude.ai session has produced (per Nico): a **Hall of Fame spec** (`docs/superpowers/specs/2026-06-02-hall-of-fame-design.md`), a **Player Creation decisions doc** (`PLAYER-CREATION-DECISIONS.md`), and likely an updated hi-fi mockup (`docs/mockups/player-creation-v1.html`). These land in the repo by paste, not git — the session must find them, reconcile them against `CONTEXT.md` + the ADRs + the Player Creation spec/plan, surface any conflicts with the build plan, then report what's next.
 
 **To continue (next Claude Code session):**
 
-> Read `PROJECT_ROADMAP.md`, `CONTEXT.md`, `docs/superpowers/specs/2026-06-01-player-creation-design.md`. Invoke the `writing-plans` superpower to convert the spec into a phased implementation plan. The spec already has a §10 "Implementation handoff" section sketching the 9 dependency-ordered steps — use that as the starting outline. Plan should land at `docs/superpowers/plans/2026-06-XX-player-creation-plan.md` and produce ADR 0012 (formalising the hard-permadeath lifecycle decision) as a sibling artifact.
+> Run the start-of-session routine (read `PROJECT_ROADMAP.md`, `CONTEXT.md`, recent `git log`). Then **incorporate the parallel claude.ai design work**: scan `docs/` for design artefacts added since the last commit — especially `docs/superpowers/specs/2026-06-02-hall-of-fame-design.md`, a `PLAYER-CREATION-DECISIONS.md`, and `docs/mockups/player-creation-v1.html`. For each: verify it's consistent with `CONTEXT.md`, the ADRs, and the Player Creation spec (`docs/superpowers/specs/2026-06-01-player-creation-design.md`); update `PROJECT_ROADMAP.md` and any reference indexes to point at them; and **flag any conflict with the reviewed build plan** at `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (e.g. if the Hall of Fame spec changes the LegendsArchive shape the plan writes in Phase 4/7). If the Hall of Fame spec is solid, note that the plan's HoF *stub* can later be replaced by a real screen. Then tell me **what's next** — most likely: execute the Player Creation plan (subagent-driven), having confirmed nothing upstream changed under it. Two open sim-design questions (participation model, bowler-rotation policy) are logged under "Open design questions" — they are Theme 7 and do not block the Player Creation build.
+
+**Note on the build plan:** it is reviewed and ready but the *execution choice* (subagent-driven vs inline) was never made — that's the fork to resolve once the design incorporation is clean.
 
 **Alternative next session:** If you want to formalise the Hall of Fame as a sibling spec first (claude.ai's hi-fi pass + a short doc would close it), brainstorm that before writing-plans — it'd land cheaper as a single spec rather than scattered through the Player Creation plan.
 
@@ -39,6 +39,15 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 9. **Career pressure & retirement** (post-launch) — auto-drop / non-selection / age-based retirement triggers. Layered on top of the hard-permadeath lifecycle established in the Player Creation spec; trigger anchors on **Player form** (low runs over last K innings, lost KMs), not Team result. Deferred until V1 ships and the Career-as-life baseline loop is playtested — the cheap escape-hatch (Manual retire button) covers the *"I'm stuck"* case in the meantime.
 
 Playtest threads through all of them — continuous, not a discrete item.
+
+---
+
+## Open design questions
+
+Surfaced 2026-06-02 while pressure-testing the Player Creation plan. Both are **auto-sim design decisions (Theme 7)** — non-blocking for the Player Creation build, but must be settled before/during the sim build. Both sit downstream of ADR 0004 (only-Player-statted; the 21 other players are derived from `teamStrength × role × seed`, not individually authored).
+
+1. **Player participation model** — how much the Player personally bats (batting position → balls faced) and bowls (overs) each Match. Candidates: *fixed participation* (build changes only how **well**, not how **much**; bowler-shaped Players still bat, and bat badly emergently) vs *attribute-driven participation* (a bowler-shaped build bats lower / bowls more automatically). Either keeps the classifier label flavour-only per spec §3.5. **Simplest-first leaning: fixed.**
+2. **Bowler-rotation policy** — how an innings' ~20 bowling overs get assigned across bowler-role profiles. *Player side* surfaces as agency via the **Bowling Change** Key Moment; *opponent side* needs an AI rotation policy (currently un-spec'd). Note the scope wall: opponents are regenerated per-Match with no persistent identity or cross-Match form, so "their star bowler is out of form" is **texture-via-commentary**, not simulation — the cheap third door that avoids rebuilding the deferred management sim.
 
 ---
 
@@ -76,6 +85,7 @@ Playtest threads through all of them — continuous, not a discrete item.
 | 2026-05-31 | Theme 5 closed; ADRs 0010 + 0011 written; Theme 4 reopened (content); Theme 8 added | Around-the-match hi-fi accepted (`docs/mockups/around-the-match-v1.html` + `docs/design-handoff-from-claude-2026-05-31.md`). **ADR 0010** captures the navigation shell. **Career Records adopted** (global rank `#X / 2,112` computed analytically from Tour distributions — no per-rival sim) — **ADR 0011**. **Collection / Achievements deferred to new Theme 8** (Long-haul retention). **Theme 4 reopened** as architecture ✅ + content ⏳ — the 45 specific Jokers are unauthored and are now the next session. **Kit Room** / **Kit Manager** added to CONTEXT.md as canonical world-building. Australia palette fix: was a near-clone of SA green; now amber-gold primary + green accent (DESIGN_HANDOFF §16.2 updated). Onboarding + Settings screens deferred to a later pass within Theme 5's spirit. |
 | 2026-06-01 | Theme 4 content closed + Theme 5 onboarding closed + Theme 9 added | All 45 Jokers authored (`docs/joker-pool-v1.md`) across 6 archetypes / 3 rarities, magnitudes V1 strawman for the harness. **Player Creation spec** (`docs/superpowers/specs/2026-06-01-player-creation-design.md`) closes Theme 5's deferred onboarding work: 2-screen Identity → Build flow · 5 decisions (Country / City / Appearance / Name / Attributes) · hard-permadeath lifecycle with Win + Manual retire end-states · live classifier label · 4 Appearance buckets per Country (no textual labels) · cricket-pun name gen (random + re-roll, no manual override). **ADR 0012** to formalise the lifecycle decision at plan time. **New Theme 9 — Career pressure & retirement** (post-launch) holds auto-drop / non-selection / age-based retirement; trigger anchors on Player form not Team result. |
 | 2026-06-01 | Soft-launch markets corrected to SA + AUS | The 2026-05-18 "PAK / BAN / SLK / UAE — no India burn" decision was made under the India-primary-target era. With ADR 0001 making SA + AUS the primary target, the soft launch logically follows the primary audience: **soft launch in SA + AUS first**, expand later. Both stores allow per-country availability restriction at upload. iOS publishing is unblocked at the account level — Nico already has an Apple Developer Program membership. Google Play Developer ($25 one-time) is unconfirmed; revisit when Android shipping becomes relevant. |
+| 2026-06-02 | Player Creation build plan written + reviewed; 2 sim questions logged | Ran `writing-plans` on the Player Creation spec → 12-phase Godot build plan at `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (bootstrap → data/domain TDD → Creation scenes → permadeath hooks → **ADR 0012** authored in-plan). Two external review passes; key fixes folded in: archive **deep-duplicates the Player** before `clear_player()` (else an `ext_resource` orphan crashes the Hall-of-Fame path), loads use `CACHE_MODE_IGNORE`, autoloads register at the phase their script lands, Back preserves picks, Build recap added, Godot **4.3+ hard-required**. Plan is ready but **execution choice (subagent vs inline) not yet made**. Surfaced two open auto-sim questions (Player participation model · bowler-rotation policy) — logged under "Open design questions", Theme 7, non-blocking. |
 
 ---
 
