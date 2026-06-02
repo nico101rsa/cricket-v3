@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Player Creation &amp; Hall of Fame · Hi-Fi v1</title>
+<style>
+  /* ════════════════════════════════════════════════════════════
+     §16.1 CANONICAL TOKEN SYSTEM  (no hardcoded hexes in markup)
+     Inherited verbatim from around-the-match-v1 / in-match hi-fi.
+     ════════════════════════════════════════════════════════════ */
+  :root {
+    --bg: #0f0f14;            --bg-2: #16161e;
+    --bezel: #0d0d12;         --bezel-edge: #2a2a35;
+    --red: #c41e3a;           --red-dark: #8b0000;       --red-bright: #ef6c6c;
+    --gold: #ffd166;          --gold-warn: #f5a623;      --gold-deep: #c9912b;
+    --green: #2ecc71;         --green-dark: #16a34a;
+    --blue: #4a90e2;          --blue-bright: #6ec1e4;
+    --bronze-1: #b07d4a;      --bronze-2: #7a5230;
+    --white-soft: rgba(255,255,255,0.85);
+    --white-mid:  rgba(255,255,255,0.65);
+    --white-dim:  rgba(255,255,255,0.45);
+    --white-faint:rgba(255,255,255,0.25);
+    --surface:    rgba(255,255,255,0.04);
+    --surface-2:  rgba(255,255,255,0.07);
+    --surface-3:  rgba(255,255,255,0.10);
+    --border:     rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    /* country palette — default South Africa (ADR 0001 primary target) */
+    --country-1: #007749;     --country-2: #003e26;
+    --country-glow: rgba(0,119,73,0.45);
+    --country-accent: #FFB81C;
+  }
+  /* §16.2 country swap — set on a .phone via data-country.
+     AUS is intentionally gold-forward (matching around-the-match-v1) so the
+     swap reads instantly against SA green rather than green-on-green. */
+  [data-country="sa"]    { --country-1:#007749; --country-2:#003e26; --country-glow:rgba(0,119,73,0.45);  --country-accent:#FFB81C; }
+  [data-country="aus"]   { --country-1:#A86E00; --country-2:#5c3a00; --country-glow:rgba(224,168,40,0.45); --country-accent:#36CE72; }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 40px 32px 120px;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(0,119,73,0.10), transparent 42%),
+      radial-gradient(circle at 88% 96%, rgba(74,144,226,0.06), transparent 46%),
+      var(--bg);
+  }
+
+  /* ─── page chrome ─── */
+  .page-head { max-width: 1480px; margin: 0 auto 10px; }
+  .page-head h1 { font-size: 34px; font-weight: 800; margin: 0; letter-spacing: -0.6px; }
+  .page-head h1 .accent { color: var(--gold); }
+  .page-head .sub { font-size: 14px; color: var(--white-mid); margin: 10px 0 0; max-width: 880px; line-height: 1.55; }
+  .stamp {
+    display: inline-block; background: var(--gold); color: var(--bg);
+    font-weight: 800; padding: 3px 10px 4px; border-radius: 6px;
+    font-size: 13px; margin-left: 12px; letter-spacing: 0.5px;
+    text-transform: uppercase; vertical-align: middle;
+  }
+  .legend {
+    max-width: 1480px; margin: 22px auto 4px;
+    display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center;
+    font-size: 12px; color: var(--white-mid);
+    border-top: 1px solid var(--border); padding-top: 18px;
+  }
+  .legend b { color: var(--white-soft); font-weight: 700; }
+  .legend .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:-1px; margin-right:5px; }
+
+  /* section band */
+  .band { max-width: 1480px; margin: 56px auto 22px; }
+  .band h2 {
+    font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold); margin: 0 0 4px; font-weight: 800;
+  }
+  .band p { margin: 0; font-size: 13px; color: var(--white-mid); max-width: 820px; line-height: 1.5; }
+  .band .qtag {
+    display:inline-block; margin-left: 8px; font-size: 11px; letter-spacing: 1px;
+    color: var(--bg); background: var(--blue-bright); padding: 2px 7px; border-radius: 5px;
+    font-weight: 800; text-transform: uppercase; vertical-align: middle;
+  }
+
+  /* ─── canvas of phones ─── */
+  .canvas {
+    max-width: 1480px; margin: 0 auto;
+    display: flex; flex-wrap: wrap; gap: 52px 36px;
+    align-items: flex-start;
+  }
+  .frame { display: flex; flex-direction: column; align-items: center; width: 340px; }
+  .frame-label { margin-top: 16px; color: var(--gold); font-size: 11px; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; text-align:center; }
+  .frame-sub { font-size: 12px; color: var(--white-dim); margin-top: 5px; text-align: center; max-width: 320px; line-height: 1.45; }
+  .reco { color: var(--green); font-weight: 700; }
+  .alt  { color: var(--white-dim); }
+
+  /* ─── phone bezel ─── */
+  .phone {
+    width: 340px; height: 700px;
+    background: var(--bezel); border: 3px solid var(--bezel-edge);
+    border-radius: 42px; padding: 13px;
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05), inset 0 0 0 1px rgba(255,255,255,0.03);
+  }
+  .phone * { box-sizing: border-box; }
+  .notch { width: 92px; height: 20px; background:#000; border-radius: 13px; margin: -6px auto 4px; flex-shrink: 0; }
+  .screen { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+  /* corner controls — present on every screen */
+  .corner { position: absolute; top: 20px; z-index: 40; }
+  .corner.gear { right: 22px; }
+  .corner.info { left: 22px; }
+  .corner button {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border-strong);
+    color: var(--white-mid); font-size: 13px; cursor: pointer; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ─── creation header (country gradient + step indicator) ─── */
+  .creation-head {
+    background: linear-gradient(95deg, var(--country-1) 0%, var(--country-2) 100%);
+    border-radius: 11px; padding: 11px 14px; flex-shrink: 0;
+    box-shadow: 0 4px 14px var(--country-glow);
+  }
+  .creation-head .top-row { display:flex; align-items:center; justify-content:space-between; }
+  .creation-head .kicker { font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: rgba(255,255,255,0.8); font-weight: 800; }
+  .creation-head .ttl { font-size: 19px; font-weight: 900; letter-spacing: -0.3px; margin-top: 3px; }
+  .step-dots { display:flex; gap:5px; }
+  .step-dots .d { width:7px; height:7px; border-radius:50%; background: rgba(255,255,255,0.3); }
+  .step-dots .d.on { background: var(--country-accent); box-shadow: 0 0 0 3px rgba(255,255,255,0.12); }
+
+  /* generic screen scroll area */
+  .scroll { flex:1; min-height:0; overflow-y:auto; padding: 11px 3px 4px; display:flex; flex-direction:column; gap: 13px; }
+  .scroll::-webkit-scrollbar { width: 0; }
+
+  .sect-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1.8px; color: var(--white-dim); font-weight: 800; margin-bottom: 8px; display:flex; align-items:center; justify-content:space-between; }
+
+  /* ─── country toggle (segmented) ─── */
+  .ctry-toggle { display:flex; gap:6px; }
+  .ctry-toggle button {
+    flex:1; cursor:pointer; border:1px solid var(--border-strong);
+    background: var(--surface); color: var(--white-mid);
+    border-radius: 10px; padding: 9px 6px; font-size: 12px; font-weight: 700;
+    display:flex; align-items:center; justify-content:center; gap:6px;
+    transition: all .18s ease; font-family: inherit;
+  }
+  .ctry-toggle button .flag { font-size: 15px; line-height:1; }
+  .ctry-toggle button.on {
+    background: linear-gradient(95deg, var(--country-1), var(--country-2));
+    border-color: var(--country-accent); color: #fff;
+    box-shadow: 0 3px 12px var(--country-glow);
+  }
+
+  /* dropdown-style pill (city) */
+  .field-pill {
+    width:100%; display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface-2); border:1px solid var(--border-strong);
+    border-radius: 10px; padding: 11px 13px; cursor:pointer; font-family:inherit;
+    color: var(--white-soft); font-size: 14px; font-weight: 600;
+  }
+  .field-pill .ph { color: var(--white-dim); }
+  .field-pill .chev { color: var(--white-dim); font-size: 12px; }
+
+  /* ─── portrait primitive ─── */
+  .port {
+    position: relative; border: 1.5px solid var(--border-strong); border-radius: 9px;
+    overflow: hidden; flex-shrink: 0; box-shadow: 0 3px 8px rgba(0,0,0,0.5);
+    background-repeat: no-repeat; background-size: cover; background-position: center 18%;
+    background-color: #12121a;
+  }
+
+  /* appearance picker */
+  .appearance { display:flex; gap:9px; }
+  .appearance .opt {
+    flex:1; cursor:pointer; position:relative; border-radius: 10px; overflow:hidden;
+    border: 2px solid var(--border); background:#12121a; aspect-ratio: 62/80;
+    background-size: cover; background-position: center 16%;
+    transition: border-color .15s ease, transform .12s ease;
+  }
+  .appearance .opt:hover { transform: translateY(-2px); }
+  .appearance .opt.sel { border-color: var(--country-accent); box-shadow: 0 0 0 3px var(--country-glow); }
+  .appearance .opt .tick {
+    position:absolute; right:4px; bottom:4px; width:16px; height:16px; border-radius:50%;
+    background: var(--country-accent); color: var(--bg); font-size:10px; font-weight:900;
+    display:none; align-items:center; justify-content:center;
+  }
+  .appearance .opt.sel .tick { display:flex; }
+
+  /* name block */
+  .name-block { display:flex; align-items:center; gap:10px; }
+  .name-block .nm { flex:1; min-width:0; }
+  .name-block .nm .v { font-size: 23px; font-weight: 900; letter-spacing:-0.4px; line-height:1.05; }
+  .name-block .nm .sub { font-size: 11px; color: var(--white-dim); margin-top: 3px; text-transform:uppercase; letter-spacing:1px; }
+  .reroll {
+    width:40px; height:40px; flex-shrink:0; border-radius: 10px; cursor:pointer;
+    background: var(--surface-2); border:1px solid var(--border-strong); color: var(--country-accent);
+    font-size:17px; display:flex; align-items:center; justify-content:center; font-family:inherit;
+    transition: transform .3s ease;
+  }
+  .reroll:active { transform: rotate(180deg); }
+
+  /* hero anchor portrait (variant B) */
+  .hero-anchor { width: 152px; height: 188px; margin: 0 auto; border-radius: 14px; }
+
+  /* primary CTA */
+  .cta {
+    flex-shrink:0; width:100%; border:none; cursor:pointer; font-family:inherit;
+    background: linear-gradient(95deg, var(--country-1), var(--country-2));
+    border:1px solid var(--country-accent);
+    color:#fff; font-size:15px; font-weight:800; letter-spacing:0.5px;
+    border-radius: 12px; padding: 14px; margin-top: 4px;
+    box-shadow: 0 6px 18px var(--country-glow);
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .cta.gold { background: linear-gradient(95deg, var(--gold), var(--gold-deep)); border-color: var(--gold); color: var(--bg); box-shadow: 0 6px 18px rgba(255,209,102,0.3); }
+
+  /* ─── Build: points + sliders ─── */
+  .points-bar {
+    background: var(--surface); border:1px solid var(--border); border-radius:11px;
+    padding: 10px 13px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .points-bar .lbl { font-size: 9px; text-transform:uppercase; letter-spacing:1.6px; color: var(--white-dim); font-weight:800; }
+  .points-bar .val { font-size: 17px; font-weight:900; font-variant-numeric: tabular-nums; }
+  .points-bar .val b { color: var(--country-accent); }
+  .budget-track { flex:1; height:7px; border-radius:4px; background: var(--surface-3); overflow:hidden; }
+  .budget-fill { height:100%; background: linear-gradient(90deg, var(--country-1), var(--country-accent)); transition: width .2s ease; }
+
+  .attr-group { background: var(--surface); border:1px solid var(--border); border-radius:11px; padding: 11px 12px 13px; }
+  .attr-group .grp-h { font-size: 9px; text-transform:uppercase; letter-spacing:1.6px; font-weight:800; margin-bottom: 11px; display:flex; align-items:center; gap:7px; }
+  .attr-group .grp-h .ico { width:14px;height:14px; border-radius:4px; }
+  .grp-bat .ico { background: linear-gradient(135deg,var(--gold),var(--gold-deep)); }
+  .grp-bowl .ico { background: linear-gradient(135deg,var(--blue-bright),var(--blue)); }
+
+  .attr-row { margin-bottom: 13px; }
+  .attr-row:last-child { margin-bottom: 0; }
+  .attr-row .rh { display:flex; align-items:baseline; justify-content:space-between; margin-bottom: 6px; }
+  .attr-row .rh .nm { font-size: 13px; font-weight:700; }
+  .attr-row .rh .desc { font-size: 9.5px; color: var(--white-dim); margin-left:6px; font-weight:500; }
+  .attr-row .rh .num { font-size: 15px; font-weight:900; font-variant-numeric: tabular-nums; color: var(--country-accent); }
+
+  /* horizontal slider (variant A) — native track is transparent; the grey
+     base + coloured fill are drawn in .slider-wrap so the fill end lines up
+     exactly with the thumb centre (thumb travels inset by its 10px radius). */
+  input[type=range].attr-slider {
+    -webkit-appearance:none; appearance:none; width:100%; height:20px; margin:0;
+    background: transparent; cursor:pointer; position:relative; z-index:2;
+  }
+  input[type=range].attr-slider::-webkit-slider-runnable-track { height:20px; background:transparent; border:none; }
+  input[type=range].attr-slider::-moz-range-track { height:20px; background:transparent; border:none; }
+  input[type=range].attr-slider::-webkit-slider-thumb {
+    -webkit-appearance:none; width:20px; height:20px; border-radius:50%; margin-top:0;
+    background: #fff; border:3px solid var(--country-accent); cursor:pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  input[type=range].attr-slider::-moz-range-thumb {
+    width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--country-accent); cursor:pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .slider-wrap { position:relative; height:20px; display:flex; align-items:center; }
+  .slider-wrap::before {
+    content:''; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+    height:8px; border-radius:5px; background: var(--surface-3);
+  }
+  .slider-fill {
+    position:absolute; left:0; top:50%; transform:translateY(-50%);
+    height:8px; border-radius:5px; z-index:1; pointer-events:none;
+    background: linear-gradient(90deg,var(--country-1),var(--country-accent));
+  }
+
+  /* stepper (variant B) */
+  .stepper { display:flex; align-items:center; gap:9px; }
+  .stepper .btn {
+    width:34px; height:34px; flex-shrink:0; border-radius:9px; cursor:pointer; font-family:inherit;
+    background: var(--surface-2); border:1px solid var(--border-strong); color:#fff;
+    font-size:19px; font-weight:700; line-height:1; display:flex; align-items:center; justify-content:center;
+  }
+  .stepper .btn:active { background: var(--surface-3); }
+  .stepper .meter { flex:1; height:9px; border-radius:5px; background: var(--surface-3); overflow:hidden; }
+  .stepper .meter .mf { height:100%; background: linear-gradient(90deg,var(--country-1),var(--country-accent)); transition: width .15s ease; }
+  .stepper .pip { font-size:15px; font-weight:900; width:22px; text-align:center; font-variant-numeric:tabular-nums; }
+
+  /* classifier panel */
+  .classifier {
+    background: linear-gradient(135deg, var(--surface-2), var(--surface));
+    border:1px solid var(--country-accent); border-radius:12px; padding: 12px 14px;
+    box-shadow: inset 0 0 22px var(--country-glow);
+  }
+  .classifier .ck { font-size: 9px; text-transform:uppercase; letter-spacing:2px; color: var(--white-dim); font-weight:800; }
+  .classifier .label { font-size: 21px; font-weight:900; letter-spacing:-0.4px; margin-top:3px; color: var(--country-accent); }
+  .classifier .blurb { font-size: 11.5px; color: var(--white-mid); margin-top:5px; line-height:1.4; }
+
+  /* ─── Hall of Fame ─── */
+  .hof-head {
+    background: linear-gradient(95deg, #1a1320, #0f0f14);
+    border-radius: 11px; padding: 11px 14px; flex-shrink:0;
+    border:1px solid var(--border); display:flex; align-items:center; justify-content:space-between;
+  }
+  .hof-head .ttl { font-size: 18px; font-weight:900; letter-spacing:0.5px; }
+  .hof-head .ttl .t { color: var(--gold); }
+  .hof-head .cnt { font-size: 10px; color: var(--white-dim); text-transform:uppercase; letter-spacing:1px; font-weight:700; }
+
+  .hero-card {
+    position:relative; border-radius:14px; overflow:hidden; flex-shrink:0;
+    background: linear-gradient(160deg, #221a12, #14110d);
+    border:1px solid var(--bronze-1);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 30px rgba(176,125,74,0.12);
+    padding: 13px; display:flex; gap:12px;
+  }
+  .hero-card.gold { border-color: var(--gold); box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 36px rgba(255,209,102,0.18); background: linear-gradient(160deg,#241f12,#14120c); }
+  .hero-card .hp { width: 96px; height: 120px; border-radius:11px; }
+  .hero-card .hinfo { flex:1; min-width:0; display:flex; flex-direction:column; }
+  .retire-badge {
+    align-self:flex-start; display:inline-flex; align-items:center; gap:5px;
+    font-size: 9px; font-weight:900; text-transform:uppercase; letter-spacing:1.2px;
+    padding: 3px 9px; border-radius:20px;
+  }
+  .retire-badge.bronze { background: linear-gradient(95deg,var(--bronze-1),var(--bronze-2)); color:#fff; box-shadow: 0 2px 8px rgba(122,82,48,0.5); }
+  .retire-badge.gold { background: linear-gradient(95deg,var(--gold),var(--gold-deep)); color: var(--bg); box-shadow: 0 2px 10px rgba(255,209,102,0.4); }
+  .hero-card .hname { font-size: 21px; font-weight:900; letter-spacing:-0.4px; margin-top:8px; line-height:1; }
+  .hero-card .hmeta { font-size: 10.5px; color: var(--white-mid); margin-top:4px; }
+
+  /* career arc beat — the marquee moment */
+  .arc { display:flex; align-items:center; gap:7px; margin-top:11px; }
+  .arc .pill {
+    background: var(--surface-2); border:1px solid var(--border-strong); border-radius:8px;
+    padding: 5px 9px; min-width:0; flex:0 1 auto;
+  }
+  .arc .pill .k { font-size: 7.5px; text-transform:uppercase; letter-spacing:1px; color: var(--white-dim); font-weight:800; }
+  .arc .pill .v { font-size: 11.5px; font-weight:900; letter-spacing:-0.3px; line-height:1.1; margin-top:2px; white-space:nowrap; }
+  .arc .pill.start .v { color: var(--white-soft); }
+  .arc .pill.end .v { color: var(--gold); }
+  .arc .arrow { flex-shrink:0; color: var(--country-accent); font-size:16px; font-weight:900; }
+
+  /* lifetime stat strip */
+  .lifetime { display:flex; gap:8px; margin-top:11px; }
+  .lifetime .s { flex:1; background: var(--surface); border:1px solid var(--border); border-radius:9px; padding:7px 5px; text-align:center; }
+  .lifetime .s .n { font-size: 16px; font-weight:900; font-variant-numeric:tabular-nums; line-height:1; }
+  .lifetime .s .n .tmark { width:0.56em; height:0.7em; }
+  .lifetime .s .l { font-size: 7.5px; text-transform:uppercase; letter-spacing:0.8px; color: var(--white-dim); font-weight:700; margin-top:4px; }
+
+  /* prior legends list */
+  .legends-list { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px; padding-right:3px; }
+  .legends-list::-webkit-scrollbar { width:0; }
+  .legends-list .lh { font-size: 9px; text-transform:uppercase; letter-spacing:1.8px; color: var(--white-dim); font-weight:800; margin: 2px 0; }
+
+  /* portrait-card row (density A) */
+  .lrow {
+    display:flex; align-items:center; gap:10px;
+    background: var(--surface); border:1px solid var(--border); border-radius:10px; padding:8px 10px;
+  }
+  .lrow .lp { width:42px; height:52px; border-radius:7px; }
+  .lrow .li { flex:1; min-width:0; }
+  .lrow .li .ln { font-size: 13px; font-weight:800; letter-spacing:-0.2px; }
+  .lrow .li .larc { font-size: 9.5px; color: var(--white-mid); margin-top:3px; display:flex; align-items:center; gap:4px; }
+  .lrow .li .larc b { color: var(--white-soft); font-weight:700; }
+  .lrow .li .larc .a { color: var(--country-accent); }
+  .lrow .lstat { text-align:right; flex-shrink:0; }
+  .lrow .lstat .n { font-size: 14px; font-weight:900; font-variant-numeric:tabular-nums; }
+  .lrow .lstat .l { font-size: 7.5px; text-transform:uppercase; letter-spacing:0.8px; color: var(--white-dim); font-weight:700; margin-top:2px; }
+
+  /* compact row (density B) */
+  .crow {
+    display:flex; align-items:center; gap:9px;
+    border-bottom:1px solid var(--border); padding: 8px 4px;
+  }
+  .crow .rank { font-size:11px; font-weight:900; color: var(--white-dim); width:18px; font-variant-numeric:tabular-nums; }
+  .crow .ci { flex:1; min-width:0; }
+  .crow .ci .cn { font-size:13px; font-weight:800; }
+  .crow .ci .carc { font-size:9px; color: var(--white-mid); margin-top:2px; }
+  .crow .ci .carc .a { color: var(--country-accent); font-weight:700; }
+  .crow .cstat { font-size:12px; font-weight:900; font-variant-numeric:tabular-nums; color: var(--white-soft); }
+  .crow .cstat small { font-size:8px; color:var(--white-dim); font-weight:700; }
+
+  /* tons mark — canonical brand glyph (docs/brand, ADR 0008) */
+  :root {
+    --tmark-2: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 240'%3E%3Crect x='14' y='22' width='172' height='26' rx='2'/%3E%3Crect x='86' y='22' width='28' height='200' rx='2'/%3E%3Crect x='44' y='68' width='112' height='13' rx='2'/%3E%3Crect x='44' y='92' width='112' height='13' rx='2'/%3E%3C/svg%3E");
+  }
+  .tmark {
+    display: inline-block; width: 0.62em; height: 0.74em;
+    vertical-align: -0.04em; flex-shrink: 0; background-color: currentColor;
+    -webkit-mask: var(--tmark-2) center / contain no-repeat;
+            mask: var(--tmark-2) center / contain no-repeat;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Player Creation <span class="accent">&amp;</span> Hall of Fame <span class="stamp">Hi-Fi v1</span></h1>
+  <p class="sub">The bookends of the hard-permadeath career loop — where a Player is born, and where they're laid to rest. Built on the §16.1 token system &amp; §16.3 portrait language from the in-Match hi-fi pass. Default palette <b>South Africa</b>; one frame swaps to <b>Australia</b> to show the live <code>data-country</code> re-theme. <b>v2 — locked directions:</b> portrait-anchored Identity, drag-slider Build, proud-gold Hall of Fame.</p>
+</div>
+
+<div class="legend">
+  <span><span class="reco">● Recommended</span> direction</span>
+  <span><span class="alt">○ Alternative</span> for comparison</span>
+  <span><span class="sw" style="background:#007749"></span><b>South Africa</b> — default</span>
+  <span><span class="sw" style="background:#A86E00"></span><b>Australia</b> — gold-forward swap</span>
+  <span>Toggle the country control on Screen&nbsp;1 to see the re-theme live.</span>
+</div>
+
+<!-- ════════════════ BAND 1 · IDENTITY ════════════════ -->
+<div class="band">
+  <h2>Player Creation · Screen 1 — Identity</h2>
+  <p>Country toggle · City dropdown · 4-portrait Appearance picker · generated name + re-roll. <span class="qtag" style="background:var(--green);">Locked</span> Portrait-anchored — the hero face leads, controls follow. Toggle the country to re-theme the frame live.</p>
+</div>
+
+<div class="canvas">
+
+  <!-- ── SCREEN 1 · IDENTITY — portrait-anchored (LOCKED) ──
+       Locked direction: a big hero face up top makes creation feel ceremonial
+       and sells the FUT/Snap portrait system immediately. The four controls
+       (country · city · appearance · name) sit below it. Tapping an Appearance
+       thumbnail live-swaps the hero; the country toggle re-themes the frame. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner info"><button>✕</button></div>
+      <div class="screen">
+        <div class="creation-head">
+          <div class="top-row">
+            <div>
+              <div class="kicker">New Player</div>
+              <div class="ttl">Who are you?</div>
+            </div>
+            <div class="step-dots"><span class="d on"></span><span class="d"></span></div>
+          </div>
+        </div>
+        <div class="scroll">
+          <div class="port hero-anchor" style="background-image:url(assets/portraits/hero-front.png)" data-hero></div>
+          <div class="name-block" style="justify-content:center; text-align:center;">
+            <div class="nm" style="flex:0 1 auto;">
+              <div class="v" data-name>Jomo Ntini</div>
+              <div class="sub" data-city-sub>Cape Town · South Africa</div>
+            </div>
+            <button class="reroll" data-reroll title="Re-roll name">🎲</button>
+          </div>
+          <div class="ctry-toggle" data-toggle>
+            <button class="on" data-c="sa"><span class="flag">🇿🇦</span> South Africa</button>
+            <button data-c="aus"><span class="flag">🇦🇺</span> Australia</button>
+          </div>
+          <button class="field-pill"><span data-city>Cape Town</span><span class="chev">▾</span></button>
+          <div class="appearance" data-appearance data-syncs-hero>
+            <div class="opt sel" style="background-image:url(assets/portraits/hero-front.png)" data-art="hero-front.png"><span class="tick">✓</span></div>
+            <div class="opt" style="background-image:url(assets/portraits/hero-cap.png)" data-art="hero-cap.png"><span class="tick">✓</span></div>
+            <div class="opt" style="background-image:url(assets/portraits/hero-helmet.png)" data-art="hero-helmet.png"><span class="tick">✓</span></div>
+            <div class="opt" style="background-image:url(assets/portraits/keeper.png)" data-art="keeper.png"><span class="tick">✓</span></div>
+          </div>
+        </div>
+        <button class="cta">Next — Build your game <span>→</span></button>
+      </div>
+    </div>
+    <div class="frame-label">Screen 1 · Identity <span class="reco">● locked: portrait-anchored</span></div>
+    <div class="frame-sub">Face leads — ceremonial, sells the portrait system. Tap a thumbnail to swap the hero; toggle the country to re-theme the frame.</div>
+  </div>
+
+  <!-- ── SCREEN 1 · IDENTITY — Australia palette swap (same locked layout) ──
+       Identical portrait-anchored layout, re-themed via data-country="aus".
+       Header gradient, toggle, accent ring, hero ring & CTA glow all move to
+       the gold-forward AUS palette in one swap; city + name banks follow. -->
+  <div class="frame">
+    <div class="phone" data-country="aus">
+      <div class="notch"></div>
+      <div class="corner info"><button>✕</button></div>
+      <div class="screen">
+        <div class="creation-head">
+          <div class="top-row">
+            <div>
+              <div class="kicker">New Player</div>
+              <div class="ttl">Who are you?</div>
+            </div>
+            <div class="step-dots"><span class="d on"></span><span class="d"></span></div>
+          </div>
+        </div>
+        <div class="scroll">
+          <div class="port hero-anchor" style="background-image:url(assets/portraits/hero-helmet.png)" data-hero></div>
+          <div class="name-block" style="justify-content:center; text-align:center;">
+            <div class="nm" style="flex:0 1 auto;">
+              <div class="v" data-name>Cooper Vale</div>
+              <div class="sub" data-city-sub>Perth · Australia</div>
+            </div>
+            <button class="reroll" data-reroll title="Re-roll name">🎲</button>
+          </div>
+          <div class="ctry-toggle" data-toggle>
+            <button data-c="sa"><span class="flag">🇿🇦</span> South Africa</button>
+            <button class="on" data-c="aus"><span class="flag">🇦🇺</span> Australia</button>
+          </div>
+          <button class="field-pill"><span data-city>Perth</span><span class="chev">▾</span></button>
+          <div class="appearance" data-appearance data-syncs-hero>
+            <div class="opt" style="background-image:url(assets/portraits/hero-front.png)" data-art="hero-front.png"><span class="tick">✓</span></div>
+            <div class="opt sel" style="background-image:url(assets/portraits/hero-helmet.png)" data-art="hero-helmet.png"><span class="tick">✓</span></div>
+            <div class="opt" style="background-image:url(assets/portraits/hero-cap.png)" data-art="hero-cap.png"><span class="tick">✓</span></div>
+            <div class="opt" style="background-image:url(assets/portraits/keeper.png)" data-art="keeper.png"><span class="tick">✓</span></div>
+          </div>
+        </div>
+        <button class="cta">Next — Build your game <span>→</span></button>
+      </div>
+    </div>
+    <div class="frame-label">Australia swap <span class="reco">● palette demo</span></div>
+    <div class="frame-sub"><code>data-country="aus"</code> — the gold-forward palette re-themes the whole frame in one swap. City + name banks follow the country.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ BAND 2 · BUILD ════════════════ -->
+<div class="band">
+  <h2>Player Creation · Screen 2 — Build</h2>
+  <p>Four Attributes — Batting (<b>Power</b> · <b>Composure</b>) and Bowling (<b>Attack</b> · <b>Control</b>) — spent from one points budget, with a live classifier naming the kind of cricketer you're shaping. <span class="qtag" style="background:var(--green);">Locked</span> Drag sliders. <em>Drag to spend — the budget bar &amp; classifier update live.</em></p>
+</div>
+
+<div class="canvas">
+
+  <!-- ── FRAME 2A · horizontal sliders (RECOMMENDED) ──
+       Trade-off: continuous sliders communicate "this is a spectrum, spend
+       freely" and let a player rough-in a build with two gestures. They read
+       as analogue/expressive — fitting for an identity-defining choice. Risk:
+       imprecise on a small thumb. Mitigated by the live number + budget bar.
+       RECOMMENDED — the expressive feel suits a once-per-career decision. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner info"><button>←</button></div>
+      <div class="screen">
+        <div class="creation-head">
+          <div class="top-row">
+            <div>
+              <div class="kicker">New Player · Jomo Ntini</div>
+              <div class="ttl">Build your game</div>
+            </div>
+            <div class="step-dots"><span class="d"></span><span class="d on"></span></div>
+          </div>
+        </div>
+        <div class="scroll" data-build="slider">
+          <div class="points-bar">
+            <div>
+              <div class="lbl">Points spent</div>
+              <div class="val"><b data-used>22</b> / 32</div>
+            </div>
+            <div class="budget-track"><div class="budget-fill" data-budget style="width:68%"></div></div>
+          </div>
+
+          <div class="attr-group grp-bat">
+            <div class="grp-h"><span class="ico"></span> Batting</div>
+            <div class="attr-row" data-attr="power">
+              <div class="rh"><div><span class="nm">Power</span><span class="desc">boundaries</span></div><span class="num" data-num>7</span></div>
+              <div class="slider-wrap">
+                <div class="slider-fill" data-fill></div>
+                <input type="range" class="attr-slider" min="1" max="10" value="7" />
+              </div>
+            </div>
+            <div class="attr-row" data-attr="composure">
+              <div class="rh"><div><span class="nm">Composure</span><span class="desc">resists dismissal</span></div><span class="num" data-num>6</span></div>
+              <div class="slider-wrap">
+                <div class="slider-fill" data-fill></div>
+                <input type="range" class="attr-slider" min="1" max="10" value="6" />
+              </div>
+            </div>
+          </div>
+
+          <div class="attr-group grp-bowl">
+            <div class="grp-h"><span class="ico"></span> Bowling</div>
+            <div class="attr-row" data-attr="attack">
+              <div class="rh"><div><span class="nm">Attack</span><span class="desc">wicket chance</span></div><span class="num" data-num>5</span></div>
+              <div class="slider-wrap">
+                <div class="slider-fill" data-fill></div>
+                <input type="range" class="attr-slider" min="1" max="10" value="5" />
+              </div>
+            </div>
+            <div class="attr-row" data-attr="control">
+              <div class="rh"><div><span class="nm">Control</span><span class="desc">economy</span></div><span class="num" data-num>4</span></div>
+              <div class="slider-wrap">
+                <div class="slider-fill" data-fill></div>
+                <input type="range" class="attr-slider" min="1" max="10" value="4" />
+              </div>
+            </div>
+          </div>
+
+          <div class="classifier">
+            <div class="ck">You'll start as a</div>
+            <div class="label" data-label>BATTING ALL-ROUNDER</div>
+            <div class="blurb" data-blurb>Bats with intent and chips in with the ball. Flexible — but a jack of two trades.</div>
+          </div>
+        </div>
+        <button class="cta gold">Begin Career <span>🏏</span></button>
+      </div>
+    </div>
+    <div class="frame-label">Screen 2 · Build <span class="reco">● locked: drag sliders</span></div>
+    <div class="frame-sub">Expressive, analogue feel. Rough-in a build in two gestures; live number + budget bar cover precision. Fits a once-per-career choice.</div>
+  </div>
+
+</div>
+
+<!-- ════════════════ BAND 3 · HALL OF FAME ════════════════ -->
+<div class="band">
+  <h2>Hall of Fame</h2>
+  <p>Where a permadeath career comes to rest. Hero card = the just-completed Legend, headlined by the <b>career-arc beat</b> — where they started vs where they ended — then a scroll of prior Legends. <span class="qtag" style="background:var(--green);">Locked</span> Portrait-card rows with a <b>proud gold</b> retire badge.</p>
+</div>
+
+<div class="canvas">
+
+  <!-- ── FRAME 3C · badge-tone isolation: PROUD GOLD on the reco layout ──
+       Badge-tone trade-off: gold reads as triumph / "immortalised" — it makes
+       retirement feel like a trophy ceremony and rewards a long, successful
+       career. Cost: it softens the permadeath sting; death stops feeling final
+       and starts feeling like a graduation. Compare directly to 3A's bronze on
+       the IDENTICAL portrait-row layout — that's the real bronze-vs-gold call.
+       RECOMMENDATION: bronze (3A). Reserve gold for a genuinely exceptional
+       send-off (e.g. a career that Won all 3 Levels) as a rare flourish. -->
+  <div class="frame">
+    <div class="phone" data-country="sa">
+      <div class="notch"></div>
+      <div class="corner gear"><button>⚙</button></div>
+      <div class="corner info"><button>?</button></div>
+      <div class="screen">
+        <div class="hof-head">
+          <div class="ttl"><span class="t">Hall</span> of Fame</div>
+          <div class="cnt">7 Legends</div>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:11px; flex:1; min-height:0; padding-top:11px;">
+          <div class="hero-card gold">
+            <div class="port" style="width:96px;height:120px;border-radius:11px;background-image:url(assets/portraits/hero-helmet.png)"></div>
+            <div class="hinfo">
+              <span class="retire-badge gold">★ Immortalised · S38</span>
+              <div class="hname">Jomo Ntini</div>
+              <div class="hmeta">34 Seasons played · 3 Levels won</div>
+              <div class="arc">
+                <div class="pill start"><div class="k">Started as</div><div class="v">Bowler</div></div>
+                <div class="arrow">→</div>
+                <div class="pill end"><div class="k">Ended as</div><div class="v">WK-Batter</div></div>
+              </div>
+              <div class="lifetime">
+                <div class="s"><div class="n">34</div><div class="l">Seasons</div></div>
+                <div class="s"><div class="n">3</div><div class="l">Levels won</div></div>
+                <div class="s"><div class="n"><span class="tmark"></span>91k</div><div class="l">Lifetime</div></div>
+              </div>
+            </div>
+          </div>
+          <div class="legends-list">
+            <div class="lh">Earlier Legends</div>
+            <div class="lrow">
+              <div class="port lp" style="background-image:url(assets/portraits/hero-cap.png)"></div>
+              <div class="li"><div class="ln">Riaan Bekker</div><div class="larc"><b>Opener</b> <span class="a">→</span> <b>Anchor</b></div></div>
+              <div class="lstat"><div class="n">41</div><div class="l">Seasons</div></div>
+            </div>
+            <div class="lrow">
+              <div class="port lp" style="background-image:url(assets/portraits/keeper.png)"></div>
+              <div class="li"><div class="ln">Sipho Adams</div><div class="larc"><b>Keeper</b> <span class="a">→</span> <b>Finisher</b></div></div>
+              <div class="lstat"><div class="n">37</div><div class="l">Seasons</div></div>
+            </div>
+            <div class="lrow">
+              <div class="port lp" style="background-image:url(assets/portraits/hero-front.png)"></div>
+              <div class="li"><div class="ln">Themba Olivier</div><div class="larc"><b>Strike Bowler</b> <span class="a">→</span> <b>All-Rounder</b></div></div>
+              <div class="lstat"><div class="n">52</div><div class="l">Seasons</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="frame-label">Hall of Fame <span class="reco">● locked: proud gold</span></div>
+    <div class="frame-sub">Gold = triumph, but softens the permadeath sting. Recommend reserving it for exceptional careers; bronze (3A) as the default.</div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  /* ── data banks (stub — real ~12k name banks are Theme 6) ── */
+  const CITY = { sa: 'South Africa', aus: 'Australia' };
+  const CITIES = {
+    sa:  ['Cape Town', 'Johannesburg', 'Durban', 'Pretoria', 'Gqeberha'],
+    aus: ['Perth', 'Sydney', 'Melbourne', 'Adelaide', 'Brisbane']
+  };
+  const NAMES = {
+    sa:  ['Jomo Ntini', 'Riaan Bekker', 'Sipho Adams', 'Themba Olivier', 'Marais Dawson', 'Lwazi Pretorius'],
+    aus: ['Cooper Vale', 'Lochie Trent', 'Brett Ashworth', 'Kane Mercer', 'Darcy Whitlock', 'Flynn Beauchamp']
+  };
+  const pick = (a, not) => { let v; do { v = a[Math.floor(Math.random() * a.length)]; } while (v === not && a.length > 1); return v; };
+
+  /* ── country toggle: re-theme the whole .phone subtree ── */
+  document.querySelectorAll('[data-toggle]').forEach(function (tog) {
+    const phone = tog.closest('.phone');
+    tog.querySelectorAll('button').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const c = btn.dataset.c;
+        phone.dataset.country = c;
+        tog.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+        const cityEl = phone.querySelector('[data-city]');
+        const nameEl = phone.querySelector('[data-name]');
+        const subEl  = phone.querySelector('[data-city-sub]');
+        const city = CITIES[c][0];
+        const name = NAMES[c][0];
+        if (cityEl) cityEl.textContent = city;
+        if (nameEl) nameEl.textContent = name;
+        if (subEl)  subEl.textContent = city + ' · ' + CITY[c];
+      });
+    });
+  });
+
+  /* ── re-roll name ── */
+  document.querySelectorAll('[data-reroll]').forEach(function (btn) {
+    const phone = btn.closest('.phone');
+    btn.addEventListener('click', function () {
+      const c = phone.dataset.country || 'sa';
+      const nameEl = phone.querySelector('[data-name]');
+      const newName = pick(NAMES[c], nameEl.textContent);
+      nameEl.textContent = newName;
+    });
+  });
+
+  /* ── appearance picker (+ optional hero sync on 1B) ── */
+  document.querySelectorAll('[data-appearance]').forEach(function (grp) {
+    const phone = grp.closest('.phone');
+    const hero = grp.hasAttribute('data-syncs-hero') ? phone.querySelector('[data-hero]') : null;
+    grp.querySelectorAll('.opt').forEach(function (opt) {
+      opt.addEventListener('click', function () {
+        grp.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o === opt));
+        if (hero && opt.dataset.art) hero.style.backgroundImage = 'url(assets/portraits/' + opt.dataset.art + ')';
+      });
+    });
+  });
+
+  /* ── Build classifier ── */
+  function classify(p, c, a, ctl) {
+    const bat = p + c, bowl = a + ctl, diff = bat - bowl;
+    const batStyle  = p > c ? 'AGGRESSIVE' : (c > p ? 'ANCHOR' : 'BALANCED');
+    const bowlStyle = a > ctl ? 'STRIKE'   : (ctl > a ? 'ECONOMY' : 'BALANCED');
+    let label, blurb;
+    if (diff >= 5) {
+      label = batStyle === 'AGGRESSIVE' ? 'AGGRESSIVE BATTER'
+            : batStyle === 'ANCHOR'     ? 'ANCHOR BATTER'
+            :                             'SPECIALIST BATTER';
+      blurb = batStyle === 'AGGRESSIVE' ? 'Lives for boundaries. High ceiling, fragile floor — a glass cannon at the crease.'
+            : batStyle === 'ANCHOR'     ? 'Bats time and wears bowlers down. Hard to dislodge, slow to accelerate.'
+            :                             'A pure top-order bat. Little to offer with the ball.';
+    } else if (diff <= -5) {
+      label = bowlStyle === 'STRIKE'  ? 'STRIKE BOWLER'
+            : bowlStyle === 'ECONOMY' ? 'ECONOMY BOWLER'
+            :                           'SPECIALIST BOWLER';
+      blurb = bowlStyle === 'STRIKE'  ? 'Hunts wickets and breaks partnerships. Leaks runs chasing the breakthrough.'
+            : bowlStyle === 'ECONOMY' ? 'Strangles the run rate and builds pressure. Few wickets, fewer runs conceded.'
+            :                           'A frontline bowler. A liability with the bat in hand.';
+    } else if (diff > 0) {
+      label = 'BATTING ALL-ROUNDER';
+      blurb = 'Bats with intent and chips in with the ball. Flexible — but a jack of two trades.';
+    } else if (diff < 0) {
+      label = 'BOWLING ALL-ROUNDER';
+      blurb = 'Bowls front-line overs and bats with freedom down the order. Two strings, neither elite.';
+    } else {
+      label = 'GENUINE ALL-ROUNDER';
+      blurb = 'Equally dangerous with bat and ball. The rarest build — and the hardest to fund.';
+    }
+    return { label, blurb };
+  }
+
+  document.querySelectorAll('[data-build]').forEach(function (build) {
+    const mode = build.dataset.build;
+    const TOTAL = 32;
+    const rows = {};
+    build.querySelectorAll('[data-attr]').forEach(function (r) {
+      rows[r.dataset.attr] = {
+        el: r,
+        num: r.querySelector('[data-num]'),
+        fill: r.querySelector('[data-fill]'),
+        range: r.querySelector('input[type=range]'),
+        val: parseInt(r.querySelector('[data-num]').textContent, 10)
+      };
+    });
+    const usedEl   = build.querySelector('[data-used]');
+    const remainEl = build.querySelector('[data-remain]');
+    const budget   = build.querySelector('[data-budget]');
+    const labelEl  = build.querySelector('[data-label]');
+    const blurbEl  = build.querySelector('[data-blurb]');
+
+    function render() {
+      const v = {};
+      let sum = 0;
+      Object.keys(rows).forEach(function (k) {
+        const r = rows[k];
+        v[k] = r.val; sum += r.val;
+        r.num.textContent = r.val;
+        const frac = (r.val - 1) / 9;
+        if (r.fill) {
+          r.fill.style.width = r.fill.classList.contains('slider-fill')
+            ? 'calc(' + frac.toFixed(4) + ' * (100% - 20px) + 10px)'  // land fill end under thumb centre
+            : (frac * 100) + '%';
+        }
+        if (r.range && +r.range.value !== r.val) r.range.value = r.val;
+      });
+      if (usedEl)   usedEl.textContent = sum;
+      if (remainEl) remainEl.textContent = Math.max(0, TOTAL - sum);
+      if (budget)   budget.style.width = Math.min(100, (sum / TOTAL) * 100) + '%';
+      const cls = classify(v.power, v.composure, v.attack, v.control);
+      if (labelEl) labelEl.textContent = cls.label;
+      if (blurbEl) blurbEl.textContent = cls.blurb;
+    }
+
+    if (mode === 'slider') {
+      Object.keys(rows).forEach(function (k) {
+        rows[k].range.addEventListener('input', function () {
+          rows[k].val = +rows[k].range.value;
+          render();
+        });
+      });
+    } else {
+      build.querySelectorAll('[data-step]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          const r = rows[btn.closest('[data-attr]').dataset.attr];
+          const next = r.val + parseInt(btn.dataset.step, 10);
+          if (next < 1 || next > 10) return;
+          r.val = next;
+          render();
+        });
+      });
+    }
+    render();
+  });
+})();
+</script>
+
+</body>
+</html>
