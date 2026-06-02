@@ -152,15 +152,17 @@ export_presets.cfg
 .tmp/
 ```
 
-- [ ] **Step 4: Open project in Godot once to generate `.godot/`**
+- [ ] **Step 4: Import the project once to generate `.godot/`**
 
-Run: `godot --headless --quit --path .`
-Expected: Godot imports the project, generates `.godot/` cache directory, exits cleanly. No errors on stderr.
+Run: `godot --headless --import --path .`
+Expected: Godot scans + imports assets (`icon.svg`, brand SVGs, etc.) and generates the `.godot/` cache directory, then exits.
 
-- [ ] **Step 5: Verify project loads**
+> **Use `--import`, not `--quit`.** `--headless --quit` *runs the game*, which tries to load `run/main_scene` (`res://scenes/main.tscn`) — a scene that does not exist until Phase 7 — and fails with `Failed loading scene`, never generating `.godot/`. `--import` does the asset scan + cache generation this step actually wants, without booting the main scene. *(Verified on Godot 4.6.3, 2026-06-02.)*
 
-Run: `godot --headless --quit --path . 2>&1 | head -30`
-Expected: no `ERROR:` lines. Because no autoloads are registered yet (see the note above), there are no "Can't autoload" errors to explain away — a clean load means the project file parsed correctly.
+- [ ] **Step 5: Verify project loads cleanly**
+
+Run: `godot --headless --import --path . 2>&1 | grep -E "ERROR|Can't autoload" || echo "clean"`
+Expected: **no autoload or script errors.** Two `ERROR: ...main.tscn` lines are expected and benign through Phases 1–6 (the editor tries to open the not-yet-existent main scene); they are *not* parse/autoload errors and resolve in Phase 7. Because no autoloads are registered yet (see the note above), a clean load otherwise means the project file parsed correctly. *(Optional: to silence the main.tscn noise entirely, omit the `run/main_scene` line from `project.godot` until Phase 7 adds `main.tscn`.)*
 
 - [ ] **Step 6: Add a placeholder `icon.svg`**
 
@@ -188,21 +190,21 @@ GUT is the standard Godot 4 test framework. We vendor it (copy into the repo) ra
 - Create: `addons/gut/` (from upstream release)
 - Create: `tests/.gdignore`
 
-- [ ] **Step 1: Download GUT 9.x release**
+- [ ] **Step 1: Download the newest GUT 9.x release**
 
-Run:
+Check the latest 9.x tag first (`gh api repos/bitwes/Gut/tags --jq '.[].name' | head`), then download it. As of 2026-06-02 the newest is **v9.6.0** — the plan originally pinned `v9.3.1`, which does **not** exist upstream:
 ```bash
-mkdir -p /tmp/gut-install && cd /tmp/gut-install \
-  && curl -L -o gut.zip https://github.com/bitwes/Gut/archive/refs/tags/v9.3.1.zip \
-  && unzip -q gut.zip
+rm -rf /tmp/gut-install && mkdir -p /tmp/gut-install \
+  && curl -fsSL -o /tmp/gut-install/gut.zip https://github.com/bitwes/Gut/archive/refs/tags/v9.6.0.zip \
+  && unzip -q /tmp/gut-install/gut.zip -d /tmp/gut-install
 ```
-Expected: `Gut-9.3.1/` extracted. (If 9.3.1 is no longer the latest tag, pick the newest 9.x — pin the version in the commit message.)
+Expected: `Gut-9.6.0/` extracted. Pin whatever 9.x version you used in the commit message.
 
 - [ ] **Step 2: Vendor GUT into `addons/`**
 
 Run from project root:
 ```bash
-mkdir -p addons && cp -R /tmp/gut-install/Gut-9.3.1/addons/gut addons/
+mkdir -p addons && cp -R /tmp/gut-install/Gut-9.6.0/addons/gut addons/
 ```
 Expected: `addons/gut/plugin.cfg` exists.
 
@@ -235,11 +237,14 @@ func test_addition_works():
     assert_eq(1 + 1, 2, "math still works")
 ```
 
-Run:
+Run — **import first to register GUT's `class_name`s, then run the suite:**
 ```bash
+godot --headless --import --path .   # registers GutTest etc. — REQUIRED after vendoring GUT
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 ```
-Expected: GUT prints `1 passing` (or equivalent), exits 0.
+Expected: GUT prints `1/1 passed` / `All tests passed!`, exits 0.
+
+> **Carry-forward for every later phase:** GUT's `class_name`s (`GutTest`, …) only register after a `godot --headless --import`. In this repo `.godot/` persists, so you do it once — **but a fresh clone or an isolated git worktree has no `.godot/`**, so any subagent/phase that runs tests in a clean workspace must run `godot --headless --import --path .` once before its first GUT run, or it fails with `Some GUT class_names have not been imported`.
 
 - [ ] **Step 6: Delete the smoke test**
 
@@ -253,7 +258,7 @@ We don't keep `test_smoke.gd` — it served its purpose. Real tests come in Phas
 
 ```bash
 git add addons/ project.godot tests/.gdignore
-git commit -m "Vendor GUT 9.3.1 for testing; verify smoke test runs"
+git commit -m "Vendor GUT 9.6.0 for testing; verify smoke test runs"
 ```
 
 ---
