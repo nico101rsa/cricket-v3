@@ -1285,7 +1285,8 @@ const NamePair = preload("res://scripts/data/name_pair.gd")
 const LegendsArchive = preload("res://scripts/data/legends_archive.gd")
 const LegendEntry = preload("res://scripts/data/legend_entry.gd")
 
-var sm
+var sm  # untyped: GDScript can't infer return types of calls through it,
+        # so loads below use plain `=`, not `:=` (inference would be a parse error).
 
 func before_each() -> void:
     sm = SaveManagerScript.new()
@@ -1297,6 +1298,7 @@ func before_each() -> void:
 func after_each() -> void:
     sm.clear_player()
     sm.clear_legends()
+    sm.free()  # sm is a bare Node (never tree-added); free() it to avoid a per-test orphan leak
 
 func _make_player() -> Player:
     var d := PlayerCreationDraft.new()
@@ -1313,7 +1315,7 @@ func test_save_then_load_returns_equivalent_player():
     var p := _make_player()
     p.attributes.power = 7
     sm.save_player(p)
-    var loaded := sm.load_player()
+    var loaded = sm.load_player()
     assert_not_null(loaded)
     assert_eq(loaded.name.first_name, "Jonty")
     assert_eq(loaded.attributes.power, 7)
@@ -1327,14 +1329,14 @@ func test_clear_player_removes_save():
 # --- Legends round-trip ---
 
 func test_load_legends_returns_empty_archive_when_none_saved():
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_not_null(arc)
     assert_eq(arc.size(), 0)
 
 func test_archive_to_legends_appends_and_persists():
     var p := _make_player()
     sm.archive_to_legends(p, LegendEntry.END_REASON_RETIRED, 3)
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_eq(arc.size(), 1)
     assert_eq(arc.entries[0].end_reason, LegendEntry.END_REASON_RETIRED)
     assert_eq(arc.entries[0].seasons_played, 3)
@@ -1343,7 +1345,7 @@ func test_archive_to_legends_appends_and_persists():
 func test_archive_to_legends_preserves_prior_entries():
     sm.archive_to_legends(_make_player(), LegendEntry.END_REASON_RETIRED, 1)
     sm.archive_to_legends(_make_player(), LegendEntry.END_REASON_WON, 8)
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_eq(arc.size(), 2)
     assert_eq(arc.entries[1].end_reason, LegendEntry.END_REASON_WON)
 
@@ -1355,7 +1357,7 @@ func test_archive_to_legends_preserves_prior_entries():
 
 func test_archiving_a_loaded_player_then_clearing_it_keeps_the_legend_intact():
     sm.save_player(_make_player())
-    var loaded := sm.load_player()        # loaded.resource_path is now the player file
+    var loaded = sm.load_player()         # loaded.resource_path is now the player file
     assert_not_null(loaded)
     sm.archive_to_legends(loaded, LegendEntry.END_REASON_WON, 5)
     sm.clear_player()                     # delete the file the loaded player came from
