@@ -1,37 +1,40 @@
-; Cricket Sim — Godot project
-; Authored 2026-06-01 by Player Creation plan, Phase 0
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
+
+[animation]
+
+compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
 config/name="Cricket Sim"
 config/description="Mobile roguelite cricket-career. Reigns × Balatro × management."
 run/main_scene="res://scenes/main.tscn"
-config/features=PackedStringArray("4.3", "GL Compatibility")
+config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[debug]
+
+gdscript/warnings/shadowed_global_identifier=0
 
 [display]
 
 window/size/viewport_width=390
 window/size/viewport_height=844
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
-[debug]
+[editor_plugins]
 
-; The test files preload domain scripts that also declare a global `class_name`
-; (e.g. `const Country = preload("country.gd")` where country.gd has `class_name Country`).
-; That is an intentional, readable "explicit dependency" style for a learner codebase,
-; but it triggers SHADOWED_GLOBAL_IDENTIFIER on every test. Silence just that one warning
-; so the test output stays clean — all other warnings remain on.
-gdscript/warnings/shadowed_global_identifier=0
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
