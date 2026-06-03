@@ -1,6 +1,6 @@
 extends Node
 
-# Autoload — registered in project.godot as `SaveManager` (see Step 4 below).
+# Autoload — registered in project.godot under [autoload] as `SaveManager`.
 # Persists current Player and LegendsArchive to user:// via ResourceSaver.
 # user:// = Godot's per-user writable save directory (survives app restarts).
 

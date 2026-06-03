@@ -19,6 +19,9 @@ func before_each() -> void:
 func after_each() -> void:
 	sm.clear_player()
 	sm.clear_legends()
+	# sm is a bare Node (never added to the tree), so free() it directly to avoid
+	# leaking one orphaned instance per test. queue_free() is only for tree nodes.
+	sm.free()
 
 func _make_player() -> Player:
 	var d := PlayerCreationDraft.new()
