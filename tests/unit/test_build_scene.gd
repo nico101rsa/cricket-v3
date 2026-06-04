@@ -37,6 +37,7 @@ func test_dragging_sliders_above_20_disables_confirm():
 	assert_string_contains(build._points_label.text, "REMAINING")
 
 func test_confirm_persists_player_and_emits_signal():
+	var original_path = SaveManager.player_save_path
 	SaveManager.player_save_path = "user://_test_build_player.tres"
 	SaveManager.clear_player()
 	var build = BuildScene.instantiate()
@@ -48,6 +49,7 @@ func test_confirm_persists_player_and_emits_signal():
 	assert_signal_emitted(build, "confirmed")
 	assert_true(SaveManager.has_player())
 	SaveManager.clear_player()
+	SaveManager.player_save_path = original_path
 
 func test_recap_shows_identity_from_draft():
 	var build = BuildScene.instantiate()
