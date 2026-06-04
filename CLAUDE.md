@@ -3,8 +3,9 @@
 Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: **Godot 4.6.3** (Standard build), **GDScript** (not C#). Design source of truth: `CONTEXT.md` + `docs/adr/`. Build plan: `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (the build authority).
 
 ## Current build
-- The Player Creation build runs on branch **`player-creation-build`** (NOT `main`). Phases 0–2 are done; **Phase 3 (name generator) is next**.
+- The Player Creation build runs on branch **`player-creation-build`** (NOT `main`). Phases 0–4 are done; **Phase 5 (Screen 1: Identity — first UI phase) is next**.
 - Execution is **subagent-driven from Phase 3** (Phases 0–2 were inline). Every task is **test-first**: write a failing test → run it red → implement → run it green → commit.
+- `SaveManager` is registered as an **autoload** in `project.godot` (added in Phase 4). Service scripts live in `scripts/services/`, data resources in `scripts/data/`, pure domain logic in `scripts/domain/`.
 
 ## Godot / GDScript conventions
 - **Godot binary is not on PATH.** Use the full path: `/Applications/Godot.app/Contents/MacOS/Godot`
