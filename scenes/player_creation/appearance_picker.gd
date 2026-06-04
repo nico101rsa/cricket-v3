@@ -13,12 +13,29 @@ func _ready() -> void:
 		var btn := Button.new()
 		btn.custom_minimum_size = Vector2(64, 80)
 		btn.toggle_mode = true
-		btn.flat = true
-		# Placeholder appearance — a skin-tone gradient. Theme 6 commissions real portrait art.
-		btn.modulate = placeholder_tint(bucket)
+		# Placeholder appearance — a flat skin-tone tile drawn via StyleBoxFlat so the
+		# colour is actually visible (a flat Button + modulate draws nothing). Theme 6
+		# commissions real portrait art. The selected tile gets a gold ring; disabled dims.
+		var tint := placeholder_tint(bucket)
+		btn.add_theme_stylebox_override("normal", _make_tile_style(tint, false, false))
+		btn.add_theme_stylebox_override("hover", _make_tile_style(tint, false, false))
+		btn.add_theme_stylebox_override("pressed", _make_tile_style(tint, true, false))
+		btn.add_theme_stylebox_override("focus", _make_tile_style(tint, true, false))
+		btn.add_theme_stylebox_override("disabled", _make_tile_style(tint, false, true))
 		btn.pressed.connect(_on_pressed.bind(bucket))
 		add_child(btn)
 		_buttons[bucket] = btn
+
+# Builds a flat colour tile for one thumbnail. `selected` adds a gold ring (used by
+# the "pressed"/"focus" states since these are toggle buttons); `dim` darkens it for
+# the disabled state so the picker reads as inactive before a Country is chosen.
+func _make_tile_style(tint: Color, selected: bool, dim: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = (tint.darkened(0.55) if dim else tint)
+	if selected:
+		sb.set_border_width_all(4)
+		sb.border_color = Color(0.66, 0.43, 0.0)  # brand gold ring
+	return sb
 
 func selected_bucket() -> int:
 	return _selected
