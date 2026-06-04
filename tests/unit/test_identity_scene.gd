@@ -69,3 +69,18 @@ func test_set_draft_hydrates_ui_and_preserves_name():
 	assert_eq(fresh._city_dropdown.get_item_text(fresh._city_dropdown.get_selected()), "Sydney", "city restored")
 	assert_eq(fresh._name_label.text, "PAT STUMPS", "name preserved, NOT re-rolled")
 	assert_false(fresh._next_btn.disabled, "all picks present → Next enabled")
+
+func test_reroll_button_state_and_action():
+	# Initially no Country/Appearance → re-roll disabled, name unset.
+	assert_true(identity._reroll_btn.disabled, "re-roll disabled before name exists")
+	assert_eq(identity._name_label.text, "—", "name label shows placeholder before name exists")
+	# Pick Country + Appearance → a name is generated, re-roll enabled.
+	identity._on_country_pressed(Country.Code.SA)
+	identity._on_appearance_selected(Appearance.Bucket.WHITE)
+	assert_not_null(identity._draft.name, "name generated once Country + Appearance set")
+	assert_false(identity._reroll_btn.disabled, "re-roll enabled once name exists")
+	assert_ne(identity._name_label.text, "—", "name label updated from placeholder")
+	# Press re-roll → still a valid name, label stays in sync (can't assert it changed; RNG may repeat).
+	identity._on_reroll_pressed()
+	assert_not_null(identity._draft.name, "name still valid after re-roll")
+	assert_eq(identity._name_label.text, identity._draft.name.display_caps(), "label stays in sync after re-roll")
