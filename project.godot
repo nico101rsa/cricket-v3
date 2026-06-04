@@ -23,6 +23,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 SaveManager="*res://scripts/services/save_manager.gd"
+LifecycleManager="*res://scripts/services/lifecycle_manager.gd"
 
 [debug]
 
