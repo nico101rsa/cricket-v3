@@ -18,6 +18,7 @@ Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: 
 - **Indentation is tabs** in `.gd` files.
 - **Commit `*.gd.uid` files** — Godot 4.4+ pins each script's stable resource UID there; scenes reference scripts by it. They are not gitignored.
 - **Don't name enums/identifiers after built-in Godot classes.** `enum Label` collides with the built-in `Label` node class and breaks `X.Label.*` resolution at parse time — pick a non-colliding name (we use `Kind`).
+- **A `flat` Button + `modulate` draws nothing.** A flat Button has no background, and `modulate` only tints pixels that are actually drawn — so a flat, text-less, icon-less button renders invisibly (this hid the Phase 5 appearance tiles; unit tests passed because they only check the button exists, not that it's visible). For a solid colored tile use a `StyleBoxFlat` (`bg_color` + `add_theme_stylebox_override` per state), not `flat`+`modulate`. **Unit tests can't catch invisibility — always eyeball new UI scenes in a real window.**
 - Test framework is **GUT 9.6**, vendored at `addons/gut/`. The editor's GUT panel reads `.gutconfig.json` (points it at `res://tests/unit`). The in-editor runner opens a small 390×844 window; the reliable pass/fail signal is the editor's bottom-right "0 errors" counter or the terminal summary.
 
 ## Shell
