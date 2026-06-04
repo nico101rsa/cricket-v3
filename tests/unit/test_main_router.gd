@@ -4,7 +4,12 @@ const MainScene = preload("res://scenes/main.tscn")
 const Country = preload("res://scripts/domain/country.gd")
 const Appearance = preload("res://scripts/domain/appearance.gd")
 
+var _original_player_path: String
+var _original_legends_path: String
+
 func before_each() -> void:
+	_original_player_path = SaveManager.player_save_path
+	_original_legends_path = SaveManager.legends_save_path
 	SaveManager.player_save_path = "user://_test_main_player.tres"
 	SaveManager.legends_save_path = "user://_test_main_legends.tres"
 	SaveManager.clear_player()
@@ -13,6 +18,8 @@ func before_each() -> void:
 func after_each() -> void:
 	SaveManager.clear_player()
 	SaveManager.clear_legends()
+	SaveManager.player_save_path = _original_player_path
+	SaveManager.legends_save_path = _original_legends_path
 
 func test_router_instantiates_without_error():
 	var main = MainScene.instantiate()
