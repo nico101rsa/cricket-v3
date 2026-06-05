@@ -1,0 +1,60 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/hall_of_fame/hall_of_fame.gd" id="1"]
+
+[node name="HallOfFame" type="Control"]
+anchors_preset = 15
+script = ExtResource("1")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+anchors_preset = 15
+offset_left = 16.0
+offset_top = 24.0
+offset_right = -16.0
+offset_bottom = -24.0
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="Layout"]
+
+[node name="Title" type="Label" parent="Layout/Header"]
+size_flags_horizontal = 3
+text = "HALL OF FAME"
+
+[node name="Count" type="Label" parent="Layout/Header"]
+text = "0 Legends"
+
+[node name="Hero" type="VBoxContainer" parent="Layout"]
+theme_override_constants/separation = 6
+
+[node name="HeroPortrait" type="ColorRect" parent="Layout/Hero"]
+custom_minimum_size = Vector2(120, 120)
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="Badge" type="Label" parent="Layout/Hero"]
+text = "★ Immortalised"
+
+[node name="HeroName" type="Label" parent="Layout/Hero"]
+text = "—"
+
+[node name="Meta" type="Label" parent="Layout/Hero"]
+text = "0 Seasons played · 0 Levels won"
+
+[node name="Arc" type="Label" parent="Layout/Hero"]
+text = "—   →   —"
+
+[node name="Strip" type="Label" parent="Layout/Hero"]
+text = "0 Seasons · 0 Levels won · ₸0"
+
+[node name="EarlierHeader" type="Label" parent="Layout"]
+text = "Earlier Legends"
+
+[node name="EarlierScroll" type="ScrollContainer" parent="Layout"]
+custom_minimum_size = Vector2(0, 280)
+size_flags_vertical = 3
+
+[node name="EarlierList" type="VBoxContainer" parent="Layout/EarlierScroll"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="NewPlayerBtn" type="Button" parent="Layout"]
+text = "NEW PLAYER ▶"

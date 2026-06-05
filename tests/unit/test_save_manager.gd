@@ -72,6 +72,17 @@ func test_archive_to_legends_preserves_prior_entries():
 	assert_eq(arc.size(), 2)
 	assert_eq(arc.entries[1].end_reason, LegendEntry.END_REASON_WON)
 
+# The Hall of Fame's stat strip reads these fields; they default to zero/gold today
+# (no Season loop yet) and must survive the ResourceSaver round-trip so the Season
+# loop can later fill them. Guards against the fields being plain `var` (non-@export).
+func test_archived_legend_new_stub_fields_persist_with_defaults():
+	sm.archive_to_legends(_make_player(), LegendEntry.END_REASON_RETIRED, 0)
+	var arc = sm.load_legends()
+	var e = arc.entries[0]
+	assert_eq(e.levels_won, 0)
+	assert_eq(e.retired_season, 0)
+	assert_true(e.immortalised)
+
 # --- Regression guard: archiving a LOADED player must embed inline, not ext-ref ---
 
 func test_archiving_a_loaded_player_then_clearing_it_keeps_the_legend_intact():
