@@ -57,18 +57,18 @@ Today `start_role() == end_role()` for every Legend (no system drifts `attribute
 
 Promoted out of `scenes/stubs/`. **Preserves `signal begin_new_player()`** — the router contract is unchanged. Layout mirrors the locked mockup's "Hall of Fame" frame, skeleton-styled.
 
-Newest-first ordering: `LegendsArchive.entries[0]` is the most recent (existing archive convention). The **hero** is always `entries[0]` — this covers both the "arrived from a fresh career end" case and a future on-demand browse.
+**Ordering:** `SaveManager.archive_to_legends` does `entries.append(...)`, so the archive is stored **oldest-first** — the most recent Legend is `entries[-1]` (the last appended), and `entries[0]` is the oldest. The **hero** is always the most recent = `entries.back()`; the "Earlier Legends" list shows the remaining entries **newest-first** (iterate from the second-to-last down to index 0). This covers both the "arrived from a fresh career end" case and a future on-demand browse.
 
 ### 3.1 Anatomy
 
 - **Header** — title `HALL OF FAME` + Legend count `{n} Legends`.
-- **Hero card** (`entries[0]`):
+- **Hero card** (`entries.back()` — the most recent):
   - **Retire badge** — gold `★ Immortalised`. While `retired_season == 0`, **omit the `· S{n}` suffix** (no Season system makes an S-number meaningful yet — this is honest, not a faked zero). Suffix returns when `retired_season > 0`.
   - **Name** (`player.name.display_caps()`) + meta line `{seasons_played} Seasons played · {levels_won} Levels won`.
   - **Arc-beat marquee** — `[startRole pill] → [endRole pill]`, labels via `ClassifierLabel.display_name(entry.start_role())` / `end_role()`. Both pills always render even when equal. Pills size to content (no truncation).
   - **Lifetime strip** — `{seasons_played} Seasons · {levels_won} Levels won · ₸{player.tons_balance}`. Honest zeros.
   - **Portrait** — `ColorRect` tinted via `AppearancePicker.placeholder_tint(player.appearance)` (the same helper Identity/Build use). Real portrait art is Theme 6.
-- **"Earlier Legends"** — `ScrollContainer` listing `entries[1..]`, newest-first. Each row is a **portrait-card**: tint swatch + name + compact arc `{startRole} → {endRole}` + one headline stat `{seasons_played} Seasons`. **Display-only** (no tap action in V1).
+- **"Earlier Legends"** — `ScrollContainer` listing every entry except the hero, **newest-first** (iterate `entries` from the second-to-last index down to 0). Each row is a **portrait-card**: tint swatch + name + compact arc `{startRole} → {endRole}` + one headline stat `{seasons_played} Seasons`. **Display-only** (no tap action in V1).
 - **"New Player"** button → emits `begin_new_player`.
 
 ### 3.2 Edge cases
