@@ -69,6 +69,7 @@ func _role(kind: int) -> String:
 
 func _make_row(e: LegendEntry) -> Control:
 	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 44)
 	row.add_theme_constant_override("separation", 12)
 	var swatch := ColorRect.new()
 	swatch.custom_minimum_size = Vector2(40, 40)

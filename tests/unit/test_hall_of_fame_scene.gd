@@ -59,6 +59,23 @@ func test_single_legend_has_zero_earlier_rows():
 	hof.render_archive(_archive([_legend("A", "One", 8, 8, 2, 2)]))
 	assert_eq(hof._earlier_list.get_child_count(), 0)
 
+func test_earlier_rows_are_laid_out_with_visible_height():
+	# Guards the layout bug found during the manual eyeball: a zero-height
+	# ScrollContainer clipped the rows even though they existed as children.
+	var hof = HallOfFame.instantiate()
+	add_child_autofree(hof)
+	await get_tree().process_frame
+	hof.render_archive(_archive([
+		_legend("A", "One", 8, 8, 2, 2),
+		_legend("B", "Two", 8, 8, 2, 2),
+		_legend("C", "Three", 2, 2, 8, 8),
+	]))
+	await get_tree().process_frame
+	await get_tree().process_frame
+	for c in hof._earlier_list.get_children():
+		assert_gt(c.size.y, 0.0, "row has non-zero height")
+		assert_true(c.is_visible_in_tree(), "row is visible in tree")
+
 func test_new_player_button_emits_signal():
 	var hof = HallOfFame.instantiate()
 	add_child_autofree(hof)

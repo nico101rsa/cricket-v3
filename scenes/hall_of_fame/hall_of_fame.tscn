@@ -49,6 +49,7 @@ text = "0 Seasons · 0 Levels won · ₸0"
 text = "Earlier Legends"
 
 [node name="EarlierScroll" type="ScrollContainer" parent="Layout"]
+custom_minimum_size = Vector2(0, 280)
 size_flags_vertical = 3
 
 [node name="EarlierList" type="VBoxContainer" parent="Layout/EarlierScroll"]
