@@ -1,0 +1,102 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scenes/player_creation/build.gd" id="1"]
+
+[node name="Build" type="Control"]
+anchors_preset = 15
+script = ExtResource("1")
+
+[node name="Layout" type="VBoxContainer" parent="."]
+anchors_preset = 15
+offset_left = 16.0
+offset_top = 32.0
+offset_right = -16.0
+offset_bottom = -32.0
+
+[node name="Header" type="Label" parent="Layout"]
+text = "2 / 2 · BUILD"
+
+[node name="RecapRow" type="HBoxContainer" parent="Layout"]
+
+[node name="RecapPortrait" type="ColorRect" parent="Layout/RecapRow"]
+custom_minimum_size = Vector2(28, 34)
+color = Color(0.2, 0.2, 0.2, 1)
+
+[node name="RecapLabel" type="Label" parent="Layout/RecapRow"]
+text = "—"
+
+[node name="PointsCounter" type="Label" parent="Layout"]
+text = "POINTS REMAINING: 0 / 20"
+
+[node name="Sliders" type="VBoxContainer" parent="Layout"]
+
+[node name="PowerRow" type="HBoxContainer" parent="Layout/Sliders"]
+
+[node name="PowerLabel" type="Label" parent="Layout/Sliders/PowerRow"]
+text = "POWER"
+
+[node name="PowerSlider" type="HSlider" parent="Layout/Sliders/PowerRow"]
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 8.0
+step = 1.0
+value = 5.0
+
+[node name="PowerReadout" type="Label" parent="Layout/Sliders/PowerRow"]
+text = "5"
+
+[node name="ComposureRow" type="HBoxContainer" parent="Layout/Sliders"]
+
+[node name="ComposureLabel" type="Label" parent="Layout/Sliders/ComposureRow"]
+text = "COMPOSURE"
+
+[node name="ComposureSlider" type="HSlider" parent="Layout/Sliders/ComposureRow"]
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 8.0
+step = 1.0
+value = 5.0
+
+[node name="ComposureReadout" type="Label" parent="Layout/Sliders/ComposureRow"]
+text = "5"
+
+[node name="AttackRow" type="HBoxContainer" parent="Layout/Sliders"]
+
+[node name="AttackLabel" type="Label" parent="Layout/Sliders/AttackRow"]
+text = "ATTACK"
+
+[node name="AttackSlider" type="HSlider" parent="Layout/Sliders/AttackRow"]
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 8.0
+step = 1.0
+value = 5.0
+
+[node name="AttackReadout" type="Label" parent="Layout/Sliders/AttackRow"]
+text = "5"
+
+[node name="ControlRow" type="HBoxContainer" parent="Layout/Sliders"]
+
+[node name="ControlLabel" type="Label" parent="Layout/Sliders/ControlRow"]
+text = "CONTROL"
+
+[node name="ControlSlider" type="HSlider" parent="Layout/Sliders/ControlRow"]
+size_flags_horizontal = 3
+min_value = 1.0
+max_value = 8.0
+step = 1.0
+value = 5.0
+
+[node name="ControlReadout" type="Label" parent="Layout/Sliders/ControlRow"]
+text = "5"
+
+[node name="ClassifierLabel" type="Label" parent="Layout"]
+text = "YOUR PLAYER IS A: ALL-ROUNDER"
+
+[node name="Footer" type="HBoxContainer" parent="Layout"]
+
+[node name="BackBtn" type="Button" parent="Layout/Footer"]
+text = "← BACK"
+
+[node name="ConfirmBtn" type="Button" parent="Layout/Footer"]
+text = "BEGIN CAREER ▶"

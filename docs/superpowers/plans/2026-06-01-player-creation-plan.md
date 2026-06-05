@@ -152,15 +152,17 @@ export_presets.cfg
 .tmp/
 ```
 
-- [ ] **Step 4: Open project in Godot once to generate `.godot/`**
+- [ ] **Step 4: Import the project once to generate `.godot/`**
 
-Run: `godot --headless --quit --path .`
-Expected: Godot imports the project, generates `.godot/` cache directory, exits cleanly. No errors on stderr.
+Run: `godot --headless --import --path .`
+Expected: Godot scans + imports assets (`icon.svg`, brand SVGs, etc.) and generates the `.godot/` cache directory, then exits.
 
-- [ ] **Step 5: Verify project loads**
+> **Use `--import`, not `--quit`.** `--headless --quit` *runs the game*, which tries to load `run/main_scene` (`res://scenes/main.tscn`) — a scene that does not exist until Phase 7 — and fails with `Failed loading scene`, never generating `.godot/`. `--import` does the asset scan + cache generation this step actually wants, without booting the main scene. *(Verified on Godot 4.6.3, 2026-06-02.)*
 
-Run: `godot --headless --quit --path . 2>&1 | head -30`
-Expected: no `ERROR:` lines. Because no autoloads are registered yet (see the note above), there are no "Can't autoload" errors to explain away — a clean load means the project file parsed correctly.
+- [ ] **Step 5: Verify project loads cleanly**
+
+Run: `godot --headless --import --path . 2>&1 | grep -E "ERROR|Can't autoload" || echo "clean"`
+Expected: **no autoload or script errors.** Two `ERROR: ...main.tscn` lines are expected and benign through Phases 1–6 (the editor tries to open the not-yet-existent main scene); they are *not* parse/autoload errors and resolve in Phase 7. Because no autoloads are registered yet (see the note above), a clean load otherwise means the project file parsed correctly. *(Optional: to silence the main.tscn noise entirely, omit the `run/main_scene` line from `project.godot` until Phase 7 adds `main.tscn`.)*
 
 - [ ] **Step 6: Add a placeholder `icon.svg`**
 
@@ -188,21 +190,21 @@ GUT is the standard Godot 4 test framework. We vendor it (copy into the repo) ra
 - Create: `addons/gut/` (from upstream release)
 - Create: `tests/.gdignore`
 
-- [ ] **Step 1: Download GUT 9.x release**
+- [ ] **Step 1: Download the newest GUT 9.x release**
 
-Run:
+Check the latest 9.x tag first (`gh api repos/bitwes/Gut/tags --jq '.[].name' | head`), then download it. As of 2026-06-02 the newest is **v9.6.0** — the plan originally pinned `v9.3.1`, which does **not** exist upstream:
 ```bash
-mkdir -p /tmp/gut-install && cd /tmp/gut-install \
-  && curl -L -o gut.zip https://github.com/bitwes/Gut/archive/refs/tags/v9.3.1.zip \
-  && unzip -q gut.zip
+rm -rf /tmp/gut-install && mkdir -p /tmp/gut-install \
+  && curl -fsSL -o /tmp/gut-install/gut.zip https://github.com/bitwes/Gut/archive/refs/tags/v9.6.0.zip \
+  && unzip -q /tmp/gut-install/gut.zip -d /tmp/gut-install
 ```
-Expected: `Gut-9.3.1/` extracted. (If 9.3.1 is no longer the latest tag, pick the newest 9.x — pin the version in the commit message.)
+Expected: `Gut-9.6.0/` extracted. Pin whatever 9.x version you used in the commit message.
 
 - [ ] **Step 2: Vendor GUT into `addons/`**
 
 Run from project root:
 ```bash
-mkdir -p addons && cp -R /tmp/gut-install/Gut-9.3.1/addons/gut addons/
+mkdir -p addons && cp -R /tmp/gut-install/Gut-9.6.0/addons/gut addons/
 ```
 Expected: `addons/gut/plugin.cfg` exists.
 
@@ -235,11 +237,14 @@ func test_addition_works():
     assert_eq(1 + 1, 2, "math still works")
 ```
 
-Run:
+Run — **import first to register GUT's `class_name`s, then run the suite:**
 ```bash
+godot --headless --import --path .   # registers GutTest etc. — REQUIRED after vendoring GUT
 godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/unit -gexit
 ```
-Expected: GUT prints `1 passing` (or equivalent), exits 0.
+Expected: GUT prints `1/1 passed` / `All tests passed!`, exits 0.
+
+> **Carry-forward for every later phase:** GUT's `class_name`s (`GutTest`, …) only register after a `godot --headless --import`. In this repo `.godot/` persists, so you do it once — **but a fresh clone or an isolated git worktree has no `.godot/`**, so any subagent/phase that runs tests in a clean workspace must run `godot --headless --import --path .` once before its first GUT run, or it fails with `Some GUT class_names have not been imported`.
 
 - [ ] **Step 6: Delete the smoke test**
 
@@ -253,7 +258,7 @@ We don't keep `test_smoke.gd` — it served its purpose. Real tests come in Phas
 
 ```bash
 git add addons/ project.godot tests/.gdignore
-git commit -m "Vendor GUT 9.3.1 for testing; verify smoke test runs"
+git commit -m "Vendor GUT 9.6.0 for testing; verify smoke test runs"
 ```
 
 ---
@@ -421,16 +426,16 @@ extends GutTest
 const ClassifierLabel = preload("res://scripts/domain/classifier_label.gd")
 
 func test_enum_has_four_labels():
-    assert_eq(ClassifierLabel.Label.BATTER,       0)
-    assert_eq(ClassifierLabel.Label.WK_BATTER,    1)
-    assert_eq(ClassifierLabel.Label.BOWLER,       2)
-    assert_eq(ClassifierLabel.Label.ALL_ROUNDER,  3)
+    assert_eq(ClassifierLabel.Kind.BATTER,       0)
+    assert_eq(ClassifierLabel.Kind.WK_BATTER,    1)
+    assert_eq(ClassifierLabel.Kind.BOWLER,       2)
+    assert_eq(ClassifierLabel.Kind.ALL_ROUNDER,  3)
 
 func test_display_name_uses_caps_spec_strings():
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.BATTER),      "BATTER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.WK_BATTER),   "WICKET-KEEPER BATTER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.BOWLER),      "BOWLER")
-    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Label.ALL_ROUNDER), "ALL-ROUNDER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.BATTER),      "BATTER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.WK_BATTER),   "WICKET-KEEPER BATTER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.BOWLER),      "BOWLER")
+    assert_eq(ClassifierLabel.display_name(ClassifierLabel.Kind.ALL_ROUNDER), "ALL-ROUNDER")
 ```
 
 - [ ] **Step 2: Run the test, verify it fails**
@@ -447,14 +452,16 @@ class_name ClassifierLabel
 extends RefCounted
 
 # Flavour label only — zero impact on auto-sim. See spec §3.5.
-enum Label { BATTER = 0, WK_BATTER = 1, BOWLER = 2, ALL_ROUNDER = 3 }
+# NOTE: the enum is named Kind, not Label — Label collides with Godot's built-in
+# Label node class and breaks ClassifierLabel.Label.* resolution (fixed 2026-06-02).
+enum Kind { BATTER = 0, WK_BATTER = 1, BOWLER = 2, ALL_ROUNDER = 3 }
 
 static func display_name(l: int) -> String:
     match l:
-        Label.BATTER:      return "BATTER"
-        Label.WK_BATTER:   return "WICKET-KEEPER BATTER"
-        Label.BOWLER:      return "BOWLER"
-        Label.ALL_ROUNDER: return "ALL-ROUNDER"
+        Kind.BATTER:      return "BATTER"
+        Kind.WK_BATTER:   return "WICKET-KEEPER BATTER"
+        Kind.BOWLER:      return "BOWLER"
+        Kind.ALL_ROUNDER: return "ALL-ROUNDER"
         _: return ""
 ```
 
@@ -910,59 +917,59 @@ func _attrs(p: int, comp: int, att: int, ctrl: int) -> Attributes:
 
 func test_balanced_default_is_all_rounder():
     var label := Classifier.classify(_attrs(5, 5, 5, 5))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 # --- Batter ---
 
 func test_pure_batter_pattern():
     # Power=8, Composure=8, Attack=2, Control=2 — Composure - Power = 0 (< 2), so Batter not WK
     var label := Classifier.classify(_attrs(8, 8, 2, 2))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 func test_minimal_batter_pattern_at_thresholds():
     # Power=6, Composure=6, Attack=4, Control=4 — Composure - Power = 0 (< 2), Batter
     var label := Classifier.classify(_attrs(6, 6, 4, 4))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 # --- Wicket-keeper Batter (a Batter pattern where Composure leads Power by ≥2) ---
 
 func test_wk_batter_when_composure_leads_power_by_two():
     # Power=6, Composure=8, Attack=2, Control=4 — Comp-Pow = 2, all Batter conds met
     var label := Classifier.classify(_attrs(6, 8, 2, 4))
-    assert_eq(label, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(label, ClassifierLabel.Kind.WK_BATTER)
 
 func test_wk_batter_with_larger_composure_lead():
     var label := Classifier.classify(_attrs(6, 8, 3, 3))
-    assert_eq(label, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(label, ClassifierLabel.Kind.WK_BATTER)
 
 func test_not_wk_batter_when_composure_lead_is_only_one():
     # Power=7, Composure=8, Att=1, Ctrl=4 — Comp-Pow = 1 < 2, falls back to Batter
     var label := Classifier.classify(_attrs(7, 8, 1, 4))
-    assert_eq(label, ClassifierLabel.Label.BATTER)
+    assert_eq(label, ClassifierLabel.Kind.BATTER)
 
 # --- Bowler ---
 
 func test_pure_bowler_pattern():
     # Power=2, Composure=2, Attack=8, Control=8
     var label := Classifier.classify(_attrs(2, 2, 8, 8))
-    assert_eq(label, ClassifierLabel.Label.BOWLER)
+    assert_eq(label, ClassifierLabel.Kind.BOWLER)
 
 func test_minimal_bowler_pattern_at_thresholds():
     # Power=4, Composure=4, Attack=6, Control=6
     var label := Classifier.classify(_attrs(4, 4, 6, 6))
-    assert_eq(label, ClassifierLabel.Label.BOWLER)
+    assert_eq(label, ClassifierLabel.Kind.BOWLER)
 
 # --- All-rounder fallthrough ---
 
 func test_mixed_high_attack_with_high_composure_is_all_rounder():
     # Power=4, Composure=7, Attack=7, Control=2 — fails Batter (Power<6), fails Bowler (Compos>4)
     var label := Classifier.classify(_attrs(4, 7, 7, 2))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 func test_one_dimension_short_of_batter_is_all_rounder():
     # Power=6, Composure=5, Attack=4, Control=5 — Composure<6
     var label := Classifier.classify(_attrs(6, 5, 4, 5))
-    assert_eq(label, ClassifierLabel.Label.ALL_ROUNDER)
+    assert_eq(label, ClassifierLabel.Kind.ALL_ROUNDER)
 
 # --- Determinism ---
 
@@ -973,7 +980,7 @@ func test_classifier_is_pure():
     assert_eq(l1, l2)
     # And: mutating a after first call does not affect either label.
     a.power = 1
-    assert_eq(l1, ClassifierLabel.Label.WK_BATTER)
+    assert_eq(l1, ClassifierLabel.Kind.WK_BATTER)
 ```
 
 - [ ] **Step 2: Run, verify FAIL**
@@ -1005,18 +1012,18 @@ static func classify(a: Attributes) -> int:
         and a.control <= BATTER_LO
 
     if bat_family and (a.composure - a.power) >= WK_GAP:
-        return ClassifierLabel.Label.WK_BATTER
+        return ClassifierLabel.Kind.WK_BATTER
     if bat_family:
-        return ClassifierLabel.Label.BATTER
+        return ClassifierLabel.Kind.BATTER
 
     var bowl_family := a.attack >= BOWLER_HI \
         and a.control >= BOWLER_HI \
         and a.power <= BOWLER_LO \
         and a.composure <= BOWLER_LO
     if bowl_family:
-        return ClassifierLabel.Label.BOWLER
+        return ClassifierLabel.Kind.BOWLER
 
-    return ClassifierLabel.Label.ALL_ROUNDER
+    return ClassifierLabel.Kind.ALL_ROUNDER
 ```
 
 - [ ] **Step 4: Run, verify PASS**
@@ -1278,7 +1285,8 @@ const NamePair = preload("res://scripts/data/name_pair.gd")
 const LegendsArchive = preload("res://scripts/data/legends_archive.gd")
 const LegendEntry = preload("res://scripts/data/legend_entry.gd")
 
-var sm
+var sm  # untyped: GDScript can't infer return types of calls through it,
+        # so loads below use plain `=`, not `:=` (inference would be a parse error).
 
 func before_each() -> void:
     sm = SaveManagerScript.new()
@@ -1290,6 +1298,7 @@ func before_each() -> void:
 func after_each() -> void:
     sm.clear_player()
     sm.clear_legends()
+    sm.free()  # sm is a bare Node (never tree-added); free() it to avoid a per-test orphan leak
 
 func _make_player() -> Player:
     var d := PlayerCreationDraft.new()
@@ -1306,7 +1315,7 @@ func test_save_then_load_returns_equivalent_player():
     var p := _make_player()
     p.attributes.power = 7
     sm.save_player(p)
-    var loaded := sm.load_player()
+    var loaded = sm.load_player()
     assert_not_null(loaded)
     assert_eq(loaded.name.first_name, "Jonty")
     assert_eq(loaded.attributes.power, 7)
@@ -1320,14 +1329,14 @@ func test_clear_player_removes_save():
 # --- Legends round-trip ---
 
 func test_load_legends_returns_empty_archive_when_none_saved():
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_not_null(arc)
     assert_eq(arc.size(), 0)
 
 func test_archive_to_legends_appends_and_persists():
     var p := _make_player()
     sm.archive_to_legends(p, LegendEntry.END_REASON_RETIRED, 3)
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_eq(arc.size(), 1)
     assert_eq(arc.entries[0].end_reason, LegendEntry.END_REASON_RETIRED)
     assert_eq(arc.entries[0].seasons_played, 3)
@@ -1336,7 +1345,7 @@ func test_archive_to_legends_appends_and_persists():
 func test_archive_to_legends_preserves_prior_entries():
     sm.archive_to_legends(_make_player(), LegendEntry.END_REASON_RETIRED, 1)
     sm.archive_to_legends(_make_player(), LegendEntry.END_REASON_WON, 8)
-    var arc := sm.load_legends()
+    var arc = sm.load_legends()
     assert_eq(arc.size(), 2)
     assert_eq(arc.entries[1].end_reason, LegendEntry.END_REASON_WON)
 
@@ -1348,7 +1357,7 @@ func test_archive_to_legends_preserves_prior_entries():
 
 func test_archiving_a_loaded_player_then_clearing_it_keeps_the_legend_intact():
     sm.save_player(_make_player())
-    var loaded := sm.load_player()        # loaded.resource_path is now the player file
+    var loaded = sm.load_player()         # loaded.resource_path is now the player file
     assert_not_null(loaded)
     sm.archive_to_legends(loaded, LegendEntry.END_REASON_WON, 5)
     sm.clear_player()                     # delete the file the loaded player came from
