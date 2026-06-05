@@ -6,7 +6,7 @@ const IDENTITY := preload("res://scenes/player_creation/identity.tscn")
 const BUILD := preload("res://scenes/player_creation/build.tscn")
 const STARTING_TEAM := preload("res://scenes/stubs/starting_team_picker_stub.tscn")
 const SEASON_HUB := preload("res://scenes/stubs/season_hub_stub.tscn")
-const HALL_OF_FAME := preload("res://scenes/stubs/hall_of_fame_stub.tscn")
+const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 
 @onready var _slot: Control = $Slot
 
