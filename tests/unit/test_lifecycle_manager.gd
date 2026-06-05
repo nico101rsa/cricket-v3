@@ -35,3 +35,13 @@ func test_manual_retire_with_no_player_is_a_no_op_warning():
 	LifecycleManager.manual_retire()
 	var arc := SaveManager.load_legends()
 	assert_eq(arc.size(), 0)
+
+func test_win_out_clears_player_and_archives_with_won_reason():
+	_seeded_player()
+	watch_signals(LifecycleManager)
+	LifecycleManager.win_out()
+	assert_false(SaveManager.has_player())
+	var arc := SaveManager.load_legends()
+	assert_eq(arc.size(), 1)
+	assert_eq(arc.entries[0].end_reason, LegendEntry.END_REASON_WON)
+	assert_signal_emitted_with_parameters(LifecycleManager, "career_ended", [LegendEntry.END_REASON_WON])
