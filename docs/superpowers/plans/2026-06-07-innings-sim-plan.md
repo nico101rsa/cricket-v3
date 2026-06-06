@@ -301,7 +301,7 @@ static func partner_factor(pos: int, itun: InningsTuning) -> float:
 
 - [ ] **Step 4: Run tests to verify green**
 
-Run the standard verify command. Expected: `All tests passed`, `GREEN`, total count = 108 (102 + 6).
+Run the standard verify command. Expected: `All tests passed`, `GREEN`, total count = 107 (102 + 5 — this test file has 5 `test_*` functions).
 
 - [ ] **Step 5: Commit**
 
@@ -481,7 +481,7 @@ static func simulate_innings(
 
 - [ ] **Step 4: Run tests to verify green**
 
-Run the standard verify command. Expected: `All tests passed`, `GREEN`, total count = 116 (108 + 8).
+Run the standard verify command. Expected: `All tests passed`, `GREEN`, total count = 114 (107 + 7 — this file adds 7 `test_*` functions; `_make_rng`/`_sim`/`_avg_player_balls`/`_avg_total` are helpers, not tests).
 
 > Note: `test_even_contest_total_in_sane_t20_band` is the sanity check — the companion sandbox shows ~141/4 for this contest, comfortably inside 110–175. If it lands outside, do **not** retune; investigate the loop (likely a strike-rotation or termination bug), since the band is wide and the sandbox already validated the math.
 
@@ -498,7 +498,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ## Final verification
 
-- [ ] Run the standard verify command one more time: confirm `All tests passed` and total = **116**.
+- [ ] Run the standard verify command one more time: confirm `All tests passed` and total = **114**.
 - [ ] Confirm zero new orphans introduced (compare the GUT summary's orphan count to the known 15 pre-existing HoF orphans — the number must not climb).
 - [ ] Confirm `git status` is clean and all four commits are present (`git log --oneline -4`).
 
