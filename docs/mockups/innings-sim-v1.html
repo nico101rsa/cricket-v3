@@ -1,0 +1,168 @@
+<h2>Innings sandbox — rung 2</h2>
+<p class="subtitle">A full T20 innings (20 overs, 10 wickets) built by looping the <em>real</em> ball atom. Tweak the build and watch participation, strike rotation, and the score emerge. Same seed → same innings (deterministic, per ADR 0004).</p>
+
+<style>
+  .isb-wrap { display:flex; gap:18px; flex-wrap:wrap; align-items:flex-start; }
+  .isb-controls { flex:1; min-width:280px; }
+  .isb-out { flex:1.3; min-width:320px; }
+  .isb-row { display:flex; align-items:center; gap:10px; margin:7px 0; }
+  .isb-row label { width:120px; font-size:13px; }
+  .isb-row input[type=range] { flex:1; }
+  .isb-row .val { width:30px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; }
+  .isb-card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.12); border-radius:10px; padding:14px; margin-bottom:14px; }
+  .isb-card h3 { margin:0 0 8px; font-size:14px; }
+  .isb-score { font-size:30px; font-weight:700; }
+  .isb-score small { font-size:15px; opacity:0.7; font-weight:500; }
+  table.isb-sc { width:100%; border-collapse:collapse; font-size:12.5px; }
+  table.isb-sc th, table.isb-sc td { text-align:left; padding:3px 6px; border-bottom:1px solid rgba(255,255,255,0.07); }
+  table.isb-sc td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.isb-player { background:rgba(201,162,39,0.18); }
+  tr.isb-player td { font-weight:600; }
+  .isb-toggle { display:inline-flex; gap:6px; align-items:center; cursor:pointer; font-size:13px; margin:4px 12px 4px 0; }
+  .isb-btn { background:#c9a227; color:#1a1a1a; border:none; border-radius:7px; padding:7px 14px; font-weight:600; cursor:pointer; margin:6px 6px 6px 0; }
+  .isb-btn.sec { background:rgba(255,255,255,0.12); color:inherit; }
+  .isb-worm { display:flex; gap:1px; align-items:flex-end; height:46px; margin-top:8px; }
+  .isb-worm .b { flex:1; background:#5a9; min-height:1px; border-radius:1px 1px 0 0; }
+  .isb-worm .b.w { background:#e0556b; }
+  .isb-fow { font-size:12px; opacity:0.85; margin-top:6px; }
+  .isb-pos { font-size:12.5px; opacity:0.8; margin-top:4px; }
+  .isb-note { font-size:12px; opacity:0.65; margin-top:10px; line-height:1.5; }
+</style>
+
+<div class="isb-wrap">
+  <div class="isb-controls">
+    <div class="isb-card">
+      <h3>The Player (statted) — 20 pts</h3>
+      <div class="isb-row"><label>Power</label><input id="pw" type="range" min="1" max="14" value="7"><span class="val" id="pw_v">7</span></div>
+      <div class="isb-row"><label>Composure</label><input id="cm" type="range" min="1" max="14" value="6"><span class="val" id="cm_v">6</span></div>
+      <div class="isb-row"><label>Attack</label><input id="at" type="range" min="1" max="14" value="4"><span class="val" id="at_v">4</span></div>
+      <div class="isb-row"><label>Control</label><input id="co" type="range" min="1" max="14" value="3"><span class="val" id="co_v">3</span></div>
+      <div class="isb-pos" id="posinfo"></div>
+    </div>
+    <div class="isb-card">
+      <h3>The rest (derived from Team strength)</h3>
+      <div class="isb-row"><label>Partner bat</label><input id="pb" type="range" min="1" max="12" value="5"><span class="val" id="pb_v">5</span></div>
+      <div class="isb-row"><label>Opp Attack</label><input id="oa" type="range" min="1" max="12" value="5"><span class="val" id="oa_v">5</span></div>
+      <div class="isb-row"><label>Opp Control</label><input id="oc" type="range" min="1" max="12" value="5"><span class="val" id="oc_v">5</span></div>
+      <label class="isb-toggle"><input id="tail" type="checkbox"> Weakening tail (partners get worse down the order)</label>
+    </div>
+    <div>
+      <button class="isb-btn" id="reroll">🎲 New seed</button>
+      <button class="isb-btn sec" id="avg">📊 Average of 200 seeds</button>
+      <span style="font-size:12px; opacity:0.7;">seed <span id="seedlbl">1</span></span>
+    </div>
+    <div class="isb-note">All intents are <strong>Balanced</strong> here (Intent-setting UI / Key Moments are a later rung). Form, Jokers, Manager Boost are off — this is the bare innings loop on the existing ball tuning. Even 5-v-5 Balanced should land a sane T20 total.</div>
+  </div>
+
+  <div class="isb-out">
+    <div class="isb-card">
+      <div class="isb-score" id="score">—</div>
+      <div class="isb-worm" id="worm"></div>
+      <div class="isb-fow" id="fow"></div>
+    </div>
+    <div class="isb-card">
+      <h3>Scorecard</h3>
+      <table class="isb-sc"><thead><tr><th>#</th><th>Batter</th><th class="n">R</th><th class="n">B</th><th>How out</th></tr></thead><tbody id="scbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // --- faithful mirror of ball_tuning.gd defaults ---
+  var RUN_VALUES=[0,1,2,3,4,6];
+  var base_w=-3.3174, k_w=0.42, intent_w=[-0.55,0,0.60];
+  var base_r=0.0, k_r=0.34, intent_r=[-0.75,0,0.80];
+  var def_dist=[0.68,0.255,0.035,0.004,0.020,0.006];
+  var agg_dist=[0.30,0.300,0.090,0.010,0.200,0.100];
+  var BALANCED=1;
+  function sigmoid(x){return 1/(1+Math.exp(-x));}
+  function blended(s){var w=[],t=0;for(var i=0;i<6;i++){var v=def_dist[i]+(agg_dist[i]-def_dist[i])*s;w.push(v);t+=v;}for(i=0;i<6;i++)w[i]/=t;return w;}
+  // mulberry32 seeded rng
+  function mk(seed){var a=seed>>>0;return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+  function resolveBall(power,comp,att,ctrl,rng){
+    var lw=base_w+k_w*(att-comp)+intent_w[BALANCED];
+    if(rng()<sigmoid(lw))return{w:true,r:0};
+    var s=sigmoid(base_r+k_r*(power-ctrl)+intent_r[BALANCED]);
+    var probs=blended(s),roll=rng(),acc=0;
+    for(var i=0;i<6;i++){acc+=probs[i];if(roll<acc)return{w:false,r:RUN_VALUES[i]};}
+    return{w:false,r:6};
+  }
+  // build -> batting position (1..9). High batting share -> open. TUNING.
+  function playerPosition(pw,cm,at,co){
+    var bat=pw+cm, bowl=at+co, share=bat/(bat+bowl);
+    return Math.min(9,Math.max(1,Math.round(9-8*share)));
+  }
+  // partner attrs at a given order position (1-based). Optional weakening tail.
+  function partnerAttrs(pos,pb,tail){
+    var p=pb,c=pb;
+    if(tail){var f=Math.max(0.45,1-(pos-1)*0.07); p=Math.max(1,Math.round(pb*f)); c=Math.max(1,Math.round(pb*f));}
+    return {power:p,comp:c};
+  }
+  function simInnings(cfg,seed){
+    var rng=mk(seed);
+    var ppos=playerPosition(cfg.pw,cfg.cm,cfg.at,cfg.co);
+    // build 11 batters in order; player occupies ppos
+    var bat=[];
+    for(var order=1;order<=11;order++){
+      if(order===ppos){bat.push({name:cfg.name,player:true,power:cfg.pw,comp:cfg.cm,r:0,b:0,out:false,how:'not out'});}
+      else{var pa=partnerAttrs(order,cfg.pb,cfg.tail);bat.push({name:'Partner',player:false,power:pa.power,comp:pa.comp,r:0,b:0,out:false,how:'not out'});}
+    }
+    // strike rotation
+    var striker=0,nonst=1,nextIn=2,wkts=0,balls=0,total=0;
+    var worm=[],fow=[];
+    var maxBalls=120;
+    while(balls<maxBalls && wkts<10){
+      var s=bat[striker];
+      var o=resolveBall(s.power,s.comp,cfg.oa,cfg.oc,rng);
+      balls++; s.b++;
+      if(o.w){
+        s.out=true; s.how='out ('+wkts+1+')'; wkts++;
+        worm.push({r:total,w:true});
+        fow.push(wkts+'-'+total+' ('+(s.player?cfg.name:'P')+', '+ (balls/6).toFixed(1)+')');
+        if(wkts>=10)break;
+        striker=nextIn; nextIn++;
+      } else {
+        s.r+=o.r; total+=o.r;
+        worm.push({r:total,w:false});
+        if(o.r%2===1){var tmp=striker;striker=nonst;nonst=tmp;}
+      }
+      if(balls%6===0 && wkts<10){var tmp2=striker;striker=nonst;nonst=tmp2;}
+    }
+    return {bat:bat,total:total,wkts:wkts,balls:balls,worm:worm,fow:fow,ppos:ppos};
+  }
+
+  var seed=1;
+  function cfg(){return{pw:+v('pw'),cm:+v('cm'),at:+v('at'),co:+v('co'),pb:+v('pb'),oa:+v('oa'),oc:+v('oc'),tail:document.getElementById('tail').checked,name:'You'};}
+  function v(id){return document.getElementById(id).value;}
+  function render(){
+    ['pw','cm','at','co','pb','oa','oc'].forEach(function(id){document.getElementById(id+'_v').textContent=v(id);});
+    var c=cfg();
+    var ppos=playerPosition(c.pw,c.cm,c.at,c.co);
+    var lbl=ppos<=3?'top order — opener':ppos<=5?'middle order':ppos<=7?'lower-middle':'tail';
+    document.getElementById('posinfo').textContent='→ bats #'+ppos+'  ('+lbl+')';
+    var r=simInnings(c,seed);
+    var ov=Math.floor(r.balls/6)+(r.balls%6?'.'+(r.balls%6):'');
+    document.getElementById('score').innerHTML=r.total+'/'+r.wkts+' <small>('+ov+' ov)</small>';
+    // worm
+    var mx=Math.max(10,r.total);
+    document.getElementById('worm').innerHTML=r.worm.map(function(p){return '<div class="b'+(p.w?' w':'')+'" style="height:'+Math.max(2,p.r/mx*46)+'px"></div>';}).join('');
+    document.getElementById('fow').textContent=r.fow.length?('Fall: '+r.fow.join('  ')):'';
+    // scorecard
+    document.getElementById('scbody').innerHTML=r.bat.map(function(b,i){
+      var shown=b.b>0||i<=Math.min(10,r.wkts+1);
+      if(!shown)return '';
+      return '<tr class="'+(b.player?'isb-player':'')+'"><td>'+(i+1)+'</td><td>'+(b.player?'★ '+b.name:'Partner')+'</td><td class="n">'+b.r+(b.out?'':'*')+'</td><td class="n">'+b.b+'</td><td>'+(b.b===0&&!b.out?'did not bat':b.how)+'</td></tr>';
+    }).join('');
+  }
+  document.getElementById('reroll').onclick=function(){seed=(seed%999)+1;document.getElementById('seedlbl').textContent=seed;render();};
+  document.getElementById('avg').onclick=function(){
+    var c=cfg(),base=(seed-1)*200,tt=0,tw=0;for(var s=base+1;s<=base+200;s++){var r=simInnings(c,s);tt+=r.total;tw+=r.wkts;}
+    document.getElementById('score').innerHTML=Math.round(tt/200)+'/'+(tw/200).toFixed(1)+' <small>(avg of 200 — block '+seed+')</small>';
+    document.getElementById('fow').textContent='200 fresh innings (seeds '+(base+1)+'–'+(base+200)+'). Press New seed for a brand-new disjoint block — the average wobbles only a couple of runs even though one innings swings ±60. That tiny wobble is why we average.';
+  };
+  ['pw','cm','at','co','pb','oa','oc'].forEach(function(id){document.getElementById(id).oninput=render;});
+  document.getElementById('tail').onchange=render;
+  render();
+})();
+</script>
