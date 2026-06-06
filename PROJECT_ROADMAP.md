@@ -14,15 +14,15 @@ Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**,
 
 ## Next session
 
-**Player Creation build is functionally complete** — Phases 0–10 done and committed on branch **`player-creation-build`** (69 tests green, zero orphans). The reviewed plan (`docs/superpowers/plans/2026-06-01-player-creation-plan.md`) is fully executed bar **Phase 11.2** (the final manual cold-start walk). Execution mode in hindsight: **hybrid** — Phases 0–2 inline, 3–7 subagent-driven (one phase per fresh chat), 8–10 inline (tiny test-only/doc phases verifying code that already existed).
+**Theme 7 (match sim) is underway on `main`.** Player Creation V1 and the Hall of Fame real screen are both done and merged. Theme 7a's first slice — the headless **`resolve_ball()`** sim atom — is built test-first and merged (PR #3). **97 tests green on `main`.** We're building the match sim **bottom-up**: ✅ single ball → ⏳ innings → match → Intent/Key Moments → Season wrapper (7b) → balance harness (7c).
 
 **To continue (next Claude Code session):**
 
-> Run the start-of-session routine. **Check out the `player-creation-build` branch.** Two things outstanding: **(1)** Phase 11.2 — the final manual smoke (wipe `user://` save, `godot --path .`, walk the full happy path per plan §11.2: Identity→Build→Back-preserves-picks→Confirm→Starting Team→Season hub→retire→Hall of Fame→new Player→AUS build→dev-win→restart-shows-Identity). The automated sweep (Phase 11.1, 69 tests) is already green. **(2)** Then the **next-theme decision** (below). Conventions reminder (project `CLAUDE.md`): GDScript tabs; `--import` once after adding scripts; never run headless Godot while the editor is open; commit `*.gd.uid`.
+> Run the start-of-session routine (you're on `main`, all merged). **Next slice: rung 2 — "single-innings batting sim."** Run `brainstorming` on it: the Player bats ball-by-ball (looping the existing `BallResolver.resolve_ball()`) until out or overs run out, accumulating a deterministic score with fall-of-wickets. This is where the **participation question** gets settled (how many balls the Player personally faces) — and where the "no clock → defence over-rewarded" gap from the ball spec §9 gets fixed by a finite over limit. Still defer: opponent innings, chase, bowler-rotation, Intent-setting UI. Then spec → plan → build, same test-first cycle. Conventions (project `CLAUDE.md`): GDScript tabs; `--import` once after adding scripts; the GUT `-gtest` flag does **not** filter (runs the whole `-gdir` suite) — judge red by parse-error, green by the count climbing; never run headless Godot while the editor is open; commit `*.gd.uid`.
 
-**Next theme — decision point.** Player Creation V1 is built. Pick one: **(a) Hall of Fame real screen** — sibling spec `docs/superpowers/specs/2026-06-02-hall-of-fame-design.md`, replaces the Phase-7 stub, gains additive `Legend` fields (`levelsWon`, `lifetimeTons`, `immortalised`, `retiredSeason`); or **(b) Theme 7 — Tech foundation / balance harness** (headless sim runner — the bigger unlock for actually playing the game). Also: this build branch (`player-creation-build`) is unmerged to `main` — decide whether to merge/PR it now (see `finishing-a-development-branch`).
+**Open auto-sim questions** (participation model · bowler-rotation policy) remain logged below — participation lands at rung 2, bowler-rotation at rung 3 (full match). Neither blocked the ball atom.
 
-**Open auto-sim questions** (participation model · bowler-rotation policy) remain logged below — Theme 7, non-blocking for this build.
+**Loose thread:** 15 orphaned nodes in the GUT suite (pre-existing, from the merged Hall of Fame scene tests) — flagged as a background task (`task_13d395f2`), not introduced by Theme 7a.
 
 ---
 

@@ -15,6 +15,7 @@ Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: 
   `/Applications/Godot.app/Contents/MacOS/Godot --headless --import --path .`
   This registers `class_name`s (GUT's and your own) in Godot's global cache. It's required in any fresh clone or git worktree (no `.godot/` yet), or GUT fails with *"class_names have not been imported"*.
 - **NEVER run headless Godot while the Godot editor is open** — two instances importing the same project at once deadlock. Quit the editor (⌘Q) first.
+- **The GUT `-gtest=res://…` flag does NOT filter to one file here** — with `.gutconfig.json` pointing at `-gdir=res://tests/unit`, a run executes the *whole* suite regardless of `-gtest`. So a red→green TDD loop can't lean on per-file runs: a not-yet-implemented `class_name` shows up as a **`SCRIPT ERROR: Parse Error: Identifier "X" not declared`** (GUT logs it and silently skips that test file), not as a failing assertion. Judge **red** by that parse error; judge **green** by the total test count climbing and `All tests passed`. The full suite runs in <1s, so just run `-gdir=res://tests/unit` every step.
 - **Indentation is tabs** in `.gd` files.
 - **Commit `*.gd.uid` files** — Godot 4.4+ pins each script's stable resource UID there; scenes reference scripts by it. They are not gitignored.
 - **Don't name enums/identifiers after built-in Godot classes.** `enum Label` collides with the built-in `Label` node class and breaks `X.Label.*` resolution at parse time — pick a non-colliding name (we use `Kind`).
