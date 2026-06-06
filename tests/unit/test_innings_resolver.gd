@@ -106,3 +106,18 @@ func test_player_line_integrity() -> void:
 	var line := r.player_line()
 	assert_lte(line["runs"], r.total, "Player runs <= team total")
 	assert_lte(line["balls"], r.balls, "Player balls <= team balls")
+
+func test_strike_rotation_and_ball_accounting() -> void:
+	var r := _sim(_attrs(5, 5, 5, 5), 5, 5, 5, 2024)
+	# Every delivery is charged to exactly one batter.
+	var summed := 0
+	for b in r.batters:
+		summed += b["balls"]
+	assert_eq(summed, r.balls, "every ball is accounted to exactly one batter")
+	# Strike rotated: the non-striking opener faced deliveries, which can only
+	# happen via an odd-run swap or an end-of-over swap.
+	var faced := 0
+	for b in r.batters:
+		if b["balls"] > 0:
+			faced += 1
+	assert_gt(faced, 1, "strike rotates across the partnership (more than one batter faces)")
