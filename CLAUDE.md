@@ -2,6 +2,9 @@
 
 Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: **Godot 4.6.3** (Standard build), **GDScript** (not C#). Design source of truth: `CONTEXT.md` + `docs/adr/`. Build plan: `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (the build authority).
 
+## Communication style
+- **Be extremely concise.** Terse bullets, sentence fragments fine. Sacrifice grammar for concision. No preamble/recap unless asked. (Applies to chat replies, not spec/ADR/doc prose.)
+
 ## Current build
 - The Player Creation build runs on branch **`player-creation-build`** (NOT `main`). **Phases 0–11 are all COMPLETE** (full flow runnable + manually verified end-to-end, 69 tests green). The branch is **unmerged to `main`** — merge/PR is an open decision. **Next theme is a decision point**: real Hall of Fame screen vs Theme 7 (balance harness).
 - Execution was **hybrid**: Phases 0–2 inline, 3–7 subagent-driven (one phase per fresh chat), 8–10 inline (tiny test-only/doc phases batched continuously — Nico finds per-phase stop/start too granular for small phases). Tasks are **test-first**: failing test → red → implement → green → commit — except Phases 8–9, which by design retro-test code already built in Phase 7, so they went green on first run (verification, not red→green).
