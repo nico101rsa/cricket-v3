@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>resolve_ball() — design sandbox</title>
+<style>
+  :root{
+    --bg:#0f1411; --panel:#18211c; --panel2:#1f2a23; --line:#2c3a31;
+    --ink:#e8efe9; --dim:#8aa394; --green:#1f9e54; --green-dim:#15663a;
+    --gold:#c8922b; --red:#c84b3b; --blue:#3b7fc8;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:14px;margin:0 0 24px}
+  .sub code{font-family:var(--mono);color:var(--gold);font-size:13px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:780px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin:0 0 14px;font-weight:600}
+  /* sliders */
+  .slider-row{display:flex;align-items:center;gap:12px;margin:10px 0}
+  .slider-row label{flex:0 0 132px;font-size:13px}
+  .slider-row label .who{color:var(--dim);font-size:11px;display:block}
+  .slider-row input[type=range]{flex:1;accent-color:var(--green)}
+  .slider-row .val{flex:0 0 28px;text-align:right;font-family:var(--mono);font-size:14px}
+  .bat label .who{color:#7fc8a0}
+  .bowl label .who{color:#c89a7f}
+  /* intent */
+  .intent{display:flex;gap:8px;margin-top:6px}
+  .intent button{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+    padding:9px;border-radius:8px;font-size:13px;cursor:pointer;transition:.12s}
+  .intent button.on{color:var(--ink);border-color:var(--green);background:var(--green-dim)}
+  /* readouts */
+  .stat{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-bottom:1px solid var(--line)}
+  .stat:last-child{border-bottom:none}
+  .stat .k{font-size:13px;color:var(--dim)}
+  .stat .v{font-family:var(--mono);font-size:18px}
+  .stat .v small{font-size:12px;color:var(--dim)}
+  .big .v{font-size:26px;color:var(--gold)}
+  /* distribution bars */
+  .dist{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:8px}
+  .bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .bar .col{width:100%;background:linear-gradient(180deg,var(--green),var(--green-dim));border-radius:4px 4px 0 0;transition:height .15s;min-height:2px}
+  .bar.four .col{background:linear-gradient(180deg,var(--gold),#8a6418)}
+  .bar.six .col{background:linear-gradient(180deg,var(--red),#7a2a20)}
+  .bar.dot .col{background:linear-gradient(180deg,#3a4a40,#2a352d)}
+  .bar .lbl{font-family:var(--mono);font-size:13px;margin-top:6px}
+  .bar .pct{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px;height:14px}
+  /* curve */
+  svg{width:100%;height:160px;display:block}
+  .axis{stroke:var(--line);stroke-width:1}
+  .curve{fill:none;stroke-width:2.5}
+  .dotmark{fill:var(--ink)}
+  .note{font-size:12px;color:var(--dim);margin-top:10px}
+  .full{grid-column:1/-1}
+  .legend{font-size:12px;color:var(--dim);margin-top:8px}
+  .legend b{color:var(--ink);font-weight:600}
+  .tag{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>resolve_ball() — design sandbox</h1>
+  <p class="sub">Theme 7a · smallest slice. One delivery → outcome, via the two-stage logistic contest of <code>ADR 0004</code>. Drag the four attributes &amp; flip Intent; watch the wicket chance, the runs spread, and the score it implies. <b>All coefficients here are strawman tuning data</b> — the future harness sweeps them; this tool just shows the <i>shape</i>.</p>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Inputs</h2>
+      <div class="slider-row bat">
+        <label>Power <span class="who">batter · drives runs</span></label>
+        <input type="range" id="power" min="1" max="12" value="5">
+        <span class="val" id="power-v">5</span>
+      </div>
+      <div class="slider-row bat">
+        <label>Composure <span class="who">batter · survives</span></label>
+        <input type="range" id="composure" min="1" max="12" value="5">
+        <span class="val" id="composure-v">5</span>
+      </div>
+      <div class="slider-row bowl">
+        <label>Attack <span class="who">bowler · takes wickets</span></label>
+        <input type="range" id="attack" min="1" max="12" value="5">
+        <span class="val" id="attack-v">5</span>
+      </div>
+      <div class="slider-row bowl">
+        <label>Control <span class="who">bowler · dries up runs</span></label>
+        <input type="range" id="control" min="1" max="12" value="5">
+        <span class="val" id="control-v">5</span>
+      </div>
+      <div style="margin-top:16px">
+        <div class="stat" style="border:none;padding-bottom:6px"><span class="k">Intent <small style="color:var(--dim)">— coupled: aggression scores faster <i>and</i> dies sooner</small></span></div>
+        <div class="intent" id="intent">
+          <button data-i="def">Defensive</button>
+          <button data-i="bal" class="on">Balanced</button>
+          <button data-i="agg">Aggressive</button>
+        </div>
+      </div>
+      <p class="note">Attribute range shown 1–12: Creation gives 1–8, Tons-upgrades push higher over a career.</p>
+    </div>
+
+    <!-- OUTCOME -->
+    <div class="card">
+      <h2>What one ball &amp; one innings looks like</h2>
+      <div class="stat"><span class="k">Wicket chance, this ball</span><span class="v" id="pw">3.5<small>%</small></span></div>
+      <div class="stat"><span class="k">Balls survived per wicket</span><span class="v" id="bpw">29<small> balls</small></span></div>
+      <div class="stat"><span class="k">Runs per surviving ball</span><span class="v" id="rps">1.26</span></div>
+      <div class="stat"><span class="k">Strike rate <small>(runs / 100 balls)</small></span><span class="v" id="sr">122</span></div>
+      <div class="stat big"><span class="k">Expected score before out</span><span class="v" id="score">35<small> runs</small></span></div>
+      <p class="note">Expected score = (runs per surviving ball) × (surviving balls per wicket). A self-check that the curves yield sane innings, not just sane single balls.</p>
+    </div>
+
+    <!-- RUNS DISTRIBUTION -->
+    <div class="card full">
+      <h2>Runs distribution on a surviving ball</h2>
+      <div class="dist" id="dist">
+        <div class="bar dot"><div class="col" id="b0"></div><div class="lbl">0</div><div class="pct" id="p0"></div></div>
+        <div class="bar"><div class="col" id="b1"></div><div class="lbl">1</div><div class="pct" id="p1"></div></div>
+        <div class="bar"><div class="col" id="b2"></div><div class="lbl">2</div><div class="pct" id="p2"></div></div>
+        <div class="bar"><div class="col" id="b3"></div><div class="lbl">3</div><div class="pct" id="p3"></div></div>
+        <div class="bar four"><div class="col" id="b4"></div><div class="lbl">4</div><div class="pct" id="p4"></div></div>
+        <div class="bar six"><div class="col" id="b6"></div><div class="lbl">6</div><div class="pct" id="p6"></div></div>
+      </div>
+      <p class="legend">Built by blending a <b>defensive template</b> (mostly dots &amp; singles) toward an <b>aggressive template</b> (boundaries) by a <span class="tag">scoring strength s</span> = logistic(Power − Control + intent). The sim samples this with the seeded RNG.</p>
+    </div>
+
+    <!-- CURVES -->
+    <div class="card">
+      <h2>Stage 1 — wicket curve</h2>
+      <svg id="curve-w" viewBox="0 0 320 150" preserveAspectRatio="none"></svg>
+      <p class="note">x: bowler Attack − batter Composure · y: P(wicket) per ball. Logistic — extreme mismatches saturate, never hit 0 or 100%. Dot = current contest.</p>
+    </div>
+    <div class="card">
+      <h2>Stage 2 — scoring curve</h2>
+      <svg id="curve-r" viewBox="0 0 320 150" preserveAspectRatio="none"></svg>
+      <p class="note">x: batter Power − bowler Control · y: scoring strength s (0 = block, 1 = attack). Same logistic family. Dot = current contest.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- strawman tuning data (the future balance harness sweeps all of this) ----
+const TUNE = {
+  // Stage 1: wicket log-odds = base_w + k_w*(attack - composure) + intent_w
+  base_w: Math.log(0.035/0.965),  // even contest, balanced intent -> ~3.5% per ball
+  k_w: 0.42,                       // per attribute point of bowler advantage
+  intent_w: {def:-0.55, bal:0, agg:0.60},  // aggression raises dismissal odds
+  // Stage 2: scoring strength s = sigmoid(base_r + k_r*(power - control) + intent_r)
+  base_r: 0,
+  k_r: 0.34,
+  intent_r: {def:-0.75, bal:0, agg:0.80},
+  // anchor runs distributions, blended by s  (keys: 0,1,2,3,4,6)
+  DEF: {0:0.68, 1:0.255, 2:0.035, 3:0.004, 4:0.020, 6:0.006},
+  AGG: {0:0.30, 1:0.300, 2:0.090, 3:0.010, 4:0.200, 6:0.100},
+};
+const KEYS = [0,1,2,3,4,6];
+const sigmoid = x => 1/(1+Math.exp(-x));
+
+let intent = "bal";
+const $ = id => document.getElementById(id);
+const ids = ["power","composure","attack","control"];
+
+function blendedDist(s){
+  const d={}; let sum=0;
+  for(const k of KEYS){ d[k]=TUNE.DEF[k]+(TUNE.AGG[k]-TUNE.DEF[k])*s; sum+=d[k]; }
+  for(const k of KEYS) d[k]/=sum;            // renormalise
+  return d;
+}
+function expectedRuns(d){ let e=0; for(const k of KEYS) e+=k*d[k]; return e; }
+
+function render(){
+  const P=+$("power").value, C=+$("composure").value, A=+$("attack").value, K=+$("control").value;
+  for(const id of ids) $(id+"-v").textContent=$(id).value;
+
+  // stage 1
+  const lw = TUNE.base_w + TUNE.k_w*(A-C) + TUNE.intent_w[intent];
+  const pw = sigmoid(lw);
+  // stage 2
+  const s = sigmoid(TUNE.base_r + TUNE.k_r*(P-K) + TUNE.intent_r[intent]);
+  const dist = blendedDist(s);
+  const rps = expectedRuns(dist);                 // runs per surviving ball
+
+  // innings-level self-check
+  const survBallsPerWkt = (1-pw)/pw;              // expected surviving balls before out
+  const score = rps*survBallsPerWkt;
+  const totalBallsPerWkt = 1/pw;
+  const sr = rps*(1-pw)*100;                       // runs/100 balls (wicket ball = 0)
+
+  $("pw").innerHTML = (pw*100).toFixed(1)+'<small>%</small>';
+  $("bpw").innerHTML = totalBallsPerWkt.toFixed(0)+'<small> balls</small>';
+  $("rps").textContent = rps.toFixed(2);
+  $("sr").textContent = sr.toFixed(0);
+  $("score").innerHTML = score.toFixed(0)+'<small> runs</small>';
+
+  // distribution bars (scale to max for visual punch)
+  const mx = Math.max(...KEYS.map(k=>dist[k]));
+  for(const k of KEYS){
+    $("b"+k).style.height = (dist[k]/mx*100)+"%";
+    $("p"+k).textContent = (dist[k]*100).toFixed(0)+"%";
+  }
+
+  drawCurve("curve-w", x=>sigmoid(TUNE.base_w+TUNE.k_w*x+TUNE.intent_w[intent]), A-C, 0, 0.5, "#c84b3b");
+  drawCurve("curve-r", x=>sigmoid(TUNE.base_r+TUNE.k_r*x+TUNE.intent_r[intent]), P-K, 0, 1, "#1f9e54");
+}
+
+function drawCurve(svgId, fn, curX, ymin, ymax, color){
+  const W=320,H=150,pad=8, xmin=-11, xmax=11;
+  const sx = x => pad + (x-xmin)/(xmax-xmin)*(W-2*pad);
+  const sy = y => (H-pad) - (y-ymin)/(ymax-ymin)*(H-2*pad);
+  let path="";
+  for(let i=0;i<=120;i++){
+    const x=xmin+(xmax-xmin)*i/120, y=Math.min(ymax,Math.max(ymin,fn(x)));
+    path += (i?"L":"M")+sx(x).toFixed(1)+" "+sy(y).toFixed(1)+" ";
+  }
+  const cx=sx(Math.max(xmin,Math.min(xmax,curX))), cy=sy(Math.min(ymax,Math.max(ymin,fn(curX))));
+  $(svgId).innerHTML =
+    `<line class="axis" x1="${sx(0)}" y1="${pad}" x2="${sx(0)}" y2="${H-pad}"/>`+
+    `<line class="axis" x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}"/>`+
+    `<path class="curve" stroke="${color}" d="${path}"/>`+
+    `<circle class="dotmark" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="4.5"/>`;
+}
+
+ids.forEach(id=>$(id).addEventListener("input",render));
+document.querySelectorAll("#intent button").forEach(b=>b.addEventListener("click",()=>{
+  intent=b.dataset.i;
+  document.querySelectorAll("#intent button").forEach(x=>x.classList.toggle("on",x===b));
+  render();
+}));
+render();
+</script>
+</body>
+</html>
