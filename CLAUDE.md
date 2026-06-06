@@ -6,9 +6,10 @@ Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: 
 - **Be extremely concise.** Terse bullets, sentence fragments fine. Sacrifice grammar for concision. No preamble/recap unless asked. (Applies to chat replies, not spec/ADR/doc prose.)
 
 ## Current build
-- The Player Creation build runs on branch **`player-creation-build`** (NOT `main`). **Phases 0–11 are all COMPLETE** (full flow runnable + manually verified end-to-end, 69 tests green). The branch is **unmerged to `main`** — merge/PR is an open decision. **Next theme is a decision point**: real Hall of Fame screen vs Theme 7 (balance harness).
-- Execution was **hybrid**: Phases 0–2 inline, 3–7 subagent-driven (one phase per fresh chat), 8–10 inline (tiny test-only/doc phases batched continuously — Nico finds per-phase stop/start too granular for small phases). Tasks are **test-first**: failing test → red → implement → green → commit — except Phases 8–9, which by design retro-test code already built in Phase 7, so they went green on first run (verification, not red→green).
-- `SaveManager` and `LifecycleManager` are registered as **autoloads** in `project.godot` (added in Phases 4 and 7). `scenes/main.tscn` is the entry point (`run/main_scene`); it routes on `SaveManager.has_player()`. Service scripts live in `scripts/services/`, data resources in `scripts/data/`, pure domain logic in `scripts/domain/`, scenes in `scenes/`.
+- Everything ships on **`main`** now (Player Creation V1 + real Hall of Fame both merged). Live status, next step, and decisions log are in **`PROJECT_ROADMAP.md`** — read it at session start, not this section.
+- **Active work: Theme 7 — the match sim** (ADR 0004), built bottom-up rung by rung: ✅ `resolve_ball()` atom · ✅ single-innings sim · ⏳ next = full match → Intent/KMs → Season wrapper (7b) → balance harness (7c). Each rung is its own brainstorm→spec→plan→build→PR cycle (specs/plans dated under `docs/superpowers/`, interactive design sandboxes under `docs/mockups/`).
+- **Execution discipline:** test-first throughout (red via parse-error → green by count climbing → commit). Rungs run **subagent-driven** (implementer → spec review → quality review per task) or inline for tiny doc/test-only slices — Nico finds per-phase stop/start too granular for small phases.
+- **Layout:** pure domain logic in `scripts/domain/`, data resources in `scripts/data/`, services in `scripts/services/`, scenes in `scenes/`. `SaveManager` + `LifecycleManager` are autoloads in `project.godot`; `scenes/main.tscn` is the entry point (routes on `SaveManager.has_player()`).
 
 ## Godot / GDScript conventions
 - **Godot binary is not on PATH.** Use the full path: `/Applications/Godot.app/Contents/MacOS/Godot`
