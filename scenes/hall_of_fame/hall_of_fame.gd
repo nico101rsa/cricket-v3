@@ -54,9 +54,13 @@ func _render_hero(e: LegendEntry) -> void:
 	_hero_portrait.color = AppearancePicker.placeholder_tint(e.player.appearance)
 	_hero_badge.text = _badge_text(e)
 	_hero_name.text = e.player.name.display_caps()
-	_hero_meta.text = "%d Seasons played · %d Levels won" % [e.seasons_played, e.levels_won]
+	_hero_meta.text = "%s played · %s won" % [_plural(e.seasons_played, "Season"), _plural(e.levels_won, "Level")]
 	_hero_arc.text = "%s   →   %s" % [_role(e.start_role()), _role(e.end_role())]
-	_hero_strip.text = "%d Seasons · %d Levels won · ₸%d" % [e.seasons_played, e.levels_won, e.player.tons_balance]
+	_hero_strip.text = "%s · %s won · ₸%d" % [_plural(e.seasons_played, "Season"), _plural(e.levels_won, "Level"), e.player.tons_balance]
+
+# "1 Season" / "2 Seasons" — only the count of 1 takes the singular noun.
+func _plural(n: int, noun: String) -> String:
+	return "%d %s" % [n, noun if n == 1 else noun + "s"]
 
 func _badge_text(e: LegendEntry) -> String:
 	# Drop the "· S{n}" suffix while there is no Season system to make it meaningful.
@@ -68,6 +72,10 @@ func _role(kind: int) -> String:
 	return ClassifierLabel.display_name(kind)
 
 func _make_row(e: LegendEntry) -> Control:
+	# Portrait swatch on the left, a stacked text block on the right (name over a
+	# compact arc + headline stat). The text block fills the remaining width and
+	# wraps rather than running off the edge — long roles ("WICKET-KEEPER BATTER")
+	# would otherwise overflow the column and clip on the right.
 	var row := HBoxContainer.new()
 	row.custom_minimum_size = Vector2(0, 44)
 	row.add_theme_constant_override("separation", 12)
@@ -75,8 +83,16 @@ func _make_row(e: LegendEntry) -> Control:
 	swatch.custom_minimum_size = Vector2(40, 40)
 	swatch.color = AppearancePicker.placeholder_tint(e.player.appearance)
 	row.add_child(swatch)
-	var label := Label.new()
-	label.text = "%s    %s → %s    %d Seasons" % [
-		e.player.name.display_caps(), _role(e.start_role()), _role(e.end_role()), e.seasons_played]
-	row.add_child(label)
+
+	var text_block := VBoxContainer.new()
+	text_block.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # take the width left of the swatch
+	var name_label := Label.new()
+	name_label.text = e.player.name.display_caps()
+	text_block.add_child(name_label)
+	var detail := Label.new()
+	detail.text = "%s → %s · %s" % [
+		_role(e.start_role()), _role(e.end_role()), _plural(e.seasons_played, "Season")]
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD  # wrap within the column, never clip
+	text_block.add_child(detail)
+	row.add_child(text_block)
 	return row

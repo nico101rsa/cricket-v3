@@ -40,6 +40,7 @@ text = "—"
 text = "0 Seasons played · 0 Levels won"
 
 [node name="Arc" type="Label" parent="Layout/Hero"]
+autowrap_mode = 3
 text = "—   →   —"
 
 [node name="Strip" type="Label" parent="Layout/Hero"]
@@ -51,6 +52,7 @@ text = "Earlier Legends"
 [node name="EarlierScroll" type="ScrollContainer" parent="Layout"]
 custom_minimum_size = Vector2(0, 280)
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
 [node name="EarlierList" type="VBoxContainer" parent="Layout/EarlierScroll"]
 size_flags_horizontal = 3
