@@ -28,6 +28,24 @@ func _archive(entries: Array) -> LegendsArchive:
 		a.entries.append(e)
 	return a
 
+var _original_legends_path: String
+
+func before_each() -> void:
+	# Isolate from the real user://legends.tres. Without this, _ready() renders the
+	# actual saved archive (4 legends -> 3 earlier rows = 15 nodes). The test's own
+	# render_archive() call then remove_child()s + queue_free()s those rows; because
+	# queue_free is deferred, the 15 detached nodes sit pending deletion at test-end
+	# and GUT counts them as orphans. An empty archive means _ready() builds no rows,
+	# so nothing is left pending -- and the test no longer depends on whatever happens
+	# to be in the real save file.
+	_original_legends_path = SaveManager.legends_save_path
+	SaveManager.legends_save_path = "user://_test_hof_legends.tres"
+	SaveManager.clear_legends()
+
+func after_each() -> void:
+	SaveManager.clear_legends()
+	SaveManager.legends_save_path = _original_legends_path
+
 func test_hero_is_most_recent_and_count_reflects_size():
 	var hof = HallOfFame.instantiate()
 	add_child_autofree(hof)
