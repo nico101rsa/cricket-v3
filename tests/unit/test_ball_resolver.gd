@@ -32,3 +32,76 @@ func _expected_runs(probs: Array[float]) -> float:
 	for i in BallTuning.RUN_VALUES.size():
 		e += BallTuning.RUN_VALUES[i] * probs[i]
 	return e
+
+func _make_rng(seed_value: int) -> RandomNumberGenerator:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value
+	return rng
+
+func _wicket_rate(power: int, comp: int, attack: int, control: int, intent: int, seed_value: int, n: int) -> float:
+	var rng := _make_rng(seed_value)
+	var wickets := 0
+	for i in n:
+		if BallResolver.resolve_ball(power, comp, attack, control, intent, tuning, rng).wicket:
+			wickets += 1
+	return float(wickets) / n
+
+func _mean_runs_when_surviving(power: int, comp: int, attack: int, control: int, intent: int, seed_value: int, n: int) -> float:
+	var rng := _make_rng(seed_value)
+	var total := 0
+	var balls := 0
+	for i in n:
+		var o := BallResolver.resolve_ball(power, comp, attack, control, intent, tuning, rng)
+		if not o.wicket:
+			total += o.runs
+			balls += 1
+	return float(total) / balls
+
+func test_same_seed_gives_identical_sequence() -> void:
+	var rng_a := _make_rng(12345)
+	var rng_b := _make_rng(12345)
+	for i in 200:
+		var a := BallResolver.resolve_ball(5, 5, 5, 5, BallResolver.Intent.BALANCED, tuning, rng_a)
+		var b := BallResolver.resolve_ball(5, 5, 5, 5, BallResolver.Intent.BALANCED, tuning, rng_b)
+		assert_eq(a.wicket, b.wicket, "wicket should match at ball %d" % i)
+		assert_eq(a.runs, b.runs, "runs should match at ball %d" % i)
+
+func test_runs_in_alphabet_and_wicket_scores_zero() -> void:
+	var rng := _make_rng(999)
+	for i in 500:
+		var o := BallResolver.resolve_ball(6, 6, 6, 6, BallResolver.Intent.BALANCED, tuning, rng)
+		assert_true(o.runs in [0, 1, 2, 3, 4, 6], "runs %d not in alphabet" % o.runs)
+		if o.wicket:
+			assert_eq(o.runs, 0, "a wicket must score 0")
+
+func test_even_contest_wicket_rate_near_baseline() -> void:
+	var rate := _wicket_rate(5, 5, 5, 5, BallResolver.Intent.BALANCED, 2024, 20000)
+	assert_almost_eq(rate, 0.035, 0.008, "even-contest wicket rate should be ~3.5%")
+
+func test_higher_attack_raises_wicket_rate() -> void:
+	var low := _wicket_rate(5, 5, 4, 5, BallResolver.Intent.BALANCED, 77, 20000)
+	var high := _wicket_rate(5, 5, 9, 5, BallResolver.Intent.BALANCED, 77, 20000)
+	assert_gt(high, low, "more bowler Attack should raise the wicket rate")
+
+func test_higher_power_raises_mean_runs() -> void:
+	var low := _mean_runs_when_surviving(4, 5, 5, 5, BallResolver.Intent.BALANCED, 88, 20000)
+	var high := _mean_runs_when_surviving(9, 5, 5, 5, BallResolver.Intent.BALANCED, 88, 20000)
+	assert_gt(high, low, "more batter Power should raise mean runs")
+
+func test_aggressive_intent_raises_both_wickets_and_runs() -> void:
+	var def_w := _wicket_rate(5, 5, 5, 5, BallResolver.Intent.DEFENSIVE, 55, 20000)
+	var agg_w := _wicket_rate(5, 5, 5, 5, BallResolver.Intent.AGGRESSIVE, 55, 20000)
+	assert_gt(agg_w, def_w, "aggressive should raise the wicket rate")
+	var def_r := _mean_runs_when_surviving(5, 5, 5, 5, BallResolver.Intent.DEFENSIVE, 66, 20000)
+	var agg_r := _mean_runs_when_surviving(5, 5, 5, 5, BallResolver.Intent.AGGRESSIVE, 66, 20000)
+	assert_gt(agg_r, def_r, "aggressive should raise mean runs")
+
+func test_extreme_mismatch_stays_valid() -> void:
+	var rng := _make_rng(3)
+	for i in 200:
+		var o := BallResolver.resolve_ball(99, 99, 1, 1, BallResolver.Intent.AGGRESSIVE, tuning, rng)
+		assert_true(o.runs in [0, 1, 2, 3, 4, 6])
+	var rng2 := _make_rng(4)
+	for i in 200:
+		var o := BallResolver.resolve_ball(1, 1, 99, 99, BallResolver.Intent.DEFENSIVE, tuning, rng2)
+		assert_true(o.runs in [0, 1, 2, 3, 4, 6])

@@ -21,3 +21,34 @@ static func blended_distribution(s: float, tuning: BallTuning) -> Array[float]:
 
 static func _sigmoid(x: float) -> float:
 	return 1.0 / (1.0 + exp(-x))
+
+# Resolve one delivery. Consumes rng in fixed order: wicket roll always; runs
+# roll only if the ball is survived. Same seed + same inputs -> same outcome.
+static func resolve_ball(
+		bat_power: int,
+		bat_composure: int,
+		bowl_attack: int,
+		bowl_control: int,
+		intent: Intent,
+		tuning: BallTuning,
+		rng: RandomNumberGenerator
+) -> BallOutcome:
+	# Stage 1 — wicket roll (Composure vs Attack), in log-odds.
+	var logit_w := tuning.base_w + tuning.k_w * (bowl_attack - bat_composure) + tuning.intent_w[intent]
+	var p_wicket := _sigmoid(logit_w)
+	if rng.randf() < p_wicket:
+		return BallOutcome.new(true, 0)
+
+	# Stage 2 — runs roll (Power vs Control).
+	var s := _sigmoid(tuning.base_r + tuning.k_r * (bat_power - bowl_control) + tuning.intent_r[intent])
+	return BallOutcome.new(false, _sample_runs(s, tuning, rng))
+
+static func _sample_runs(s: float, tuning: BallTuning, rng: RandomNumberGenerator) -> int:
+	var probs := blended_distribution(s, tuning)
+	var roll := rng.randf()
+	var acc := 0.0
+	for i in probs.size():
+		acc += probs[i]
+		if roll < acc:
+			return BallTuning.RUN_VALUES[i]
+	return BallTuning.RUN_VALUES[BallTuning.RUN_VALUES.size() - 1]  # float-rounding safety
