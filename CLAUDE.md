@@ -3,12 +3,16 @@
 Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: **Godot 4.6.3** (Standard build), **GDScript** (not C#). Design source of truth: `CONTEXT.md` + `docs/adr/`. Build plan: `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (the build authority).
 
 ## Communication style
-- **Be extremely concise.** Terse bullets, sentence fragments fine. Sacrifice grammar for concision. No preamble/recap unless asked. (Applies to chat replies, not spec/ADR/doc prose.)
+- **Lead with a plain-English takeaway.** First 1–2 lines: what happened / what it means, in words Nico (a learner-coder) understands. No jargon dump. Then the detail.
+- **Tell him what to look at.** Every wrap-up should point at the one or two things that matter — "look at this", "you don't need to read the rest", "nothing for you to do here". He's said he doesn't always know where to focus; don't make him guess.
+- **Define jargon on first use** (file names, function names, cricket-sim terms). Don't assume he tracks the internal vocabulary.
+- **Be concise, not terse-to-the-point-of-cryptic.** Short is good; an unreadable wall of technical bullets is not. Cut verbosity, keep clarity. (Applies to chat replies, not spec/ADR/doc prose.)
 
 ## Current build
 - Everything ships on **`main`** now (Player Creation V1 + real Hall of Fame both merged). Live status, next step, and decisions log are in **`PROJECT_ROADMAP.md`** — read it at session start, not this section.
 - **Active work: Theme 7 — the match sim** (ADR 0004), built bottom-up rung by rung: ✅ `resolve_ball()` atom · ✅ single-innings sim · ⏳ next = full match → Intent/KMs → Season wrapper (7b) → balance harness (7c). Each rung is its own brainstorm→spec→plan→build→PR cycle (specs/plans dated under `docs/superpowers/`, interactive design sandboxes under `docs/mockups/`).
 - **Execution discipline:** test-first throughout (red via parse-error → green by count climbing → commit). Rungs run **subagent-driven** (implementer → spec review → quality review per task) or inline for tiny doc/test-only slices — Nico finds per-phase stop/start too granular for small phases.
+- **Run rungs AFK (autonomous) by default** (set 2026-06-07). For a rung, drive the whole cycle — brainstorm → spec → plan → build → PR-merge → roadmap — on your own without stopping between stages. **Make sensible default decisions yourself and record them in the spec** rather than asking. Only stop to ask Nico when a decision is *genuinely* his to make (irreversible, changes scope/feel, or you truly can't pick a sane default) — and even then, recommend an option and proceed if he's away. This overrides brainstorming's default "one question at a time" interactive pacing. End with a plain-English summary (see Communication style).
 - **Layout:** pure domain logic in `scripts/domain/`, data resources in `scripts/data/`, services in `scripts/services/`, scenes in `scenes/`. `SaveManager` + `LifecycleManager` are autoloads in `project.godot`; `scenes/main.tscn` is the entry point (routes on `SaveManager.has_player()`).
 
 ## Godot / GDScript conventions
