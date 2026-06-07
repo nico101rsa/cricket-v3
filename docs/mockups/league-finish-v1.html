@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7b-2a · League finish vs Player ★ (real sim)</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a212b; --ink:#e8edf2; --muted:#8b98a5; --line:#2b3642; --qual:#5ac77a; --finish:#f2b134; --cut:#d9534f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; padding:32px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .cap { color:var(--muted); margin:0 0 20px; font-size:13px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  canvas { width:100%; height:auto; display:block; }
+  .legend { display:flex; gap:18px; font-size:12px; color:var(--muted); margin-top:12px; flex-wrap:wrap; }
+  .swatch { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:6px; border-radius:2px; }
+  .note { color:var(--muted); font-size:12px; margin-top:14px; }
+  .note b { color:var(--ink); }
+  table { width:100%; border-collapse:collapse; margin-top:18px; font-size:12px; }
+  th,td { text-align:right; padding:4px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  td:first-child, th:first-child { text-align:left; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>League finish vs Player team ★ — real Godot sim (7b-2a)</h1>
+  <p class="cap">Player team ★ (X) vs <b>playoff qualification</b> (top 4, green) and <b>average league finish</b> (gold; 1st at top → 8th at bottom),
+  over 150 seeded Seasons per ★, each against a freshly random 7-opponent field. Even Player build (5/5/5/5), Tour mean 5 / spread 1.5 / noise ±1.
+  The full league phase of the real engine (28 games/Season simulated), data inlined — not a JS reimplementation.</p>
+
+  <div class="card">
+    <canvas id="chart" width="820" height="440"></canvas>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--qual)"></span>playoff qualification rate (left axis)</span>
+      <span><span class="swatch" style="background:var(--finish)"></span>average league finish (right axis, 1 = best)</span>
+      <span><span class="swatch" style="background:var(--cut)"></span>4th-place playoff cut</span>
+    </div>
+    <p class="note">Both lines rise toward the top-right: a stronger team <b>qualifies more often and finishes higher</b>.
+    The S-shaped step in the middle is real — a hard top-4 cut on 8 teams is naturally sigmoid, so a small ★ gain near the
+    median flips a lot of Seasons across the qualification line at once.</p>
+  </div>
+
+  <table id="data"></table>
+</div>
+
+<script>
+// Captured from: godot --headless --path . -s tools/league_preview.gd  (n=150 Seasons/star, random field)
+const DATA = [
+  {stars:0.5, qual:0.0800, finish:6.573},
+  {stars:1.0, qual:0.1133, finish:6.340},
+  {stars:1.5, qual:0.1467, finish:6.233},
+  {stars:2.0, qual:0.4400, finish:4.767},
+  {stars:2.5, qual:0.4400, finish:4.727},
+  {stars:3.0, qual:0.4000, finish:4.873},
+  {stars:3.5, qual:0.8133, finish:2.920},
+  {stars:4.0, qual:0.8667, finish:2.727},
+  {stars:4.5, qual:0.8400, finish:2.913},
+  {stars:5.0, qual:0.9800, finish:1.667},
+];
+
+const cv = document.getElementById('chart');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const M = {l:52, r:52, t:24, b:50};
+const px = s => M.l + ((s - 0.5) / 4.5) * (W - M.l - M.r);
+const pyQ = q => M.t + (1 - q) * (H - M.t - M.b);          // 0..1 qualification
+const pyF = f => M.t + ((f - 1) / 7) * (H - M.t - M.b);    // finish 1 (top) .. 8 (bottom)
+
+ctx.clearRect(0,0,W,H);
+
+// grid + left axis (qualification %)
+ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif';
+ctx.lineWidth = 1;
+for (let p=0; p<=100; p+=25){
+  const y = pyQ(p/100);
+  ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(W-M.r,y); ctx.stroke();
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  ctx.fillStyle = '#5ac77a'; ctx.fillText(p+'%', M.l-8, y);
+}
+// right axis (finish positions 1..8)
+ctx.fillStyle = '#f2b134'; ctx.textAlign='left';
+for (let f=1; f<=8; f++){ ctx.fillText(f+(f===1?'st':f===2?'nd':f===3?'rd':'th'), W-M.r+8, pyF(f)); }
+
+// 4th-place cut line (on the finish axis)
+ctx.strokeStyle = '#d9534f'; ctx.setLineDash([5,4]);
+ctx.beginPath(); ctx.moveTo(M.l, pyF(4)); ctx.lineTo(W-M.r, pyF(4)); ctx.stroke();
+ctx.setLineDash([]);
+
+// x labels
+ctx.fillStyle = '#8b98a5'; ctx.textAlign='center'; ctx.textBaseline='top';
+for (let s=1; s<=5; s++){ ctx.fillText('★'+s, px(s), H-M.b+8); }
+ctx.fillText('Player team star rating', (M.l + (W-M.r))/2, H-18);
+
+// qualification line (green, left axis)
+function drawLine(key, py, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.beginPath();
+  DATA.forEach((d,i)=>{ const x=px(d.stars), y=py(d[key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke();
+  ctx.fillStyle = color;
+  DATA.forEach(d=>{ ctx.beginPath(); ctx.arc(px(d.stars), py(d[key]), 3.4, 0, 7); ctx.fill(); });
+}
+drawLine('finish', pyF, '#f2b134');
+drawLine('qual', pyQ, '#5ac77a');
+
+// table
+const t = document.getElementById('data');
+const ord = f => f===1?'st':f===2?'nd':f===3?'rd':'th';
+t.innerHTML = '<tr><th>Player ★</th><th>Seasons</th><th>Playoff qualification</th><th>Avg finish</th></tr>' +
+  DATA.map(d=>`<tr><td>★${d.stars.toFixed(1)}</td><td>150</td><td>${(d.qual*100).toFixed(0)}%</td><td>${d.finish.toFixed(1)}${ord(Math.round(d.finish))}</td></tr>`).join('');
+</script>
+</body>
+</html>
