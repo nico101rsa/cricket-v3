@@ -105,3 +105,38 @@ func test_even_contest_roughly_balanced() -> void:
 			player_wins += 1
 	var share := float(player_wins) / float(decided)
 	assert_between(share, 0.3, 0.7, "even contest -> roughly balanced win share (got %f over %d decided)" % [share, decided])
+
+func test_plan_routes_to_player_innings_when_batting_first() -> void:
+	# Player bats first => innings1 is the Player's, resolved from the seed's
+	# initial RNG state, so it must match a standalone Player innings with the
+	# same plan and seed.
+	var a := _attrs(5, 5, 5, 5)
+	var plan := IntentPlan.textbook()
+	var m := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(123), plan)
+	var standalone := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _make_rng(123), 0, plan)
+	assert_eq(m.innings1.total, standalone.total, "Player innings used the supplied plan")
+	assert_eq(m.innings1.wickets, standalone.wickets, "Player innings wickets match plan run")
+
+func test_opposition_stays_balanced_not_player_plan() -> void:
+	# Player bats second => innings1 is the opposition, resolved from the seed's
+	# initial RNG state. It must match a standalone opposition innings on a
+	# BALANCED (null) plan, proving the Player's plan did NOT leak to it.
+	var a := _attrs(5, 5, 5, 5)
+	var m := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), IntentPlan.textbook())
+	var opp_balanced := InningsResolver.simulate_innings(
+		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null)
+	assert_eq(m.innings1.total, opp_balanced.total, "opposition innings ignored the Player plan")
+	assert_eq(m.innings1.wickets, opp_balanced.wickets, "opposition stayed balanced")
+
+func test_match_deterministic_with_plan() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var r1 := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
+	var r2 := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
+	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
+	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic with plan")
+	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic with plan")

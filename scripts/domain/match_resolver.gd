@@ -52,23 +52,28 @@ static func simulate_match(
 		player_bats_first: bool,
 		tuning: BallTuning,
 		itun: InningsTuning,
-		rng: RandomNumberGenerator
+		rng: RandomNumberGenerator,
+		player_intent_plan: IntentPlan = null
 ) -> MatchResult:
 	var max_balls := itun.over_limit * 6
 	var innings1: InningsResult
 	var innings2: InningsResult
 
 	if player_bats_first:
-		# Player's team posts, opposition chases.
+		# Player's team posts (their plan), opposition chases (balanced).
 		innings1 = InningsResolver.simulate_innings(
-			player_attrs, player_team_batting, opp_attack, opp_control, tuning, itun, rng, 0)
+			player_attrs, player_team_batting, opp_attack, opp_control,
+			tuning, itun, rng, 0, player_intent_plan)
 		innings2 = InningsResolver.simulate_innings(
-			null, opp_batting, player_team_attack, player_team_control, tuning, itun, rng, innings1.total + 1)
+			null, opp_batting, player_team_attack, player_team_control,
+			tuning, itun, rng, innings1.total + 1, null)
 	else:
-		# Opposition posts, Player's team chases.
+		# Opposition posts (balanced), Player's team chases (their plan).
 		innings1 = InningsResolver.simulate_innings(
-			null, opp_batting, player_team_attack, player_team_control, tuning, itun, rng, 0)
+			null, opp_batting, player_team_attack, player_team_control,
+			tuning, itun, rng, 0, null)
 		innings2 = InningsResolver.simulate_innings(
-			player_attrs, player_team_batting, opp_attack, opp_control, tuning, itun, rng, innings1.total + 1)
+			player_attrs, player_team_batting, opp_attack, opp_control,
+			tuning, itun, rng, innings1.total + 1, player_intent_plan)
 
 	return _decide_result(innings1, innings2, player_bats_first, max_balls)
