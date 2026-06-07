@@ -15,3 +15,99 @@ static func round_robin(num_teams: int) -> Array:
 		for j in range(i + 1, num_teams):
 			fixtures.append(Vector2i(i, j))
 	return fixtures
+
+# Simulate the full league phase. teams = [player_team] + opponents (index 0 is
+# the Player). Each team's strength is drawn ONCE (held all Season, ADR 0009);
+# every game is simulated (Player games statted, others via simulate_match(null)).
+# Deterministic given rng. See spec §4-§8.
+static func simulate_league(
+		player_attrs: Attributes,
+		player_team: Team,
+		opponents: Array,
+		tour: TourDistribution,
+		tuning: BallTuning,
+		itun: InningsTuning,
+		rng: RandomNumberGenerator,
+		player_intent_plan: IntentPlan = null,
+		player_bowling_plan: BowlingPlan = null
+) -> LeagueResult:
+	var teams: Array = [player_team]
+	teams.append_array(opponents)
+	var n := teams.size()
+
+	# Per-Season strength draw, held all Season (fixed team order).
+	var bat: Array = []
+	var bowl: Array = []
+	for t in teams:
+		bat.append(t.batting_strength(tour, rng))
+		bowl.append(t.bowling_strength(tour, rng))
+
+	var rows: Array = []
+	for idx in range(n):
+		var row := StandingsRow.new()
+		row.team_index = idx
+		rows.append(row)
+
+	var player_matches: Array = []
+
+	for fx in round_robin(n):
+		var i: int = fx.x
+		var j: int = fx.y
+		var i_bats_first := MatchResolver._resolve_toss(rng)
+		var p_attrs: Attributes = player_attrs if i == 0 else null
+		var ip: IntentPlan = player_intent_plan if i == 0 else null
+		var bp: BowlingPlan = player_bowling_plan if i == 0 else null
+		var m := MatchResolver.simulate_match(
+			p_attrs,
+			bat[i], bowl[i], bowl[i],
+			bat[j], bowl[j], bowl[j],
+			i_bats_first, tuning, itun, rng, ip, bp)
+
+		# Attribute innings (innings1 = first-batting side).
+		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2
+		var j_inns: InningsResult = m.innings2 if i_bats_first else m.innings1
+		var ri: StandingsRow = rows[i]
+		var rj: StandingsRow = rows[j]
+		ri.played += 1
+		rj.played += 1
+		ri.runs_for += i_inns.total
+		ri.balls_for += i_inns.balls
+		ri.runs_against += j_inns.total
+		ri.balls_against += j_inns.balls
+		rj.runs_for += j_inns.total
+		rj.balls_for += j_inns.balls
+		rj.runs_against += i_inns.total
+		rj.balls_against += i_inns.balls
+
+		match m.outcome:
+			MatchResult.Outcome.PLAYER_WIN:
+				ri.points += 2
+			MatchResult.Outcome.OPPONENT_WIN:
+				rj.points += 2
+			MatchResult.Outcome.TIE:
+				ri.points += 1
+				rj.points += 1
+
+		if i == 0:
+			player_matches.append(m)
+
+	# Rank: points desc, then NRR desc, then team_index asc.
+	var cmp := func(a: StandingsRow, b: StandingsRow) -> bool:
+		if a.points != b.points:
+			return a.points > b.points
+		var na := a.nrr()
+		var nb := b.nrr()
+		if not is_equal_approx(na, nb):
+			return na > nb
+		return a.team_index < b.team_index
+	rows.sort_custom(cmp)
+
+	var result := LeagueResult.new()
+	result.standings = rows
+	result.player_matches = player_matches
+	for pos in range(rows.size()):
+		if rows[pos].team_index == 0:
+			result.player_position = pos + 1
+			break
+	result.made_playoffs = result.player_position <= PLAYOFF_CUTOFF
+	return result
