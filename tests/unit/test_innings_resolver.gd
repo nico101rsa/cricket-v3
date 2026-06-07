@@ -202,3 +202,51 @@ func test_aggressive_outscores_and_outdies_defensive() -> void:
 		def_wkts += rd.wickets
 	assert_gt(agg_runs, def_runs, "aggressive scores more over 40 innings")
 	assert_gt(agg_wkts, def_wkts, "aggressive loses more wickets over 40 innings")
+
+func test_null_bowling_matches_scalar_baseline() -> void:
+	# No bowling_attack/plan must reproduce the constant-pair (rung 4a) result.
+	var a := _attrs(5, 5, 5, 5)
+	var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(7))
+	var explicit := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(7), 0, null, null, null)
+	assert_eq(base.total, explicit.total, "null bowling == scalar total")
+	assert_eq(base.wickets, explicit.wickets, "null bowling == scalar wickets")
+	assert_eq(base.balls, explicit.balls, "null bowling == scalar balls")
+
+func test_innings_deterministic_with_rotation() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var ba := BowlingAttack.new(5, 5)
+	var r1 := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(99), 0, null, ba, BowlingPlan.textbook())
+	var r2 := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(99), 0, null, ba, BowlingPlan.textbook())
+	assert_eq(r1.total, r2.total, "same seed + rotation -> same total")
+	assert_eq(r1.wickets, r2.wickets, "same seed + rotation -> same wickets")
+
+func test_pace_takes_more_wickets_at_higher_run_rate_than_spin() -> void:
+	# Intent held BALANCED (null) to isolate the bowling tilt. Pace = more
+	# wickets AND higher run RATE (not total: more wickets can end an innings
+	# early and truncate the total).
+	var a := _attrs(5, 5, 5, 5)
+	var ba := BowlingAttack.new(5, 5)
+	var pace := BowlingPlan.pace_only()
+	var spin := BowlingPlan.spin_only()
+	var pace_runs := 0
+	var pace_balls := 0
+	var pace_wkts := 0
+	var spin_runs := 0
+	var spin_balls := 0
+	var spin_wkts := 0
+	for sv in range(1, 41):
+		var rp := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(sv), 0, null, ba, pace)
+		var rs := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(sv), 0, null, ba, spin)
+		pace_runs += rp.total
+		pace_balls += rp.balls
+		pace_wkts += rp.wickets
+		spin_runs += rs.total
+		spin_balls += rs.balls
+		spin_wkts += rs.wickets
+	assert_gt(pace_wkts, spin_wkts, "pace takes more wickets over 40 innings")
+	var pace_rate := float(pace_runs) / float(pace_balls)
+	var spin_rate := float(spin_runs) / float(spin_balls)
+	assert_gt(pace_rate, spin_rate, "pace concedes a higher run rate than spin")
