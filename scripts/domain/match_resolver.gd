@@ -53,27 +53,39 @@ static func simulate_match(
 		tuning: BallTuning,
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
-		player_intent_plan: IntentPlan = null
+		player_intent_plan: IntentPlan = null,
+		player_bowling_plan: BowlingPlan = null
 ) -> MatchResult:
 	var max_balls := itun.over_limit * 6
 	var innings1: InningsResult
 	var innings2: InningsResult
 
+	# Rotation is opt-in: only when the Player supplies a bowling plan. Then both
+	# sides rotate (Player's team via the plan; opposition via a textbook default).
+	var rotate := player_bowling_plan != null
+	var opp_bowl: BowlingAttack = null
+	var player_bowl: BowlingAttack = null
+	var ai_plan: BowlingPlan = null
+	if rotate:
+		opp_bowl = BowlingAttack.new(opp_attack, opp_control)
+		player_bowl = BowlingAttack.new(player_team_attack, player_team_control)
+		ai_plan = BowlingPlan.textbook()
+
 	if player_bats_first:
-		# Player's team posts (their plan), opposition chases (balanced).
+		# Player's team posts (their intent), opposition chases.
 		innings1 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
-			tuning, itun, rng, 0, player_intent_plan)
+			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, innings1.total + 1, null)
+			tuning, itun, rng, innings1.total + 1, null, player_bowl, player_bowling_plan)
 	else:
-		# Opposition posts (balanced), Player's team chases (their plan).
+		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, 0, null)
+			tuning, itun, rng, 0, null, player_bowl, player_bowling_plan)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
-			tuning, itun, rng, innings1.total + 1, player_intent_plan)
+			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan)
 
 	return _decide_result(innings1, innings2, player_bats_first, max_balls)

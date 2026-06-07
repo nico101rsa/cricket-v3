@@ -140,3 +140,39 @@ func test_match_deterministic_with_plan() -> void:
 	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
 	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic with plan")
 	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic with plan")
+
+func test_null_bowling_plan_matches_rung4a_baseline() -> void:
+	# No player_bowling_plan => no rotation either side => identical to rung 4a.
+	var a := _attrs(5, 5, 5, 5)
+	var base := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(7))
+	var explicit := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(7), null, null)
+	assert_eq(base.innings1.total, explicit.innings1.total, "innings1 unchanged")
+	assert_eq(base.innings2.total, explicit.innings2.total, "innings2 unchanged")
+	assert_eq(base.outcome, explicit.outcome, "outcome unchanged")
+
+func test_player_bowling_plan_routes_to_player_team_bowling() -> void:
+	# Player bats SECOND => innings1 is the opposition batting against the
+	# Player's team bowling, resolved from the seed's initial RNG state. It must
+	# equal a standalone opposition innings facing the Player's team BowlingAttack
+	# + the supplied plan at the same seed.
+	var a := _attrs(5, 5, 5, 5)
+	var plan := BowlingPlan.spin_only()
+	var m := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), null, plan)
+	var player_team_bowl := BowlingAttack.new(5, 5)  # from player_team_attack/control
+	var standalone := InningsResolver.simulate_innings(
+		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan)
+	assert_eq(m.innings1.total, standalone.total, "Player team bowling used the plan")
+	assert_eq(m.innings1.wickets, standalone.wickets, "opposition wickets match plan run")
+
+func test_match_deterministic_with_bowling_plan() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var r1 := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
+	var r2 := MatchResolver.simulate_match(
+		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
+	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
+	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic")
+	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic")
