@@ -45,3 +45,33 @@ func test_zero_noise_matches_percentile() -> void:
 	var tour := _tour(5, 3, 0)
 	assert_eq(_team(5.0).batting_strength(tour, _rng(1)), tour.percentile(1.0), "5.0 stars, no noise -> percentile(1.0)")
 	assert_eq(_team(0.5).bowling_strength(tour, _rng(1)), tour.percentile(0.1), "0.5 stars, no noise -> percentile(0.1)")
+
+func test_mutate_stars_distribution() -> void:
+	var unchanged := 0
+	var half := 0
+	var full := 0
+	var n := 4000
+	for s in range(n):
+		var tm := _team(3.0)
+		tm.mutate_stars(_rng(s))
+		var d: float = absf(tm.stars - 3.0)
+		if is_equal_approx(d, 0.0):
+			unchanged += 1
+		elif is_equal_approx(d, 0.5):
+			half += 1
+		elif is_equal_approx(d, 1.0):
+			full += 1
+		assert_true(is_equal_approx(fmod(tm.stars, 0.5), 0.0) or is_equal_approx(fmod(tm.stars, 0.5), 0.5),
+			"result stays on the 0.5 grid (got %f)" % tm.stars)
+	assert_almost_eq(float(unchanged) / n, 0.65, 0.05, "~65%% unchanged")
+	assert_almost_eq(float(half) / n, 0.30, 0.05, "~30%% +-0.5")
+	assert_almost_eq(float(full) / n, 0.05, 0.05, "~5%% +-1.0")
+
+func test_mutate_stars_clamped() -> void:
+	for s in range(200):
+		var hi := _team(5.0)
+		hi.mutate_stars(_rng(s))
+		assert_lte(hi.stars, 5.0, "never above 5.0")
+		var lo := _team(0.5)
+		lo.mutate_stars(_rng(s))
+		assert_gte(lo.stars, 0.5, "never below 0.5")

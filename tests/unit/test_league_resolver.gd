@@ -97,3 +97,12 @@ func test_league_directional_strong_player_finishes_higher() -> void:
 		weak_pos_sum += rw.player_position
 	assert_gt(strong_qualified, weak_qualified, "5.0-star qualifies more often than 0.5-star")
 	assert_lt(strong_pos_sum, weak_pos_sum, "5.0-star finishes higher on average (lower position number)")
+
+func test_league_exposes_held_strengths() -> void:
+	var r := LeagueResolver.simulate_league(_attrs(), _team(3.0), _field(), _tour(), tuning, itun, _rng(7))
+	assert_eq(r.team_bat.size(), 8, "8 batting strengths exposed")
+	assert_eq(r.team_bowl.size(), 8, "8 bowling strengths exposed")
+	for v in r.team_bat:
+		assert_gte(v, 1, "batting strength floored at 1")
+	for v in r.team_bowl:
+		assert_gte(v, 1, "bowling strength floored at 1")
