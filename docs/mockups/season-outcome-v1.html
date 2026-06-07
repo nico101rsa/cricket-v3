@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7b-2b · Season outcome vs Player ★ (real sim)</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a212b; --ink:#e8edf2; --muted:#8b98a5; --line:#2b3642; --beat:#5ac77a; --win:#f2b134; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; padding:32px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .cap { color:var(--muted); margin:0 0 20px; font-size:13px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  canvas { width:100%; height:auto; display:block; }
+  .legend { display:flex; gap:18px; font-size:12px; color:var(--muted); margin-top:12px; flex-wrap:wrap; }
+  .swatch { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:6px; border-radius:2px; }
+  .note { color:var(--muted); font-size:12px; margin-top:14px; }
+  .note b { color:var(--ink); }
+  table { width:100%; border-collapse:collapse; margin-top:18px; font-size:12px; }
+  th,td { text-align:right; padding:4px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  td:first-child, th:first-child { text-align:left; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Season outcome vs Player team ★ — real Godot sim (7b-2b)</h1>
+  <p class="cap">Player team ★ (X) vs <b>beating the Season</b> (finish top 3, green) and <b>winning The Final</b> (champion, gold),
+  over 120 seeded full Seasons per ★ (league + playoffs), each against a random 7-opponent field. Even Player build (5/5/5/5),
+  Tour mean 5 / spread 1.5 / noise ±1. The complete Season loop of the real engine — 28 league games + 4 knockouts per Season — data inlined.</p>
+
+  <div class="card">
+    <canvas id="chart" width="820" height="440"></canvas>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--beat)"></span>beat the Season (top 3)</span>
+      <span><span class="swatch" style="background:var(--win)"></span>won The Final (champion)</span>
+    </div>
+    <p class="note">Both rise with ★, and <b>beating sits above winning</b> by construction (top 3 ⊇ 1st).
+    Note even a 5★ team only lifts the trophy ~55% of the time — the championship is <b>two knockout coin-flips</b>
+    (semi + Final) against the other strong sides, so winning it all stays genuinely hard even for the favourite.</p>
+  </div>
+
+  <table id="data"></table>
+</div>
+
+<script>
+// Captured from: godot --headless --path . -s tools/season_outcome_preview.gd  (n=120 Seasons/star)
+const DATA = [
+  {stars:0.5, beat:0.0333, win:0.0000, finish:6.558},
+  {stars:1.0, beat:0.0167, win:0.0000, finish:6.300},
+  {stars:1.5, beat:0.0833, win:0.0000, finish:6.175},
+  {stars:2.0, beat:0.2250, win:0.0083, finish:4.767},
+  {stars:2.5, beat:0.2917, win:0.0417, finish:4.800},
+  {stars:3.0, beat:0.2667, win:0.0250, finish:4.758},
+  {stars:3.5, beat:0.6000, win:0.2333, finish:3.050},
+  {stars:4.0, beat:0.7500, win:0.2500, finish:2.717},
+  {stars:4.5, beat:0.6833, win:0.2083, finish:2.908},
+  {stars:5.0, beat:0.9583, win:0.5500, finish:1.633},
+];
+
+const cv = document.getElementById('chart');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const M = {l:52, r:20, t:24, b:50};
+const px = s => M.l + ((s - 0.5) / 4.5) * (W - M.l - M.r);
+const py = v => M.t + (1 - v) * (H - M.t - M.b);
+
+ctx.clearRect(0,0,W,H);
+
+// grid + y labels
+ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif';
+ctx.lineWidth = 1;
+for (let p=0; p<=100; p+=25){
+  const y = py(p/100);
+  ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(W-M.r,y); ctx.stroke();
+  ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(p+'%', M.l-8, y);
+}
+// x labels
+ctx.fillStyle = '#8b98a5'; ctx.textAlign='center'; ctx.textBaseline='top';
+for (let s=1; s<=5; s++){ ctx.fillText('★'+s, px(s), H-M.b+8); }
+ctx.fillText('Player team star rating', (M.l + (W-M.r))/2, H-18);
+
+function drawLine(key, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.beginPath();
+  DATA.forEach((d,i)=>{ const x=px(d.stars), y=py(d[key]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke();
+  ctx.fillStyle = color;
+  DATA.forEach(d=>{ ctx.beginPath(); ctx.arc(px(d.stars), py(d[key]), 3.4, 0, 7); ctx.fill(); });
+}
+drawLine('beat', '#5ac77a');
+drawLine('win', '#f2b134');
+
+// labels at the right end
+ctx.font = '12px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='middle';
+ctx.fillStyle = '#5ac77a'; ctx.fillText('beat', px(5.0)+8, py(DATA[DATA.length-1].beat));
+ctx.fillStyle = '#f2b134'; ctx.fillText('win', px(5.0)+8, py(DATA[DATA.length-1].win));
+
+// table
+const t = document.getElementById('data');
+t.innerHTML = '<tr><th>Player ★</th><th>Seasons</th><th>Beat (top 3)</th><th>Won Final</th><th>Avg finish</th></tr>' +
+  DATA.map(d=>`<tr><td>★${d.stars.toFixed(1)}</td><td>120</td><td>${(d.beat*100).toFixed(0)}%</td><td>${(d.win*100).toFixed(0)}%</td><td>${d.finish.toFixed(1)}</td></tr>`).join('');
+</script>
+</body>
+</html>
