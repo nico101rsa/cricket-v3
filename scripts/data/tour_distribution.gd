@@ -8,7 +8,8 @@ extends Resource
 
 @export var tour_name: String = ""   # flavour only, not load-bearing
 @export var mean: int = 5            # mid-Tour even-contest centre
-@export var spread: int = 3          # half-width of the strength band
+@export var spread: float = 1.5      # half-width of the strength band (float so a
+                                     # star can be tuned to fractional strength points)
 @export var noise: int = 1           # +-absolute per-derivation jitter
 
 # frac 0.0 -> mean - spread, 0.5 -> mean, 1.0 -> mean + spread. Clamped + rounded.

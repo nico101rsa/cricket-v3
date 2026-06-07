@@ -18,7 +18,7 @@ func _init() -> void:
 	var itun := InningsTuning.new()
 	var tour := TourDistribution.new()
 	tour.mean = 5
-	tour.spread = 3
+	tour.spread = 1.5   # matches the tuned default (flatter underdog drop-off)
 	tour.noise = 1
 	var player := Attributes.new()
 	player.power = 5
