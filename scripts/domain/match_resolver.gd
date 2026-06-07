@@ -37,6 +37,40 @@ static func _decide_result(
 
 	return r
 
+# Seeded toss. Returns player_bats_first. Strawman: 50/50, winner bats first.
+# A bat/bowl heuristic is deferred (spec §4). Consumes exactly one RNG draw.
+static func _resolve_toss(rng: RandomNumberGenerator) -> bool:
+	return rng.randf() < 0.5
+
+# Team-bundled match: derive six strength ints from the two Teams + Tour, flip
+# the toss, then delegate to simulate_match(). Fixed RNG draw order (toss, then
+# the four strength derivations) before the core sim consumes the rest, so a
+# fixed seed + Teams + Tour -> identical MatchResult. The bowling number feeds
+# both attack and control (spec §1/§5). See ADR 0009.
+static func simulate_match_teams(
+		player_attrs: Attributes,
+		player_team: Team,
+		opp_team: Team,
+		tour: TourDistribution,
+		tuning: BallTuning,
+		itun: InningsTuning,
+		rng: RandomNumberGenerator,
+		player_intent_plan: IntentPlan = null,
+		player_bowling_plan: BowlingPlan = null
+) -> MatchResult:
+	var player_bats_first := _resolve_toss(rng)
+	var player_bat := player_team.batting_strength(tour, rng)
+	var player_bowl := player_team.bowling_strength(tour, rng)
+	var opp_bat := opp_team.batting_strength(tour, rng)
+	var opp_bowl := opp_team.bowling_strength(tour, rng)
+
+	return simulate_match(
+		player_attrs,
+		player_bat, player_bowl, player_bowl,
+		opp_bat, opp_bowl, opp_bowl,
+		player_bats_first, tuning, itun, rng,
+		player_intent_plan, player_bowling_plan)
+
 # Simulate a full T20 match: first innings, then a chase to target = total1 + 1,
 # then decide the result. player_bats_first sets the toss (which side bats first).
 # The statted Player features only in the Player's team innings; the opposition

@@ -176,3 +176,57 @@ func test_match_deterministic_with_bowling_plan() -> void:
 	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
 	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic")
 	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic")
+
+func _tour() -> TourDistribution:
+	var t := TourDistribution.new()
+	t.mean = 5
+	t.spread = 3
+	t.noise = 1
+	return t
+
+func _team(stars: float) -> Team:
+	var tm := Team.new()
+	tm.stars = stars
+	return tm
+
+func test_teams_determinism() -> void:
+	var p := _attrs(5, 5, 5, 5)
+	var r1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
+	var r2 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
+	assert_eq(r1.outcome, r2.outcome, "outcome deterministic")
+	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 total deterministic")
+	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 total deterministic")
+	assert_eq(r1.margin_runs, r2.margin_runs, "margin deterministic")
+
+func test_teams_directional_strong_beats_weak() -> void:
+	var p := _attrs(5, 5, 5, 5)
+	var tour := _tour()
+	var fav_wins := 0
+	var dog_wins := 0
+	var n := 60
+	for sv in range(1, n + 1):
+		# Player on a 5-star team vs a 0.5-star opponent.
+		var a := MatchResolver.simulate_match_teams(p, _team(5.0), _team(0.5), tour, tuning, itun, _make_rng(sv))
+		if a.outcome == MatchResult.Outcome.PLAYER_WIN:
+			fav_wins += 1
+		# Player on a 0.5-star team vs a 5-star opponent.
+		var b := MatchResolver.simulate_match_teams(p, _team(0.5), _team(5.0), tour, tuning, itun, _make_rng(sv))
+		if b.outcome == MatchResult.Outcome.PLAYER_WIN:
+			dog_wins += 1
+	assert_gt(fav_wins, int(n * 0.8), "5.0-star team wins a big majority (got %d/%d)" % [fav_wins, n])
+	assert_lt(dog_wins, int(n * 0.2), "0.5-star team wins few (got %d/%d)" % [dog_wins, n])
+
+func test_teams_even_roughly_balanced() -> void:
+	var p := _attrs(5, 5, 5, 5)
+	var tour := _tour()
+	var player_wins := 0
+	var decided := 0
+	for sv in range(1, 121):
+		var r := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), tour, tuning, itun, _make_rng(sv))
+		if r.outcome == MatchResult.Outcome.PLAYER_WIN:
+			player_wins += 1
+			decided += 1
+		elif r.outcome == MatchResult.Outcome.OPPONENT_WIN:
+			decided += 1
+	var share := float(player_wins) / float(decided)
+	assert_between(share, 0.30, 0.70, "equal-star contest is roughly balanced (share %f)" % share)
