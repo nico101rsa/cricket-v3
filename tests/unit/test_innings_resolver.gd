@@ -121,3 +121,35 @@ func test_strike_rotation_and_ball_accounting() -> void:
 		if b["balls"] > 0:
 			faced += 1
 	assert_gt(faced, 1, "strike rotates across the partnership (more than one batter faces)")
+
+func test_null_player_builds_all_derived() -> void:
+	var r := InningsResolver.simulate_innings(null, 6, 5, 5, tuning, itun, _make_rng(7))
+	assert_eq(r.batters.size(), 11, "still an 11-strong order")
+	assert_eq(r.player_line(), {}, "no statted Player -> empty player line")
+	for b in r.batters:
+		assert_false(b["is_player"], "no batter flagged as the Player")
+	assert_lte(r.balls, 120, "terminates within 120 balls")
+	assert_lte(r.wickets, 10, "never more than 10 wickets")
+
+func test_default_target_matches_explicit_zero() -> void:
+	# Backward compat: the new trailing target defaults to 0 (no chase) and must
+	# reproduce the rung-2 behaviour exactly.
+	var a := _attrs(5, 5, 5, 5)
+	var r1 := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _make_rng(99))
+	var r2 := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _make_rng(99), 0)
+	assert_eq(r1.total, r2.total, "total unchanged by explicit target=0")
+	assert_eq(r1.wickets, r2.wickets, "wickets unchanged")
+	assert_eq(r1.balls, r2.balls, "balls unchanged")
+
+func test_chase_stops_when_target_reached() -> void:
+	# A tiny target must be chased down well before 120 balls and without losing
+	# all 10 wickets (even contest averages ~141, so target 10 falls quickly).
+	var a := _attrs(5, 5, 5, 5)
+	var saw_early := false
+	for sv in range(1, 40):
+		var r := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _make_rng(sv), 10)
+		if r.total >= 10:
+			assert_lt(r.balls, 120, "reaching a tiny target stops the chase early (seed %d)" % sv)
+			assert_lt(r.wickets, 10, "a chased-down target isn't an all-out (seed %d)" % sv)
+			saw_early = true
+	assert_true(saw_early, "a tiny target should be chased down in some seeds")

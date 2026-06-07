@@ -16,10 +16,14 @@ static func player_position(attrs: Attributes, itun: InningsTuning) -> int:
 static func partner_factor(pos: int, itun: InningsTuning) -> float:
 	return maxf(itun.tail_floor, 1.0 - (pos - 1) * itun.tail_slope)
 
-# Build the 11-strong batting order: Player (real attrs) at their build-driven
-# position; every other slot a derived partner scaled by the tail curve.
+# Build the 11-strong batting order. With a statted Player (player_attrs != null),
+# the Player bats at their build-driven position; every other slot is a derived
+# partner scaled by the tail curve. With player_attrs == null (opposition innings),
+# all 11 are derived.
 static func _build_batters(player_attrs: Attributes, partner_batting: int, itun: InningsTuning) -> Array:
-	var ppos := player_position(player_attrs, itun)
+	var ppos := -1
+	if player_attrs != null:
+		ppos = player_position(player_attrs, itun)
 	var batters: Array = []
 	for order in range(1, 12):  # positions 1..11
 		if order == ppos:
@@ -38,6 +42,8 @@ static func _build_batters(player_attrs: Attributes, partner_batting: int, itun:
 	return batters
 
 # Simulate one innings. Deterministic given rng (resolve_ball owns the draw order).
+# player_attrs may be null (opposition innings -> all derived). target > 0 adds a
+# chase stop: the innings ends the instant total >= target. target == 0 = no chase.
 static func simulate_innings(
 		player_attrs: Attributes,
 		partner_batting: int,
@@ -45,7 +51,8 @@ static func simulate_innings(
 		opp_control: int,
 		tuning: BallTuning,
 		itun: InningsTuning,
-		rng: RandomNumberGenerator
+		rng: RandomNumberGenerator,
+		target: int = 0
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -57,7 +64,7 @@ static func simulate_innings(
 	var total := 0
 	var fall: Array = []
 
-	while balls < max_balls and wickets < 10:
+	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], opp_attack, opp_control,
