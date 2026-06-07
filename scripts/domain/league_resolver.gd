@@ -105,6 +105,8 @@ static func simulate_league(
 	var result := LeagueResult.new()
 	result.standings = rows
 	result.player_matches = player_matches
+	result.team_bat = bat
+	result.team_bowl = bowl
 	for pos in range(rows.size()):
 		if rows[pos].team_index == 0:
 			result.player_position = pos + 1
