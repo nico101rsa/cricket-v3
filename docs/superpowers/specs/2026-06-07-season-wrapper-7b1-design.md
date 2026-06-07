@@ -44,7 +44,8 @@ class_name TourDistribution extends Resource
 
 @export var tour_name: String = ""   # flavour only, not load-bearing
 @export var mean: int = 5            # strawman: mid-Tour even-contest centre
-@export var spread: int = 3          # strawman: half-width of the strength band
+@export var spread: float = 1.5      # half-width of the strength band (float so a star
+                                     # can be tuned to fractional strength points)
 @export var noise: int = 1           # strawman: ±absolute per-derivation jitter
 ```
 
@@ -56,7 +57,7 @@ percentile(frac: float) -> int
 
 So `frac` 0.0 → `mean - spread`, 0.5 → `mean`, 1.0 → `mean + spread`. Monotonic, clamped.
 
-**Why `mean 5 / spread 3`:** team strengths sit on the same ~1–8 scale as Player Attributes (the existing even contest is `5/5/5` both sides). `stars/5` maps `0.5★ → 0.1 → ≈ mean - 0.8·spread ≈ 3` and `5.0★ → 1.0 → mean + spread = 8`. That spans a clean ~3→8 strength band, so a 5★ vs 0.5★ game is a real mismatch (a clear S-curve to eyeball) without going off-scale. All three are **V1 strawman** — the 7c balance harness sweeps them.
+**Why `mean 5 / spread 1.5`:** team strengths sit on the same ~1–8 scale as Player Attributes (the existing even contest is `5/5/5` both sides). With spread 1.5, `stars/5` maps `0.5★ → 0.1 → ≈ mean - 0.8·spread ≈ 3.8` and `5.0★ → 1.0 → mean + spread = 6.5` — a `[3.5, 6.5]` band where **one star ≈ 0.6 strength points**. `mean` and `noise` are **V1 strawman** swept later by 7c; `spread` was **tuned 3.0 → 1.5 against the win-rate harness** (see §7 / decisions log) to flatten the underdog drop-off — because a match aggregates ~240 balls, even a small per-ball edge compounds into a near-certain result, so a star had to be worth *fewer* strength points for upsets to stay plausible. At spread 1.5 a 1-tier underdog wins ~33% and a 2-tier underdog ~17% (was ~18% / ~3% at spread 3.0), while a 5★-vs-minnow stays a near-certainty. `spread` is a **float** specifically so it can be tuned in fractional steps like this.
 
 **Why ±5%-of-mean (ADR 0009) becomes ±1 absolute:** 5% of mean 5 is 0.25, which rounds to 0 at this integer scale — too small to register. A `noise` of ±1 integer point is the smallest meaningful jitter here. Documented strawman; harness-tuned later.
 
@@ -147,10 +148,10 @@ The bowling number feeds both `attack` and `control` for each Team (§1 deferral
 
 The "learn by seeing" artifact for this rung, and the first seed of the 7c balance harness.
 
-- **`tools/season_preview.gd`** — a headless `SceneTree` script (run via `godot --headless -s`). For each star matchup on a grid (e.g. Player team ★ ∈ {0.5..5.0}, opponent ★ ∈ {0.5..5.0}, or simply sweeping the **gap** = playerStars − oppStars), it runs N seeded `simulate_match_teams` calls against a fixed `TourDistribution`, tallies Player wins, and prints CSV (`star_gap, matches, player_wins, win_rate`) to stdout.
-- **`docs/mockups/star-winrate-v1.html`** — a self-contained page that renders that data as **win-rate (%) on Y vs star gap on X**. The data is captured from the runner and inlined (the prior mockups' pattern), so what is charted is the **real Godot sim**, not a JS reimplementation. Optionally also shows the raw per-match win/loss scatter and a score-margin spread.
+- **`tools/season_preview.gd`** — a headless `SceneTree` script (run via `godot --headless -s`). For each star matchup on a grid (Player team ★ ∈ {0.5..5.0} × opponent ★ ∈ {0.5..5.0}), it runs N seeded `simulate_match_teams` calls against a fixed `TourDistribution`, pools by star **gap** (playerStars − oppStars), and prints three CSV blocks: a **summary** (`gap, matches, wins, win_rate, win_sd, win_se` — `win_sd = √(p(1−p))`, the spread of a single match's win/loss; `win_se = win_sd/√matches`, the uncertainty of the pooled estimate), a **scatter** sample (`gap, sample_ones, sample_total` — a strided real sample for the dots), and **scores** (`gap, score_mean, score_sd` — the Player innings-total spread).
+- **`docs/mockups/star-winrate-v1.html`** — a self-contained page rendering that data: the **win-rate (%) on Y vs star gap on X** curve with ±1 SE error bars, the **raw per-match dots** (won/lost bands, jittered), a standard-deviation explainer, and a full data table. Data captured from the runner and inlined (the prior mockups' pattern), so what is charted is the **real Godot sim**, not a JS reimplementation.
 
-These are tools/diagnostics, not shipped game code; they have no unit tests (the directional claim they visualise is asserted in §8 test 5). Nico eyeballs the chart in a browser.
+These are tools/diagnostics, not shipped game code; they have no unit tests (the directional claim they visualise is asserted in §8 test 7). Nico eyeballs the chart in a browser. **This chart was used to tune `TourDistribution.spread` (§2):** the initial spread 3.0 produced too steep an underdog drop-off (a 2-tier underdog won only ~3%); a sweep over spread ∈ {1.0,…,3.0} showed **1.5** best matched the desired feel (1-tier underdog ~33%, 2-tier ~17%, minnow-vs-giant ~0%) while keeping stars cleanly discriminating at the extremes — the first real balance decision made through the harness.
 
 ## 8. Test plan (TDD, red → green)
 

@@ -29,8 +29,9 @@
 <div class="wrap">
   <h1>Win-rate vs Star Gap — real Godot sim (7b-1)</h1>
   <p class="cap">Player team ★ minus opponent ★ (X) vs the Player team's outcome (Y), from seeded
-  <code>simulate_match_teams</code> matches. Even Player build (5/5/5/5), Tour mean 5 / spread 3 / noise ±1, fair toss.
-  The actual engine, not a JS reimplementation. ~300 matches per matchup; the dots are a real strided sample (~40/gap).</p>
+  <code>simulate_match_teams</code> matches. Even Player build (5/5/5/5), Tour mean 5 / <b>spread 1.5</b> / noise ±1, fair toss.
+  The actual engine, not a JS reimplementation. ~300 matches per matchup; the dots are a real strided sample (~40/gap).
+  (Spread tuned from 3.0 → 1.5 to flatten the underdog drop-off — a 2-tier underdog now wins ~1 in 6 instead of ~1 in 35.)</p>
 
   <div class="card">
     <canvas id="chart" width="820" height="460"></canvas>
@@ -48,8 +49,8 @@
   <div class="card">
     <p class="note" style="margin-top:0">Two different "spreads", don't confuse them:</p>
     <p class="note"><b>1. Spread of one match's result</b> (win=1 / loss=0): <code>SD = √(p·(1−p))</code>. It is <span class="hi">largest at an even matchup (~0.50 at gap 0 — maximum unpredictability)</span> and falls to 0 at lopsided gaps where the result is a foregone conclusion. This is what the scattered dots show.</p>
-    <p class="note"><b>2. Spread of the win-rate estimate</b> (the curve's wobble): <code>SE = SD/√matches ≈ 0.009</code> at gap 0 — i.e. the measured 53.8% is accurate to ±~1%. That's why the curve is smooth.</p>
-    <p class="note"><b>Bonus — score spread:</b> the Player team's innings total averages ~108 ± 38 runs at an even matchup. (At big favourable gaps the score SD balloons — an artefact: when crushing a weak side you sometimes chase a tiny target and stop early at a low total, so totals become bimodal. Not a bug; just chase truncation.)</p>
+    <p class="note"><b>2. Spread of the win-rate estimate</b> (the curve's wobble): <code>SE = SD/√matches ≈ 0.009</code> at gap 0 — i.e. the measured 52.6% is accurate to ±~1%. That's why the curve is smooth.</p>
+    <p class="note"><b>Bonus — score spread:</b> the Player team's innings total averages ~109 ± 37 runs at an even matchup. (At big favourable gaps the score SD grows somewhat — when crushing a weak side you sometimes chase a tiny target and stop early at a low total, so totals skew. Not a bug; just chase truncation.)</p>
   </div>
 
   <table id="data"></table>
@@ -59,25 +60,25 @@
 // Captured from: godot --headless --path . -s tools/season_preview.gd  (n=300/matchup)
 // gap, matches, wins, rate, winSD=sqrt(p(1-p)), winSE, sampleOnes, sampleTotal, scoreMean, scoreSD
 const DATA = [
-  {gap:-4.5, matches:300,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:43, scoreMean:22.0,  scoreSD:16.1},
-  {gap:-4.0, matches:600,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:40, scoreMean:29.1,  scoreSD:22.8},
-  {gap:-3.5, matches:900,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:41, scoreMean:34.3,  scoreSD:23.3},
-  {gap:-3.0, matches:1200, wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:40, scoreMean:42.9,  scoreSD:28.8},
-  {gap:-2.5, matches:1500, wins:1,    rate:0.0007, sd:0.0258, se:0.0007, sOnes:0,  sTot:41, scoreMean:50.8,  scoreSD:31.6},
-  {gap:-2.0, matches:1800, wins:53,   rate:0.0294, sd:0.1690, se:0.0040, sOnes:0,  sTot:40, scoreMean:64.6,  scoreSD:36.7},
-  {gap:-1.5, matches:2100, wins:185,  rate:0.0881, sd:0.2834, se:0.0062, sOnes:1,  sTot:41, scoreMean:78.3,  scoreSD:39.1},
-  {gap:-1.0, matches:2400, wins:463,  rate:0.1929, sd:0.3946, se:0.0081, sOnes:9,  sTot:40, scoreMean:91.3,  scoreSD:38.4},
-  {gap:-0.5, matches:2700, wins:963,  rate:0.3567, sd:0.4790, se:0.0092, sOnes:7,  sTot:41, scoreMean:100.6, scoreSD:38.7},
-  {gap: 0.0, matches:3000, wins:1615, rate:0.5383, sd:0.4985, se:0.0091, sOnes:22, sTot:40, scoreMean:108.2, scoreSD:37.7},
-  {gap: 0.5, matches:2700, wins:1922, rate:0.7119, sd:0.4529, se:0.0087, sOnes:34, sTot:41, scoreMean:111.9, scoreSD:40.1},
-  {gap: 1.0, matches:2400, wins:2047, rate:0.8529, sd:0.3542, se:0.0072, sOnes:33, sTot:40, scoreMean:114.2, scoreSD:44.7},
-  {gap: 1.5, matches:2100, wins:1947, rate:0.9271, sd:0.2599, se:0.0057, sOnes:39, sTot:41, scoreMean:113.0, scoreSD:52.5},
-  {gap: 2.0, matches:1800, wins:1759, rate:0.9772, sd:0.1492, se:0.0035, sOnes:37, sTot:40, scoreMean:110.6, scoreSD:61.0},
-  {gap: 2.5, matches:1500, wins:1498, rate:0.9987, sd:0.0365, se:0.0009, sOnes:41, sTot:41, scoreMean:106.0, scoreSD:69.6},
-  {gap: 3.0, matches:1200, wins:1199, rate:0.9992, sd:0.0289, se:0.0008, sOnes:40, sTot:40, scoreMean:104.7, scoreSD:75.3},
-  {gap: 3.5, matches:900,  wins:900,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:41, sTot:41, scoreMean:104.1, scoreSD:81.0},
-  {gap: 4.0, matches:600,  wins:600,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:40, sTot:40, scoreMean:102.7, scoreSD:84.6},
-  {gap: 4.5, matches:300,  wins:300,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:43, sTot:43, scoreMean:103.0, scoreSD:89.2},
+  {gap:-4.5, matches:300,  wins:1,    rate:0.0033, sd:0.0576, se:0.0033, sOnes:0,  sTot:43, scoreMean:47.0,  scoreSD:29.0},
+  {gap:-4.0, matches:600,  wins:12,   rate:0.0200, sd:0.1400, se:0.0057, sOnes:0,  sTot:40, scoreMean:60.6,  scoreSD:36.0},
+  {gap:-3.5, matches:900,  wins:19,   rate:0.0211, sd:0.1438, se:0.0048, sOnes:1,  sTot:41, scoreMean:65.9,  scoreSD:36.7},
+  {gap:-3.0, matches:1200, wins:52,   rate:0.0433, sd:0.2036, se:0.0059, sOnes:3,  sTot:40, scoreMean:71.8,  scoreSD:36.2},
+  {gap:-2.5, matches:1500, wins:180,  rate:0.1200, sd:0.3250, se:0.0084, sOnes:5,  sTot:41, scoreMean:80.4,  scoreSD:38.6},
+  {gap:-2.0, matches:1800, wins:300,  rate:0.1667, sd:0.3727, se:0.0088, sOnes:7,  sTot:40, scoreMean:86.5,  scoreSD:39.0},
+  {gap:-1.5, matches:2100, wins:426,  rate:0.2029, sd:0.4021, se:0.0088, sOnes:5,  sTot:41, scoreMean:93.6,  scoreSD:37.0},
+  {gap:-1.0, matches:2400, wins:790,  rate:0.3292, sd:0.4699, se:0.0096, sOnes:14, sTot:40, scoreMean:100.2, scoreSD:37.9},
+  {gap:-0.5, matches:2700, wins:1152, rate:0.4267, sd:0.4946, se:0.0095, sOnes:14, sTot:41, scoreMean:104.6, scoreSD:37.7},
+  {gap: 0.0, matches:3000, wins:1577, rate:0.5257, sd:0.4993, se:0.0091, sOnes:23, sTot:40, scoreMean:109.0, scoreSD:36.7},
+  {gap: 0.5, matches:2700, wins:1703, rate:0.6307, sd:0.4826, se:0.0093, sOnes:27, sTot:41, scoreMean:111.2, scoreSD:38.8},
+  {gap: 1.0, matches:2400, wins:1725, rate:0.7188, sd:0.4496, se:0.0092, sOnes:29, sTot:40, scoreMean:113.2, scoreSD:41.1},
+  {gap: 1.5, matches:2100, wins:1757, rate:0.8367, sd:0.3697, se:0.0081, sOnes:32, sTot:41, scoreMean:113.8, scoreSD:43.0},
+  {gap: 2.0, matches:1800, wins:1591, rate:0.8839, sd:0.3204, se:0.0076, sOnes:34, sTot:40, scoreMean:113.5, scoreSD:48.0},
+  {gap: 2.5, matches:1500, wins:1379, rate:0.9193, sd:0.2723, se:0.0070, sOnes:37, sTot:41, scoreMean:110.7, scoreSD:51.5},
+  {gap: 3.0, matches:1200, wins:1172, rate:0.9767, sd:0.1510, se:0.0044, sOnes:39, sTot:40, scoreMean:109.4, scoreSD:56.6},
+  {gap: 3.5, matches:900,  wins:890,  rate:0.9889, sd:0.1048, se:0.0035, sOnes:41, sTot:41, scoreMean:109.0, scoreSD:61.2},
+  {gap: 4.0, matches:600,  wins:595,  rate:0.9917, sd:0.0909, se:0.0037, sOnes:39, sTot:40, scoreMean:107.0, scoreSD:62.9},
+  {gap: 4.5, matches:300,  wins:300,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:43, sTot:43, scoreMean:106.8, scoreSD:67.5},
 ];
 
 // Deterministic pseudo-random in [-1,1] from an integer (stable jitter, no Math.random).
