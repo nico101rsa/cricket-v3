@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7b-1 · Win-rate vs Star Gap (real sim)</title>
+<style>
+  :root { --bg:#0f1419; --panel:#1a212b; --ink:#e8edf2; --muted:#8b98a5; --line:#2b3642; --curve:#f2b134; --mid:#4a90d9; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; padding:32px; }
+  .wrap { max-width:840px; margin:0 auto; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .cap { color:var(--muted); margin:0 0 24px; font-size:13px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
+  canvas { width:100%; height:auto; display:block; }
+  .note { color:var(--muted); font-size:12px; margin-top:16px; }
+  .note b { color:var(--ink); }
+  table { width:100%; border-collapse:collapse; margin-top:20px; font-size:12px; }
+  th,td { text-align:right; padding:4px 8px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; }
+  td:first-child, th:first-child { text-align:left; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Win-rate vs Star Gap — real Godot sim (7b-1)</h1>
+  <p class="cap">Player team ★ minus opponent ★ (X) vs the Player team's win-rate (Y), pooled over many seeded
+  <code>simulate_match_teams</code> matches per gap. Even Player build (5/5/5/5), Tour mean 5 / spread 3 / noise ±1, fair toss.
+  This is the actual engine, not a JS reimplementation.</p>
+
+  <div class="card">
+    <canvas id="chart" width="800" height="420"></canvas>
+    <p class="note">A rising <b>S-curve</b> is the proof the stars→numbers→outcome chain is wired right:
+    a big underdog (left) almost never wins, an even contest (gap 0) sits near 50%, a big favourite (right) wins almost always.</p>
+  </div>
+
+  <table id="data"></table>
+</div>
+
+<script>
+// Captured from: godot --headless --path . -s tools/season_preview.gd  (n=300/matchup)
+const DATA = [
+  {gap:-4.5, matches:300,  wins:0,    rate:0.0000},
+  {gap:-4.0, matches:600,  wins:0,    rate:0.0000},
+  {gap:-3.5, matches:900,  wins:0,    rate:0.0000},
+  {gap:-3.0, matches:1200, wins:0,    rate:0.0000},
+  {gap:-2.5, matches:1500, wins:1,    rate:0.0007},
+  {gap:-2.0, matches:1800, wins:53,   rate:0.0294},
+  {gap:-1.5, matches:2100, wins:185,  rate:0.0881},
+  {gap:-1.0, matches:2400, wins:463,  rate:0.1929},
+  {gap:-0.5, matches:2700, wins:963,  rate:0.3567},
+  {gap: 0.0, matches:3000, wins:1615, rate:0.5383},
+  {gap: 0.5, matches:2700, wins:1922, rate:0.7119},
+  {gap: 1.0, matches:2400, wins:2047, rate:0.8529},
+  {gap: 1.5, matches:2100, wins:1947, rate:0.9271},
+  {gap: 2.0, matches:1800, wins:1759, rate:0.9772},
+  {gap: 2.5, matches:1500, wins:1498, rate:0.9987},
+  {gap: 3.0, matches:1200, wins:1199, rate:0.9992},
+  {gap: 3.5, matches:900,  wins:900,  rate:1.0000},
+  {gap: 4.0, matches:600,  wins:600,  rate:1.0000},
+  {gap: 4.5, matches:300,  wins:300,  rate:1.0000},
+];
+
+const cv = document.getElementById('chart');
+const ctx = cv.getContext('2d');
+const W = cv.width, H = cv.height;
+const M = {l:56, r:20, t:20, b:48};
+const px = g => M.l + ( (g + 4.5) / 9 ) * (W - M.l - M.r);
+const py = r => M.t + (1 - r) * (H - M.t - M.b);
+
+ctx.clearRect(0,0,W,H);
+
+// grid + axes
+ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif';
+ctx.lineWidth = 1;
+for (let p=0; p<=100; p+=25){
+  const y = py(p/100);
+  ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(W-M.r,y); ctx.stroke();
+  ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(p+'%', M.l-8, y);
+}
+// 50% line emphasised
+ctx.strokeStyle = '#3d4d5c'; ctx.setLineDash([4,4]);
+ctx.beginPath(); ctx.moveTo(M.l,py(0.5)); ctx.lineTo(W-M.r,py(0.5)); ctx.stroke();
+ctx.setLineDash([]);
+// gap=0 vertical
+ctx.strokeStyle = '#4a90d9'; ctx.setLineDash([4,4]);
+ctx.beginPath(); ctx.moveTo(px(0),M.t); ctx.lineTo(px(0),H-M.b); ctx.stroke();
+ctx.setLineDash([]);
+
+// x labels
+ctx.fillStyle = '#8b98a5'; ctx.textAlign='center'; ctx.textBaseline='top';
+for (let g=-4; g<=4; g+=2){ ctx.fillText((g>0?'+':'')+g, px(g), H-M.b+8); }
+ctx.fillText('Player ★  −  Opponent ★', (M.l + (W-M.r))/2, H-18);
+
+// curve
+ctx.strokeStyle = '#f2b134'; ctx.lineWidth = 2.5;
+ctx.beginPath();
+DATA.forEach((d,i)=>{ const x=px(d.gap), y=py(d.rate); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+ctx.stroke();
+// points
+ctx.fillStyle = '#f2b134';
+DATA.forEach(d=>{ ctx.beginPath(); ctx.arc(px(d.gap),py(d.rate),3.2,0,7); ctx.fill(); });
+
+// table
+const t = document.getElementById('data');
+t.innerHTML = '<tr><th>Star gap</th><th>Matches</th><th>Player wins</th><th>Win-rate</th></tr>' +
+  DATA.map(d=>`<tr><td>${d.gap>0?'+':''}${d.gap.toFixed(1)}</td><td>${d.matches}</td><td>${d.wins}</td><td>${(d.rate*100).toFixed(1)}%</td></tr>`).join('');
+</script>
+</body>
+</html>
