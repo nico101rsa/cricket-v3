@@ -5,33 +5,51 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>7b-1 · Win-rate vs Star Gap (real sim)</title>
 <style>
-  :root { --bg:#0f1419; --panel:#1a212b; --ink:#e8edf2; --muted:#8b98a5; --line:#2b3642; --curve:#f2b134; --mid:#4a90d9; }
+  :root { --bg:#0f1419; --panel:#1a212b; --ink:#e8edf2; --muted:#8b98a5; --line:#2b3642; --curve:#f2b134; --mid:#4a90d9; --win:#5ac77a; --loss:#d9534f; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 -apple-system,Segoe UI,Roboto,sans-serif; padding:32px; }
-  .wrap { max-width:840px; margin:0 auto; }
+  .wrap { max-width:880px; margin:0 auto; }
   h1 { font-size:20px; margin:0 0 4px; }
-  .cap { color:var(--muted); margin:0 0 24px; font-size:13px; }
+  h2 { font-size:15px; margin:28px 0 10px; color:var(--ink); }
+  .cap { color:var(--muted); margin:0 0 20px; font-size:13px; }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; }
   canvas { width:100%; height:auto; display:block; }
-  .note { color:var(--muted); font-size:12px; margin-top:16px; }
+  .note { color:var(--muted); font-size:12px; margin-top:14px; }
   .note b { color:var(--ink); }
-  table { width:100%; border-collapse:collapse; margin-top:20px; font-size:12px; }
+  .legend { display:flex; gap:18px; font-size:12px; color:var(--muted); margin-top:10px; flex-wrap:wrap; }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align:middle; margin-right:5px; }
+  table { width:100%; border-collapse:collapse; margin-top:18px; font-size:12px; }
   th,td { text-align:right; padding:4px 8px; border-bottom:1px solid var(--line); }
   th { color:var(--muted); font-weight:600; }
   td:first-child, th:first-child { text-align:left; }
+  .hi { color:var(--curve); font-weight:600; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Win-rate vs Star Gap — real Godot sim (7b-1)</h1>
-  <p class="cap">Player team ★ minus opponent ★ (X) vs the Player team's win-rate (Y), pooled over many seeded
-  <code>simulate_match_teams</code> matches per gap. Even Player build (5/5/5/5), Tour mean 5 / spread 3 / noise ±1, fair toss.
-  This is the actual engine, not a JS reimplementation.</p>
+  <p class="cap">Player team ★ minus opponent ★ (X) vs the Player team's outcome (Y), from seeded
+  <code>simulate_match_teams</code> matches. Even Player build (5/5/5/5), Tour mean 5 / spread 3 / noise ±1, fair toss.
+  The actual engine, not a JS reimplementation. ~300 matches per matchup; the dots are a real strided sample (~40/gap).</p>
 
   <div class="card">
-    <canvas id="chart" width="800" height="420"></canvas>
-    <p class="note">A rising <b>S-curve</b> is the proof the stars→numbers→outcome chain is wired right:
-    a big underdog (left) almost never wins, an even contest (gap 0) sits near 50%, a big favourite (right) wins almost always.</p>
+    <canvas id="chart" width="820" height="460"></canvas>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--win)"></span>match won (sampled)</span>
+      <span><span class="dot" style="background:var(--loss)"></span>match lost (sampled)</span>
+      <span><span class="dot" style="background:var(--curve)"></span>pooled win-rate (± standard error)</span>
+    </div>
+    <p class="note">The <b>dots</b> are individual matches (win = top band, loss = bottom band, jittered so you can see density).
+    The <b>gold curve</b> is the win-rate — and its error bars are <b>tiny</b> because each point pools thousands of matches,
+    so the <i>average</i> is pinned even though any <i>single</i> match near the middle is a coin-flip.</p>
+  </div>
+
+  <h2>Standard deviation</h2>
+  <div class="card">
+    <p class="note" style="margin-top:0">Two different "spreads", don't confuse them:</p>
+    <p class="note"><b>1. Spread of one match's result</b> (win=1 / loss=0): <code>SD = √(p·(1−p))</code>. It is <span class="hi">largest at an even matchup (~0.50 at gap 0 — maximum unpredictability)</span> and falls to 0 at lopsided gaps where the result is a foregone conclusion. This is what the scattered dots show.</p>
+    <p class="note"><b>2. Spread of the win-rate estimate</b> (the curve's wobble): <code>SE = SD/√matches ≈ 0.009</code> at gap 0 — i.e. the measured 53.8% is accurate to ±~1%. That's why the curve is smooth.</p>
+    <p class="note"><b>Bonus — score spread:</b> the Player team's innings total averages ~108 ± 38 runs at an even matchup. (At big favourable gaps the score SD balloons — an artefact: when crushing a weak side you sometimes chase a tiny target and stop early at a low total, so totals become bimodal. Not a bug; just chase truncation.)</p>
   </div>
 
   <table id="data"></table>
@@ -39,38 +57,42 @@
 
 <script>
 // Captured from: godot --headless --path . -s tools/season_preview.gd  (n=300/matchup)
+// gap, matches, wins, rate, winSD=sqrt(p(1-p)), winSE, sampleOnes, sampleTotal, scoreMean, scoreSD
 const DATA = [
-  {gap:-4.5, matches:300,  wins:0,    rate:0.0000},
-  {gap:-4.0, matches:600,  wins:0,    rate:0.0000},
-  {gap:-3.5, matches:900,  wins:0,    rate:0.0000},
-  {gap:-3.0, matches:1200, wins:0,    rate:0.0000},
-  {gap:-2.5, matches:1500, wins:1,    rate:0.0007},
-  {gap:-2.0, matches:1800, wins:53,   rate:0.0294},
-  {gap:-1.5, matches:2100, wins:185,  rate:0.0881},
-  {gap:-1.0, matches:2400, wins:463,  rate:0.1929},
-  {gap:-0.5, matches:2700, wins:963,  rate:0.3567},
-  {gap: 0.0, matches:3000, wins:1615, rate:0.5383},
-  {gap: 0.5, matches:2700, wins:1922, rate:0.7119},
-  {gap: 1.0, matches:2400, wins:2047, rate:0.8529},
-  {gap: 1.5, matches:2100, wins:1947, rate:0.9271},
-  {gap: 2.0, matches:1800, wins:1759, rate:0.9772},
-  {gap: 2.5, matches:1500, wins:1498, rate:0.9987},
-  {gap: 3.0, matches:1200, wins:1199, rate:0.9992},
-  {gap: 3.5, matches:900,  wins:900,  rate:1.0000},
-  {gap: 4.0, matches:600,  wins:600,  rate:1.0000},
-  {gap: 4.5, matches:300,  wins:300,  rate:1.0000},
+  {gap:-4.5, matches:300,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:43, scoreMean:22.0,  scoreSD:16.1},
+  {gap:-4.0, matches:600,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:40, scoreMean:29.1,  scoreSD:22.8},
+  {gap:-3.5, matches:900,  wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:41, scoreMean:34.3,  scoreSD:23.3},
+  {gap:-3.0, matches:1200, wins:0,    rate:0.0000, sd:0.0000, se:0.0000, sOnes:0,  sTot:40, scoreMean:42.9,  scoreSD:28.8},
+  {gap:-2.5, matches:1500, wins:1,    rate:0.0007, sd:0.0258, se:0.0007, sOnes:0,  sTot:41, scoreMean:50.8,  scoreSD:31.6},
+  {gap:-2.0, matches:1800, wins:53,   rate:0.0294, sd:0.1690, se:0.0040, sOnes:0,  sTot:40, scoreMean:64.6,  scoreSD:36.7},
+  {gap:-1.5, matches:2100, wins:185,  rate:0.0881, sd:0.2834, se:0.0062, sOnes:1,  sTot:41, scoreMean:78.3,  scoreSD:39.1},
+  {gap:-1.0, matches:2400, wins:463,  rate:0.1929, sd:0.3946, se:0.0081, sOnes:9,  sTot:40, scoreMean:91.3,  scoreSD:38.4},
+  {gap:-0.5, matches:2700, wins:963,  rate:0.3567, sd:0.4790, se:0.0092, sOnes:7,  sTot:41, scoreMean:100.6, scoreSD:38.7},
+  {gap: 0.0, matches:3000, wins:1615, rate:0.5383, sd:0.4985, se:0.0091, sOnes:22, sTot:40, scoreMean:108.2, scoreSD:37.7},
+  {gap: 0.5, matches:2700, wins:1922, rate:0.7119, sd:0.4529, se:0.0087, sOnes:34, sTot:41, scoreMean:111.9, scoreSD:40.1},
+  {gap: 1.0, matches:2400, wins:2047, rate:0.8529, sd:0.3542, se:0.0072, sOnes:33, sTot:40, scoreMean:114.2, scoreSD:44.7},
+  {gap: 1.5, matches:2100, wins:1947, rate:0.9271, sd:0.2599, se:0.0057, sOnes:39, sTot:41, scoreMean:113.0, scoreSD:52.5},
+  {gap: 2.0, matches:1800, wins:1759, rate:0.9772, sd:0.1492, se:0.0035, sOnes:37, sTot:40, scoreMean:110.6, scoreSD:61.0},
+  {gap: 2.5, matches:1500, wins:1498, rate:0.9987, sd:0.0365, se:0.0009, sOnes:41, sTot:41, scoreMean:106.0, scoreSD:69.6},
+  {gap: 3.0, matches:1200, wins:1199, rate:0.9992, sd:0.0289, se:0.0008, sOnes:40, sTot:40, scoreMean:104.7, scoreSD:75.3},
+  {gap: 3.5, matches:900,  wins:900,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:41, sTot:41, scoreMean:104.1, scoreSD:81.0},
+  {gap: 4.0, matches:600,  wins:600,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:40, sTot:40, scoreMean:102.7, scoreSD:84.6},
+  {gap: 4.5, matches:300,  wins:300,  rate:1.0000, sd:0.0000, se:0.0000, sOnes:43, sTot:43, scoreMean:103.0, scoreSD:89.2},
 ];
+
+// Deterministic pseudo-random in [-1,1] from an integer (stable jitter, no Math.random).
+function jit(i){ const x = Math.sin(i * 12.9898) * 43758.5453; return (x - Math.floor(x)) * 2 - 1; }
 
 const cv = document.getElementById('chart');
 const ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height;
-const M = {l:56, r:20, t:20, b:48};
-const px = g => M.l + ( (g + 4.5) / 9 ) * (W - M.l - M.r);
+const M = {l:56, r:20, t:24, b:52};
+const px = g => M.l + ((g + 4.5) / 9) * (W - M.l - M.r);
 const py = r => M.t + (1 - r) * (H - M.t - M.b);
 
 ctx.clearRect(0,0,W,H);
 
-// grid + axes
+// grid + y labels
 ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif';
 ctx.lineWidth = 1;
 for (let p=0; p<=100; p+=25){
@@ -78,33 +100,51 @@ for (let p=0; p<=100; p+=25){
   ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(W-M.r,y); ctx.stroke();
   ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(p+'%', M.l-8, y);
 }
-// 50% line emphasised
+// 50% line + gap=0 vertical
 ctx.strokeStyle = '#3d4d5c'; ctx.setLineDash([4,4]);
 ctx.beginPath(); ctx.moveTo(M.l,py(0.5)); ctx.lineTo(W-M.r,py(0.5)); ctx.stroke();
-ctx.setLineDash([]);
-// gap=0 vertical
-ctx.strokeStyle = '#4a90d9'; ctx.setLineDash([4,4]);
+ctx.strokeStyle = '#4a90d9';
 ctx.beginPath(); ctx.moveTo(px(0),M.t); ctx.lineTo(px(0),H-M.b); ctx.stroke();
 ctx.setLineDash([]);
+// band labels
+ctx.fillStyle = '#5ac77a'; ctx.textAlign='left'; ctx.fillText('WON', M.l+6, py(0.985));
+ctx.fillStyle = '#d9534f'; ctx.fillText('LOST', M.l+6, py(0.015));
 
 // x labels
 ctx.fillStyle = '#8b98a5'; ctx.textAlign='center'; ctx.textBaseline='top';
 for (let g=-4; g<=4; g+=2){ ctx.fillText((g>0?'+':'')+g, px(g), H-M.b+8); }
-ctx.fillText('Player ★  −  Opponent ★', (M.l + (W-M.r))/2, H-18);
+ctx.fillText('Player ★  −  Opponent ★', (M.l + (W-M.r))/2, H-20);
 
-// curve
+// raw match dots (real sample): wins in the top band, losses in the bottom band
+let seed = 1;
+DATA.forEach(d => {
+  for (let k=0; k<d.sTot; k++){
+    const won = k < d.sOnes;
+    const x = px(d.gap) + jit(seed++) * 0.30 * ((W - M.l - M.r) / 18);
+    const y = (won ? py(1.0) : py(0.0)) + jit(seed++) * 14;
+    ctx.fillStyle = won ? 'rgba(90,199,122,0.55)' : 'rgba(217,83,79,0.55)';
+    ctx.beginPath(); ctx.arc(x, y, 2.4, 0, 7); ctx.fill();
+  }
+});
+
+// win-rate error bars (± standard error), then curve, then points
+ctx.strokeStyle = 'rgba(242,177,52,0.7)'; ctx.lineWidth = 1.5;
+DATA.forEach(d => {
+  if (d.se <= 0) return;
+  const x = px(d.gap);
+  ctx.beginPath(); ctx.moveTo(x, py(Math.min(1,d.rate+d.se))); ctx.lineTo(x, py(Math.max(0,d.rate-d.se))); ctx.stroke();
+});
 ctx.strokeStyle = '#f2b134'; ctx.lineWidth = 2.5;
 ctx.beginPath();
 DATA.forEach((d,i)=>{ const x=px(d.gap), y=py(d.rate); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
 ctx.stroke();
-// points
 ctx.fillStyle = '#f2b134';
 DATA.forEach(d=>{ ctx.beginPath(); ctx.arc(px(d.gap),py(d.rate),3.2,0,7); ctx.fill(); });
 
 // table
 const t = document.getElementById('data');
-t.innerHTML = '<tr><th>Star gap</th><th>Matches</th><th>Player wins</th><th>Win-rate</th></tr>' +
-  DATA.map(d=>`<tr><td>${d.gap>0?'+':''}${d.gap.toFixed(1)}</td><td>${d.matches}</td><td>${d.wins}</td><td>${(d.rate*100).toFixed(1)}%</td></tr>`).join('');
+t.innerHTML = '<tr><th>Star gap</th><th>Matches</th><th>Win-rate</th><th>Win/loss SD</th><th>Win-rate SE</th><th>Score mean</th><th>Score SD</th></tr>' +
+  DATA.map(d=>`<tr><td>${d.gap>0?'+':''}${d.gap.toFixed(1)}</td><td>${d.matches}</td><td>${(d.rate*100).toFixed(1)}%</td><td>${d.sd.toFixed(3)}</td><td>${d.se.toFixed(3)}</td><td>${d.scoreMean.toFixed(0)}</td><td>±${d.scoreSD.toFixed(0)}</td></tr>`).join('');
 </script>
 </body>
 </html>
