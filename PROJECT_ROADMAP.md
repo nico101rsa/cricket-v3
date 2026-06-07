@@ -164,6 +164,7 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 
 ## Notes
 
+- **Seeing games:** the sim is headless with no per-ball log, so games can be shown as a **scorecard** (a throwaway runner through the real `simulate_match()` does this on demand — ask "show me a game"). To *watch a game unfold ball-by-ball* would need an optional **delivery-log** addition to the sim — a small future rung, natural fit alongside the Theme 6 in-match screen.
 - "Successful" = I play it and enjoy it. Anything beyond is bonus.
 - Playtest threads through every theme — budget time for it; fun doesn't emerge from spec docs.
 - If a feature would take >1 weekend to design AND build, decide V1 vs V2 first.
