@@ -171,6 +171,7 @@ When ready, read `docs/RESEARCH_LAUNCH_PLAYBOOK.md`.
 
 ## Notes
 
+- **7c balance watch-list — mid-tier flatness (logged 2026-06-08):** at the tuned `spread` 1.5, the 2.0–3.0★ band is bunched (all ~42% top-4 league qualification; ~2% each to top the table), then there's a "tier wall" jump to 3.5★+ (~82% top-4). A hard top-4 cutoff is naturally an S-curve (sigmoid), so the mid tiers sit on its flat lower shoulder and feel undifferentiated. Revisit in the **7c balance harness** if the mid-tier should feel more distinct (levers: a non-linear `percentile` mapping, a slightly higher `spread`, or per-Tour band shaping). Upset stats at spread 1.5: a ≤2★ team tops a league ~2.8% of seasons; a 0.5★ team beats a 5.0★ team ~0.23% of single matches.
 - **Seeing games:** the sim is headless with no per-ball log, so games can be shown as a **scorecard** (a throwaway runner through the real `simulate_match()` does this on demand — ask "show me a game"). To *watch a game unfold ball-by-ball* would need an optional **delivery-log** addition to the sim — a small future rung, natural fit alongside the Theme 6 in-match screen.
 - "Successful" = I play it and enjoy it. Anything beyond is bonus.
 - Playtest threads through every theme — budget time for it; fun doesn't emerge from spec docs.
