@@ -153,3 +153,52 @@ func test_chase_stops_when_target_reached() -> void:
 			assert_lt(r.wickets, 10, "a chased-down target isn't an all-out (seed %d)" % sv)
 			saw_early = true
 	assert_true(saw_early, "a tiny target should be chased down in some seeds")
+
+func _rng(seed_value: int) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new()
+	r.seed = seed_value
+	return r
+
+func test_null_plan_matches_balanced_baseline() -> void:
+	# A null plan must reproduce the pre-rung-4a BALANCED behaviour exactly.
+	var a := _attrs(5, 5, 5, 5)
+	var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(7), 0, null)
+	var balanced := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(7), 0, IntentPlan.balanced())
+	assert_eq(base.total, balanced.total, "null plan == balanced() plan total")
+	assert_eq(base.wickets, balanced.wickets, "null plan == balanced() plan wickets")
+	assert_eq(base.balls, balanced.balls, "null plan == balanced() plan balls")
+
+func test_innings_deterministic_with_plan() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var r1 := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(99), 0, IntentPlan.textbook())
+	var r2 := InningsResolver.simulate_innings(
+		a, 5, 5, 5, tuning, itun, _rng(99), 0, IntentPlan.textbook())
+	assert_eq(r1.total, r2.total, "same seed + plan -> same total")
+	assert_eq(r1.wickets, r2.wickets, "same seed + plan -> same wickets")
+
+func test_aggressive_outscores_and_outdies_defensive() -> void:
+	# Coupling check: aggression scores faster AND loses more wickets.
+	var a := _attrs(5, 5, 5, 5)
+	var agg := IntentPlan.new()
+	agg.powerplay = BallResolver.Intent.AGGRESSIVE
+	agg.middle = BallResolver.Intent.AGGRESSIVE
+	agg.death = BallResolver.Intent.AGGRESSIVE
+	var def := IntentPlan.new()
+	def.powerplay = BallResolver.Intent.DEFENSIVE
+	def.middle = BallResolver.Intent.DEFENSIVE
+	def.death = BallResolver.Intent.DEFENSIVE
+	var agg_runs := 0
+	var agg_wkts := 0
+	var def_runs := 0
+	var def_wkts := 0
+	for sv in range(1, 41):
+		var ra := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(sv), 0, agg)
+		var rd := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, _rng(sv), 0, def)
+		agg_runs += ra.total
+		agg_wkts += ra.wickets
+		def_runs += rd.total
+		def_wkts += rd.wickets
+	assert_gt(agg_runs, def_runs, "aggressive scores more over 40 innings")
+	assert_gt(agg_wkts, def_wkts, "aggressive loses more wickets over 40 innings")
