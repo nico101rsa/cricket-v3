@@ -53,7 +53,9 @@ static func simulate_innings(
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
 		target: int = 0,
-		intent_plan: IntentPlan = null
+		intent_plan: IntentPlan = null,
+		bowling_attack: BowlingAttack = null,
+		bowling_plan: BowlingPlan = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -71,8 +73,14 @@ static func simulate_innings(
 		var intent := BallResolver.Intent.BALANCED
 		if intent_plan != null:
 			intent = intent_plan.for_over(over)
+		var bat_attack := opp_attack
+		var bat_control := opp_control
+		if bowling_attack != null and bowling_plan != null:
+			var prof := bowling_attack.profile(bowling_plan.for_over(over))
+			bat_attack = prof.x
+			bat_control = prof.y
 		var o := BallResolver.resolve_ball(
-			s["power"], s["composure"], opp_attack, opp_control,
+			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng)
 		balls += 1
 		s["balls"] += 1
