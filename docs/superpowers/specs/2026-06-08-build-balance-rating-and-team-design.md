@@ -91,9 +91,11 @@ static func rate(bat_line: Dictionary, bowl_wickets: int, bowl_runs: int, bowl_b
 
 Reads the Player's two lines out of a `MatchResult` (batting line from whichever innings the Player batted; bowling figures from whichever innings they bowled — the sweep already untangles these, see `build_spectrum_sweep._scenario`).
 
-### 3.5 Fairness target (what we tune toward)
+### 3.5 Fairness target + wicket-value validation (what we tune toward)
 
-Across the build spectrum at even ★3, the **mean rating per build** should be roughly equal: `rating(pure-batter) ≈ rating(pure-bowler) ≈ rating(all-rounder)`. We adjust `wicket_value` (and, if needed, the par-lines) until they converge. This is the *individual* half of the goal.
+Across the build spectrum at even ★3, the **mean rating per build** should be roughly equal: `rating(pure-batter) ≈ rating(pure-bowler) ≈ rating(all-rounder)`. This is the *individual* half of the goal.
+
+**`wicket_value` is the primary knob here, and it is solved empirically, not assumed** (Nico's flag). A bowler's whole rating rides on `W * wicket_value` while a batter's does not, so the wicket value is exactly what trades batter-vs-bowler parity. Procedure: over a large run (≥2000 matches per build), sweep `wicket_value` and pick the value at which a pure bowler's mean rating equals a pure batter's. The strawman 10 is a starting guess — the sweep may land it lower or higher (a wicket could be worth more or less); **the calibration output records the value we actually found and confirms it's stable across the run, not an artifact of a small sample.** If `wicket_value` alone can't reconcile them, the par-lines (`sr_par`/`rr_par`) are the secondary levers.
 
 ---
 
@@ -103,28 +105,31 @@ The big architectural piece. Today a `Team` is two derived ints (`batting_streng
 
 ### 4.1 The roster model
 
-A team becomes an **XI of 11 individual players**, each an `Attributes` (the same 4 stats the Player uses) carrying an implied role. Players are drawn from a small set of **archetypes** (data, harness-tunable; numbers below are strawman, scaled to the team's star level):
+A team becomes an **XI of 11 individual players**, each an `Attributes` (the same 4 stats the Player uses) carrying an implied role. **Every player is a 20-point distribution** — the same budget the Player gets (sum 20, each stat [1,8]) — so a whole team is exactly **20 × 11 = 220 points** at the even-★3 test level. (Per-player budget scales with star level for non-★3 teams; deferred — the opponent is a fixed ★3 standard XI for now.) Each player's 20 points split into **batting points** (power + composure) and **bowling points** (attack + control); the team's two totals sum to 220.
 
-| Archetype | power | composure | attack | control | role |
-|---|---|---|---|---|---|
-| BATTER | high | high | low | low | top order |
-| BOWLER | low | low | high | high | attack |
-| ALLROUNDER | mid | mid | mid | mid | flex |
-| TAIL | low | low-mid | low | low-mid | lower order |
+Players are drawn from a small set of **archetypes** (data, harness-tunable; each a valid 20-point distribution):
+
+| Archetype | power | composure | attack | control | bat pts / bowl pts | role |
+|---|---|---|---|---|---|---|
+| BATTER | 8 | 8 | 2 | 2 | 16 / 4 | top order |
+| BOWLER | 2 | 2 | 8 | 8 | 4 / 16 | attack (also the "tail" with the bat) |
+| ALLROUNDER | 5 | 5 | 5 | 5 | 10 / 10 | flex |
+
+(Strawman distributions, all valid 20-point builds; harness-tunable. In a 20-point world there is no separate "useless tail" — a tail-ender is just a BOWLER whose points went to bowling, so they bat weakly. Intermediate tilts, e.g. 7/6/4/3, are allowed if calibration wants finer steps.)
 
 ### 4.2 The fixed standard XI (the opponent, and the Player's baseline)
 
-A realistic T20 shape, used unchanged by the opponent every match (D3 — "set standard for now"). Strawman template: **6 BATTER · 1 ALLROUNDER · 4 BOWLER**. Its total batting capacity `B*` and bowling capacity `W*` define the targets the Player's team must hit.
+A realistic T20 shape, used unchanged by the opponent every match (D3 — "set standard for now"). Strawman template: **6 BATTER · 1 ALLROUNDER · 4 BOWLER** = 220 points, splitting ~**(6·16 + 10 + 4·4) = 122 batting / 98 bowling** points (teams bat deeper than they bowl — realistic). That **(122, 98) split** is the target every Player team must hit.
 
 ### 4.3 Gap-fill assembly (the heart of it)
 
-The Player occupies one slot; the other 10 are chosen so the team's totals land back on `(B*, W*)`:
+The Player occupies one slot; the other 10 (= 200 points) are chosen so the team's split lands back on the standard **(122, 98)** — i.e. the team is always 220 points carved the same way, whatever the Player spent their 20 on:
 
 1. Start from the standard XI.
 2. Insert the Player in the slot matching their dominant role (replacing that archetype).
-3. **Re-balance by swapping teammate archetypes** until team batting capacity ≈ `B*` and bowling capacity ≈ `W*` (within tolerance): if the Player is a pure batter (adds batting, no bowling), swap a BATTER teammate → BOWLER to restore the bowling the Player isn't providing; if a pure bowler, swap a BOWLER → BATTER; an all-rounder ≈ the displaced ALLROUNDER, so little swapping.
+3. **Re-balance by swapping teammate archetypes** until team batting points ≈ 122 and bowling points ≈ 98 (within tolerance): a pure batter (16/4) overshoots batting and starves bowling, so swap a BATTER teammate → BOWLER to put the points back on the bowling side; a pure bowler does the reverse; an all-rounder (10/10) ≈ the displaced ALLROUNDER, so the standard mix already balances.
 
-This produces exactly Nico's picture: pick a batter → the team carries an **extra bowler**; pick a bowler → an **extra batter**; pick an all-rounder → the freed flex capacity becomes **one more specialist**. "Capacity" at assembly time uses a cheap proxy (sum of batting attrs / sum of bowling attrs); the net-runs rating (§3) is the accurate *verification* yardstick, not the assembly input.
+This produces exactly Nico's picture: pick a batter → the team carries an **extra bowler**; pick a bowler → an **extra batter**; pick an all-rounder → the freed flex points become **one more specialist**. The point-split is the cheap **assembly proxy**; the net-runs rating (§3) and win-rate (§5) are the accurate **verification** — points aren't perfectly linear in runs (a batter at #1 out-leverages the same points in the tail), so calibration adjusts archetype profiles/targets until the sweep actually reads flat.
 
 ### 4.4 Wiring into the sim
 
@@ -148,7 +153,7 @@ Extend `tools/build_spectrum_sweep.gd` (already walks 7 points on the batting↔
 
 Two success bars, both checked off this one table:
 
-- **Individual:** mean rating flat across builds (System 1 tuned).
+- **Individual:** mean rating flat across builds (System 1 tuned) — reached by solving `wicket_value` (§3.5). The calibration run sweeps `wicket_value` over a range and prints the per-build mean rating at each, so we can read off the value that flattens batter-vs-bowler and confirm 10 was right (or replace it). Validate over ≥2000 matches/build so the result isn't sample noise.
 - **Team:** win-rate flat ~50% ±2% across builds (System 2 calibrated).
 
 Keep neutral Intent (D5). Output stays the print-table format the tool already uses.
@@ -181,10 +186,11 @@ Slices 2 and 3 may merge if Slice 2 turns out small; writing-plans decides.
 
 ## 8. Defaults recorded (change in review if wrong)
 
-- `wicket_value = 10` runs (strawman); par SR / par economy derived from the generic ★3 player's neutral output.
-- Standard XI = 6 BATTER · 1 ALLROUNDER · 4 BOWLER (strawman).
-- Archetype stat profiles = strawman, scaled by star level, harness-tunable.
-- Assembly capacity proxy = attribute sums; rating (net runs) is verification only.
+- Every player = a 20-point distribution (sum 20, each [1,8]); a team = 220 points at ★3. Per-player budget scales with stars for non-★3 teams (deferred).
+- `wicket_value` = 10 runs **as a starting guess only** — solved empirically over ≥2000 matches/build (§3.5); calibration records the value actually found. Par SR / par economy derived from the generic ★3 player's neutral output.
+- Standard XI = 6 BATTER · 1 ALLROUNDER · 4 BOWLER → target split (122 batting / 98 bowling) points (strawman).
+- Archetype profiles = strawman 20-point builds (BATTER 8/8/2/2, BOWLER 2/2/8/8, ALLROUNDER 5/5/5/5), harness-tunable.
+- Assembly proxy = batting/bowling point-split; rating (net runs) + win-rate are verification only.
 - Flatness tolerance = ±2% win-rate; rating "equal" within a strawman ±10 net-runs band (refined at calibration).
 - 4-over bowling cap unchanged.
 - Raw net-runs display only; a 0–100 in-game rating and a visible team sheet are deferred presentation work.
