@@ -38,11 +38,29 @@ static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
 # all 11 are derived.
-static func _build_batters(player_attrs: Attributes, partner_batting: int, itun: InningsTuning) -> Array:
+static func _build_batters(player_attrs: Attributes, partner_batting: int, itun: InningsTuning,
+		roster: Array = [], team_offset: int = 0) -> Array:
+	var batters: Array = []
+	# Roster path (Slice 2): each slot reads its real Attributes; the Player slot is
+	# found by reference identity. A uniform team_offset shifts power/composure
+	# (floored at 1) so star strength still moves the card; the synthetic tail curve
+	# is dropped (the archetype order already provides the tail). See spec §8.5.
+	if not roster.is_empty():
+		for order in range(1, 12):  # positions 1..11
+			var m: Attributes = roster[order - 1]
+			batters.append({
+				"position": order,
+				"is_player": player_attrs != null and m == player_attrs,
+				"power": maxi(1, m.power + team_offset),
+				"composure": maxi(1, m.composure + team_offset),
+				"runs": 0, "balls": 0, "out": false,
+			})
+		return batters
+	# Clone path (unchanged): Player at their build-driven position; everyone else a
+	# clone of partner_batting scaled by the weakening-tail curve.
 	var ppos := -1
 	if player_attrs != null:
 		ppos = player_position(player_attrs, itun)
-	var batters: Array = []
 	for order in range(1, 12):  # positions 1..11
 		if order == ppos:
 			batters.append({
