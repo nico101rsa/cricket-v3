@@ -194,7 +194,32 @@ static func implemented_groups() -> Array:
 			_drs("bowlers_backing", "Bowler's Backing", "Rare", JokerEffect.DRSRole.BOWLING_BUFF, 0.0)]),
 		_g("the_review_master", "The Review Master", "Legendary", [
 			_drs("the_review_master", "The Review Master", "Legendary", JokerEffect.DRSRole.MASTER, 0.0)]),
+		# --- C2g: Form sources & intent dynamics (sim-owned; enablers) ---
+		# #2 Sheet Anchor: switch to Balanced -> Form event.
+		_g("the_sheet_anchor", "The Sheet Anchor", "Common", [
+			_source("the_sheet_anchor", "The Sheet Anchor", "Common", JokerEffect.FormSource.ON_BALANCED)]),
+		# #11 Captain's Statement: switch to Aggressive -> Form event.
+		_g("captains_statement", "Captain's Statement", "Common", [
+			_source("captains_statement", "Captain's Statement", "Common", JokerEffect.FormSource.ON_AGGRESSIVE)]),
+		# #5 Building Phase: survive 6 Defensive balls -> Form event (repeats).
+		_g("building_phase", "Building Phase", "Rare", [
+			_source("building_phase", "Building Phase", "Rare", JokerEffect.FormSource.ON_DEFENSIVE_OVER)]),
+		# #13 Boundary Hunter: a Form event snaps the Player's intent to Aggressive.
+		_g("boundary_hunter", "Boundary Hunter", "Rare", [
+			JokerEffect.make("boundary_hunter", "Boundary Hunter", "Rare",
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.0,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
+				JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0,
+				JokerEffect.FormSource.NONE, BallResolver.Intent.AGGRESSIVE)]),
 	]
+
+# A Form-source joker (#2/#5/#11): only form_source matters; the sim fires the Form
+# channel when its condition holds. Stored on the BATTING side (Player captaincy).
+static func _source(id: String, jname: String, rarity: String, source: int) -> JokerEffect:
+	return JokerEffect.make(id, jname, rarity,
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.0,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
+		JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0, source)
 
 # A Boost Stack joker: side/target/mult/window are irrelevant (the runtime drives
 # the press), only boost_role matters. Stored on the BOWLING side as a neutral default.

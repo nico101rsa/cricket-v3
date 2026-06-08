@@ -66,6 +66,15 @@ func on_ball_end(jokers: Array, player_is_batting: bool, ball: int, formed: bool
 	if formed:
 		_fire_form_event(jokers, player_is_batting, ball)
 
+# C2g — a Form *source* (#2/#5/#11) fires a Form event when its condition holds
+# (intent switch / survived Defensive over). If any joker carries this source, fire
+# the Form channel so the consumer jokers (Ride the Wave, etc.) trigger.
+func fire_form_source(jokers: Array, player_is_batting: bool, source: int, ball: int) -> void:
+	for j in jokers:
+		if j.form_source == source:
+			_fire_form_event(jokers, player_is_batting, ball)
+			return
+
 # Record a Player Form event and push the windowed buffs it triggers. Shared by
 # on_ball_end (boundary/wicket) and on_boost_press (Boost Adrenaline / Comeback).
 func _fire_form_event(jokers: Array, player_is_batting: bool, ball: int) -> void:

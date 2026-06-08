@@ -15,6 +15,9 @@ enum BoostRole { NONE, EXTEND, BATTERY, ADRENALINE, PEDAL, AMPLIFY, COMPOUND, CO
 # C2f — Reviewer jokers (#38–#45) modify a DRS review (accuracy, extra reviews,
 # retain-on-fail, success payoffs). NONE = not a DRS joker.
 enum DRSRole { NONE, ACCURACY, EXTRA_REVIEW, RETAIN, FORM_ON_SUCCESS, BOWLING_BUFF, MASTER }
+# C2g — Form *source* jokers generate a Form event (instead of consuming one) when
+# the Player switches batting intent or survives a Defensive over. NONE = not a source.
+enum FormSource { NONE, ON_BALANCED, ON_AGGRESSIVE, ON_DEFENSIVE_OVER }
 
 var id: String = ""
 var jname: String = ""        # display name; `name` collides with Godot built-ins
@@ -49,6 +52,10 @@ var boost_role: int = BoostRole.NONE
 # C2f — which DRS-review modification this joker is, + its P(success) bonus.
 var drs_role: int = DRSRole.NONE
 var drs_p_bonus: float = 0.0
+# C2g — Form-source kind (NONE = not a source) and the intent this joker snaps the
+# Player to on a Form event (-1 = no snap; #13 Boundary Hunter snaps to Aggressive).
+var form_source: int = FormSource.NONE
+var snaps_intent: int = -1
 
 # Convenience constructor so the catalog reads as one line per joker.
 static func make(p_id: String, p_jname: String, p_rarity: String,
@@ -57,7 +64,8 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 		p_field_req: int = -1, p_bowl_intent_req: int = -1, p_sets_field: int = -1,
 		p_trigger: int = Trigger.NONE, p_window_n: int = 0, p_bowler_type_req: int = -1,
 		p_boost_role: int = BoostRole.NONE, p_drs_role: int = DRSRole.NONE,
-		p_drs_p_bonus: float = 0.0) -> JokerEffect:
+		p_drs_p_bonus: float = 0.0, p_form_source: int = FormSource.NONE,
+		p_snaps_intent: int = -1) -> JokerEffect:
 	var j := JokerEffect.new()
 	j.id = p_id
 	j.jname = p_jname
@@ -77,6 +85,8 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 	j.boost_role = p_boost_role
 	j.drs_role = p_drs_role
 	j.drs_p_bonus = p_drs_p_bonus
+	j.form_source = p_form_source
+	j.snaps_intent = p_snaps_intent
 	return j
 
 # Does this joker fire on this ball? Side must match the innings, the intent
@@ -84,8 +94,9 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 # and the field requirement (if any) must match. field_mode defaults to NEUTRAL (0)
 # so existing callers that omit it leave field-agnostic jokers (field_req -1) unchanged.
 func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1, bowler_type: int = -1) -> bool:
-	if trigger != Trigger.NONE or boost_role != BoostRole.NONE or drs_role != DRSRole.NONE:
-		return false  # event-driven joker — owned by JokerRuntime, not the per-ball seam
+	if trigger != Trigger.NONE or boost_role != BoostRole.NONE or drs_role != DRSRole.NONE \
+			or form_source != FormSource.NONE or snaps_intent != -1:
+		return false  # event-driven joker — owned by JokerRuntime/sim, not the per-ball seam
 	var side_ok := (side == Side.BATTING) == player_is_batting
 	var intent_ok := intent_req == -1 or intent == intent_req
 	var ball_ok := ball >= ball_min and ball <= ball_max

@@ -33,12 +33,21 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 31 (thru C2e) + 8 (C2f DRS) = 39 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 39)
+	# 39 (thru C2f) + 4 (C2g) = 43 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 43)
 
 func test_implemented_flat_count() -> void:
-	# 35 rows (thru C2e) + 8 single-row DRS jokers = 43 rows.
-	assert_eq(JokerCatalog.implemented().size(), 43)
+	# 43 rows (thru C2f) + 4 single-row C2g jokers = 47 rows.
+	assert_eq(JokerCatalog.implemented().size(), 47)
+
+func test_form_source_shapes() -> void:
+	assert_eq(_group("the_sheet_anchor")["effects"][0].form_source, JokerEffect.FormSource.ON_BALANCED)
+	assert_eq(_group("captains_statement")["effects"][0].form_source, JokerEffect.FormSource.ON_AGGRESSIVE)
+	assert_eq(_group("building_phase")["effects"][0].form_source, JokerEffect.FormSource.ON_DEFENSIVE_OVER)
+
+func test_boundary_hunter_snaps_aggressive() -> void:
+	var e: JokerEffect = _group("boundary_hunter")["effects"][0]
+	assert_eq(e.snaps_intent, BallResolver.Intent.AGGRESSIVE)
 
 func test_drs_roles_present() -> void:
 	var roles := {}
