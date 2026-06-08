@@ -14,3 +14,9 @@ extends Resource
 # weakening-tail curve: factor(p) = max(tail_floor, 1 - (p-1)*tail_slope)
 @export var tail_floor: float = 0.45
 @export var tail_slope: float = 0.07
+
+# build -> bowling overs (0..bowl_max_overs): overs = clamp(round(gain*share + base), 0, max)
+# where share = (attack+control)/(power+composure+attack+control). Strawman; harness-tunable.
+@export var bowl_max_overs: int = 4
+@export var bowl_overs_gain: float = 8.0
+@export var bowl_overs_base: float = -2.5

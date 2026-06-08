@@ -57,6 +57,36 @@ func _even_match(player_bats_first: bool, seed_value: int) -> MatchResult:
 		5, 5, 5,                       # opposition: bat + bowling pair
 		player_bats_first, tuning, itun, _make_rng(seed_value))
 
+func _wins_with_itun(attrs: Attributes, it: InningsTuning, n: int) -> int:
+	# Even team strength (all 5s), Player bats first fixed, only the build / tuning varies.
+	var wins := 0
+	for seed_value in range(1, n + 1):
+		var m := MatchResolver.simulate_match(
+			attrs, 5, 5, 5, 5, 5, 5, true, tuning, it, _make_rng(seed_value))
+		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+			wins += 1
+	return wins
+
+func test_player_as_bowler_lifts_bowling_build_win_rate() -> void:
+	# The headline this rung exists to make true: wiring the Player in as a bowler
+	# makes a bowling build's Attack/Control bite. With the lever OFF (bowl_max_overs
+	# = 0 -> the pre-rung behaviour, bowling inert) a bowling build wins fewer matches
+	# than with it ON. This test FAILED before the rung (lever had no effect).
+	var off := InningsTuning.new()
+	off.bowl_max_overs = 0
+	var bowler := _attrs(2, 2, 8, 8)
+	var wins_off := _wins_with_itun(bowler, off, 120)
+	var wins_on := _wins_with_itun(bowler, itun, 120)
+	assert_gt(wins_on, wins_off, "Player-as-bowler lifts a bowling build's win-rate vs the inert baseline")
+
+func test_match_deterministic_with_player_bowler() -> void:
+	var a := _attrs(2, 2, 8, 8)
+	var m1 := MatchResolver.simulate_match(a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(31))
+	var m2 := MatchResolver.simulate_match(a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(31))
+	assert_eq(m1.outcome, m2.outcome, "deterministic outcome")
+	assert_eq(m1.innings1.total, m2.innings1.total, "deterministic innings1")
+	assert_eq(m1.innings2.total, m2.innings2.total, "deterministic innings2")
+
 func test_same_seed_deterministic() -> void:
 	var r1 := _even_match(true, 2024)
 	var r2 := _even_match(true, 2024)
@@ -162,8 +192,10 @@ func test_player_bowling_plan_routes_to_player_team_bowling() -> void:
 	var m := MatchResolver.simulate_match(
 		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), null, plan)
 	var player_team_bowl := BowlingAttack.new(5, 5)  # from player_team_attack/control
+	# The Player (5/5/5/5) bowls a 2-over quota at raw 5/5, overriding the spin plan on
+	# those overs (Player-as-bowler, spec 2026-06-08). The baseline must mirror that.
 	var standalone := InningsResolver.simulate_innings(
-		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan)
+		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan, 5, 5, 2)
 	assert_eq(m.innings1.total, standalone.total, "Player team bowling used the plan")
 	assert_eq(m.innings1.wickets, standalone.wickets, "opposition wickets match plan run")
 

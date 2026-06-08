@@ -94,6 +94,13 @@ static func simulate_match(
 	var innings1: InningsResult
 	var innings2: InningsResult
 
+	# The Player bowls a build-driven quota in the opposition's batting innings.
+	var p_bowl_overs := 0
+	if player_attrs != null:
+		p_bowl_overs = InningsResolver.player_overs(player_attrs, itun)
+	var p_bowl_attack := player_attrs.attack if player_attrs != null else 0
+	var p_bowl_control := player_attrs.control if player_attrs != null else 0
+
 	# Rotation is opt-in: only when the Player supplies a bowling plan. Then both
 	# sides rotate (Player's team via the plan; opposition via a textbook default).
 	var rotate := player_bowling_plan != null
@@ -112,12 +119,14 @@ static func simulate_match(
 			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, innings1.total + 1, null, player_bowl, player_bowling_plan)
+			tuning, itun, rng, innings1.total + 1, null, player_bowl, player_bowling_plan,
+			p_bowl_attack, p_bowl_control, p_bowl_overs)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, 0, null, player_bowl, player_bowling_plan)
+			tuning, itun, rng, 0, null, player_bowl, player_bowling_plan,
+			p_bowl_attack, p_bowl_control, p_bowl_overs)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan)

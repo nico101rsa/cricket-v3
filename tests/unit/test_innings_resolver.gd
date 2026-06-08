@@ -39,6 +39,65 @@ func test_tail_factor_full_at_top_floors_at_bottom() -> void:
 	assert_almost_eq(InningsResolver.partner_factor(11, itun), 0.45, 0.0001, "#11 floored")
 	assert_gt(InningsResolver.partner_factor(2, itun), InningsResolver.partner_factor(8, itun), "tail weakens down the order")
 
+func test_pure_batter_bowls_no_overs() -> void:
+	# 8/8/2/2: share 0.2 -> 8*0.2 - 2.5 = -0.9 -> round -1 -> clamp 0
+	assert_eq(InningsResolver.player_overs(_attrs(8, 8, 2, 2), itun), 0, "specialist batter doesn't bowl")
+
+func test_even_build_bowls_part_time() -> void:
+	# 5/5/5/5: share 0.5 -> 8*0.5 - 2.5 = 1.5 -> round 2
+	assert_eq(InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun), 2, "balanced build is a part-timer")
+
+func test_pure_bowler_bowls_full_quota() -> void:
+	# 2/2/8/8: share 0.8 -> 8*0.8 - 2.5 = 3.9 -> round 4 (== max)
+	assert_eq(InningsResolver.player_overs(_attrs(2, 2, 8, 8), itun), 4, "specialist bowler bowls the full quota")
+
+func test_overs_monotonic_in_bowling_share() -> void:
+	var batter := InningsResolver.player_overs(_attrs(8, 8, 2, 2), itun)
+	var mid := InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun)
+	var bowler := InningsResolver.player_overs(_attrs(2, 2, 8, 8), itun)
+	assert_lte(batter, mid, "more bowling share never fewer overs (batter<=mid)")
+	assert_lte(mid, bowler, "more bowling share never fewer overs (mid<=bowler)")
+
+func test_bowling_over_set_evenly_spaced() -> void:
+	assert_eq(InningsResolver.player_bowling_overs(0, 20), [], "zero overs -> empty set")
+	var set4 := InningsResolver.player_bowling_overs(4, 20)
+	assert_eq(set4.size(), 4, "4 overs -> 4 entries")
+	# distinct + within 1..20
+	var seen := {}
+	for o in set4:
+		assert_between(o, 1, 20, "over %d within innings" % o)
+		assert_false(seen.has(o), "overs distinct")
+		seen[o] = true
+
+func test_player_bowler_off_matches_baseline() -> void:
+	# New trailing params default to off -> byte-identical to a call without them.
+	var base := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(777))
+	var off := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(777), 0, null, null, null, 0, 0, 0)
+	assert_eq(base.total, off.total, "off-by-default total identical")
+	assert_eq(base.wickets, off.wickets, "off-by-default wickets identical")
+	assert_eq(base.balls, off.balls, "off-by-default balls identical")
+
+func _avg_conceded(p_attack: int, p_control: int, n: int) -> float:
+	# Opposition (null Player) batting at strength 5 vs a team bowling 5/5, where the
+	# Player bowls 4 overs at (p_attack, p_control). Paired seeds across the two arms.
+	var total := 0
+	for seed_value in range(1, n + 1):
+		total += InningsResolver.simulate_innings(
+			null, 5, 5, 5, tuning, itun, _make_rng(seed_value),
+			0, null, null, null, p_attack, p_control, 4).total
+	return float(total) / n
+
+func test_strong_player_bowler_concedes_fewer_runs() -> void:
+	var weak := _avg_conceded(2, 2, 80)
+	var strong := _avg_conceded(8, 8, 80)
+	assert_lt(strong, weak, "a strong Player bowler concedes fewer runs than a weak one")
+
+func test_innings_deterministic_with_player_bowler() -> void:
+	var r1 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(99), 0, null, null, null, 8, 8, 4)
+	var r2 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(99), 0, null, null, null, 8, 8, 4)
+	assert_eq(r1.total, r2.total, "deterministic total")
+	assert_eq(r1.wickets, r2.wickets, "deterministic wickets")
+
 func _make_rng(seed_value: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value

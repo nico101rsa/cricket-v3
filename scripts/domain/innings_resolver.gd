@@ -16,6 +16,24 @@ static func player_position(attrs: Attributes, itun: InningsTuning) -> int:
 static func partner_factor(pos: int, itun: InningsTuning) -> float:
 	return maxf(itun.tail_floor, 1.0 - (pos - 1) * itun.tail_slope)
 
+# Build -> bowling overs (0..bowl_max_overs). Mirror of player_position: the same
+# batting/bowling share that pushes a bowler-build down the order also gives them
+# more overs. Strawman curve in InningsTuning; harness-tunable.
+static func player_overs(attrs: Attributes, itun: InningsTuning) -> int:
+	var batting := attrs.power + attrs.composure
+	var bowling := attrs.attack + attrs.control
+	var share := float(bowling) / float(batting + bowling)
+	var overs := roundi(itun.bowl_overs_gain * share + itun.bowl_overs_base)
+	return clampi(overs, 0, itun.bowl_max_overs)
+
+# The set of 1-based overs the Player bowls: n overs spaced as evenly as possible
+# across total_overs. Returns [] for n <= 0.
+static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
+	var overs: Array[int] = []
+	for i in range(n):
+		overs.append(clampi(roundi((i + 0.5) * float(total_overs) / float(n)), 1, total_overs))
+	return overs
+
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
@@ -55,7 +73,10 @@ static func simulate_innings(
 		target: int = 0,
 		intent_plan: IntentPlan = null,
 		bowling_attack: BowlingAttack = null,
-		bowling_plan: BowlingPlan = null
+		bowling_plan: BowlingPlan = null,
+		player_bowler_attack: int = 0,
+		player_bowler_control: int = 0,
+		player_bowler_overs: int = 0
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -66,6 +87,9 @@ static func simulate_innings(
 	var balls := 0
 	var total := 0
 	var fall: Array = []
+	var player_overs_set: Array[int] = []
+	if player_bowler_overs > 0:
+		player_overs_set = player_bowling_overs(player_bowler_overs, itun.over_limit)
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -79,6 +103,9 @@ static func simulate_innings(
 			var prof := bowling_attack.profile(bowling_plan.for_over(over))
 			bat_attack = prof.x
 			bat_control = prof.y
+		if player_bowler_overs > 0 and player_overs_set.has(over):
+			bat_attack = player_bowler_attack
+			bat_control = player_bowler_control
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng)
