@@ -28,6 +28,12 @@ var active: Array = []
 var form_event_balls: Array[int] = []
 # C2e — how many Manager Boosts have been pressed this innings (for The Comeback Press).
 var boost_press_count: int = 0
+# C2f — DRS reviews remaining this innings (set by init_reviews when a DRSPolicy is used).
+var reviews_left: int = 0
+
+const DRS_MASTER_BONUS := 0.30      # The Review Master P(success) bonus
+const DRS_BOWLING_BUFF_MULT := 1.20  # Bowler's Backing wicket buff
+const DRS_BOWLING_BUFF_N := 6
 
 # Product of active buffs on the side that's batting/bowling this innings. Call at
 # ball start; the returned (wicket_mult, runs_mult) multiplies the stateless mults.
@@ -150,3 +156,44 @@ func on_boost_press(jokers: Array, player_is_batting: bool, intent: int, base_mu
 				_fire_form_event(jokers, player_is_batting, ball)
 			JokerEffect.BoostRole.COMEBACK:
 				_fire_form_event(jokers, player_is_batting, ball)
+
+# C2f — set the per-innings DRS review count: base + grants (Spare Review #40,
+# Review Master #45). Call once at innings start when a DRSPolicy is used.
+func init_reviews(jokers: Array, base_reviews: int) -> void:
+	reviews_left = base_reviews
+	for j in jokers:
+		if j.drs_role == JokerEffect.DRSRole.EXTRA_REVIEW or j.drs_role == JokerEffect.DRSRole.MASTER:
+			reviews_left += 1
+
+# C2f — attempt a DRS review on a close decision. Returns whether it is overturned
+# (batting: the Player survives; bowling: a wicket is claimed). Rolls exactly one
+# randf when a review is available. On success the review is retained (base rule);
+# on fail it is consumed unless a retain joker (#43 / #45). Fires success payoffs.
+func try_review(jokers: Array, player_is_batting: bool, intent: int, base_p: float, ball: int, rng: RandomNumberGenerator) -> bool:
+	if reviews_left <= 0:
+		return false
+	var p := base_p
+	var retain := false
+	for j in jokers:
+		match j.drs_role:
+			JokerEffect.DRSRole.ACCURACY:
+				if j.intent_req == -1 or intent == j.intent_req:
+					p += j.drs_p_bonus
+			JokerEffect.DRSRole.RETAIN:
+				retain = true
+			JokerEffect.DRSRole.MASTER:
+				p += DRS_MASTER_BONUS
+				retain = true
+	p = clampf(p, 0.0, 1.0)
+	var success := rng.randf() < p
+	if success:
+		for j in jokers:
+			match j.drs_role:
+				JokerEffect.DRSRole.FORM_ON_SUCCESS, JokerEffect.DRSRole.MASTER:
+					_fire_form_event(jokers, player_is_batting, ball)
+				JokerEffect.DRSRole.BOWLING_BUFF:
+					if not player_is_batting:
+						active.append({"side": JokerEffect.Side.BOWLING, "target": JokerEffect.Target.WICKET, "mult": DRS_BOWLING_BUFF_MULT, "balls_left": DRS_BOWLING_BUFF_N})
+	elif not retain:
+		reviews_left -= 1
+	return success

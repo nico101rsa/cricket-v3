@@ -81,7 +81,8 @@ static func simulate_innings(
 		player_is_batting: bool = true,
 		field_plan: FieldPlan = null,
 		bowl_intent_plan: IntentPlan = null,
-		boost_plan: BoostPlan = null
+		boost_plan: BoostPlan = null,
+		drs_policy: DRSPolicy = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -99,6 +100,8 @@ static func simulate_innings(
 	var pb_runs := 0
 	var pb_balls := 0
 	var runtime := JokerRuntime.new()  # C2c — per-innings windowed-buff state
+	if drs_policy != null:
+		runtime.init_reviews(jokers, drs_policy.base_reviews)  # C2f — DRS resource
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -138,6 +141,17 @@ static func simulate_innings(
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng, jm.x * win.x, jm.y * win.y)
+		# C2f — DRS: a Player review can overturn a close decision. Batting: a Player
+		# dismissal -> survive (dot). Bowling: a Player-bowled dot -> claim a wicket.
+		# Mutates o so the existing wicket/runs handling takes over. RNG is consumed
+		# only when a review is actually attempted (gated on drs_policy + reviews_left).
+		if drs_policy != null:
+			if player_is_batting and o.wicket and s["is_player"]:
+				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
+					o = BallOutcome.new(false, 0)
+			elif (not player_is_batting) and player_bowling and not o.wicket and o.runs == 0:
+				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
+					o = BallOutcome.new(true, 0)
 		balls += 1
 		s["balls"] += 1
 		if player_bowling:

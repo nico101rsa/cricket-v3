@@ -219,6 +219,51 @@ func test_the_trap_raises_wickets_under_catching_spin() -> void:
 		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
 	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
 
+# --- C2f: DRS ---
+
+func test_drs_lowers_player_dismissals() -> void:
+	# A review-to-survive policy means the Player is dismissed less often.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var policy := DRSPolicy.new()  # base 1 review, p 0.4
+	# Track how often the Player batter is out across many innings.
+	var base_out := 0; var drs_out := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_out += _player_out_count(InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null))
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		drs_out += _player_out_count(InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy))
+	assert_lt(drs_out, base_out, "DRS review-to-survive should lower Player dismissals")
+
+func _player_out_count(res: InningsResult) -> int:
+	for b in res.batters:
+		if b.get("is_player", false) and b.get("out", false):
+			return 1
+	return 0
+
+func test_determinism_with_drs_policy() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var policy := DRSPolicy.new()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 29
+	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 29
+	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+
+func test_null_drs_policy_is_baseline() -> void:
+	# No DRSPolicy -> no review attempts -> byte-identical to the default call.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	for i in range(20):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1)
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		var same := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null)
+		assert_eq(base.total, same.total)
+		assert_eq(base.wickets, same.wickets)
+
 # --- C2e: Manager Boost ---
 
 func test_boost_plan_raises_player_runs() -> void:

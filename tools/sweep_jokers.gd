@@ -30,6 +30,7 @@ func _init() -> void:
 		"first_change_specialist": true, "the_strike_bowler": true, "the_trap": true}
 	var wicket_hunter_stack: Array = []
 	var boost_stack: Array = []
+	var reviewer_stack: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
 			bowl_intent_stack.append_array(g["effects"])
@@ -39,6 +40,8 @@ func _init() -> void:
 			wicket_hunter_stack.append_array(g["effects"])
 		if g["effects"][0].boost_role != JokerEffect.BoostRole.NONE:
 			boost_stack.append_array(g["effects"])
+		if g["effects"][0].drs_role != JokerEffect.DRSRole.NONE:
+			reviewer_stack.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
 				batting_stack.append(e)
@@ -54,6 +57,7 @@ func _init() -> void:
 	arms.append({"name": "Form-window stack", "config": form_window_stack})
 	arms.append({"name": "Wicket-Hunter stack", "config": wicket_hunter_stack})
 	arms.append({"name": "Boost-stack stack", "config": boost_stack})
+	arms.append({"name": "Reviewer stack", "config": reviewer_stack})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
@@ -150,12 +154,17 @@ func _bowling_plan() -> BowlingPlan:
 func _boost_plan() -> BoostPlan:
 	return BoostPlan.at([1, 10, 16])
 
+# C2f — the DRS policy, shared across arms (so the base review-to-survive is in
+# every arm; the Reviewer jokers' win-delta is the modifier).
+func _drs_policy() -> DRSPolicy:
+	return DRSPolicy.new()
+
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
 	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan(), _boost_plan())
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan(), _boost_plan(), _drs_policy())
 	var line := m.innings1.player_line()
 	if line.is_empty():
 		line = m.innings2.player_line()

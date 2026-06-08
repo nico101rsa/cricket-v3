@@ -141,6 +141,18 @@ func test_attack_the_stumps_fires_on_aggressive_captaincy() -> void:
 			ats_wins += 1
 	assert_gt(ats_wins, base_wins, "Attack the Stumps should raise win-rate under Aggressive bowling captaincy")
 
+# --- C2f: DRS at match level ---
+
+func test_match_with_drs_policy_is_deterministic() -> void:
+	var policy := DRSPolicy.new()
+	var a := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(41), null, null, [], null, null, null, null, policy)
+	var b := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(41), null, null, [], null, null, null, null, policy)
+	assert_eq(a.outcome, b.outcome)
+	assert_eq(a.innings1.total, b.innings1.total)
+	assert_eq(a.innings2.total, b.innings2.total)
+
 # --- C2c: Form-event windowed buffs at match level ---
 
 func test_form_trigger_joker_is_deterministic() -> void:

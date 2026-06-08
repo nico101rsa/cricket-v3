@@ -12,6 +12,9 @@ enum Trigger { NONE, FORM_BAT, FORM_BOWL, FORM_DOUBLE_BAT, CHANGE_PACE, CHANGE_S
 # C2e — Boost Stack jokers (#31–#37) modify a Manager Boost press rather than
 # applying per-ball or firing on a Form/change event. NONE = not a Boost joker.
 enum BoostRole { NONE, EXTEND, BATTERY, ADRENALINE, PEDAL, AMPLIFY, COMPOUND, COMEBACK }
+# C2f — Reviewer jokers (#38–#45) modify a DRS review (accuracy, extra reviews,
+# retain-on-fail, success payoffs). NONE = not a DRS joker.
+enum DRSRole { NONE, ACCURACY, EXTRA_REVIEW, RETAIN, FORM_ON_SUCCESS, BOWLING_BUFF, MASTER }
 
 var id: String = ""
 var jname: String = ""        # display name; `name` collides with Godot built-ins
@@ -43,6 +46,9 @@ var window_n: int = 0
 var bowler_type_req: int = -1
 # C2e — which Boost-press modification this joker is (NONE = not a Boost joker).
 var boost_role: int = BoostRole.NONE
+# C2f — which DRS-review modification this joker is, + its P(success) bonus.
+var drs_role: int = DRSRole.NONE
+var drs_p_bonus: float = 0.0
 
 # Convenience constructor so the catalog reads as one line per joker.
 static func make(p_id: String, p_jname: String, p_rarity: String,
@@ -50,7 +56,8 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 		p_intent_req: int = -1, p_ball_min: int = 1, p_ball_max: int = 120,
 		p_field_req: int = -1, p_bowl_intent_req: int = -1, p_sets_field: int = -1,
 		p_trigger: int = Trigger.NONE, p_window_n: int = 0, p_bowler_type_req: int = -1,
-		p_boost_role: int = BoostRole.NONE) -> JokerEffect:
+		p_boost_role: int = BoostRole.NONE, p_drs_role: int = DRSRole.NONE,
+		p_drs_p_bonus: float = 0.0) -> JokerEffect:
 	var j := JokerEffect.new()
 	j.id = p_id
 	j.jname = p_jname
@@ -68,6 +75,8 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 	j.window_n = p_window_n
 	j.bowler_type_req = p_bowler_type_req
 	j.boost_role = p_boost_role
+	j.drs_role = p_drs_role
+	j.drs_p_bonus = p_drs_p_bonus
 	return j
 
 # Does this joker fire on this ball? Side must match the innings, the intent
@@ -75,7 +84,7 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 # and the field requirement (if any) must match. field_mode defaults to NEUTRAL (0)
 # so existing callers that omit it leave field-agnostic jokers (field_req -1) unchanged.
 func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1, bowler_type: int = -1) -> bool:
-	if trigger != Trigger.NONE or boost_role != BoostRole.NONE:
+	if trigger != Trigger.NONE or boost_role != BoostRole.NONE or drs_role != DRSRole.NONE:
 		return false  # event-driven joker — owned by JokerRuntime, not the per-ball seam
 	var side_ok := (side == Side.BATTING) == player_is_batting
 	var intent_ok := intent_req == -1 or intent == intent_req

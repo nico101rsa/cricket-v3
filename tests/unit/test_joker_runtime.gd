@@ -189,3 +189,63 @@ func test_boost_adrenaline_chains_form() -> void:
 	var jk := [_boost(JokerEffect.BoostRole.ADRENALINE), _ride_the_wave()]
 	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
 	assert_almost_eq(rt.tick_mults(true).y, 1.20, 0.0001, "adrenaline -> form event -> Ride the Wave fires")
+
+# --- C2f: DRS ---
+
+func _drs(role: int, p_bonus: float, intent_req: int = -1) -> JokerEffect:
+	return JokerEffect.make("d", "D", "Common", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 1.0, intent_req, 1, 120, -1, -1, -1,
+		JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE, role, p_bonus)
+
+func _rng(s: int) -> RandomNumberGenerator:
+	var r := RandomNumberGenerator.new(); r.seed = s
+	return r
+
+func test_init_reviews_counts_grants() -> void:
+	var rt := JokerRuntime.new()
+	rt.init_reviews([_drs(JokerEffect.DRSRole.EXTRA_REVIEW, 0.0), _drs(JokerEffect.DRSRole.MASTER, 0.0)], 1)
+	assert_eq(rt.reviews_left, 3, "base 1 + Spare Review + Review Master")
+
+func test_try_review_consumes_on_fail() -> void:
+	var rt := JokerRuntime.new()
+	rt.init_reviews([], 1)
+	# base_p 0.0 -> always fail -> consumes the review.
+	assert_false(rt.try_review([], true, BallResolver.Intent.BALANCED, 0.0, 1, _rng(1)))
+	assert_eq(rt.reviews_left, 0)
+	# out of reviews -> no attempt.
+	assert_false(rt.try_review([], true, BallResolver.Intent.BALANCED, 1.0, 1, _rng(1)), "no reviews -> false")
+
+func test_try_review_retains_on_success() -> void:
+	var rt := JokerRuntime.new()
+	rt.init_reviews([], 1)
+	# base_p 1.0 -> always success -> retained.
+	assert_true(rt.try_review([], true, BallResolver.Intent.BALANCED, 1.0, 1, _rng(1)))
+	assert_eq(rt.reviews_left, 1, "success retains the review")
+
+func test_captains_call_never_consumes() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_drs(JokerEffect.DRSRole.RETAIN, 0.0)]
+	rt.init_reviews(jk, 1)
+	# Always fail, but Captain's Call retains.
+	rt.try_review(jk, true, BallResolver.Intent.BALANCED, 0.0, 1, _rng(1))
+	assert_eq(rt.reviews_left, 1, "Captain's Call: failed review not consumed")
+
+func test_accuracy_raises_success_rate() -> void:
+	var base_s := 0; var acc_s := 0
+	var jk := [_drs(JokerEffect.DRSRole.ACCURACY, 0.10)]
+	for i in range(500):
+		var rt1 := JokerRuntime.new(); rt1.init_reviews([], 1)
+		if rt1.try_review([], false, BallResolver.Intent.BALANCED, 0.4, 1, _rng(i)):
+			base_s += 1
+		var rt2 := JokerRuntime.new(); rt2.init_reviews(jk, 1)
+		if rt2.try_review(jk, false, BallResolver.Intent.BALANCED, 0.4, 1, _rng(i)):
+			acc_s += 1
+	assert_gt(acc_s, base_s, "+10% accuracy overturns more decisions")
+
+func test_bowling_buff_on_successful_review() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_drs(JokerEffect.DRSRole.BOWLING_BUFF, 0.0)]
+	rt.init_reviews(jk, 1)
+	# Bowling success -> Bowler's Backing pushes a wicket window.
+	assert_true(rt.try_review(jk, false, BallResolver.Intent.BALANCED, 1.0, 1, _rng(1)))
+	assert_almost_eq(rt.tick_mults(false).x, 1.20, 0.0001, "Bowler's Backing wicket buff")
