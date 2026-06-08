@@ -22,7 +22,11 @@ func _init() -> void:
 	var groups := JokerCatalog.implemented_groups()
 	var batting_stack: Array = []
 	var field_def_stack: Array = []
+	var bowl_intent_ids := {"attack_the_stumps": true, "pressure_cooker": true, "choke_hold": true}
+	var bowl_intent_stack: Array = []
 	for g in groups:
+		if bowl_intent_ids.has(g["id"]):
+			bowl_intent_stack.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING:
 				batting_stack.append(e)
@@ -34,6 +38,7 @@ func _init() -> void:
 		arms.append({"name": g["jname"], "config": g["effects"]})
 	arms.append({"name": "Batting stack", "config": batting_stack})
 	arms.append({"name": "Field-defensive stack", "config": field_def_stack})
+	arms.append({"name": "Bowling-intent stack", "config": bowl_intent_stack})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
@@ -92,12 +97,32 @@ func _field_plan() -> FieldPlan:
 	f.death = FieldPlan.Mode.CATCHING
 	return f
 
+# C2b — the Player's bowling-captain intent, shared across arms. AGGRESSIVE
+# powerplay+death (Attack the Stumps fires) and DEFENSIVE middle (which, with the
+# DEFENSIVE field in _field_plan's middle, fires Choke Hold).
+func _bowl_intent_plan() -> IntentPlan:
+	var p := IntentPlan.new()
+	p.powerplay = BallResolver.Intent.AGGRESSIVE
+	p.middle = BallResolver.Intent.DEFENSIVE
+	p.death = BallResolver.Intent.AGGRESSIVE
+	return p
+
+# C2b — the opposition's AI batting intent, shared across arms. DEFENSIVE middle
+# (Pressure Cooker fires), BALANCED elsewhere. Held constant so the win-delta is
+# the joker, not the opposition's tempo.
+func _opp_intent_plan() -> IntentPlan:
+	var p := IntentPlan.new()
+	p.powerplay = BallResolver.Intent.BALANCED
+	p.middle = BallResolver.Intent.DEFENSIVE
+	p.death = BallResolver.Intent.BALANCED
+	return p
+
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
 	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), null, config, _field_plan())
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), null, config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan())
 	var line := m.innings1.player_line()
 	if line.is_empty():
 		line = m.innings2.player_line()
