@@ -44,3 +44,42 @@ func test_determinism_with_jokers() -> void:
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
+
+func _catching_wicket_booster() -> Array:
+	# Cordon-Killer shape: bowling, field = Catching, strong wicket boost (directional signal).
+	return [JokerEffect.make("ck", "CK", "Common", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 2.0, -1, 1, 120, FieldPlan.Mode.CATCHING)]
+
+func test_null_field_plan_equals_no_field() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _catching_wicket_booster()
+	for i in range(20):
+		# Owner bowling (player_is_batting=false); null field_plan -> field joker inert -> == no jokers.
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		var base := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1)
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		var same := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null)
+		assert_eq(base.wickets, same.wickets)
+		assert_eq(base.total, same.total)
+
+func test_catching_field_joker_raises_wickets() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _catching_wicket_booster()
+	var neutral_w := 0; var catching_w := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		neutral_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.neutral()).wickets
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		catching_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching()).wickets
+	assert_gt(catching_w, neutral_w, "a catching-field wicket booster should raise wickets when the field is catching")
+
+func test_determinism_with_field_plan() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _catching_wicket_booster()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 9
+	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
+	var r2 := RandomNumberGenerator.new(); r2.seed = 9
+	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+	assert_eq(first.balls, second.balls)

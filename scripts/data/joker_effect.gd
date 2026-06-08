@@ -18,11 +18,13 @@ var mult: float = 1.0
 var intent_req: int = -1      # -1 = any; else a BallResolver.Intent value
 var ball_min: int = 1         # inclusive innings-ball window
 var ball_max: int = 120
+var field_req: int = -1       # -1 = any; else a FieldPlan.Mode value
 
 # Convenience constructor so the catalog reads as one line per joker.
 static func make(p_id: String, p_jname: String, p_rarity: String,
 		p_side: int, p_target: int, p_mult: float,
-		p_intent_req: int = -1, p_ball_min: int = 1, p_ball_max: int = 120) -> JokerEffect:
+		p_intent_req: int = -1, p_ball_min: int = 1, p_ball_max: int = 120,
+		p_field_req: int = -1) -> JokerEffect:
 	var j := JokerEffect.new()
 	j.id = p_id
 	j.jname = p_jname
@@ -33,12 +35,16 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 	j.intent_req = p_intent_req
 	j.ball_min = p_ball_min
 	j.ball_max = p_ball_max
+	j.field_req = p_field_req
 	return j
 
 # Does this joker fire on this ball? Side must match the innings, the intent
-# requirement (if any) must hold, and the innings ball must be in [ball_min, ball_max].
-func matches(player_is_batting: bool, intent: int, ball: int) -> bool:
+# requirement (if any) must hold, the innings ball must be in [ball_min, ball_max],
+# and the field requirement (if any) must match. field_mode defaults to NEUTRAL (0)
+# so existing callers that omit it leave field-agnostic jokers (field_req -1) unchanged.
+func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL) -> bool:
 	var side_ok := (side == Side.BATTING) == player_is_batting
 	var intent_ok := intent_req == -1 or intent == intent_req
 	var ball_ok := ball >= ball_min and ball <= ball_max
-	return side_ok and intent_ok and ball_ok
+	var field_ok := field_req == -1 or field_mode == field_req
+	return side_ok and intent_ok and ball_ok and field_ok

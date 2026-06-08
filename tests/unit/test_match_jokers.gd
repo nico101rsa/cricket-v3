@@ -56,3 +56,33 @@ func test_determinism_with_jokers() -> void:
 	assert_eq(a.outcome, b.outcome)
 	assert_eq(a.innings1.total, b.innings1.total)
 	assert_eq(a.innings2.total, b.innings2.total)
+
+func _player_wins_field(rng_seed: int, jokers: Array, field: FieldPlan) -> bool:
+	var m := MatchResolver.simulate_match_teams(
+		_attrs(), _team(), _team(), _tour(), BallTuning.new(), InningsTuning.new(),
+		_seeded(rng_seed), null, null, jokers, field)
+	return m.outcome == MatchResult.Outcome.PLAYER_WIN
+
+func test_catching_field_bowling_joker_raises_win_rate() -> void:
+	# Cordon Killer shape (bowling, catching field, wicket booster) only fires when a
+	# catching FieldPlan is supplied -> the field routes to the opposition's batting innings.
+	var ck := [JokerEffect.make("ck", "Cordon Killer", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, FieldPlan.Mode.CATCHING)]
+	var base_wins := 0; var field_wins := 0
+	for i in range(300):
+		if _player_wins(i, []):
+			base_wins += 1
+		if _player_wins_field(i, ck, FieldPlan.catching()):
+			field_wins += 1
+	assert_gt(field_wins, base_wins, "a catching-field wicket booster should raise win-rate when the field is catching")
+
+func test_determinism_with_field_plan() -> void:
+	var ck := [JokerEffect.make("ck", "Cordon Killer", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, FieldPlan.Mode.CATCHING)]
+	var a := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(11), null, null, ck, FieldPlan.catching())
+	var b := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(11), null, null, ck, FieldPlan.catching())
+	assert_eq(a.outcome, b.outcome)
+	assert_eq(a.innings1.total, b.innings1.total)
+	assert_eq(a.innings2.total, b.innings2.total)
