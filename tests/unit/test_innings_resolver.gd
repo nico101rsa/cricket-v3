@@ -69,6 +69,35 @@ func test_bowling_over_set_evenly_spaced() -> void:
 		assert_false(seen.has(o), "overs distinct")
 		seen[o] = true
 
+func test_player_bowler_off_matches_baseline() -> void:
+	# New trailing params default to off -> byte-identical to a call without them.
+	var base := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(777))
+	var off := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(777), 0, null, null, null, 0, 0, 0)
+	assert_eq(base.total, off.total, "off-by-default total identical")
+	assert_eq(base.wickets, off.wickets, "off-by-default wickets identical")
+	assert_eq(base.balls, off.balls, "off-by-default balls identical")
+
+func _avg_conceded(p_attack: int, p_control: int, n: int) -> float:
+	# Opposition (null Player) batting at strength 5 vs a team bowling 5/5, where the
+	# Player bowls 4 overs at (p_attack, p_control). Paired seeds across the two arms.
+	var total := 0
+	for seed_value in range(1, n + 1):
+		total += InningsResolver.simulate_innings(
+			null, 5, 5, 5, tuning, itun, _make_rng(seed_value),
+			0, null, null, null, p_attack, p_control, 4).total
+	return float(total) / n
+
+func test_strong_player_bowler_concedes_fewer_runs() -> void:
+	var weak := _avg_conceded(2, 2, 80)
+	var strong := _avg_conceded(8, 8, 80)
+	assert_lt(strong, weak, "a strong Player bowler concedes fewer runs than a weak one")
+
+func test_innings_deterministic_with_player_bowler() -> void:
+	var r1 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(99), 0, null, null, null, 8, 8, 4)
+	var r2 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(99), 0, null, null, null, 8, 8, 4)
+	assert_eq(r1.total, r2.total, "deterministic total")
+	assert_eq(r1.wickets, r2.wickets, "deterministic wickets")
+
 func _make_rng(seed_value: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value

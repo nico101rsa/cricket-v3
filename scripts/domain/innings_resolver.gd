@@ -73,7 +73,10 @@ static func simulate_innings(
 		target: int = 0,
 		intent_plan: IntentPlan = null,
 		bowling_attack: BowlingAttack = null,
-		bowling_plan: BowlingPlan = null
+		bowling_plan: BowlingPlan = null,
+		player_bowler_attack: int = 0,
+		player_bowler_control: int = 0,
+		player_bowler_overs: int = 0
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -84,6 +87,9 @@ static func simulate_innings(
 	var balls := 0
 	var total := 0
 	var fall: Array = []
+	var player_overs_set: Array[int] = []
+	if player_bowler_overs > 0:
+		player_overs_set = player_bowling_overs(player_bowler_overs, itun.over_limit)
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -97,6 +103,9 @@ static func simulate_innings(
 			var prof := bowling_attack.profile(bowling_plan.for_over(over))
 			bat_attack = prof.x
 			bat_control = prof.y
+		if player_bowler_overs > 0 and player_overs_set.has(over):
+			bat_attack = player_bowler_attack
+			bat_control = player_bowler_control
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng)
