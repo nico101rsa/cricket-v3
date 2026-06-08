@@ -78,3 +78,46 @@ func test_double_trigger_skips_when_far_apart() -> void:
 	# Event on ball 8 (8-1=7 >= 6) -> not a double.
 	rt.on_ball_end(jk, true, 8, true)
 	assert_almost_eq(rt.tick_mults(true).y, 1.0, 0.0001, "events > 6 balls apart -> no double buff")
+
+# --- C2d: bowling-change windows ---
+
+func _pace_pack() -> JokerEffect:
+	# CHANGE_PACE: wicket x1.15 for 6 balls.
+	return JokerEffect.make("pp", "Pace Pack", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_PACE, 6)
+
+func _strike_bowler() -> JokerEffect:
+	# CHANGE_ANY + catching-field gate: wicket x1.35 for 12 balls.
+	return JokerEffect.make("sb", "The Strike Bowler", "Legendary",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.35,
+		-1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1, JokerEffect.Trigger.CHANGE_ANY, 12)
+
+func test_bowling_change_applies_from_this_over() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_pace_pack()]
+	# A pace change pushes a 6-ball buff that applies starting this over's first ball.
+	rt.on_bowling_change(jk, BowlingPlan.Kind.PACE, FieldPlan.Mode.NEUTRAL)
+	assert_almost_eq(rt.tick_mults(false).x, 1.15, 0.0001, "applies from the change over")
+	for b in range(5):
+		rt.on_ball_end(jk, false, b + 1, false)
+		assert_almost_eq(rt.tick_mults(false).x, 1.15, 0.0001, "still in window")
+	rt.on_ball_end(jk, false, 6, false)
+	assert_almost_eq(rt.tick_mults(false).x, 1.0, 0.0001, "6-ball window expired")
+
+func test_change_kind_gating() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_pace_pack()]
+	# A spin change does not fire a pace-change joker.
+	rt.on_bowling_change(jk, BowlingPlan.Kind.SPIN, FieldPlan.Mode.NEUTRAL)
+	assert_almost_eq(rt.tick_mults(false).x, 1.0, 0.0001)
+
+func test_change_field_req_gating() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_strike_bowler()]
+	# Wrong field -> no buff.
+	rt.on_bowling_change(jk, BowlingPlan.Kind.PACE, FieldPlan.Mode.NEUTRAL)
+	assert_almost_eq(rt.tick_mults(false).x, 1.0, 0.0001, "non-catching change -> off")
+	# Catching change -> fires (CHANGE_ANY, any kind).
+	rt.on_bowling_change(jk, BowlingPlan.Kind.SPIN, FieldPlan.Mode.CATCHING)
+	assert_almost_eq(rt.tick_mults(false).x, 1.35, 0.0001, "catching change -> on")

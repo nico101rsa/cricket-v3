@@ -8,7 +8,7 @@ enum Target { WICKET, RUNS }
 enum Side { BATTING, BOWLING }
 # C2c — windowed-trigger jokers fire a decaying buff when a Form event happens,
 # instead of applying a per-ball condition. NONE = a stateless per-ball joker.
-enum Trigger { NONE, FORM_BAT, FORM_BOWL, FORM_DOUBLE_BAT }
+enum Trigger { NONE, FORM_BAT, FORM_BOWL, FORM_DOUBLE_BAT, CHANGE_PACE, CHANGE_SPIN, CHANGE_ANY }
 
 var id: String = ""
 var jname: String = ""        # display name; `name` collides with Godot built-ins
@@ -34,13 +34,17 @@ var sets_field: int = -1
 # are owned by JokerRuntime and ignored by the stateless matches().
 var trigger: int = Trigger.NONE
 var window_n: int = 0
+# C2d — a stateless per-ball condition on the current bowler's BowlingPlan.Kind
+# (-1 = any; else PACE/SPIN). Used by The Trap (#28). Only applies to NONE-trigger
+# jokers via matches().
+var bowler_type_req: int = -1
 
 # Convenience constructor so the catalog reads as one line per joker.
 static func make(p_id: String, p_jname: String, p_rarity: String,
 		p_side: int, p_target: int, p_mult: float,
 		p_intent_req: int = -1, p_ball_min: int = 1, p_ball_max: int = 120,
 		p_field_req: int = -1, p_bowl_intent_req: int = -1, p_sets_field: int = -1,
-		p_trigger: int = Trigger.NONE, p_window_n: int = 0) -> JokerEffect:
+		p_trigger: int = Trigger.NONE, p_window_n: int = 0, p_bowler_type_req: int = -1) -> JokerEffect:
 	var j := JokerEffect.new()
 	j.id = p_id
 	j.jname = p_jname
@@ -56,13 +60,14 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 	j.sets_field = p_sets_field
 	j.trigger = p_trigger
 	j.window_n = p_window_n
+	j.bowler_type_req = p_bowler_type_req
 	return j
 
 # Does this joker fire on this ball? Side must match the innings, the intent
 # requirement (if any) must hold, the innings ball must be in [ball_min, ball_max],
 # and the field requirement (if any) must match. field_mode defaults to NEUTRAL (0)
 # so existing callers that omit it leave field-agnostic jokers (field_req -1) unchanged.
-func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1) -> bool:
+func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1, bowler_type: int = -1) -> bool:
 	if trigger != Trigger.NONE:
 		return false  # windowed-trigger joker — owned by JokerRuntime, not the per-ball seam
 	var side_ok := (side == Side.BATTING) == player_is_batting
@@ -70,4 +75,5 @@ func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = 
 	var ball_ok := ball >= ball_min and ball <= ball_max
 	var field_ok := field_req == -1 or field_mode == field_req
 	var bowl_intent_ok := bowl_intent_req == -1 or bowl_intent == bowl_intent_req
-	return side_ok and intent_ok and ball_ok and field_ok and bowl_intent_ok
+	var bowler_type_ok := bowler_type_req == -1 or bowler_type == bowler_type_req
+	return side_ok and intent_ok and ball_ok and field_ok and bowl_intent_ok and bowler_type_ok

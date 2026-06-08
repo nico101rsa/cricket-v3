@@ -179,3 +179,54 @@ func test_determinism_with_trigger_jokers() -> void:
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
+
+# --- C2d: setNextBowler windows + The Trap ---
+
+func _pace_pack_strong() -> Array:
+	# CHANGE_PACE shape, strong wicket boost for a clean directional signal.
+	return [JokerEffect.make("pp", "Pace Pack", "Common", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 2.0, -1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_PACE, 6)]
+
+func _the_trap_strong() -> Array:
+	# Stateless: catching field + spin bowler, strong wicket boost.
+	return [JokerEffect.make("trap", "The Trap", "Rare", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 1.5, -1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1,
+		JokerEffect.Trigger.NONE, 0, BowlingPlan.Kind.SPIN)]
+
+func test_pace_pack_raises_opposition_wickets() -> void:
+	# Player bowling an all-pace plan: a change at overs 1/7/16 fires the wicket window.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var plan := BowlingPlan.pace_only()
+	var jk := _pace_pack_strong()
+	var base_w := 0; var buff_w := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false).wickets
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false).wickets
+	assert_gt(buff_w, base_w, "a pace-change wicket window should raise opposition wickets")
+
+func test_the_trap_raises_wickets_under_catching_spin() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var plan := BowlingPlan.spin_only()
+	var field := FieldPlan.catching()
+	var jk := _the_trap_strong()
+	var base_w := 0; var buff_w := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false, field).wickets
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
+	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
+
+func test_determinism_with_change_jokers() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var plan := BowlingPlan.pace_only()
+	var jk := _pace_pack_strong()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 17
+	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, jk, false)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 17
+	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+	assert_eq(first.balls, second.balls)

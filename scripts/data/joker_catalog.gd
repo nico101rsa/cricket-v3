@@ -132,6 +132,35 @@ static func implemented_groups() -> Array:
 			JokerEffect.make("match_winners_vigil", "Match-Winner's Vigil", "Legendary",
 				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.80,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 24)]),
+		# --- C2d: setNextBowler-fire (bowling-change windows) ---
+		# #24 Pace Pack: change to pace -> wicket x1.15 for 6 balls.
+		_g("pace_pack", "Pace Pack", "Common", [
+			JokerEffect.make("pace_pack", "Pace Pack", "Common",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_PACE, 6)]),
+		# #25 Spinner's Web: change to spin -> wicket x1.15 for 6 balls.
+		_g("spinners_web", "Spinner's Web", "Common", [
+			JokerEffect.make("spinners_web", "Spinner's Web", "Common",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_SPIN, 6)]),
+		# #27 First-Change Specialist: any change -> wicket x1.20 for 6 balls.
+		# (The catching-field set is simplified away, spec D3.)
+		_g("first_change_specialist", "First-Change Specialist", "Rare", [
+			JokerEffect.make("first_change_specialist", "First-Change Specialist", "Rare",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.20,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_ANY, 6)]),
+		# #30 The Strike Bowler (Legendary): change into a catching field -> wicket
+		# x1.35 for 12 balls. (The Form +1 grant is simplified away, spec D3.)
+		_g("the_strike_bowler", "The Strike Bowler", "Legendary", [
+			JokerEffect.make("the_strike_bowler", "The Strike Bowler", "Legendary",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.35,
+				-1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1, JokerEffect.Trigger.CHANGE_ANY, 12)]),
+		# #28 The Trap (stateless): catching field AND current bowler = spin -> wicket x1.25.
+		_g("the_trap", "The Trap", "Rare", [
+			JokerEffect.make("the_trap", "The Trap", "Rare",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.25,
+				-1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1, JokerEffect.Trigger.NONE, 0,
+				BowlingPlan.Kind.SPIN)]),
 	]
 
 # Flat list of every implemented effect row (the form the resolver consumes).

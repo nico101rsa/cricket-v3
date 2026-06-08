@@ -96,6 +96,23 @@ func test_trigger_joker_never_matches_per_ball() -> void:
 	assert_false(j.matches(true, BallResolver.Intent.BALANCED, 1), "trigger joker -> never per-ball")
 	assert_false(j.matches(true, BallResolver.Intent.AGGRESSIVE, 5, FieldPlan.Mode.NEUTRAL, -1))
 
+func test_bowler_type_gate() -> void:
+	# The Trap shape: stateless, catching field AND current bowler = spin.
+	var j := JokerEffect.make("trap", "The Trap", "Rare",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.25,
+		-1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1, JokerEffect.Trigger.NONE, 0,
+		BowlingPlan.Kind.SPIN)
+	# fires only with catching field + spin bowler (7th matches arg = bowler_type)
+	assert_true(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING, -1, BowlingPlan.Kind.SPIN))
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING, -1, BowlingPlan.Kind.PACE), "pace -> off")
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING, -1, -1), "no bowler type -> off")
+
+func test_change_trigger_never_matches_per_ball() -> void:
+	var j := JokerEffect.make("pp", "Pace Pack", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_PACE, 6)
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1), "change trigger -> never per-ball")
+
 func test_sets_field_stored() -> void:
 	# Defensive Captain shape: an enabler that forces a defensive field.
 	var j := JokerEffect.make("dc", "Defensive Captain", "Common",
