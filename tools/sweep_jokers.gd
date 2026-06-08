@@ -31,6 +31,12 @@ func _init() -> void:
 	var wicket_hunter_stack: Array = []
 	var boost_stack: Array = []
 	var reviewer_stack: Array = []
+	# C2g — Form sources are enablers; pair them with the Form consumers (Ride the
+	# Wave / Hot Streak) so the combo shows the synergy a solo source can't.
+	var form_combo_ids := {"the_sheet_anchor": true, "captains_statement": true,
+		"building_phase": true, "boundary_hunter": true,
+		"ride_the_wave": true, "hot_streak": true}
+	var form_combo: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
 			bowl_intent_stack.append_array(g["effects"])
@@ -42,6 +48,8 @@ func _init() -> void:
 			boost_stack.append_array(g["effects"])
 		if g["effects"][0].drs_role != JokerEffect.DRSRole.NONE:
 			reviewer_stack.append_array(g["effects"])
+		if form_combo_ids.has(g["id"]):
+			form_combo.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
 				batting_stack.append(e)
@@ -58,6 +66,7 @@ func _init() -> void:
 	arms.append({"name": "Wicket-Hunter stack", "config": wicket_hunter_stack})
 	arms.append({"name": "Boost-stack stack", "config": boost_stack})
 	arms.append({"name": "Reviewer stack", "config": reviewer_stack})
+	arms.append({"name": "Form-source combo", "config": form_combo})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
