@@ -377,3 +377,37 @@ func test_build_batters_flags_player_by_identity() -> void:
 		if b["is_player"]:
 			player_flags += 1
 	assert_eq(player_flags, 1, "exactly one Player slot")
+
+# --- Slice 2: simulate_innings roster threading -------------------------------
+
+func test_simulate_innings_roster_default_unchanged() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var rng1 := RandomNumberGenerator.new(); rng1.seed = 99
+	var rng2 := RandomNumberGenerator.new(); rng2.seed = 99
+	var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, rng1)
+	var same := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, rng2, 0,
+		null, null, null, 0, 0, 0, [], true, null, null, null, null, null, [], 0)
+	assert_eq(base.total, same.total, "empty roster == old behaviour (total)")
+	assert_eq(base.wickets, same.wickets, "empty roster == old behaviour (wickets)")
+
+func test_simulate_innings_roster_is_deterministic() -> void:
+	var roster := Team.standard_xi()
+	var rng1 := RandomNumberGenerator.new(); rng1.seed = 7
+	var rng2 := RandomNumberGenerator.new(); rng2.seed = 7
+	var r1 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, rng1, 0,
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+	var r2 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, rng2, 0,
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+	assert_eq(r1.total, r2.total, "roster innings deterministic")
+
+func test_simulate_innings_real_roster_outscores_weak_clone() -> void:
+	var roster := Team.standard_xi()
+	var roster_runs := 0
+	var clone_runs := 0
+	for s in range(40):
+		var rr := RandomNumberGenerator.new(); rr.seed = s
+		roster_runs += InningsResolver.simulate_innings(null, 2, 5, 5, tuning, itun, rr, 0,
+			null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0).total
+		var cr := RandomNumberGenerator.new(); cr.seed = s
+		clone_runs += InningsResolver.simulate_innings(null, 2, 5, 5, tuning, itun, cr).total
+	assert_gt(roster_runs, clone_runs, "real top-order roster outscores a weak flat clone")

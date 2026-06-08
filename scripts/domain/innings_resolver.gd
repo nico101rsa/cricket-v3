@@ -101,9 +101,11 @@ static func simulate_innings(
 		bowl_intent_plan: IntentPlan = null,
 		boost_plan: BoostPlan = null,
 		drs_policy: DRSPolicy = null,
-		opp_field_plan: FieldPlan = null
+		opp_field_plan: FieldPlan = null,
+		batting_roster: Array = [],
+		team_bat_offset: int = 0
 ) -> InningsResult:
-	var batters := _build_batters(player_attrs, partner_batting, itun)
+	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_offset)
 	var max_balls := itun.over_limit * 6
 	var striker := 0
 	var nonstriker := 1
