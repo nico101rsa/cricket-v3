@@ -16,6 +16,24 @@ static func player_position(attrs: Attributes, itun: InningsTuning) -> int:
 static func partner_factor(pos: int, itun: InningsTuning) -> float:
 	return maxf(itun.tail_floor, 1.0 - (pos - 1) * itun.tail_slope)
 
+# Build -> bowling overs (0..bowl_max_overs). Mirror of player_position: the same
+# batting/bowling share that pushes a bowler-build down the order also gives them
+# more overs. Strawman curve in InningsTuning; harness-tunable.
+static func player_overs(attrs: Attributes, itun: InningsTuning) -> int:
+	var batting := attrs.power + attrs.composure
+	var bowling := attrs.attack + attrs.control
+	var share := float(bowling) / float(batting + bowling)
+	var overs := roundi(itun.bowl_overs_gain * share + itun.bowl_overs_base)
+	return clampi(overs, 0, itun.bowl_max_overs)
+
+# The set of 1-based overs the Player bowls: n overs spaced as evenly as possible
+# across total_overs. Returns [] for n <= 0.
+static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
+	var overs: Array[int] = []
+	for i in range(n):
+		overs.append(clampi(roundi((i + 0.5) * float(total_overs) / float(n)), 1, total_overs))
+	return overs
+
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),

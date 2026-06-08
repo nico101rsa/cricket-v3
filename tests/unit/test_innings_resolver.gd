@@ -39,6 +39,36 @@ func test_tail_factor_full_at_top_floors_at_bottom() -> void:
 	assert_almost_eq(InningsResolver.partner_factor(11, itun), 0.45, 0.0001, "#11 floored")
 	assert_gt(InningsResolver.partner_factor(2, itun), InningsResolver.partner_factor(8, itun), "tail weakens down the order")
 
+func test_pure_batter_bowls_no_overs() -> void:
+	# 8/8/2/2: share 0.2 -> 8*0.2 - 2.5 = -0.9 -> round -1 -> clamp 0
+	assert_eq(InningsResolver.player_overs(_attrs(8, 8, 2, 2), itun), 0, "specialist batter doesn't bowl")
+
+func test_even_build_bowls_part_time() -> void:
+	# 5/5/5/5: share 0.5 -> 8*0.5 - 2.5 = 1.5 -> round 2
+	assert_eq(InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun), 2, "balanced build is a part-timer")
+
+func test_pure_bowler_bowls_full_quota() -> void:
+	# 2/2/8/8: share 0.8 -> 8*0.8 - 2.5 = 3.9 -> round 4 (== max)
+	assert_eq(InningsResolver.player_overs(_attrs(2, 2, 8, 8), itun), 4, "specialist bowler bowls the full quota")
+
+func test_overs_monotonic_in_bowling_share() -> void:
+	var batter := InningsResolver.player_overs(_attrs(8, 8, 2, 2), itun)
+	var mid := InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun)
+	var bowler := InningsResolver.player_overs(_attrs(2, 2, 8, 8), itun)
+	assert_lte(batter, mid, "more bowling share never fewer overs (batter<=mid)")
+	assert_lte(mid, bowler, "more bowling share never fewer overs (mid<=bowler)")
+
+func test_bowling_over_set_evenly_spaced() -> void:
+	assert_eq(InningsResolver.player_bowling_overs(0, 20), [], "zero overs -> empty set")
+	var set4 := InningsResolver.player_bowling_overs(4, 20)
+	assert_eq(set4.size(), 4, "4 overs -> 4 entries")
+	# distinct + within 1..20
+	var seen := {}
+	for o in set4:
+		assert_between(o, 1, 20, "over %d within innings" % o)
+		assert_false(seen.has(o), "overs distinct")
+		seen[o] = true
+
 func _make_rng(seed_value: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
