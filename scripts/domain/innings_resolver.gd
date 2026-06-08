@@ -80,7 +80,8 @@ static func simulate_innings(
 		jokers: Array = [],
 		player_is_batting: bool = true,
 		field_plan: FieldPlan = null,
-		bowl_intent_plan: IntentPlan = null
+		bowl_intent_plan: IntentPlan = null,
+		boost_plan: BoostPlan = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -129,6 +130,9 @@ static func simulate_innings(
 		# that apply from this over onward (so before tick_mults below).
 		if bowling_plan != null and not player_is_batting and balls == (over - 1) * 6 and (over == 1 or over == 7 or over == 16):
 			runtime.on_bowling_change(jokers, bowler_type, field_mode)
+		# C2e — a Manager Boost press at this over's start fires a side-aware buff.
+		if boost_plan != null and balls == (over - 1) * 6 and boost_plan.presses_on(over):
+			runtime.on_boost_press(jokers, player_is_batting, intent, boost_plan.base_mult, boost_plan.base_n, balls + 1)
 		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var o := BallResolver.resolve_ball(

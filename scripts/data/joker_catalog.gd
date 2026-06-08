@@ -161,7 +161,29 @@ static func implemented_groups() -> Array:
 				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.25,
 				-1, 1, 120, FieldPlan.Mode.CATCHING, -1, -1, JokerEffect.Trigger.NONE, 0,
 				BowlingPlan.Kind.SPIN)]),
+		# --- C2e: Manager Boost (Boost Stack) — boost_role modifies the press ---
+		_g("power_up", "Power Up", "Common", [
+			_boost("power_up", "Power Up", "Common", JokerEffect.BoostRole.EXTEND)]),
+		_g("boost_battery", "Boost Battery", "Common", [
+			_boost("boost_battery", "Boost Battery", "Common", JokerEffect.BoostRole.BATTERY)]),
+		_g("boost_adrenaline", "Boost Adrenaline", "Common", [
+			_boost("boost_adrenaline", "Boost Adrenaline", "Common", JokerEffect.BoostRole.ADRENALINE)]),
+		_g("pedal_to_the_metal", "Pedal to the Metal", "Common", [
+			_boost("pedal_to_the_metal", "Pedal to the Metal", "Common", JokerEffect.BoostRole.PEDAL)]),
+		_g("power_surge", "Power Surge", "Rare", [
+			_boost("power_surge", "Power Surge", "Rare", JokerEffect.BoostRole.AMPLIFY)]),
+		_g("compounding_pressure", "Compounding Pressure", "Rare", [
+			_boost("compounding_pressure", "Compounding Pressure", "Rare", JokerEffect.BoostRole.COMPOUND)]),
+		_g("the_comeback_press", "The Comeback Press", "Legendary", [
+			_boost("the_comeback_press", "The Comeback Press", "Legendary", JokerEffect.BoostRole.COMEBACK)]),
 	]
+
+# A Boost Stack joker: side/target/mult/window are irrelevant (the runtime drives
+# the press), only boost_role matters. Stored on the BOWLING side as a neutral default.
+static func _boost(id: String, jname: String, rarity: String, role: int) -> JokerEffect:
+	return JokerEffect.make(id, jname, rarity,
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1, role)
 
 # Flat list of every implemented effect row (the form the resolver consumes).
 static func implemented() -> Array:

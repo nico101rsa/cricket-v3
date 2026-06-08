@@ -113,6 +113,12 @@ func test_change_trigger_never_matches_per_ball() -> void:
 		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.CHANGE_PACE, 6)
 	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1), "change trigger -> never per-ball")
 
+func test_boost_role_never_matches_per_ball() -> void:
+	var j := JokerEffect.make("pu", "Power Up", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.EXTEND)
+	assert_false(j.matches(true, BallResolver.Intent.BALANCED, 1), "boost joker -> never per-ball")
+
 func test_sets_field_stored() -> void:
 	# Defensive Captain shape: an enabler that forces a defensive field.
 	var j := JokerEffect.make("dc", "Defensive Captain", "Common",
