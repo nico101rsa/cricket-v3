@@ -121,3 +121,71 @@ func test_change_field_req_gating() -> void:
 	# Catching change -> fires (CHANGE_ANY, any kind).
 	rt.on_bowling_change(jk, BowlingPlan.Kind.SPIN, FieldPlan.Mode.CATCHING)
 	assert_almost_eq(rt.tick_mults(false).x, 1.35, 0.0001, "catching change -> on")
+
+# --- C2e: Manager Boost ---
+
+func _boost(role: int) -> JokerEffect:
+	return JokerEffect.make("b", "B", "Common", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 1.0, -1, 1, 120, -1, -1, -1,
+		JokerEffect.Trigger.NONE, 0, -1, role)
+
+func test_boost_base_buff_side_aware() -> void:
+	# A bare press (no Boost jokers) pushes a side-aware base buff.
+	var rt := JokerRuntime.new()
+	rt.on_boost_press([], true, BallResolver.Intent.BALANCED, 1.5, 6, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.5, 0.0001, "batting press -> runs buff")
+	var rt2 := JokerRuntime.new()
+	rt2.on_boost_press([], false, BallResolver.Intent.BALANCED, 1.5, 6, 1)
+	assert_almost_eq(rt2.tick_mults(false).x, 1.5, 0.0001, "bowling press -> wicket buff")
+
+func test_boost_power_up_extends_window() -> void:
+	var rt := JokerRuntime.new()
+	rt.on_boost_press([_boost(JokerEffect.BoostRole.EXTEND)], true, BallResolver.Intent.BALANCED, 1.5, 6, 1)
+	assert_eq(rt.active[0]["balls_left"], 8, "Power Up: 6 + 2")
+
+func test_boost_power_surge_amplifies() -> void:
+	var rt := JokerRuntime.new()
+	rt.on_boost_press([_boost(JokerEffect.BoostRole.AMPLIFY)], true, BallResolver.Intent.BALANCED, 1.5, 6, 1)
+	assert_almost_eq(rt.active[0]["mult"], 1.5 * 1.20, 0.0001, "Power Surge: mult x1.2")
+	assert_eq(rt.active[0]["balls_left"], 9, "Power Surge: 6 + 3")
+
+func test_boost_comeback_only_on_third_press() -> void:
+	var rt := JokerRuntime.new()
+	var jk := [_boost(JokerEffect.BoostRole.COMEBACK)]
+	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	# Base buffs at indices 0,1,2 (one per press); the 3rd gets the comeback amp.
+	assert_almost_eq(rt.active[0]["mult"], 1.0, 0.0001, "press 1 -> no amp")
+	assert_almost_eq(rt.active[2]["mult"], 1.50, 0.0001, "press 3 -> mult x1.5")
+
+func test_boost_battery_adds_kicker() -> void:
+	var rt := JokerRuntime.new()
+	rt.on_boost_press([_boost(JokerEffect.BoostRole.BATTERY)], true, BallResolver.Intent.BALANCED, 1.5, 6, 1)
+	# base runs buff (1.5) * battery kicker (1.10), both runs/batting.
+	assert_almost_eq(rt.tick_mults(true).y, 1.5 * 1.10, 0.0001)
+
+func test_boost_compound_needs_aggressive() -> void:
+	# Balanced press -> no compound (just the base buff).
+	var rt := JokerRuntime.new()
+	rt.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.0, 0.0001, "balanced -> no compound")
+	# Aggressive press -> runs x1.25 and wicket x0.85.
+	var rt2 := JokerRuntime.new()
+	rt2.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.AGGRESSIVE, 1.0, 6, 1)
+	assert_almost_eq(rt2.tick_mults(true).y, 1.25, 0.0001, "aggressive -> runs x1.25")
+	assert_almost_eq(rt2.tick_mults(true).x, 0.85, 0.0001, "aggressive -> wicket x0.85")
+
+func test_boost_pedal_enables_compound() -> void:
+	# Pedal flips a Balanced press to Aggressive, so Compounding Pressure fires.
+	var rt := JokerRuntime.new()
+	var jk := [_boost(JokerEffect.BoostRole.COMPOUND), _boost(JokerEffect.BoostRole.PEDAL)]
+	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.25, 0.0001, "pedal -> aggressive -> compound fires")
+
+func test_boost_adrenaline_chains_form() -> void:
+	# Boost Adrenaline fires a Form event, which triggers a Form joker (Ride the Wave).
+	var rt := JokerRuntime.new()
+	var jk := [_boost(JokerEffect.BoostRole.ADRENALINE), _ride_the_wave()]
+	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.20, 0.0001, "adrenaline -> form event -> Ride the Wave fires")

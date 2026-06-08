@@ -33,13 +33,22 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 19 (thru C2c) + 5 (C2d) = 24 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 24)
+	# 24 (thru C2d) + 7 (C2e Boost Stack) = 31 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 31)
 
 func test_implemented_flat_count() -> void:
-	# 23 rows (thru C2c) + pace_pack(1) + spinners_web(1) + first_change(1) +
-	# strike_bowler(1) + the_trap(1) = 28 rows.
-	assert_eq(JokerCatalog.implemented().size(), 28)
+	# 28 rows (thru C2d) + 7 single-row Boost jokers = 35 rows.
+	assert_eq(JokerCatalog.implemented().size(), 35)
+
+func test_boost_stack_roles_present() -> void:
+	var roles := {}
+	for g in JokerCatalog.implemented_groups():
+		var e: JokerEffect = g["effects"][0]
+		if e.boost_role != JokerEffect.BoostRole.NONE:
+			roles[e.boost_role] = g["id"]
+	assert_eq(roles.size(), 7, "all 7 Boost Stack roles present")
+	assert_eq(roles[JokerEffect.BoostRole.COMEBACK], "the_comeback_press")
+	assert_eq(roles[JokerEffect.BoostRole.AMPLIFY], "power_surge")
 
 func test_pace_pack_change_trigger() -> void:
 	var e: JokerEffect = _group("pace_pack")["effects"][0]

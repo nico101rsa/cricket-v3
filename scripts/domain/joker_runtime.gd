@@ -11,10 +11,23 @@ extends RefCounted
 
 const FORM_DOUBLE_WINDOW := 6  # Hot Streak: 2 Form events within this many balls
 
+# C2e — Boost-press modifier magnitudes (pool-fixed, strawman; balance-tunable).
+const BOOST_EXTEND_N := 2          # Power Up
+const BOOST_AMPLIFY_MULT := 1.20  # Power Surge
+const BOOST_AMPLIFY_N := 3
+const BOOST_COMEBACK_MULT := 1.50  # The Comeback Press (3rd press)
+const BOOST_COMEBACK_N := 6
+const BOOST_COMEBACK_PRESS := 3
+const BOOST_BATTERY_MULT := 1.10   # Boost Battery kicker
+const BOOST_COMPOUND_BONUS := 1.25  # Compounding Pressure (favourable roll)
+const BOOST_COMPOUND_GUARD := 0.85  # Compounding Pressure (defensive roll)
+
 # Active buffs: each {side:int, target:int, mult:float, balls_left:int}.
 var active: Array = []
 # Innings-ball indices where a Player Form event fired (for the double trigger).
 var form_event_balls: Array[int] = []
+# C2e — how many Manager Boosts have been pressed this innings (for The Comeback Press).
+var boost_press_count: int = 0
 
 # Product of active buffs on the side that's batting/bowling this innings. Call at
 # ball start; the returned (wicket_mult, runs_mult) multiplies the stateless mults.
@@ -44,10 +57,13 @@ func on_ball_end(jokers: Array, player_is_batting: bool, ball: int, formed: bool
 			kept.append(b)
 	active = kept
 
-	if not formed:
-		return
+	if formed:
+		_fire_form_event(jokers, player_is_batting, ball)
 
-	# 2. a Form event fired this ball — is it the 2nd within the double window?
+# Record a Player Form event and push the windowed buffs it triggers. Shared by
+# on_ball_end (boundary/wicket) and on_boost_press (Boost Adrenaline / Comeback).
+func _fire_form_event(jokers: Array, player_is_batting: bool, ball: int) -> void:
+	# Is this the 2nd Form event within the double window? (for Hot Streak)
 	var is_double := false
 	for prev in form_event_balls:
 		if ball - prev < FORM_DOUBLE_WINDOW:
@@ -55,10 +71,7 @@ func on_ball_end(jokers: Array, player_is_batting: bool, ball: int, formed: bool
 			break
 	form_event_balls.append(ball)
 
-	# 3. push buffs from each trigger joker whose trigger matches this event
 	for j in jokers:
-		if j.trigger == JokerEffect.Trigger.NONE:
-			continue
 		var fires := false
 		match j.trigger:
 			JokerEffect.Trigger.FORM_BAT:
@@ -86,3 +99,54 @@ func on_bowling_change(jokers: Array, bowler_kind: int, field_mode: int) -> void
 				fires = true
 		if fires and (j.field_req == -1 or field_mode == j.field_req):
 			active.append({"side": j.side, "target": j.target, "mult": j.mult, "balls_left": j.window_n})
+
+# C2e — a Manager Boost press. Pushes a side-aware base buff (runs while batting /
+# wicket while bowling) of (mult, n) for the Player's current side, after the Boost
+# Stack jokers modify it. Call at the press over's first ball, before tick_mults.
+func on_boost_press(jokers: Array, player_is_batting: bool, intent: int, base_mult: float, base_n: int, ball: int) -> void:
+	boost_press_count += 1
+	var side := JokerEffect.Side.BATTING if player_is_batting else JokerEffect.Side.BOWLING
+	var base_target := JokerEffect.Target.RUNS if player_is_batting else JokerEffect.Target.WICKET
+
+	# Pedal to the Metal flips the press to Aggressive (enables Compounding Pressure).
+	var eff_intent := intent
+	for j in jokers:
+		if j.boost_role == JokerEffect.BoostRole.PEDAL:
+			eff_intent = BallResolver.Intent.AGGRESSIVE
+
+	# Parameter modifiers (Power Up / Power Surge / Comeback Press) shape mult & n.
+	var mult := base_mult
+	var n := base_n
+	for j in jokers:
+		match j.boost_role:
+			JokerEffect.BoostRole.EXTEND:
+				n += BOOST_EXTEND_N
+			JokerEffect.BoostRole.AMPLIFY:
+				mult *= BOOST_AMPLIFY_MULT
+				n += BOOST_AMPLIFY_N
+			JokerEffect.BoostRole.COMEBACK:
+				if boost_press_count == BOOST_COMEBACK_PRESS:
+					mult *= BOOST_COMEBACK_MULT
+					n += BOOST_COMEBACK_N
+
+	# The base Boost buff (a baseline mechanic — fires even with no Boost jokers).
+	active.append({"side": side, "target": base_target, "mult": mult, "balls_left": n})
+
+	# Chain jokers (extra buffs / Form grants on the press).
+	for j in jokers:
+		match j.boost_role:
+			JokerEffect.BoostRole.BATTERY:
+				active.append({"side": side, "target": base_target, "mult": BOOST_BATTERY_MULT, "balls_left": n})
+			JokerEffect.BoostRole.COMPOUND:
+				if eff_intent == BallResolver.Intent.AGGRESSIVE:
+					# runs +25% & wicket −15% (batting); mirror (bowling): wicket +25% & runs −15%.
+					if player_is_batting:
+						active.append({"side": side, "target": JokerEffect.Target.RUNS, "mult": BOOST_COMPOUND_BONUS, "balls_left": n})
+						active.append({"side": side, "target": JokerEffect.Target.WICKET, "mult": BOOST_COMPOUND_GUARD, "balls_left": n})
+					else:
+						active.append({"side": side, "target": JokerEffect.Target.WICKET, "mult": BOOST_COMPOUND_BONUS, "balls_left": n})
+						active.append({"side": side, "target": JokerEffect.Target.RUNS, "mult": BOOST_COMPOUND_GUARD, "balls_left": n})
+			JokerEffect.BoostRole.ADRENALINE:
+				_fire_form_event(jokers, player_is_batting, ball)
+			JokerEffect.BoostRole.COMEBACK:
+				_fire_form_event(jokers, player_is_batting, ball)

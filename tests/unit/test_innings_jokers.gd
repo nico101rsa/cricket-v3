@@ -219,6 +219,32 @@ func test_the_trap_raises_wickets_under_catching_spin() -> void:
 		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
 	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
 
+# --- C2e: Manager Boost ---
+
+func test_boost_plan_raises_player_runs() -> void:
+	# A press in the powerplay buffs the Player's batting -> more runs.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var plan := BoostPlan.at([1, 3])
+	var base_r := 0; var boost_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		boost_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan).total
+	assert_gt(boost_r, base_r, "a Manager Boost press should raise the Player's runs")
+
+func test_determinism_with_boost_plan() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var plan := BoostPlan.at([1, 10])
+	var r1 := RandomNumberGenerator.new(); r1.seed = 23
+	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 23
+	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+
 func test_determinism_with_change_jokers() -> void:
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
 	var plan := BowlingPlan.pace_only()
