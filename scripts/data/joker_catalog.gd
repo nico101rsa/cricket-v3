@@ -176,6 +176,24 @@ static func implemented_groups() -> Array:
 			_boost("compounding_pressure", "Compounding Pressure", "Rare", JokerEffect.BoostRole.COMPOUND)]),
 		_g("the_comeback_press", "The Comeback Press", "Legendary", [
 			_boost("the_comeback_press", "The Comeback Press", "Legendary", JokerEffect.BoostRole.COMEBACK)]),
+		# --- C2f: DRS / tryReview (Reviewer archetype) ---
+		_g("cool_head", "Cool Head", "Common", [
+			_drs("cool_head", "Cool Head", "Common", JokerEffect.DRSRole.ACCURACY, 0.10)]),
+		_g("captains_eye", "Captain's Eye", "Common", [
+			_drs("captains_eye", "Captain's Eye", "Common", JokerEffect.DRSRole.ACCURACY, 0.20,
+				BallResolver.Intent.DEFENSIVE)]),
+		_g("spare_review", "Spare Review", "Common", [
+			_drs("spare_review", "Spare Review", "Common", JokerEffect.DRSRole.EXTRA_REVIEW, 0.0)]),
+		_g("hot_spot", "Hot Spot", "Common", [
+			_drs("hot_spot", "Hot Spot", "Common", JokerEffect.DRSRole.FORM_ON_SUCCESS, 0.0)]),
+		_g("snicko", "Snicko", "Rare", [
+			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.25)]),
+		_g("the_captains_call", "The Captain's Call", "Rare", [
+			_drs("the_captains_call", "The Captain's Call", "Rare", JokerEffect.DRSRole.RETAIN, 0.0)]),
+		_g("bowlers_backing", "Bowler's Backing", "Rare", [
+			_drs("bowlers_backing", "Bowler's Backing", "Rare", JokerEffect.DRSRole.BOWLING_BUFF, 0.0)]),
+		_g("the_review_master", "The Review Master", "Legendary", [
+			_drs("the_review_master", "The Review Master", "Legendary", JokerEffect.DRSRole.MASTER, 0.0)]),
 	]
 
 # A Boost Stack joker: side/target/mult/window are irrelevant (the runtime drives
@@ -184,6 +202,15 @@ static func _boost(id: String, jname: String, rarity: String, role: int) -> Joke
 	return JokerEffect.make(id, jname, rarity,
 		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
 		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1, role)
+
+# A Reviewer joker: only drs_role (+ p_bonus, + intent_req for Captain's Eye) matter;
+# the runtime drives the review. Stored on the BOWLING side as a neutral default.
+static func _drs(id: String, jname: String, rarity: String, role: int, p_bonus: float,
+		intent_req: int = -1) -> JokerEffect:
+	return JokerEffect.make(id, jname, rarity,
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
+		intent_req, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
+		JokerEffect.BoostRole.NONE, role, p_bonus)
 
 # Flat list of every implemented effect row (the form the resolver consumes).
 static func implemented() -> Array:

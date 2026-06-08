@@ -33,12 +33,29 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 24 (thru C2d) + 7 (C2e Boost Stack) = 31 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 31)
+	# 31 (thru C2e) + 8 (C2f DRS) = 39 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 39)
 
 func test_implemented_flat_count() -> void:
-	# 28 rows (thru C2d) + 7 single-row Boost jokers = 35 rows.
-	assert_eq(JokerCatalog.implemented().size(), 35)
+	# 35 rows (thru C2e) + 8 single-row DRS jokers = 43 rows.
+	assert_eq(JokerCatalog.implemented().size(), 43)
+
+func test_drs_roles_present() -> void:
+	var roles := {}
+	for g in JokerCatalog.implemented_groups():
+		var e: JokerEffect = g["effects"][0]
+		if e.drs_role != JokerEffect.DRSRole.NONE:
+			roles[e.drs_role] = g["id"]
+	# ACCURACY is shared (Cool Head/Captain's Eye/Snicko) -> 6 distinct roles across 8 jokers.
+	assert_eq(roles[JokerEffect.DRSRole.MASTER], "the_review_master")
+	assert_eq(roles[JokerEffect.DRSRole.RETAIN], "the_captains_call")
+	assert_eq(roles[JokerEffect.DRSRole.BOWLING_BUFF], "bowlers_backing")
+
+func test_captains_eye_defensive_gate() -> void:
+	var e: JokerEffect = _group("captains_eye")["effects"][0]
+	assert_eq(e.drs_role, JokerEffect.DRSRole.ACCURACY)
+	assert_eq(e.intent_req, BallResolver.Intent.DEFENSIVE)
+	assert_almost_eq(e.drs_p_bonus, 0.20, 0.0001)
 
 func test_boost_stack_roles_present() -> void:
 	var roles := {}
