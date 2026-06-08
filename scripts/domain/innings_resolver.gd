@@ -90,6 +90,9 @@ static func simulate_innings(
 	var player_overs_set: Array[int] = []
 	if player_bowler_overs > 0:
 		player_overs_set = player_bowling_overs(player_bowler_overs, itun.over_limit)
+	var pb_wickets := 0  # Player-as-bowler figures for this innings
+	var pb_runs := 0
+	var pb_balls := 0
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -103,7 +106,8 @@ static func simulate_innings(
 			var prof := bowling_attack.profile(bowling_plan.for_over(over))
 			bat_attack = prof.x
 			bat_control = prof.y
-		if player_bowler_overs > 0 and player_overs_set.has(over):
+		var player_bowling := player_bowler_overs > 0 and player_overs_set.has(over)
+		if player_bowling:
 			bat_attack = player_bowler_attack
 			bat_control = player_bowler_control
 		var o := BallResolver.resolve_ball(
@@ -111,6 +115,12 @@ static func simulate_innings(
 			intent, tuning, rng)
 		balls += 1
 		s["balls"] += 1
+		if player_bowling:
+			pb_balls += 1
+			if o.wicket:
+				pb_wickets += 1
+			else:
+				pb_runs += o.runs
 		if o.wicket:
 			s["out"] = true
 			wickets += 1
@@ -132,4 +142,4 @@ static func simulate_innings(
 			striker = nonstriker
 			nonstriker = tmp2
 
-	return InningsResult.new(total, wickets, balls, fall, batters)
+	return InningsResult.new(total, wickets, balls, fall, batters, pb_wickets, pb_runs, pb_balls)
