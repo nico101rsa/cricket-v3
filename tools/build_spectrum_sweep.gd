@@ -9,6 +9,7 @@ extends SceneTree
 var _tuning: BallTuning
 var _itun: InningsTuning
 var _tour: TourDistribution
+var _rtun: RatingTuning
 
 func _init() -> void:
 	_tuning = BallTuning.new()
@@ -17,6 +18,7 @@ func _init() -> void:
 	_tour.mean = 5
 	_tour.spread = 1.5
 	_tour.noise = 1
+	_rtun = RatingTuning.new()
 
 	var arms: Array = []
 	for b in range(8, 1, -1):  # 8,7,6,5,4,3,2 -> full-batting ... full-bowling
@@ -30,7 +32,7 @@ func _init() -> void:
 	var swept := Sweep.run(arms, n, _scenario)
 
 	# header
-	print("build      win%   pos   bat-avg  SR     HS   wkts  econ  best   team  opp")
+	print("build      win%   pos   bat-avg  SR     HS   wkts  econ  best   team  opp  rating  r-bat r-bowl")
 	for ai in swept.size():
 		var recs = swept[ai]["records"]
 		var won := _sum(Sweep.values_of(recs, "won"))
@@ -43,6 +45,9 @@ func _init() -> void:
 		var bwl_b := Sweep.values_of(recs, "bwl_balls")
 		var team := Sweep.values_of(recs, "team_score")
 		var opp := Sweep.values_of(recs, "opp_score")
+		var rating := Sweep.values_of(recs, "rating")
+		var rate_bat := Sweep.values_of(recs, "rate_bat")
+		var rate_bowl := Sweep.values_of(recs, "rate_bowl")
 
 		var total_runs := _sum(runs)
 		var bat_avg := float(total_runs) / outs if outs > 0 else float(total_runs)
@@ -53,7 +58,7 @@ func _init() -> void:
 		var econ := 6.0 * _sum(bwl_r) / total_bb if total_bb > 0 else -1.0
 		var best := _best_bowling(bwl_w, bwl_r, bwl_b)
 
-		print("%-9s %5.1f %4.1f %7.1f %6.1f %4d %5.2f %5s %6s %5.0f %5.0f" % [
+		print("%-9s %5.1f %4.1f %7.1f %6.1f %4d %5.2f %5s %6s %5.0f %5.0f %7.1f %6.1f %6.1f" % [
 			swept[ai]["name"],
 			100.0 * won / n,
 			_mean(pos),
@@ -61,7 +66,8 @@ func _init() -> void:
 			wkts_per,
 			"%.2f" % econ if econ >= 0 else "—",
 			best,
-			_mean(team), _mean(opp)])
+			_mean(team), _mean(opp),
+			_mean(rating), _mean(rate_bat), _mean(rate_bowl)])
 	quit()
 
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
@@ -79,6 +85,8 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		bat_inn = m.innings2
 		bowl_inn = m.innings1
 	var line := bat_inn.player_line()
+	var rated: Dictionary = PlayerRating.rate(
+		line, bowl_inn.player_bowl_wickets, bowl_inn.player_bowl_runs, bowl_inn.player_bowl_balls, _rtun)
 
 	return {
 		"won": 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0,
@@ -91,6 +99,9 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		"bwl_balls": bowl_inn.player_bowl_balls,
 		"team_score": bat_inn.total,
 		"opp_score": bowl_inn.total,
+		"rating": rated["rating"],
+		"rate_bat": rated["batting"],
+		"rate_bowl": rated["bowling"],
 	}
 
 func _sum(a: Array) -> int:
