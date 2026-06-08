@@ -97,6 +97,7 @@ static func simulate_innings(
 	var pb_wickets := 0  # Player-as-bowler figures for this innings
 	var pb_runs := 0
 	var pb_balls := 0
+	var runtime := JokerRuntime.new()  # C2c — per-innings windowed-buff state
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -121,9 +122,10 @@ static func simulate_innings(
 		if bowl_intent_plan != null:
 			bowl_intent = bowl_intent_plan.for_over(over)
 		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent)
+		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
-			intent, tuning, rng, jm.x, jm.y)
+			intent, tuning, rng, jm.x * win.x, jm.y * win.y)
 		balls += 1
 		s["balls"] += 1
 		if player_bowling:
@@ -132,6 +134,14 @@ static func simulate_innings(
 				pb_wickets += 1
 			else:
 				pb_runs += o.runs
+		# C2c — a Player Form event: a Player boundary (batting) or a Player wicket
+		# (bowling). Fires/decays windowed buffs. Runs every ball so buffs decay.
+		var formed := false
+		if player_is_batting:
+			formed = s["is_player"] and not o.wicket and (o.runs == 4 or o.runs == 6)
+		elif player_bowling:
+			formed = o.wicket
+		runtime.on_ball_end(jokers, player_is_batting, balls, formed)
 		if o.wicket:
 			s["out"] = true
 			wickets += 1

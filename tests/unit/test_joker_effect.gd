@@ -87,6 +87,15 @@ func test_bowl_intent_default_arg_is_unset() -> void:
 	var j := _attack_the_stumps()
 	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL), "omitted bowl_intent -> off")
 
+func test_trigger_joker_never_matches_per_ball() -> void:
+	# A windowed-trigger joker (trigger != NONE) is owned by JokerRuntime, so the
+	# stateless matches() must always return false regardless of conditions.
+	var j := JokerEffect.make("rtw", "Ride the Wave", "Common",
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)
+	assert_false(j.matches(true, BallResolver.Intent.BALANCED, 1), "trigger joker -> never per-ball")
+	assert_false(j.matches(true, BallResolver.Intent.AGGRESSIVE, 5, FieldPlan.Mode.NEUTRAL, -1))
+
 func test_sets_field_stored() -> void:
 	# Defensive Captain shape: an enabler that forces a defensive field.
 	var j := JokerEffect.make("dc", "Defensive Captain", "Common",

@@ -33,13 +33,45 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 5 slice + 6 (C2a) + 4 (C2b) = 15 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 15)
+	# 15 (thru C2b) + 4 (C2c) = 19 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 19)
 
 func test_implemented_flat_count() -> void:
-	# 13 rows (C2a) + attack_the_stumps(1) + pressure_cooker(1) + choke_hold(2) +
-	# defensive_captain(1) = 18 rows.
-	assert_eq(JokerCatalog.implemented().size(), 18)
+	# 18 rows (thru C2b) + ride_the_wave(1) + wicket_maiden(1) + hot_streak(2) +
+	# match_winners_vigil(1) = 23 rows.
+	assert_eq(JokerCatalog.implemented().size(), 23)
+
+func test_ride_the_wave_trigger_shape() -> void:
+	var g := _group("ride_the_wave")
+	assert_false(g.is_empty())
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BATTING)
+	assert_eq(e.target, JokerEffect.Target.RUNS)
+	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BAT)
+	assert_eq(e.window_n, 3)
+	assert_almost_eq(e.mult, 1.20, 0.0001)
+
+func test_wicket_maiden_bowling_trigger() -> void:
+	var g := _group("wicket_maiden")
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BOWLING)
+	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BOWL)
+	assert_eq(e.window_n, 6)
+
+func test_hot_streak_two_double_rows() -> void:
+	var g := _group("hot_streak")
+	assert_eq(g["effects"].size(), 2, "Hot Streak = runs + wicket")
+	for e in g["effects"]:
+		assert_eq(e.trigger, JokerEffect.Trigger.FORM_DOUBLE_BAT)
+		assert_eq(e.window_n, 6)
+
+func test_match_winners_vigil_long_window() -> void:
+	var g := _group("match_winners_vigil")
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.rarity, "Legendary")
+	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BAT)
+	assert_eq(e.window_n, 24)
+	assert_almost_eq(e.mult, 0.80, 0.0001)
 
 func test_attack_the_stumps_shape() -> void:
 	var g := _group("attack_the_stumps")

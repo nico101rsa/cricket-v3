@@ -141,6 +141,33 @@ func test_attack_the_stumps_fires_on_aggressive_captaincy() -> void:
 			ats_wins += 1
 	assert_gt(ats_wins, base_wins, "Attack the Stumps should raise win-rate under Aggressive bowling captaincy")
 
+# --- C2c: Form-event windowed buffs at match level ---
+
+func test_form_trigger_joker_is_deterministic() -> void:
+	var rtw := [JokerEffect.make("rtw", "Ride the Wave", "Common",
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)]
+	var a := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(31), null, null, rtw)
+	var b := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(31), null, null, rtw)
+	assert_eq(a.outcome, b.outcome)
+	assert_eq(a.innings1.total, b.innings1.total)
+	assert_eq(a.innings2.total, b.innings2.total)
+
+func test_form_window_raises_win_rate() -> void:
+	# Ride the Wave (batting runs window) should help the Player's win-rate.
+	var rtw := [JokerEffect.make("rtw", "Ride the Wave", "Common",
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)]
+	var base_wins := 0; var buff_wins := 0
+	for i in range(300):
+		if _player_wins(i, []):
+			base_wins += 1
+		if _player_wins(i, rtw):
+			buff_wins += 1
+	assert_gt(buff_wins, base_wins, "a Form-triggered runs window should raise win-rate")
+
 func test_determinism_with_bowl_intent_plans() -> void:
 	var ats := [JokerEffect.make("ats", "Attack the Stumps", "Common",
 		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]

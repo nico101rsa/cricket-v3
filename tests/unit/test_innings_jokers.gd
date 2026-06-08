@@ -123,3 +123,59 @@ func test_determinism_with_bowl_intent_plan() -> void:
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
+
+# --- C2c: Form-event windowed buffs ---
+
+func _ride_the_wave() -> Array:
+	# FORM_BAT: a Player boundary -> runs x1.20 for 3 balls.
+	return [JokerEffect.make("rtw", "Ride the Wave", "Common",
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)]
+
+func _wicket_maiden() -> Array:
+	# FORM_BOWL: a Player wicket while bowling -> wicket x1.30 for 6 balls.
+	return [JokerEffect.make("wm", "Wicket Maiden", "Rare",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.30,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6)]
+
+func test_ride_the_wave_raises_player_runs() -> void:
+	# An aggressive Player who hits boundaries triggers the runs window -> more runs.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs(); a.power = 8; a.composure = 8  # high power -> boundaries -> Form events
+	var agg := IntentPlan.new()
+	agg.powerplay = BallResolver.Intent.AGGRESSIVE
+	agg.middle = BallResolver.Intent.AGGRESSIVE
+	agg.death = BallResolver.Intent.AGGRESSIVE
+	var jk := _ride_the_wave()
+	var base_r := 0; var buff_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, [], true).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		buff_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, agg, null, null, 0, 0, 0, jk, true).total
+	assert_gt(buff_r, base_r, "a boundary-triggered runs window should raise the total")
+
+func test_wicket_maiden_raises_opposition_wickets() -> void:
+	# Player bowling some overs; a Player wicket triggers a wicket window -> more wickets.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _wicket_maiden()
+	var base_w := 0; var buff_w := 0
+	for i in range(200):
+		# player_bowler_overs = 4 so the Player bowls and can take wickets.
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 8, 8, 4, [], false).wickets
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 8, 8, 4, jk, false).wickets
+	assert_gt(buff_w, base_w, "a wicket-triggered wicket window should raise total wickets")
+
+func test_determinism_with_trigger_jokers() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs(); a.power = 8
+	var jk := _ride_the_wave()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 5
+	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, true)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 5
+	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+	assert_eq(first.balls, second.balls)
