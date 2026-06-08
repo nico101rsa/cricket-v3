@@ -33,12 +33,25 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 39 (thru C2f) + 4 (C2g) = 43 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 43)
+	# 43 (thru C2g) + 2 (C2h) = 45 groups — the FULL pool wired.
+	assert_eq(JokerCatalog.implemented_groups().size(), 45)
 
 func test_implemented_flat_count() -> void:
-	# 43 rows (thru C2f) + 4 single-row C2g jokers = 47 rows.
-	assert_eq(JokerCatalog.implemented().size(), 47)
+	# 47 rows (thru C2g) + 2 single-row C2h jokers = 49 rows.
+	assert_eq(JokerCatalog.implemented().size(), 49)
+
+func test_field_restrictions_shape() -> void:
+	var e: JokerEffect = _group("field_restrictions")["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BATTING)
+	assert_eq(e.field_req, FieldPlan.Mode.CATCHING)
+	assert_almost_eq(e.mult, 1.12, 0.0001)
+
+func test_chase_master_shape() -> void:
+	var e: JokerEffect = _group("the_chase_master")["effects"][0]
+	assert_eq(e.rarity, "Legendary")
+	assert_eq(e.intent_req, BallResolver.Intent.AGGRESSIVE)
+	assert_eq(e.chase_req, 1)
+	assert_almost_eq(e.mult, 1.20, 0.0001)
 
 func test_form_source_shapes() -> void:
 	assert_eq(_group("the_sheet_anchor")["effects"][0].form_source, JokerEffect.FormSource.ON_BALANCED)

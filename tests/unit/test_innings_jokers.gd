@@ -219,6 +219,61 @@ func test_the_trap_raises_wickets_under_catching_spin() -> void:
 		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
 	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
 
+# --- C2h: the final two ---
+
+func _field_restrictions() -> Array:
+	# Batting vs catching (opposition) field -> runs x1.12 (strong synthetic for the signal).
+	return [JokerEffect.make("fr", "Field Restrictions", "Common", JokerEffect.Side.BATTING,
+		JokerEffect.Target.RUNS, 1.5, -1, 1, 120, FieldPlan.Mode.CATCHING)]
+
+func _chase_master() -> Array:
+	# Chasing + Aggressive -> runs x1.20 (synthetic strong).
+	return [JokerEffect.make("cm", "Chase Master", "Legendary", JokerEffect.Side.BATTING,
+		JokerEffect.Target.RUNS, 1.5, BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1,
+		JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE,
+		0.0, JokerEffect.FormSource.NONE, -1, 1)]
+
+func test_field_restrictions_raises_runs_vs_catching_field() -> void:
+	# opp_field_plan catching -> #9 fires while batting.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var oppfield := FieldPlan.catching()
+	var jk := _field_restrictions()
+	var base_r := 0; var fr_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null, oppfield).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		fr_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true, null, null, null, null, oppfield).total
+	assert_gt(fr_r, base_r, "Field Restrictions raises runs against a catching field")
+
+func test_chase_master_only_fires_in_a_chase() -> void:
+	# Aggressive plan; the joker fires only when chasing (target > 0).
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var agg := _agg_bal_agg(); agg.middle = BallResolver.Intent.AGGRESSIVE
+	var jk := _chase_master()
+	var nochase_r := 0; var chase_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		# target 0 -> not a chase -> Chase Master inert.
+		nochase_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, jk, true).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		# target 9999 -> a chase (never reached) -> Chase Master fires.
+		chase_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 9999, agg, null, null, 0, 0, 0, jk, true).total
+	assert_gt(chase_r, nochase_r, "The Chase Master fires only in a chase")
+
+func test_determinism_with_c2h_jokers() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs()
+	var jk := _field_restrictions() + _chase_master()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 37
+	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
+	var r2 := RandomNumberGenerator.new(); r2.seed = 37
+	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+
 # --- C2g: Form sources & intent dynamics ---
 
 func _sheet_anchor() -> JokerEffect:

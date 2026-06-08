@@ -211,6 +211,19 @@ static func implemented_groups() -> Array:
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
 				JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0,
 				JokerEffect.FormSource.NONE, BallResolver.Intent.AGGRESSIVE)]),
+		# --- C2h: the final two (full pool) ---
+		# #9 Field Restrictions: batting against a catching (opposition) field -> runs x1.12.
+		_g("field_restrictions", "Field Restrictions", "Common", [
+			JokerEffect.make("field_restrictions", "Field Restrictions", "Common",
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.12,
+				-1, 1, 120, FieldPlan.Mode.CATCHING)]),
+		# #15 The Chase Master: 2nd innings (chasing) + Aggressive -> runs x1.20.
+		_g("the_chase_master", "The Chase Master", "Legendary", [
+			JokerEffect.make("the_chase_master", "The Chase Master", "Legendary",
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+				BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1,
+				JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE,
+				JokerEffect.DRSRole.NONE, 0.0, JokerEffect.FormSource.NONE, -1, 1)]),
 	]
 
 # A Form-source joker (#2/#5/#11): only form_source matters; the sim fires the Form

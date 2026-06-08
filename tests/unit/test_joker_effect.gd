@@ -141,6 +141,17 @@ func test_snaps_intent_never_matches_per_ball() -> void:
 		JokerEffect.FormSource.NONE, BallResolver.Intent.AGGRESSIVE)
 	assert_false(j.matches(true, BallResolver.Intent.AGGRESSIVE, 1), "snap joker -> never per-ball")
 
+func test_chase_req_gate() -> void:
+	# The Chase Master shape: batting, Aggressive, chase-only.
+	var j := JokerEffect.make("cm", "Chase Master", "Legendary",
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+		BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
+		JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0, JokerEffect.FormSource.NONE, -1, 1)
+	# is_chase is the 7th matches() arg.
+	assert_true(j.matches(true, BallResolver.Intent.AGGRESSIVE, 1, FieldPlan.Mode.NEUTRAL, -1, -1, true))
+	assert_false(j.matches(true, BallResolver.Intent.AGGRESSIVE, 1, FieldPlan.Mode.NEUTRAL, -1, -1, false), "not chasing -> off")
+	assert_false(j.matches(true, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL, -1, -1, true), "not aggressive -> off")
+
 func test_sets_field_stored() -> void:
 	# Defensive Captain shape: an enabler that forces a defensive field.
 	var j := JokerEffect.make("dc", "Defensive Captain", "Common",

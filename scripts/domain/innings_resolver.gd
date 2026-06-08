@@ -82,7 +82,8 @@ static func simulate_innings(
 		field_plan: FieldPlan = null,
 		bowl_intent_plan: IntentPlan = null,
 		boost_plan: BoostPlan = null,
-		drs_policy: DRSPolicy = null
+		drs_policy: DRSPolicy = null,
+		opp_field_plan: FieldPlan = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -105,6 +106,7 @@ static func simulate_innings(
 	var prev_intent := -1       # C2g — for intent-switch Form sources
 	var def_streak := 0          # C2g — consecutive Player Defensive balls (Building Phase)
 	var intent_override := -1    # C2g — Boundary Hunter snaps intent to Aggressive
+	var is_chase := target > 0   # C2h — the chasing innings carries a target (Chase Master)
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -135,6 +137,10 @@ static func simulate_innings(
 		var field_mode := FieldPlan.Mode.NEUTRAL
 		if field_plan != null:
 			field_mode = field_plan.for_over(over)
+		# C2h — while batting, the readable field is the OPPOSITION's (for #9 Field
+		# Restrictions). While bowling, it stays the Player's field_plan (above).
+		if player_is_batting and opp_field_plan != null:
+			field_mode = opp_field_plan.for_over(over)
 		var bowl_intent := -1  # the bowling captain's intent (C2b); -1 = none set
 		if bowl_intent_plan != null:
 			bowl_intent = bowl_intent_plan.for_over(over)
@@ -149,7 +155,7 @@ static func simulate_innings(
 		# C2e — a Manager Boost press at this over's start fires a side-aware buff.
 		if boost_plan != null and balls == (over - 1) * 6 and boost_plan.presses_on(over):
 			runtime.on_boost_press(jokers, player_is_batting, intent, boost_plan.base_mult, boost_plan.base_n, balls + 1)
-		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type)
+		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type, is_chase)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
