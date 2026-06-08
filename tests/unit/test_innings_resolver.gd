@@ -98,6 +98,36 @@ func test_innings_deterministic_with_player_bowler() -> void:
 	assert_eq(r1.total, r2.total, "deterministic total")
 	assert_eq(r1.wickets, r2.wickets, "deterministic wickets")
 
+func test_player_bowling_figures_zero_when_not_bowling() -> void:
+	var r := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, _make_rng(5))
+	assert_eq(r.player_bowl_balls, 0, "no balls bowled when Player isn't bowling")
+	assert_eq(r.player_bowl_wickets, 0, "no wickets")
+	assert_eq(r.player_bowl_runs, 0, "no runs conceded")
+
+func test_player_bowling_figures_bounds_and_consistency() -> void:
+	# Player bowls 4 overs; figures stay within the innings and within the quota.
+	for seed_value in range(1, 40):
+		var r := InningsResolver.simulate_innings(
+			null, 5, 5, 5, tuning, itun, _make_rng(seed_value), 0, null, null, null, 7, 7, 4)
+		assert_lte(r.player_bowl_balls, 24, "<= 4 overs bowled (seed %d)" % seed_value)
+		assert_lte(r.player_bowl_wickets, r.wickets, "Player wickets <= innings wickets (seed %d)" % seed_value)
+		assert_lte(r.player_bowl_runs, r.total, "Player runs conceded <= innings total (seed %d)" % seed_value)
+
+func _avg_player_economy(p_attack: int, p_control: int, n: int) -> float:
+	var runs := 0
+	var balls := 0
+	for seed_value in range(1, n + 1):
+		var r := InningsResolver.simulate_innings(
+			null, 5, 5, 5, tuning, itun, _make_rng(seed_value), 0, null, null, null, p_attack, p_control, 4)
+		runs += r.player_bowl_runs
+		balls += r.player_bowl_balls
+	return 6.0 * runs / balls  # runs per over
+
+func test_strong_player_bowler_has_better_economy() -> void:
+	var weak := _avg_player_economy(2, 2, 60)
+	var strong := _avg_player_economy(8, 8, 60)
+	assert_lt(strong, weak, "a strong Player bowler concedes fewer runs per over than a weak one")
+
 func _make_rng(seed_value: int) -> RandomNumberGenerator:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed_value
