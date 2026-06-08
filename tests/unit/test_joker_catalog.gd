@@ -33,13 +33,32 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 15 (thru C2b) + 4 (C2c) = 19 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 19)
+	# 19 (thru C2c) + 5 (C2d) = 24 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 24)
 
 func test_implemented_flat_count() -> void:
-	# 18 rows (thru C2b) + ride_the_wave(1) + wicket_maiden(1) + hot_streak(2) +
-	# match_winners_vigil(1) = 23 rows.
-	assert_eq(JokerCatalog.implemented().size(), 23)
+	# 23 rows (thru C2c) + pace_pack(1) + spinners_web(1) + first_change(1) +
+	# strike_bowler(1) + the_trap(1) = 28 rows.
+	assert_eq(JokerCatalog.implemented().size(), 28)
+
+func test_pace_pack_change_trigger() -> void:
+	var e: JokerEffect = _group("pace_pack")["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BOWLING)
+	assert_eq(e.trigger, JokerEffect.Trigger.CHANGE_PACE)
+	assert_eq(e.window_n, 6)
+
+func test_strike_bowler_catching_gate() -> void:
+	var e: JokerEffect = _group("the_strike_bowler")["effects"][0]
+	assert_eq(e.trigger, JokerEffect.Trigger.CHANGE_ANY)
+	assert_eq(e.field_req, FieldPlan.Mode.CATCHING)
+	assert_eq(e.window_n, 12)
+
+func test_the_trap_stateless_shape() -> void:
+	var e: JokerEffect = _group("the_trap")["effects"][0]
+	assert_eq(e.trigger, JokerEffect.Trigger.NONE, "The Trap is stateless")
+	assert_eq(e.field_req, FieldPlan.Mode.CATCHING)
+	assert_eq(e.bowler_type_req, BowlingPlan.Kind.SPIN)
+	assert_almost_eq(e.mult, 1.25, 0.0001)
 
 func test_ride_the_wave_trigger_shape() -> void:
 	var g := _group("ride_the_wave")

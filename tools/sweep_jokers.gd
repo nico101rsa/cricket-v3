@@ -26,11 +26,16 @@ func _init() -> void:
 	var bowl_intent_stack: Array = []
 	var form_ids := {"ride_the_wave": true, "hot_streak": true, "match_winners_vigil": true}
 	var form_window_stack: Array = []
+	var wicket_hunter_ids := {"pace_pack": true, "spinners_web": true,
+		"first_change_specialist": true, "the_strike_bowler": true, "the_trap": true}
+	var wicket_hunter_stack: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
 			bowl_intent_stack.append_array(g["effects"])
 		if form_ids.has(g["id"]):
 			form_window_stack.append_array(g["effects"])
+		if wicket_hunter_ids.has(g["id"]):
+			wicket_hunter_stack.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
 				batting_stack.append(e)
@@ -44,6 +49,7 @@ func _init() -> void:
 	arms.append({"name": "Field-defensive stack", "config": field_def_stack})
 	arms.append({"name": "Bowling-intent stack", "config": bowl_intent_stack})
 	arms.append({"name": "Form-window stack", "config": form_window_stack})
+	arms.append({"name": "Wicket-Hunter stack", "config": wicket_hunter_stack})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
@@ -122,12 +128,24 @@ func _opp_intent_plan() -> IntentPlan:
 	p.death = BallResolver.Intent.BALANCED
 	return p
 
+# C2d — the Player's bowling plan, shared across arms. PACE powerplay, SPIN middle
+# + death. With _field_plan (CATCHING/DEFENSIVE/CATCHING), setNextBowler fires at
+# overs 1 (pace, catching), 7 (spin, defensive), 16 (spin, catching) -> Pace Pack,
+# Spinner's Web, First-Change, Strike Bowler all fire; the death spin+catching
+# phase fires The Trap. Turning on rotation also enables per-over pace/spin tilt.
+func _bowling_plan() -> BowlingPlan:
+	var p := BowlingPlan.new()
+	p.powerplay = BowlingPlan.Kind.PACE
+	p.middle = BowlingPlan.Kind.SPIN
+	p.death = BowlingPlan.Kind.SPIN
+	return p
+
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
 	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), null, config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan())
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan())
 	var line := m.innings1.player_line()
 	if line.is_empty():
 		line = m.innings2.player_line()

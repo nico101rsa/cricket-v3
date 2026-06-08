@@ -121,7 +121,15 @@ static func simulate_innings(
 		var bowl_intent := -1  # the bowling captain's intent (C2b); -1 = none set
 		if bowl_intent_plan != null:
 			bowl_intent = bowl_intent_plan.for_over(over)
-		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent)
+		var bowler_type := -1  # current over's BowlingPlan.Kind (C2d); -1 = no rotation
+		if bowling_plan != null:
+			bowler_type = bowling_plan.for_over(over)
+		# C2d — a setNextBowler event fires at each spell start (overs 1/7/16) while
+		# the Player captains the bowling (opposition batting innings), pushing buffs
+		# that apply from this over onward (so before tick_mults below).
+		if bowling_plan != null and not player_is_batting and balls == (over - 1) * 6 and (over == 1 or over == 7 or over == 16):
+			runtime.on_bowling_change(jokers, bowler_type, field_mode)
+		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
