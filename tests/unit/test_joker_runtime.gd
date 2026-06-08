@@ -249,3 +249,26 @@ func test_bowling_buff_on_successful_review() -> void:
 	# Bowling success -> Bowler's Backing pushes a wicket window.
 	assert_true(rt.try_review(jk, false, BallResolver.Intent.BALANCED, 1.0, 1, _rng(1)))
 	assert_almost_eq(rt.tick_mults(false).x, 1.20, 0.0001, "Bowler's Backing wicket buff")
+
+# --- C2g: Form sources ---
+
+func _source(src: int) -> JokerEffect:
+	return JokerEffect.make("s", "S", "Common", JokerEffect.Side.BATTING,
+		JokerEffect.Target.RUNS, 1.0, -1, 1, 120, -1, -1, -1,
+		JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE,
+		JokerEffect.DRSRole.NONE, 0.0, src)
+
+func test_fire_form_source_chains_consumer() -> void:
+	# A Sheet Anchor (ON_BALANCED source) + Ride the Wave: firing the source triggers
+	# the Form consumer (a runs window).
+	var rt := JokerRuntime.new()
+	var jk := [_source(JokerEffect.FormSource.ON_BALANCED), _ride_the_wave()]
+	rt.fire_form_source(jk, true, JokerEffect.FormSource.ON_BALANCED, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.20, 0.0001, "source fires -> Ride the Wave window")
+
+func test_fire_form_source_no_matching_source() -> void:
+	# No ON_BALANCED source present -> nothing fires.
+	var rt := JokerRuntime.new()
+	var jk := [_ride_the_wave()]
+	rt.fire_form_source(jk, true, JokerEffect.FormSource.ON_BALANCED, 1)
+	assert_almost_eq(rt.tick_mults(true).y, 1.0, 0.0001)

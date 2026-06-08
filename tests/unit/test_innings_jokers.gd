@@ -219,6 +219,67 @@ func test_the_trap_raises_wickets_under_catching_spin() -> void:
 		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
 	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
 
+# --- C2g: Form sources & intent dynamics ---
+
+func _sheet_anchor() -> JokerEffect:
+	return JokerEffect.make("sa", "Sheet Anchor", "Common", JokerEffect.Side.BATTING,
+		JokerEffect.Target.RUNS, 1.0, -1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE,
+		0, -1, JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0,
+		JokerEffect.FormSource.ON_BALANCED)
+
+func _boundary_hunter() -> JokerEffect:
+	return JokerEffect.make("bh", "Boundary Hunter", "Rare", JokerEffect.Side.BATTING,
+		JokerEffect.Target.RUNS, 1.0, -1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE,
+		0, -1, JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0,
+		JokerEffect.FormSource.NONE, BallResolver.Intent.AGGRESSIVE)
+
+func _agg_bal_agg() -> IntentPlan:
+	var p := IntentPlan.new()
+	p.powerplay = BallResolver.Intent.AGGRESSIVE
+	p.middle = BallResolver.Intent.BALANCED
+	p.death = BallResolver.Intent.AGGRESSIVE
+	return p
+
+func test_sheet_anchor_adds_form_events() -> void:
+	# The switch to Balanced (over 7) fires Sheet Anchor's Form event, which triggers
+	# Ride the Wave -> an extra runs window the Ride-the-Wave-only arm doesn't get.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs(); a.power = 8; a.composure = 8
+	var plan := _agg_bal_agg()
+	var rtw := _ride_the_wave()
+	var combo := _ride_the_wave() + [_sheet_anchor()]
+	var rtw_r := 0; var combo_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		rtw_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, plan, null, null, 0, 0, 0, rtw, true).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		combo_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, plan, null, null, 0, 0, 0, combo, true).total
+	assert_gt(combo_r, rtw_r, "Sheet Anchor's intent-switch Form event adds a Ride-the-Wave window")
+
+func test_boundary_hunter_raises_runs() -> void:
+	# After a boundary, Boundary Hunter latches intent to Aggressive -> higher scoring.
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs(); a.power = 8; a.composure = 8
+	var jk := [_boundary_hunter()]
+	var base_r := 0; var bh_r := 0
+	for i in range(200):
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true).total
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		bh_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true).total
+	assert_gt(bh_r, base_r, "Boundary Hunter snapping to Aggressive raises total runs")
+
+func test_determinism_with_form_sources() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var a := _attrs(); a.power = 8
+	var jk := _ride_the_wave() + [_sheet_anchor(), _boundary_hunter()]
+	var r1 := RandomNumberGenerator.new(); r1.seed = 33
+	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 33
+	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+
 # --- C2f: DRS ---
 
 func test_drs_lowers_player_dismissals() -> void:

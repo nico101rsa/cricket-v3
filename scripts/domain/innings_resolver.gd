@@ -102,6 +102,9 @@ static func simulate_innings(
 	var runtime := JokerRuntime.new()  # C2c — per-innings windowed-buff state
 	if drs_policy != null:
 		runtime.init_reviews(jokers, drs_policy.base_reviews)  # C2f — DRS resource
+	var prev_intent := -1       # C2g — for intent-switch Form sources
+	var def_streak := 0          # C2g — consecutive Player Defensive balls (Building Phase)
+	var intent_override := -1    # C2g — Boundary Hunter snaps intent to Aggressive
 
 	while balls < max_balls and wickets < 10 and (target == 0 or total < target):
 		var s: Dictionary = batters[striker]
@@ -109,6 +112,16 @@ static func simulate_innings(
 		var intent := BallResolver.Intent.BALANCED
 		if intent_plan != null:
 			intent = intent_plan.for_over(over)
+		if intent_override != -1:
+			intent = intent_override  # C2g — Boundary Hunter latch
+		# C2g — intent-switch Form source at over start (Player batting only).
+		if player_is_batting and balls == (over - 1) * 6:
+			if intent != prev_intent:
+				if intent == BallResolver.Intent.BALANCED:
+					runtime.fire_form_source(jokers, true, JokerEffect.FormSource.ON_BALANCED, balls + 1)
+				elif intent == BallResolver.Intent.AGGRESSIVE:
+					runtime.fire_form_source(jokers, true, JokerEffect.FormSource.ON_AGGRESSIVE, balls + 1)
+			prev_intent = intent
 		var bat_attack := opp_attack
 		var bat_control := opp_control
 		if bowling_attack != null and bowling_plan != null:
@@ -168,6 +181,20 @@ static func simulate_innings(
 		elif player_bowling:
 			formed = o.wicket
 		runtime.on_ball_end(jokers, player_is_batting, balls, formed)
+		# C2g — Building Phase: count consecutive Player Defensive balls -> Form every 6.
+		if player_is_batting and s["is_player"]:
+			if intent == BallResolver.Intent.DEFENSIVE and not o.wicket:
+				def_streak += 1
+				if def_streak % 6 == 0:
+					runtime.fire_form_source(jokers, true, JokerEffect.FormSource.ON_DEFENSIVE_OVER, balls)
+			else:
+				def_streak = 0
+		# C2g — Boundary Hunter: a Form event latches the Player's intent to Aggressive.
+		if formed and player_is_batting and intent_override == -1:
+			for j in jokers:
+				if j.snaps_intent != -1:
+					intent_override = j.snaps_intent
+					break
 		if o.wicket:
 			s["out"] = true
 			wickets += 1
