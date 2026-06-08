@@ -197,6 +197,20 @@ Slices 2 and 3 may merge if Slice 2 turns out small; writing-plans decides.
 
 ---
 
+## 8.5 Slice 2 implementation decisions (2026-06-08, recorded during writing-plans)
+
+Resolving the one design fork the spec left open — archetypes are star-independent (BATTER is always 8/8/2/2), yet `simulate_match_teams` must keep a 5★ team beating a 0.5★ team (the 7b-1 directional regression in `test_match_resolver`). Decisions, all reversible internal seams:
+
+- **D6 — Star-directionality via a uniform batting offset, NOT by re-scaling archetypes.** `Team.batting_strength`/`bowling_strength` stay **exactly as today** (tour-percentile of stars + RNG noise) — so `LeagueResolver` and `test_team` are untouched. The team's batting scalar is then applied as a uniform **offset** to every roster member: `eff_power = power + (team_bat_scalar − ref3)`, same for composure, floored at 1, where `ref3 = tour.percentile(3.0/5.0)` (the even-★3 no-noise batting scalar). **Consequence:** at even ★3 the offset is ~0 (±noise), so the build-spectrum balance baseline is the *pristine* 20-point archetypes (what Slice 3 calibrates against); a 5★ card shifts up (~+2), a 0.5★ card down (~−1), preserving directionality.
+- **D7 — Slice 2 = real individual *batting order* only. The bowling side stays the existing star-derived scalar.** The sim has no per-bowler husbanding (which bowler bowls which over) — that is already deferred to a possible 4c rung. So "wire the bowling side" is satisfied at the aggregate-strength level (the bowling scalar is the team's, consistent with its roster), not per-over. No change to how bowling attack/control flow.
+- **D8 — Roster threaded as optional trailing params; null = the old clone path.** Only `simulate_match_teams` builds rosters (via `Team.build_xi()`) and passes them down through `simulate_match` → `simulate_innings` → `_build_batters`. Every existing scalar-path caller/test (all of `test_match_jokers`, the joker sweeps, direct `simulate_match`/`simulate_innings` unit tests) passes no roster → byte-identical old behaviour. Determinism is preserved because the RNG draw order (toss + 4 strength draws) is unchanged — rosters are pure data built from already-drawn scalars.
+- **D9 — Player insertion (crude, pre-gap-fill).** `simulate_match_teams` builds the player team's order by taking the 11-archetype standard XI and **replacing the archetype at the Player's build-driven `player_position` with the Player** (10 archetype teammates + the Player). This already gives a crude natural displacement (a batter-build slots high ~#3 replacing a BATTER; a bowler-build slots ~#7 replacing the ALLROUNDER; an even build ~#5 replacing a BATTER). True gap-fill that holds the (122/98) split is **Slice 3**. The opponent is the unmodified 11-archetype standard XI.
+- **D10 — When a roster is supplied, `_build_batters` drops the synthetic `partner_factor` tail curve** — the archetype order already encodes the weakening tail (BOWLERs bat last with power 2). The tail curve still applies on the null/clone path.
+
+**Expected test impact:** `test_match_resolver`'s determinism tests stay green (still deterministic); its directional (5★>0.5★) + even-balance assertions should hold (re-verify). `build_spectrum_sweep` / `season_preview` / `sweep_*` print-tables shift their numbers (team batting cards are now real individuals) — diagnostics, not assertions. No assertion in the joker tests changes (scalar path untouched).
+
+---
+
 ## 9.5 Slice 1 calibration findings (2026-06-08)
 
 Slice 1 shipped the rating + sweep column. Par-lines derived from the generic 5/5/5/5 neutral build: **`sr_par = 111.6`, `rr_par = 6.4`** (so that build rates ~0). Per-build mean rating at `wicket_value = 10` (2000 matches/build, even ★3, neutral Intent):
@@ -225,6 +239,24 @@ Tuned `BallTuning.k_w` **0.42 → 0.24** (the attack-vs-composure gain; `base_w`
 | 2/2/8/8 bowler | **3.17 → 1.90** | 6 → 10 | 62 → 58 |
 
 The 4-over specialist now takes an elite-realistic ~1.9 wkts (was a fantasy 3.17) and the batter's average falls from immortal 141 to a saner 86 (still high — neutral-Intent has no aggression risk per D5, expected). Win-rates compressed modestly toward 50 but are **not flat yet** — that is the team gap-fill's job (Slice 3), not the wicket dial's. Note: the layer-C joker findings were measured at the old `k_w`; their baseline shifts slightly (re-tuning jokers is already deferred, §9). `wicket_value` is left at 10 pending the Slice-3 re-solve against the real team.
+
+### 9.5.2 Slice 2 re-grounded baseline — real rosters (2026-06-08)
+
+Slice 2 shipped the discrete real roster (both teams are now 11 individual archetype players, not a flat ~5 clone). The build-spectrum sweep (2000 even-★3 matches/build, neutral Intent) re-grounds to:
+
+| build | win% | bat-avg | wkts/match | rating | r-bat | r-bowl | team | opp |
+|---|---|---|---|---|---|---|---|---|
+| 8/8/2/2 (batter) | 48.7 | 81.4 | 0.00 | 8.1 | 8.1 | 0.0 | 172 | 173 |
+| 7/7/3/3 | 46.0 | 59.3 | 0.00 | 5.2 | 5.2 | 0.0 | 170 | 172 |
+| 6/6/4/4 | 45.3 | 38.2 | 0.09 | −0.6 | 0.9 | −1.8 | 170 | 172 |
+| 5/5/5/5 (all-r) | 46.1 | 28.0 | 0.19 | −3.0 | −0.1 | −3.0 | 170 | 172 |
+| 4/4/6/6 | 48.8 | 18.8 | 0.24 | −1.5 | −0.2 | −1.2 | 170 | 171 |
+| 3/3/7/7 | 53.4 | 11.2 | 0.52 | 1.1 | −0.1 | 1.3 | 171 | 169 |
+| 2/2/8/8 (bowler) | **59.0** | 9.1 | 0.85 | 5.8 | −0.1 | 6.0 | 169 | 166 |
+
+**The shape inverted.** Pre-roster (§9.5.1) the *batter* was the win-rate high (64) and the bowler 58; now the *bowler* is the high (**59.0**) and the batter sits at the fair line (48.7), with a **U-shaped valley** bottoming at the all-rounder/mid-builds (~45–46). Why: every team now carries a genuinely strong top order (six power-8 batters → team scores jumped to ~170), so a batter-Player merely displaces one of six strong batters (marginal) while a bowler-Player adds a real 4-over bowling lever the team doesn't otherwise concentrate. Two honest consequences of real opposition: Player **wickets/match collapsed** (bowler 0.85 vs the old 1.90 — bowling at a real power-8 top order is much harder) and **bat-avg fell** (batter 81 vs 86). The collapsed wicket rate also **defused the wicket_value=10 over-rating** — ratings now sit in a tight [−3, +8] band (was 11 vs 38), though still not flat: the all-rounder/mid-builds rate *worst* (the new dip to solve).
+
+**Neither bar is met yet — as expected; both are Slice 3's job.** Slice 3's gap-fill must (a) flatten the U so all builds land ~50% (the bowler's +9 edge and the mid-build −5 dip are the targets — likely by adjusting how the Player's build displaces teammates so a bowler-Player doesn't get a "free" extra lever), and (b) re-solve `wicket_value` and/or archetype profiles so the rating band flattens too. The honest read: making teams real didn't *flatten* balance, but it **re-grounded it on a realistic foundation** and revealed the true lever (the Player's marginal contribution to an already-strong team), which is exactly what gap-fill needs to target.
 
 ---
 
