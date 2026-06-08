@@ -212,7 +212,19 @@ Slice 1 shipped the rating + sweep column. Par-lines derived from the generic 5/
 1. **The sim hands a 4-over Player bowler ~3.17 wickets/match** — very high for 24 balls (a wicket every ~7.6 balls). At 10 runs each that is ~32 of the bowler's 38 rating.
 2. **Economy alone nearly matches the batter:** strip the wickets out (wicket_value→0) and the bowler still rates ~7.4 from runs-saved vs the batter's 10.7 — so *any* positive wicket value tips bowlers ahead.
 
-**Implication for Slice 3:** individual parity can't be reached by lowering `wicket_value` alone — to equalise it would have to fall to ~1, which is unrealistic. The real lever is the **sim's bowler-wicket rate** (3.17/match is too high — it also inflates the bowler build's 62% win-rate). So Slice 3 calibration must touch the wicket model (`BallTuning.base_w`/`k_w`), not just the rating dial. **This is a decision point for Nico** (see wrap-up): tune the sim so a 4-over bowler takes a realistic ~1–1.5 wickets, *then* re-solve `wicket_value`.
+**Implication:** individual parity can't be reached by lowering `wicket_value` alone — to equalise it would have to fall to ~1, which is unrealistic. The real lever is the **sim's bowler-wicket rate** (3.17/match is too high — it also inflates the bowler build's 62% win-rate).
+
+### 9.5.1 Slice 1b — wicket-rate fix (2026-06-08)
+
+Tuned `BallTuning.k_w` **0.42 → 0.24** (the attack-vs-composure gain; `base_w`/even-contest baseline untouched, so no tests broke). This is a *twofer* — the same gain governs both extremes:
+
+| build | wkts/match (was → now) | bat-avg (was → now) | win% (was → now) |
+|---|---|---|---|
+| 8/8/2/2 batter | 0 → 0 | 141 → **86** | 67 → 64 |
+| 5/5/5/5 all-r | 0.55 → 0.49 | 29 → 31 | 51.7 → 51.5 |
+| 2/2/8/8 bowler | **3.17 → 1.90** | 6 → 10 | 62 → 58 |
+
+The 4-over specialist now takes an elite-realistic ~1.9 wkts (was a fantasy 3.17) and the batter's average falls from immortal 141 to a saner 86 (still high — neutral-Intent has no aggression risk per D5, expected). Win-rates compressed modestly toward 50 but are **not flat yet** — that is the team gap-fill's job (Slice 3), not the wicket dial's. Note: the layer-C joker findings were measured at the old `k_w`; their baseline shifts slightly (re-tuning jokers is already deferred, §9). `wicket_value` is left at 10 pending the Slice-3 re-solve against the real team.
 
 ---
 
