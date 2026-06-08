@@ -197,6 +197,25 @@ Slices 2 and 3 may merge if Slice 2 turns out small; writing-plans decides.
 
 ---
 
+## 9.5 Slice 1 calibration findings (2026-06-08)
+
+Slice 1 shipped the rating + sweep column. Par-lines derived from the generic 5/5/5/5 neutral build: **`sr_par = 111.6`, `rr_par = 6.4`** (so that build rates ~0). Per-build mean rating at `wicket_value = 10` (2000 matches/build, even ★3, neutral Intent):
+
+| build | win% | rating | r-bat | r-bowl | Player wkts/match |
+|---|---|---|---|---|---|
+| 8/8/2/2 (batter) | 67.1 | 10.7 | 10.7 | 0.0 | 0.00 |
+| 5/5/5/5 (all-r) | 51.7 | 4.9 | ~0 | 4.8 | 0.55 |
+| 2/2/8/8 (bowler) | 61.8 | **37.8** | −1.1 | 39.1 | 3.17 |
+
+**Key finding (answers Nico's wicket-value flag):** at `wicket_value = 10` the formula **massively over-rates bowlers** (37.8 vs the batter's 10.7). Two compounding causes, both empirical:
+
+1. **The sim hands a 4-over Player bowler ~3.17 wickets/match** — very high for 24 balls (a wicket every ~7.6 balls). At 10 runs each that is ~32 of the bowler's 38 rating.
+2. **Economy alone nearly matches the batter:** strip the wickets out (wicket_value→0) and the bowler still rates ~7.4 from runs-saved vs the batter's 10.7 — so *any* positive wicket value tips bowlers ahead.
+
+**Implication for Slice 3:** individual parity can't be reached by lowering `wicket_value` alone — to equalise it would have to fall to ~1, which is unrealistic. The real lever is the **sim's bowler-wicket rate** (3.17/match is too high — it also inflates the bowler build's 62% win-rate). So Slice 3 calibration must touch the wicket model (`BallTuning.base_w`/`k_w`), not just the rating dial. **This is a decision point for Nico** (see wrap-up): tune the sim so a 4-over bowler takes a realistic ~1–1.5 wickets, *then* re-solve `wicket_value`.
+
+---
+
 ## 9. Deferred / out of scope
 
 - Opponent team intelligence (fixed standard XI only; no adaptive opponent build).
