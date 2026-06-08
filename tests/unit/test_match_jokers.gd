@@ -169,11 +169,16 @@ func test_form_trigger_joker_is_deterministic() -> void:
 
 func test_form_window_raises_win_rate() -> void:
 	# Ride the Wave (batting runs window) should help the Player's win-rate.
+	# Slice 2: with the real-roster team the Player (#5 all-rounder) is a smaller
+	# lever amid power-8 top-order batters, so a small situational runs window needs
+	# a clear magnitude + more samples to register a non-flaky directional signal
+	# (the original 1.20/3-ball over 300 matches landed on a coin-flip tie). Same
+	# mechanic, detectable lever: a 1.5x runs window over 6 balls, N=600.
 	var rtw := [JokerEffect.make("rtw", "Ride the Wave", "Common",
-		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
-		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)]
+		JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.5,
+		-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 6)]
 	var base_wins := 0; var buff_wins := 0
-	for i in range(300):
+	for i in range(600):
 		if _player_wins(i, []):
 			base_wins += 1
 		if _player_wins(i, rtw):

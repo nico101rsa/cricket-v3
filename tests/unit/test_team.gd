@@ -75,3 +75,42 @@ func test_mutate_stars_clamped() -> void:
 		var lo := _team(0.5)
 		lo.mutate_stars(_rng(s))
 		assert_gte(lo.stars, 0.5, "never below 0.5")
+
+func test_archetypes_are_valid_20pt_builds() -> void:
+	for a in [Team.archetype_batter(), Team.archetype_bowler(), Team.archetype_allrounder()]:
+		assert_eq(a.sum(), 20, "archetype is a 20-point build")
+		assert_true(a.is_valid_creation_distribution(), "archetype is a legal distribution")
+	var bat := Team.archetype_batter()
+	assert_eq([bat.power, bat.composure, bat.attack, bat.control], [8, 8, 2, 2], "BATTER 8/8/2/2")
+	var bwl := Team.archetype_bowler()
+	assert_eq([bwl.power, bwl.composure, bwl.attack, bwl.control], [2, 2, 8, 8], "BOWLER 2/2/8/8")
+	var ar := Team.archetype_allrounder()
+	assert_eq([ar.power, ar.composure, ar.attack, ar.control], [5, 5, 5, 5], "ALLROUNDER 5/5/5/5")
+
+func test_standard_xi_shape_and_point_split() -> void:
+	var xi := Team.standard_xi()
+	assert_eq(xi.size(), 11, "a full XI of 11 players")
+	for i in range(6):
+		assert_eq(xi[i].power, 8, "slots 1..6 are top-order batters (power 8)")
+	assert_eq(xi[6].power, 5, "slot 7 is the all-rounder")
+	for i in range(7, 11):
+		assert_eq(xi[i].power, 2, "slots 8..11 are bowlers (power 2)")
+	var bat_pts := 0
+	var bowl_pts := 0
+	for p in xi:
+		bat_pts += p.power + p.composure
+		bowl_pts += p.attack + p.control
+	assert_eq(bat_pts, 122, "team batting points = 122 (spec target)")
+	assert_eq(bowl_pts, 98, "team bowling points = 98 (spec target)")
+
+func test_build_xi_places_player_at_position() -> void:
+	var player := Attributes.new()
+	player.power = 7; player.composure = 6; player.attack = 4; player.control = 3
+	var xi := Team.build_xi(player, 3)
+	assert_eq(xi.size(), 11, "still a full XI")
+	assert_true(xi[2] == player, "the Player object sits at 1-based position 3")
+	var player_slots := 0
+	for p in xi:
+		if p == player:
+			player_slots += 1
+	assert_eq(player_slots, 1, "the Player appears exactly once")

@@ -339,3 +339,75 @@ func test_pace_takes_more_wickets_at_higher_run_rate_than_spin() -> void:
 	var pace_rate := float(pace_runs) / float(pace_balls)
 	var spin_rate := float(spin_runs) / float(spin_balls)
 	assert_gt(pace_rate, spin_rate, "pace concedes a higher run rate than spin")
+
+# --- Slice 2: _build_batters real-roster path ---------------------------------
+
+func test_build_batters_clone_path_unchanged_when_no_roster() -> void:
+	var batters := InningsResolver._build_batters(null, 5, itun)
+	assert_eq(batters.size(), 11, "11 batters")
+	assert_eq(batters[0]["power"], 5, "opener clone == partner_batting * factor(1)=1.0")
+	assert_lt(batters[10]["power"], batters[0]["power"], "tail weaker than opener (clone path)")
+
+func test_build_batters_uses_real_roster_individuals() -> void:
+	var roster := Team.standard_xi()
+	var batters := InningsResolver._build_batters(null, 5, itun, roster, 0)
+	assert_eq(batters.size(), 11, "11 batters")
+	assert_eq(batters[0]["power"], 8, "top order is a real BATTER (power 8, no tail-scaling)")
+	assert_eq(batters[0]["composure"], 8, "composure also from the archetype")
+	assert_eq(batters[10]["power"], 2, "tail is a real BOWLER (power 2)")
+	for b in batters:
+		assert_false(b["is_player"], "opposition roster has no Player slot")
+
+func test_build_batters_offset_applied_and_floored() -> void:
+	var roster := Team.standard_xi()
+	var up := InningsResolver._build_batters(null, 5, itun, roster, 2)
+	assert_eq(up[0]["power"], 10, "offset lifts the top order (8+2)")
+	assert_eq(up[10]["power"], 4, "offset lifts the tail (2+2)")
+	var down := InningsResolver._build_batters(null, 5, itun, roster, -5)
+	assert_eq(down[10]["power"], 1, "power floored at 1 (2-5 clamped)")
+
+func test_build_batters_flags_player_by_identity() -> void:
+	var player := _attrs(8, 8, 2, 2)            # pure batter -> position 3
+	var ppos := InningsResolver.player_position(player, itun)
+	var roster := Team.build_xi(player, ppos)
+	var batters := InningsResolver._build_batters(player, 5, itun, roster, 0)
+	assert_true(batters[ppos - 1]["is_player"], "the Player slot is flagged at ppos")
+	var player_flags := 0
+	for b in batters:
+		if b["is_player"]:
+			player_flags += 1
+	assert_eq(player_flags, 1, "exactly one Player slot")
+
+# --- Slice 2: simulate_innings roster threading -------------------------------
+
+func test_simulate_innings_roster_default_unchanged() -> void:
+	var a := _attrs(5, 5, 5, 5)
+	var rng1 := RandomNumberGenerator.new(); rng1.seed = 99
+	var rng2 := RandomNumberGenerator.new(); rng2.seed = 99
+	var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, rng1)
+	var same := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, rng2, 0,
+		null, null, null, 0, 0, 0, [], true, null, null, null, null, null, [], 0)
+	assert_eq(base.total, same.total, "empty roster == old behaviour (total)")
+	assert_eq(base.wickets, same.wickets, "empty roster == old behaviour (wickets)")
+
+func test_simulate_innings_roster_is_deterministic() -> void:
+	var roster := Team.standard_xi()
+	var rng1 := RandomNumberGenerator.new(); rng1.seed = 7
+	var rng2 := RandomNumberGenerator.new(); rng2.seed = 7
+	var r1 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, rng1, 0,
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+	var r2 := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, rng2, 0,
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+	assert_eq(r1.total, r2.total, "roster innings deterministic")
+
+func test_simulate_innings_real_roster_outscores_weak_clone() -> void:
+	var roster := Team.standard_xi()
+	var roster_runs := 0
+	var clone_runs := 0
+	for s in range(40):
+		var rr := RandomNumberGenerator.new(); rr.seed = s
+		roster_runs += InningsResolver.simulate_innings(null, 2, 5, 5, tuning, itun, rr, 0,
+			null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0).total
+		var cr := RandomNumberGenerator.new(); cr.seed = s
+		clone_runs += InningsResolver.simulate_innings(null, 2, 5, 5, tuning, itun, cr).total
+	assert_gt(roster_runs, clone_runs, "real top-order roster outscores a weak flat clone")

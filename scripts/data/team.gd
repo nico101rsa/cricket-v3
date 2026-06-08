@@ -34,3 +34,42 @@ func mutate_stars(rng: RandomNumberGenerator) -> void:
 	elif roll < MUTATE_SWING:
 		delta = 0.5 * dir
 	stars = clampf(stars + delta, STARS_MIN, STARS_MAX)
+
+# --- Slice 2: discrete roster (spec §4) ---------------------------------------
+# Archetypes are strawman 20-point builds (harness-tunable). Each call returns a
+# FRESH Attributes so callers never share mutable state.
+
+static func archetype_batter() -> Attributes:
+	var a := Attributes.new()
+	a.power = 8; a.composure = 8; a.attack = 2; a.control = 2
+	return a
+
+static func archetype_bowler() -> Attributes:
+	var a := Attributes.new()
+	a.power = 2; a.composure = 2; a.attack = 8; a.control = 8
+	return a
+
+static func archetype_allrounder() -> Attributes:
+	var a := Attributes.new()
+	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	return a
+
+# The fixed standard XI, in batting order: 6 BATTER, 1 ALLROUNDER, 4 BOWLER.
+# Point split = (122 batting / 98 bowling) per spec §4.2. Used unchanged by the
+# opponent, and as the template the Player slots into (build_xi).
+static func standard_xi() -> Array:
+	var xi: Array = []
+	for i in range(6):
+		xi.append(archetype_batter())
+	xi.append(archetype_allrounder())
+	for i in range(4):
+		xi.append(archetype_bowler())
+	return xi
+
+# The Player's team order: the standard XI with the archetype at the Player's
+# 1-based batting position `ppos` replaced by the Player's own Attributes. Slice 2
+# crude displacement (no gap-fill yet — that is Slice 3). ppos is 1..9 (< 11), safe.
+static func build_xi(player_attrs: Attributes, ppos: int) -> Array:
+	var xi := standard_xi()
+	xi[ppos - 1] = player_attrs
+	return xi

@@ -262,3 +262,26 @@ func test_teams_even_roughly_balanced() -> void:
 			decided += 1
 	var share := float(player_wins) / float(decided)
 	assert_between(share, 0.30, 0.70, "equal-star contest is roughly balanced (share %f)" % share)
+
+# --- Slice 2: real-roster assembly through simulate_match_teams ----------------
+
+func test_teams_player_innings_uses_real_batting_card() -> void:
+	var p := _attrs(5, 5, 5, 5)
+	var m := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
+	var inn := m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
+	var card: Array = inn.batters
+	assert_eq(card.size(), 11, "a full XI")
+	# Distinguisher: a real standard XI has a FLAT top order (slots 1..6 all BATTERs,
+	# equal power) then steps down to the all-rounder (7) and bowler tail (8..11).
+	# The old clone path instead decays smoothly via partner_factor, so slot 6 < slot 1.
+	assert_eq(card[0]["power"], card[5]["power"], "real roster: flat top order (slots 1 & 6 equal)")
+	assert_gt(card[5]["power"], card[6]["power"], "steps down from batters to the all-rounder")
+	assert_gt(card[6]["power"], card[10]["power"], "all-rounder above the bowler tail")
+
+func test_teams_determinism_with_roster() -> void:
+	var p := _attrs(5, 5, 5, 5)
+	var r1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
+	var r2 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
+	assert_eq(r1.innings1.total, r2.innings1.total, "still deterministic (innings1)")
+	assert_eq(r1.innings2.total, r2.innings2.total, "still deterministic (innings2)")
+	assert_eq(r1.outcome, r2.outcome, "still deterministic (outcome)")
