@@ -76,7 +76,9 @@ static func simulate_innings(
 		bowling_plan: BowlingPlan = null,
 		player_bowler_attack: int = 0,
 		player_bowler_control: int = 0,
-		player_bowler_overs: int = 0
+		player_bowler_overs: int = 0,
+		jokers: Array = [],
+		player_is_batting: bool = true
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -110,9 +112,10 @@ static func simulate_innings(
 		if player_bowling:
 			bat_attack = player_bowler_attack
 			bat_control = player_bowler_control
+		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1)
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
-			intent, tuning, rng)
+			intent, tuning, rng, jm.x, jm.y)
 		balls += 1
 		s["balls"] += 1
 		if player_bowling:

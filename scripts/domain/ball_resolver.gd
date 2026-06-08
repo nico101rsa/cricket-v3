@@ -31,16 +31,18 @@ static func resolve_ball(
 		bowl_control: int,
 		intent: Intent,
 		tuning: BallTuning,
-		rng: RandomNumberGenerator
+		rng: RandomNumberGenerator,
+		wicket_mult: float = 1.0,
+		runs_mult: float = 1.0
 ) -> BallOutcome:
-	# Stage 1 — wicket roll (Composure vs Attack), in log-odds.
+	# Stage 1 — wicket roll (Composure vs Attack), in log-odds; jokers scale p_wicket.
 	var logit_w := tuning.base_w + tuning.k_w * (bowl_attack - bat_composure) + tuning.intent_w[intent]
-	var p_wicket := _sigmoid(logit_w)
+	var p_wicket := clampf(_sigmoid(logit_w) * wicket_mult, 0.0, 1.0)
 	if rng.randf() < p_wicket:
 		return BallOutcome.new(true, 0)
 
-	# Stage 2 — runs roll (Power vs Control).
-	var s := _sigmoid(tuning.base_r + tuning.k_r * (bat_power - bowl_control) + tuning.intent_r[intent])
+	# Stage 2 — runs roll (Power vs Control); jokers scale the scoring strength s.
+	var s := clampf(_sigmoid(tuning.base_r + tuning.k_r * (bat_power - bowl_control) + tuning.intent_r[intent]) * runs_mult, 0.0, 1.0)
 	return BallOutcome.new(false, _sample_runs(s, tuning, rng))
 
 static func _sample_runs(s: float, tuning: BallTuning, rng: RandomNumberGenerator) -> int:
