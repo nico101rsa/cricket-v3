@@ -56,6 +56,8 @@ var drs_p_bonus: float = 0.0
 # Player to on a Form event (-1 = no snap; #13 Boundary Hunter snaps to Aggressive).
 var form_source: int = FormSource.NONE
 var snaps_intent: int = -1
+# C2h — chase gate for The Chase Master (#15): -1 any · 1 requires a chase · 0 not.
+var chase_req: int = -1
 
 # Convenience constructor so the catalog reads as one line per joker.
 static func make(p_id: String, p_jname: String, p_rarity: String,
@@ -65,7 +67,7 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 		p_trigger: int = Trigger.NONE, p_window_n: int = 0, p_bowler_type_req: int = -1,
 		p_boost_role: int = BoostRole.NONE, p_drs_role: int = DRSRole.NONE,
 		p_drs_p_bonus: float = 0.0, p_form_source: int = FormSource.NONE,
-		p_snaps_intent: int = -1) -> JokerEffect:
+		p_snaps_intent: int = -1, p_chase_req: int = -1) -> JokerEffect:
 	var j := JokerEffect.new()
 	j.id = p_id
 	j.jname = p_jname
@@ -87,13 +89,14 @@ static func make(p_id: String, p_jname: String, p_rarity: String,
 	j.drs_p_bonus = p_drs_p_bonus
 	j.form_source = p_form_source
 	j.snaps_intent = p_snaps_intent
+	j.chase_req = p_chase_req
 	return j
 
 # Does this joker fire on this ball? Side must match the innings, the intent
 # requirement (if any) must hold, the innings ball must be in [ball_min, ball_max],
 # and the field requirement (if any) must match. field_mode defaults to NEUTRAL (0)
 # so existing callers that omit it leave field-agnostic jokers (field_req -1) unchanged.
-func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1, bowler_type: int = -1) -> bool:
+func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = FieldPlan.Mode.NEUTRAL, bowl_intent: int = -1, bowler_type: int = -1, is_chase: bool = false) -> bool:
 	if trigger != Trigger.NONE or boost_role != BoostRole.NONE or drs_role != DRSRole.NONE \
 			or form_source != FormSource.NONE or snaps_intent != -1:
 		return false  # event-driven joker — owned by JokerRuntime/sim, not the per-ball seam
@@ -103,4 +106,5 @@ func matches(player_is_batting: bool, intent: int, ball: int, field_mode: int = 
 	var field_ok := field_req == -1 or field_mode == field_req
 	var bowl_intent_ok := bowl_intent_req == -1 or bowl_intent == bowl_intent_req
 	var bowler_type_ok := bowler_type_req == -1 or bowler_type == bowler_type_req
-	return side_ok and intent_ok and ball_ok and field_ok and bowl_intent_ok and bowler_type_ok
+	var chase_ok := chase_req == -1 or chase_req == int(is_chase)
+	return side_ok and intent_ok and ball_ok and field_ok and bowl_intent_ok and bowler_type_ok and chase_ok

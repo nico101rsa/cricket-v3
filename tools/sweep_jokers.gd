@@ -37,6 +37,7 @@ func _init() -> void:
 		"building_phase": true, "boundary_hunter": true,
 		"ride_the_wave": true, "hot_streak": true}
 	var form_combo: Array = []
+	var full_pool: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
 			bowl_intent_stack.append_array(g["effects"])
@@ -50,6 +51,7 @@ func _init() -> void:
 			reviewer_stack.append_array(g["effects"])
 		if form_combo_ids.has(g["id"]):
 			form_combo.append_array(g["effects"])
+		full_pool.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
 				batting_stack.append(e)
@@ -67,6 +69,7 @@ func _init() -> void:
 	arms.append({"name": "Boost-stack stack", "config": boost_stack})
 	arms.append({"name": "Reviewer stack", "config": reviewer_stack})
 	arms.append({"name": "Form-source combo", "config": form_combo})
+	arms.append({"name": "Full pool (all 45)", "config": full_pool})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
@@ -168,12 +171,21 @@ func _boost_plan() -> BoostPlan:
 func _drs_policy() -> DRSPolicy:
 	return DRSPolicy.new()
 
+# C2h — the opposition's field during the Player's batting innings (for #9 Field
+# Restrictions). Catching in the powerplay/death (mirror of _field_plan).
+func _opp_field_plan() -> FieldPlan:
+	var f := FieldPlan.new()
+	f.powerplay = FieldPlan.Mode.CATCHING
+	f.middle = FieldPlan.Mode.NEUTRAL
+	f.death = FieldPlan.Mode.CATCHING
+	return f
+
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
 	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan(), _boost_plan(), _drs_policy())
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan())
 	var line := m.innings1.player_line()
 	if line.is_empty():
 		line = m.innings2.player_line()
