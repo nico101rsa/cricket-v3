@@ -24,11 +24,15 @@ func _init() -> void:
 	var field_def_stack: Array = []
 	var bowl_intent_ids := {"attack_the_stumps": true, "pressure_cooker": true, "choke_hold": true}
 	var bowl_intent_stack: Array = []
+	var form_ids := {"ride_the_wave": true, "hot_streak": true, "match_winners_vigil": true}
+	var form_window_stack: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
 			bowl_intent_stack.append_array(g["effects"])
+		if form_ids.has(g["id"]):
+			form_window_stack.append_array(g["effects"])
 		for e in g["effects"]:
-			if e.side == JokerEffect.Side.BATTING:
+			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
 				batting_stack.append(e)
 			elif e.field_req == FieldPlan.Mode.DEFENSIVE:
 				field_def_stack.append(e)
@@ -39,6 +43,7 @@ func _init() -> void:
 	arms.append({"name": "Batting stack", "config": batting_stack})
 	arms.append({"name": "Field-defensive stack", "config": field_def_stack})
 	arms.append({"name": "Bowling-intent stack", "config": bowl_intent_stack})
+	arms.append({"name": "Form-window stack", "config": form_window_stack})
 
 	var n := 2000
 	var swept := Sweep.run(arms, n, _scenario)
