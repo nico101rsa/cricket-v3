@@ -106,6 +106,32 @@ static func implemented_groups() -> Array:
 			JokerEffect.make("defensive_captain", "Defensive Captain", "Common",
 				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
 				-1, 1, 120, -1, BallResolver.Intent.DEFENSIVE, FieldPlan.Mode.DEFENSIVE)]),
+		# --- C2c: Form events -> windowed-trigger buffs (JokerRuntime) ---
+		# #10 Ride the Wave: Player boundary -> runs x1.20 for 3 balls.
+		_g("ride_the_wave", "Ride the Wave", "Common", [
+			JokerEffect.make("ride_the_wave", "Ride the Wave", "Common",
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 3)]),
+		# #29 Wicket Maiden: Player wicket while bowling -> wicket x1.30 for 6 balls.
+		_g("wicket_maiden", "Wicket Maiden", "Rare", [
+			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.30,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6)]),
+		# #14 Hot Streak (multi-buff): 2 Form events within 6 balls (batting) ->
+		# runs x1.30 AND wicket x0.85 for 6 balls.
+		_g("hot_streak", "Hot Streak", "Rare", [
+			JokerEffect.make("hot_streak", "Hot Streak", "Rare",
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.30,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_DOUBLE_BAT, 6),
+			JokerEffect.make("hot_streak", "Hot Streak", "Rare",
+				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.85,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_DOUBLE_BAT, 6)]),
+		# #7 Match-Winner's Vigil (Legendary): Player boundary -> wicket x0.80 for 24
+		# balls. The "snap to Defensive" intent write is simplified away (spec D5).
+		_g("match_winners_vigil", "Match-Winner's Vigil", "Legendary", [
+			JokerEffect.make("match_winners_vigil", "Match-Winner's Vigil", "Legendary",
+				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.80,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 24)]),
 	]
 
 # Flat list of every implemented effect row (the form the resolver consumes).
