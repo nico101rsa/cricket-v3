@@ -78,7 +78,8 @@ static func simulate_innings(
 		player_bowler_control: int = 0,
 		player_bowler_overs: int = 0,
 		jokers: Array = [],
-		player_is_batting: bool = true
+		player_is_batting: bool = true,
+		field_plan: FieldPlan = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun)
 	var max_balls := itun.over_limit * 6
@@ -112,7 +113,10 @@ static func simulate_innings(
 		if player_bowling:
 			bat_attack = player_bowler_attack
 			bat_control = player_bowler_control
-		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1)
+		var field_mode := FieldPlan.Mode.NEUTRAL
+		if field_plan != null:
+			field_mode = field_plan.for_over(over)
+		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode)
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng, jm.x, jm.y)
