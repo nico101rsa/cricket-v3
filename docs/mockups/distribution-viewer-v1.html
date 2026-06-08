@@ -26,18 +26,21 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Distribution viewer — Player build (skills) impact (7c-1)</h1>
-  <p class="cap">Reusable before/after distribution-shift lens (the 7c-1 harness platform). Each arm = a Player Attribute build,
-  even ★3 vs ★3 match, 2000 matches per build. Overlaid histograms of <b id="metricname">player_runs</b>; dashed lines are arm means.
-  Real Godot sim via <code>Sweep</code> + <code>Distribution</code>; data inlined. Swap <code>DATA</code> for any future sweep (jokers, economy, …).</p>
+  <h1>How your build changes the runs you score (7c-1)</h1>
+  <p class="cap"><b>How to read this:</b> we played the same even match (your team ★3 vs an opponent ★3)
+  <b>2000 times</b> for each of three Player builds. The X-axis is <b>how many runs YOU personally scored</b> in a match
+  (0 on the left, up to ~130). Each curve shows one build: <b>higher = more matches landed at that score</b>.
+  Each curve is scaled to its own peak so the *shapes* line up — a curve further <b>right</b> = you score more.
+  The dashed vertical line is that build's <b>average</b> runs. (Built from the real game engine; 2000 matches × 3 builds.)</p>
 
   <div class="card">
     <canvas id="chart" width="820" height="430"></canvas>
     <div class="legend" id="legend"></div>
-    <p class="note">The distribution <b>shifts right with batting attributes</b> (Power/Composure): bowling-build ≈ pinned near 0,
-    balanced in the middle, batting-build a long right tail. The win-rate column tells the real-balance story —
-    a batting build lifts an even match to <b>~67%</b>, but a bowling build sits at <b>~48%</b> (≈ no better than not bowling):
-    the Player's Attack/Control don't feed the sim yet (Player-as-bowler is deferred), so they're an inert lever today.</p>
+    <p class="note">The curves <b>slide right as you add batting points</b> (Power + Composure). The bowling build peaks hard near 0
+    (you barely score); batting build's average is ~44 runs with a long tail past 100. The <b>win-rate</b> column is the real
+    balance story: a batting build wins <b>~67%</b> of even matches, but a bowling build only <b>~48%</b> — basically no better
+    than the balanced one. That's because your bowling Attributes (Attack/Control) don't affect the sim yet, so right now
+    they're a wasted investment. The harness caught that automatically.</p>
   </div>
 
   <table id="data"></table>
@@ -46,12 +49,11 @@
 <script>
 const DATA = {"arms":[{"color":"#5ac77a","name":"Batting build (8/8/2/2)","stats":{"count":2000,"max":132.0,"mean":43.7055,"min":0.0,"sd":30.2525663332881},"values":[58,19,17,2,111,42,82,5,51,42,21,59,0,64,16,56,77,80,56,27,87,26,80,83,54,0,10,12,29,47,67,64,60,50,5,4,0,66,18,82,72,66,1,7,56,32,81,12,2,60,39,73,33,81,0,15,7,7,49,88,117,4,62,23,58,22,40,31,40,41,27,0,63,60,41,60,0,31,1,40,57,4,50,13,27,130,41,34,58,57,36,42,104,54,0,55,45,5,40,53,46,8,0,0,11,76,23,0,74,86,0,32,0,40,33,0,71,55,10,11,11,0,54,38,70,37,24,71,38,68,6,54,0,8,61,17,0,31,64,0,11,35,17,27,8,29,85,0,38,0,62,54,4,5,64,67,26,82,28,11,57,48,17,44,89,60,40,6,50,65,44,31,1,104,35,47,69,67,11,33,61,24,80,2,0,46,74,2,30,75,62,9,113,59,27,62,75,49,62,55,40,31,0,17,69,0,62,38,14,0,89,33,41,63,0,106,46,58,30,83,68,24,51,47,72,40,5,66,0,82,36,6,20,48,14,36,45,90,77,88,64,51,36,40,106,6,80,89,11,9,0,8,13,36,91,49,66,0,49,49,49,0,60,22,26,39,37,76,27,65,0,4,9,36,10,37,75,33,20,8,13,79,63,79,27,53,73,59,27,0,66,45,24,28,50,57,80,95,19,14,72,45,0,27,94,10,53,73,22,65,80,30,0,53,1,34,55,56,9,23,84,73,66,44,107,62,20,53,37,39,18,78,0,0,85,22,77,17,27,96,33,48,16,85,79,58,49,18,19,4,30,38,22,46,35,15,6,23,42,29,58,103,71,65,49,132,62,11,33,76,78,58,97,60,92,86,60,76,18,36,0,10,17,22,28,110,37,71,122,27,60,42,0,75,44,36,90,82,75,43],"win_rate":0.671},{"color":"#4a90d9","name":"Balanced (5/5/5/5)","stats":{"count":2000,"max":81.0,"mean":13.071,"min":0.0,"sd":15.56518419422},"values":[11,0,0,28,13,17,46,0,41,0,0,13,37,38,5,0,20,28,52,0,51,33,6,40,40,0,12,0,27,22,61,22,9,20,1,3,0,40,32,60,59,33,7,31,6,36,19,2,9,41,13,46,9,0,0,15,11,19,30,0,0,9,46,0,20,6,9,34,0,0,0,0,36,1,3,45,0,30,0,0,39,0,5,35,15,62,14,11,0,8,15,1,0,8,0,0,0,0,12,15,11,0,0,0,6,18,13,0,5,0,0,22,7,14,0,0,38,7,27,0,9,0,0,5,4,0,21,12,0,31,0,9,0,14,20,32,0,38,18,0,6,9,0,7,0,0,30,0,0,9,0,0,26,11,29,0,12,24,10,2,6,0,11,0,62,0,6,0,8,0,11,1,9,0,4,37,3,0,3,1,6,2,1,0,24,0,12,0,0,5,0,18,6,13,5,21,2,14,37,23,0,0,0,0,46,0,9,0,0,0,11,4,0,10,44,8,13,6,24,0,0,0,11,0,19,8,0,4,0,23,0,0,0,14,0,0,0,26,32,18,30,0,7,0,0,0,0,12,0,42,0,48,0,21,6,40,30,0,20,37,4,18,24,26,9,9,3,37,0,0,0,0,26,17,0,0,14,0,2,16,7,4,46,16,3,6,4,2,6,0,3,5,0,17,5,7,13,0,13,0,16,11,0,43,20,8,16,6,6,0,42,0,0,19,4,9,0,38,0,16,17,5,23,18,4,24,10,10,18,14,10,0,0,0,75,8,58,27,1,34,0,33,9,33,13,1,16,18,12,5,12,0,4,0,10,19,11,0,15,13,0,1,14,14,8,8,0,0,51,56,3,9,1,6,41,0,29,10,0,12,28,0,5,33,0,0,13,0,34,8,19,1,0,5,0,10,0,0,43,7],"win_rate":0.5105},{"color":"#f2b134","name":"Bowling build (2/2/8/8)","stats":{"count":2000,"max":44.0,"mean":2.7225,"min":0.0,"sd":5.42074660448175},"values":[9,0,3,5,5,0,0,0,11,0,0,3,0,0,2,0,0,0,4,0,1,0,0,4,0,0,18,0,0,0,12,9,0,5,0,0,0,18,0,0,0,0,0,6,1,1,5,0,0,0,1,8,6,6,0,2,0,0,0,1,0,7,0,0,0,0,4,4,0,9,0,0,1,0,0,0,0,2,0,0,0,0,0,0,0,1,3,0,0,0,7,0,0,19,0,0,1,0,0,0,0,0,0,0,1,0,3,2,0,0,0,0,1,4,0,0,4,0,9,0,6,0,14,0,4,0,4,13,0,0,0,0,0,1,1,0,0,0,3,0,0,5,0,0,0,0,0,0,0,0,0,3,11,0,0,0,0,1,0,4,0,0,4,0,0,0,3,0,0,0,0,0,0,0,0,6,0,0,0,1,8,13,0,0,7,0,0,0,0,0,0,1,0,22,1,0,13,5,1,2,0,0,0,0,10,0,5,0,10,0,33,2,0,0,0,4,0,0,0,0,1,10,0,0,0,4,0,0,0,0,8,0,0,0,0,0,1,0,0,4,0,0,1,0,0,0,0,5,0,0,0,4,5,0,5,6,0,0,0,0,14,4,0,0,5,2,5,0,0,0,0,0,6,1,0,0,2,0,0,1,0,0,5,3,4,0,0,8,0,0,12,1,0,1,2,1,0,0,23,0,0,7,0,2,2,4,8,0,1,0,3,0,0,16,0,0,0,0,0,0,0,2,0,0,0,3,0,1,0,1,2,0,0,1,0,2,2,2,1,0,0,3,0,11,2,2,13,3,4,1,0,0,5,0,0,34,2,1,0,6,0,15,0,0,0,13,8,0,19,0,0,9,21,5,0,1,3,12,0,10,0,0,0,6,0,0,1,0,3,0,0,0,0,0,0,0,2,0,4,11],"win_rate":0.4785}],"metric":"player_runs"};
 
-const BINS = 24;
-document.getElementById('metricname').textContent = DATA.metric;
+const BINS = 26;
 
-// Pooled x-range across all arms.
-let lo = Infinity, hi = -Infinity;
-DATA.arms.forEach(a => a.values.forEach(v => { lo = Math.min(lo, v); hi = Math.max(hi, v); }));
+// Pooled x-range across all arms (0 .. highest score anyone made).
+let lo = 0, hi = -Infinity;
+DATA.arms.forEach(a => a.values.forEach(v => { hi = Math.max(hi, v); }));
 if (hi <= lo) hi = lo + 1;
 
 function histogram(values, bins, lo, hi){
@@ -59,54 +61,60 @@ function histogram(values, bins, lo, hi){
   values.forEach(v => { let i = Math.floor((v - lo) / (hi - lo) * bins); i = Math.max(0, Math.min(bins-1, i)); h[i]++; });
   return h;
 }
-
-// Compute histograms; normalise each to its own peak so shapes overlay regardless of sample size.
-const hists = DATA.arms.map(a => histogram(a.values, BINS, lo, hi));
-let peak = 0;
-hists.forEach(h => h.forEach(c => peak = Math.max(peak, c)));
-if (peak === 0) peak = 1;
+// Each arm normalised to its OWN peak, so the three shapes are comparable.
+const hists = DATA.arms.map(a => {
+  const h = histogram(a.values, BINS, lo, hi);
+  const m = Math.max(1, ...h);
+  return h.map(c => c / m);
+});
 
 const cv = document.getElementById('chart');
 const ctx = cv.getContext('2d');
 const W = cv.width, H = cv.height;
-const M = {l:48, r:20, t:20, b:46};
-const px = x => M.l + ((x - lo) / (hi - lo)) * (W - M.l - M.r);
-const py = c => M.t + (1 - c / peak) * (H - M.t - M.b);
-const binW = (W - M.l - M.r) / BINS;
+const M = {l:40, r:20, t:20, b:60};
+const plotW = W - M.l - M.r, plotH = H - M.t - M.b;
+const binCentre = b => M.l + (b + 0.5) / BINS * plotW;
+const px = x => M.l + ((x - lo) / (hi - lo)) * plotW;
+const py = f => M.t + (1 - f) * plotH;
 
 ctx.clearRect(0,0,W,H);
-// y gridlines (relative frequency, count scale)
-ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif';
-ctx.lineWidth = 1;
+// y gridlines
+ctx.strokeStyle = '#2b3642'; ctx.fillStyle = '#8b98a5'; ctx.font = '12px sans-serif'; ctx.lineWidth = 1;
 for (let f=0; f<=4; f++){
-  const y = M.t + (1 - f/4) * (H - M.t - M.b);
+  const y = py(f/4);
   ctx.beginPath(); ctx.moveTo(M.l,y); ctx.lineTo(W-M.r,y); ctx.stroke();
-  ctx.textAlign='right'; ctx.textBaseline='middle'; ctx.fillText(Math.round(peak*f/4), M.l-8, y);
 }
-// x labels
+// x ticks (runs)
 ctx.textAlign='center'; ctx.textBaseline='top';
 for (let t=0; t<=5; t++){ const xv = lo + (hi-lo)*t/5; ctx.fillText(Math.round(xv), px(xv), H-M.b+8); }
-ctx.fillText(DATA.metric, (M.l + (W-M.r))/2, H-18);
+// axis titles
+ctx.fillStyle = '#e8edf2'; ctx.font = '13px sans-serif';
+ctx.fillText('Runs you scored in a match  →', (M.l + (W-M.r))/2, H-34);
+ctx.save(); ctx.translate(14, (M.t+(H-M.b))/2); ctx.rotate(-Math.PI/2);
+ctx.fillText('how often', 0, 0); ctx.restore();
 
-// Overlaid semi-transparent histogram bars + mean lines.
 function hexToRgba(hex, a){ const n = parseInt(hex.slice(1),16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`; }
+// Each arm = a frequency curve (line) with a soft fill underneath + a mean line.
 DATA.arms.forEach((a, ai) => {
   const h = hists[ai];
-  ctx.fillStyle = hexToRgba(a.color, 0.38);
-  for (let b=0; b<BINS; b++){
-    if (!h[b]) continue;
-    const x = M.l + b*binW, y = py(h[b]);
-    ctx.fillRect(x+1, y, binW-2, (H-M.b) - y);
-  }
+  // soft fill
+  ctx.fillStyle = hexToRgba(a.color, 0.13);
+  ctx.beginPath(); ctx.moveTo(binCentre(0), py(0));
+  for (let b=0; b<BINS; b++) ctx.lineTo(binCentre(b), py(h[b]));
+  ctx.lineTo(binCentre(BINS-1), py(0)); ctx.closePath(); ctx.fill();
+  // curve
+  ctx.strokeStyle = a.color; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let b=0; b<BINS; b++){ const x=binCentre(b), y=py(h[b]); b?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+  ctx.stroke();
   // mean line
-  ctx.strokeStyle = a.color; ctx.lineWidth = 2; ctx.setLineDash([5,4]);
+  ctx.strokeStyle = a.color; ctx.lineWidth = 1.5; ctx.setLineDash([4,4]);
   ctx.beginPath(); ctx.moveTo(px(a.stats.mean), M.t); ctx.lineTo(px(a.stats.mean), H-M.b); ctx.stroke();
   ctx.setLineDash([]);
 });
 
 // legend
 document.getElementById('legend').innerHTML = DATA.arms.map(a =>
-  `<span><span class="swatch" style="background:${a.color}"></span>${a.name} (mean ${a.stats.mean.toFixed(1)})</span>`).join('');
+  `<span><span class="swatch" style="background:${a.color}"></span>${a.name} — avg ${a.stats.mean.toFixed(0)} runs, wins ${(a.win_rate*100).toFixed(0)}%</span>`).join('');
 
 // summary table
 const t = document.getElementById('data');
