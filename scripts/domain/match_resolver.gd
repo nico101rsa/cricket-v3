@@ -71,13 +71,23 @@ static func simulate_match_teams(
 	var opp_bat := opp_team.batting_strength(tour, rng)
 	var opp_bowl := opp_team.bowling_strength(tour, rng)
 
+	# Slice 2: real rosters. The Player replaces the archetype at their build-driven
+	# batting position; the opponent is the fixed standard XI. Star strength is applied
+	# as a uniform batting offset (~0 at even ★3) so directionality survives. No new
+	# RNG draws -> determinism preserved. See spec §8.5 (D6-D9).
+	var ref3 := tour.percentile(3.0 / 5.0)
+	var ppos := InningsResolver.player_position(player_attrs, itun)
+	var player_roster := Team.build_xi(player_attrs, ppos)
+	var opp_roster := Team.standard_xi()
+
 	return simulate_match(
 		player_attrs,
 		player_bat, player_bowl, player_bowl,
 		opp_bat, opp_bowl, opp_bowl,
 		player_bats_first, tuning, itun, rng,
 		player_intent_plan, player_bowling_plan, jokers, field_plan,
-		player_bowl_intent_plan, opp_intent_plan, boost_plan, drs_policy, opp_field_plan)
+		player_bowl_intent_plan, opp_intent_plan, boost_plan, drs_policy, opp_field_plan,
+		player_roster, opp_roster, player_bat - ref3, opp_bat - ref3)
 
 # Simulate a full T20 match: first innings, then a chase to target = total1 + 1,
 # then decide the result. player_bats_first sets the toss (which side bats first).
@@ -103,7 +113,11 @@ static func simulate_match(
 		opp_intent_plan: IntentPlan = null,
 		boost_plan: BoostPlan = null,
 		drs_policy: DRSPolicy = null,
-		opp_field_plan: FieldPlan = null
+		opp_field_plan: FieldPlan = null,
+		player_roster: Array = [],
+		opp_roster: Array = [],
+		player_bat_offset: int = 0,
+		opp_bat_offset: int = 0
 ) -> MatchResult:
 	var max_balls := itun.over_limit * 6
 	var innings1: InningsResult
@@ -132,20 +146,24 @@ static func simulate_match(
 		innings1 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan,
-			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan)
+			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
+			player_roster, player_bat_offset)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, innings1.total + 1, opp_intent_plan, player_bowl, player_bowling_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy)
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
+			opp_roster, opp_bat_offset)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, 0, opp_intent_plan, player_bowl, player_bowling_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy)
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
+			opp_roster, opp_bat_offset)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan,
-			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan)
+			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
+			player_roster, player_bat_offset)
 
 	return _decide_result(innings1, innings2, player_bats_first, max_balls)
