@@ -56,7 +56,8 @@ static func simulate_match_teams(
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
 		player_intent_plan: IntentPlan = null,
-		player_bowling_plan: BowlingPlan = null
+		player_bowling_plan: BowlingPlan = null,
+		jokers: Array = []
 ) -> MatchResult:
 	var player_bats_first := _resolve_toss(rng)
 	var player_bat := player_team.batting_strength(tour, rng)
@@ -69,7 +70,7 @@ static func simulate_match_teams(
 		player_bat, player_bowl, player_bowl,
 		opp_bat, opp_bowl, opp_bowl,
 		player_bats_first, tuning, itun, rng,
-		player_intent_plan, player_bowling_plan)
+		player_intent_plan, player_bowling_plan, jokers)
 
 # Simulate a full T20 match: first innings, then a chase to target = total1 + 1,
 # then decide the result. player_bats_first sets the toss (which side bats first).
@@ -88,7 +89,8 @@ static func simulate_match(
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
 		player_intent_plan: IntentPlan = null,
-		player_bowling_plan: BowlingPlan = null
+		player_bowling_plan: BowlingPlan = null,
+		jokers: Array = []
 ) -> MatchResult:
 	var max_balls := itun.over_limit * 6
 	var innings1: InningsResult
@@ -116,19 +118,21 @@ static func simulate_match(
 		# Player's team posts (their intent), opposition chases.
 		innings1 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
-			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan)
+			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan,
+			0, 0, 0, jokers, true)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, innings1.total + 1, null, player_bowl, player_bowling_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs)
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, 0, null, player_bowl, player_bowling_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs)
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
-			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan)
+			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan,
+			0, 0, 0, jokers, true)
 
 	return _decide_result(innings1, innings2, player_bats_first, max_balls)
