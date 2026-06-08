@@ -86,3 +86,70 @@ func test_determinism_with_field_plan() -> void:
 	assert_eq(a.outcome, b.outcome)
 	assert_eq(a.innings1.total, b.innings1.total)
 	assert_eq(a.innings2.total, b.innings2.total)
+
+# --- C2b: bowling-side intent routing ---
+
+func _all_intent(band: int) -> IntentPlan:
+	var p := IntentPlan.new()
+	p.powerplay = band; p.middle = band; p.death = band
+	return p
+
+func test_null_bowl_intent_params_match_baseline() -> void:
+	# Explicitly passing null for the two new params == omitting them (byte-identical).
+	for i in range(20):
+		var a := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, [])
+		var b := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, [], null, null, null)
+		assert_eq(a.innings1.total, b.innings1.total)
+		assert_eq(a.innings2.total, b.innings2.total)
+		assert_eq(a.outcome, b.outcome)
+
+func test_pressure_cooker_fires_on_defensive_opposition() -> void:
+	# Pressure Cooker shape (bowling, reads batsman intent = Defensive, wicket booster).
+	# Both arms set the opposition Defensive; only the joker differs -> isolates its effect.
+	var pc := [JokerEffect.make("pc", "Pressure Cooker", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, BallResolver.Intent.DEFENSIVE)]
+	var opp_def := _all_intent(BallResolver.Intent.DEFENSIVE)
+	var base_wins := 0; var pc_wins := 0
+	for i in range(300):
+		var m0 := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, [], null, null, opp_def)
+		if m0.outcome == MatchResult.Outcome.PLAYER_WIN:
+			base_wins += 1
+		var m1 := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, pc, null, null, opp_def)
+		if m1.outcome == MatchResult.Outcome.PLAYER_WIN:
+			pc_wins += 1
+	assert_gt(pc_wins, base_wins, "Pressure Cooker should raise win-rate against a Defensive opposition")
+
+func test_attack_the_stumps_fires_on_aggressive_captaincy() -> void:
+	# Attack the Stumps shape (bowling, gated on the Player's bowl_intent = Aggressive).
+	# Both arms set the bowling captain Aggressive; only the joker differs.
+	var ats := [JokerEffect.make("ats", "Attack the Stumps", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]
+	var bowl_agg := _all_intent(BallResolver.Intent.AGGRESSIVE)
+	var base_wins := 0; var ats_wins := 0
+	for i in range(300):
+		var m0 := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, [], null, bowl_agg)
+		if m0.outcome == MatchResult.Outcome.PLAYER_WIN:
+			base_wins += 1
+		var m1 := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, ats, null, bowl_agg)
+		if m1.outcome == MatchResult.Outcome.PLAYER_WIN:
+			ats_wins += 1
+	assert_gt(ats_wins, base_wins, "Attack the Stumps should raise win-rate under Aggressive bowling captaincy")
+
+func test_determinism_with_bowl_intent_plans() -> void:
+	var ats := [JokerEffect.make("ats", "Attack the Stumps", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]
+	var bowl_agg := _all_intent(BallResolver.Intent.AGGRESSIVE)
+	var opp_def := _all_intent(BallResolver.Intent.DEFENSIVE)
+	var a := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(21), null, null, ats, null, bowl_agg, opp_def)
+	var b := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
+		BallTuning.new(), InningsTuning.new(), _seeded(21), null, null, ats, null, bowl_agg, opp_def)
+	assert_eq(a.outcome, b.outcome)
+	assert_eq(a.innings1.total, b.innings1.total)
+	assert_eq(a.innings2.total, b.innings2.total)

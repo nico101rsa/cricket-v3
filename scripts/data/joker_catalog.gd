@@ -82,6 +82,30 @@ static func implemented_groups() -> Array:
 			JokerEffect.make("cordon_killer", "Cordon Killer", "Common",
 				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.10,
 				-1, 1, 120, FieldPlan.Mode.CATCHING)]),
+		# --- C2b: bowling-side intent (bowl_intent / opposing-batsman intent) ---
+		# #26 reads the Player's own bowling-captain intent (Aggressive).
+		_g("attack_the_stumps", "Attack the Stumps", "Common", [
+			JokerEffect.make("attack_the_stumps", "Attack the Stumps", "Common",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.12,
+				-1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]),
+		# #19 reads the opposing batsman's intent (Defensive) via intent_req.
+		_g("pressure_cooker", "Pressure Cooker", "Common", [
+			JokerEffect.make("pressure_cooker", "Pressure Cooker", "Common",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.10,
+				BallResolver.Intent.DEFENSIVE)]),
+		# #22 Choke Hold (Legendary, multi-buff): defensive field + Defensive captain.
+		_g("choke_hold", "Choke Hold", "Legendary", [
+			JokerEffect.make("choke_hold", "Choke Hold", "Legendary",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.75,
+				-1, 1, 120, FieldPlan.Mode.DEFENSIVE, BallResolver.Intent.DEFENSIVE),
+			JokerEffect.make("choke_hold", "Choke Hold", "Legendary",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
+				-1, 1, 120, FieldPlan.Mode.DEFENSIVE, BallResolver.Intent.DEFENSIVE)]),
+		# #18 enabler: Defensive captaincy sets a defensive field (mult 1.0, sets_field).
+		_g("defensive_captain", "Defensive Captain", "Common", [
+			JokerEffect.make("defensive_captain", "Defensive Captain", "Common",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
+				-1, 1, 120, -1, BallResolver.Intent.DEFENSIVE, FieldPlan.Mode.DEFENSIVE)]),
 	]
 
 # Flat list of every implemented effect row (the form the resolver consumes).

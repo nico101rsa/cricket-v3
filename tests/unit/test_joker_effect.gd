@@ -60,3 +60,37 @@ func test_field_combines_with_side() -> void:
 	# Catching-field bowling joker is inert while the owner is batting, even with the field set.
 	var j := _bowling_catching_wicket()
 	assert_false(j.matches(true, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING), "batting -> bowling joker off")
+
+# --- C2b: bowling-captain intent + sets_field ---
+
+func _attack_the_stumps() -> JokerEffect:
+	# bowling, gated on the bowling-captain intent = Aggressive, wicket x1.12
+	return JokerEffect.make("ats", "Attack the Stumps", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.12,
+		-1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)
+
+func test_bowl_intent_gate() -> void:
+	var j := _attack_the_stumps()
+	# fires only when the bowling captain intent (5th matches arg) is Aggressive
+	assert_true(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL, BallResolver.Intent.AGGRESSIVE))
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL, BallResolver.Intent.DEFENSIVE), "wrong bowl_intent -> off")
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL, -1), "no bowl_intent set -> off")
+
+func test_bowl_intent_any_when_req_negative() -> void:
+	# A joker with no bowl_intent_req (default -1) ignores the bowling-captain intent.
+	var j := _bowling_catching_wicket()
+	assert_true(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING, BallResolver.Intent.AGGRESSIVE))
+	assert_true(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.CATCHING, -1))
+
+func test_bowl_intent_default_arg_is_unset() -> void:
+	# Old 5-arg callers (pre-C2b) get bowl_intent = -1, so bowl-intent jokers are off.
+	var j := _attack_the_stumps()
+	assert_false(j.matches(false, BallResolver.Intent.BALANCED, 1, FieldPlan.Mode.NEUTRAL), "omitted bowl_intent -> off")
+
+func test_sets_field_stored() -> void:
+	# Defensive Captain shape: an enabler that forces a defensive field.
+	var j := JokerEffect.make("dc", "Defensive Captain", "Common",
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.0,
+		-1, 1, 120, -1, BallResolver.Intent.DEFENSIVE, FieldPlan.Mode.DEFENSIVE)
+	assert_eq(j.sets_field, FieldPlan.Mode.DEFENSIVE)
+	assert_eq(j.bowl_intent_req, BallResolver.Intent.DEFENSIVE)

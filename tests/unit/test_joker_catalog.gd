@@ -33,12 +33,47 @@ func _group(id: String) -> Dictionary:
 	return {}
 
 func test_implemented_groups_count() -> void:
-	# 5 slice jokers + 6 new (C2a) = 11 groups.
-	assert_eq(JokerCatalog.implemented_groups().size(), 11)
+	# 5 slice + 6 (C2a) + 4 (C2b) = 15 groups.
+	assert_eq(JokerCatalog.implemented_groups().size(), 15)
 
 func test_implemented_flat_count() -> void:
-	# 11 groups, two of them (carry_your_bat, dot_ball_pressure) are double-buff -> 13 rows.
-	assert_eq(JokerCatalog.implemented().size(), 13)
+	# 13 rows (C2a) + attack_the_stumps(1) + pressure_cooker(1) + choke_hold(2) +
+	# defensive_captain(1) = 18 rows.
+	assert_eq(JokerCatalog.implemented().size(), 18)
+
+func test_attack_the_stumps_shape() -> void:
+	var g := _group("attack_the_stumps")
+	assert_false(g.is_empty())
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BOWLING)
+	assert_eq(e.target, JokerEffect.Target.WICKET)
+	assert_eq(e.bowl_intent_req, BallResolver.Intent.AGGRESSIVE)
+	assert_almost_eq(e.mult, 1.12, 0.0001)
+
+func test_pressure_cooker_reads_batsman_intent() -> void:
+	var g := _group("pressure_cooker")
+	assert_false(g.is_empty())
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.side, JokerEffect.Side.BOWLING)
+	assert_eq(e.intent_req, BallResolver.Intent.DEFENSIVE, "reads the batsman intent, not bowl_intent")
+	assert_eq(e.bowl_intent_req, -1)
+	assert_almost_eq(e.mult, 1.10, 0.0001)
+
+func test_choke_hold_two_rows() -> void:
+	var g := _group("choke_hold")
+	assert_eq(g["effects"].size(), 2, "Choke Hold = runs + wicket")
+	assert_eq(g["rarity"], "Legendary")
+	for e in g["effects"]:
+		assert_eq(e.field_req, FieldPlan.Mode.DEFENSIVE)
+		assert_eq(e.bowl_intent_req, BallResolver.Intent.DEFENSIVE)
+
+func test_defensive_captain_sets_field() -> void:
+	var g := _group("defensive_captain")
+	assert_false(g.is_empty())
+	var e: JokerEffect = g["effects"][0]
+	assert_eq(e.sets_field, FieldPlan.Mode.DEFENSIVE)
+	assert_eq(e.bowl_intent_req, BallResolver.Intent.DEFENSIVE)
+	assert_almost_eq(e.mult, 1.0, 0.0001, "enabler bends no roll")
 
 func test_multi_buff_groups_have_two_effects() -> void:
 	assert_eq(_group("carry_your_bat")["effects"].size(), 2, "Carry Your Bat = wicket + runs")

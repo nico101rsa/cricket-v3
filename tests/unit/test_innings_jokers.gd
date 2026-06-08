@@ -83,3 +83,43 @@ func test_determinism_with_field_plan() -> void:
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
+
+# --- C2b: bowling-captain intent ---
+
+func _all_aggressive() -> IntentPlan:
+	var p := IntentPlan.new()
+	p.powerplay = BallResolver.Intent.AGGRESSIVE
+	p.middle = BallResolver.Intent.AGGRESSIVE
+	p.death = BallResolver.Intent.AGGRESSIVE
+	return p
+
+func _bowl_intent_wicket_booster() -> Array:
+	# Attack-the-Stumps shape: bowling, gated on bowl_intent = Aggressive, strong wicket boost.
+	return [JokerEffect.make("ats", "ATS", "Common", JokerEffect.Side.BOWLING,
+		JokerEffect.Target.WICKET, 2.0, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]
+
+func test_bowl_intent_joker_raises_wickets() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _bowl_intent_wicket_booster()
+	var bip := _all_aggressive()
+	var off_w := 0; var on_w := 0
+	for i in range(200):
+		# No bowl_intent plan -> joker inert.
+		var r1 := RandomNumberGenerator.new(); r1.seed = i
+		off_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, null).wickets
+		# Aggressive bowl_intent plan -> joker fires.
+		var r2 := RandomNumberGenerator.new(); r2.seed = i
+		on_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip).wickets
+	assert_gt(on_w, off_w, "an Aggressive-bowl-intent wicket booster should raise wickets when the captain is Aggressive")
+
+func test_determinism_with_bowl_intent_plan() -> void:
+	var tuning := BallTuning.new(); var itun := InningsTuning.new()
+	var jk := _bowl_intent_wicket_booster()
+	var bip := _all_aggressive()
+	var r1 := RandomNumberGenerator.new(); r1.seed = 13
+	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
+	var r2 := RandomNumberGenerator.new(); r2.seed = 13
+	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
+	assert_eq(first.total, second.total)
+	assert_eq(first.wickets, second.wickets)
+	assert_eq(first.balls, second.balls)
