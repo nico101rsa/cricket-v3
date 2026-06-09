@@ -181,7 +181,10 @@ floor, not the solo arm.
   mechanic tweak (drop DRS retain-on-success) — flagged, not pre-committed.
 - **DB4 (carve-out):** trigger-participation is **not** tuned here — magnitude is tuned for
   firing-strength; participation-limited jokers get a documented residual, not an inflated magnitude.
-- **DB5 (carve-out):** boost is **already team-wide** (verified `innings_resolver.gd:182`) — no change.
+- **DB5 (carve-out):** boost is **already team-wide on both sides** (verified `innings_resolver.gd:182`
+  + `joker_runtime.gd:40-50,118-121`): a press buffs the whole batting line-up (runs) while batting
+  and the whole bowling attack (wickets) while bowling — side-aware, applied to every delivery in the
+  window, fired in both innings. Matches Nico's intent — **no change needed**.
 
 ## 9. Files touched
 
