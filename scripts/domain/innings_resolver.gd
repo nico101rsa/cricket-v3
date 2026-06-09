@@ -103,7 +103,9 @@ static func simulate_innings(
 		drs_policy: DRSPolicy = null,
 		opp_field_plan: FieldPlan = null,
 		batting_roster: Array = [],
-		team_bat_offset: int = 0
+		team_bat_offset: int = 0,
+		opp_boost_plan: BoostPlan = null,
+		opp_drs_policy: DRSPolicy = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_offset)
 	var max_balls := itun.over_limit * 6
@@ -123,6 +125,10 @@ static func simulate_innings(
 	var runtime := JokerRuntime.new()  # C2c — per-innings windowed-buff state
 	if drs_policy != null:
 		runtime.init_reviews(jokers, drs_policy.base_reviews)  # C2f — DRS resource
+	var opp_is_batting := not player_is_batting   # DF2 — the opponent's perspective
+	var opp_runtime := JokerRuntime.new()         # DF2 — opponent base captain tools (no jokers)
+	if opp_drs_policy != null:
+		opp_runtime.init_reviews([], opp_drs_policy.base_reviews)
 	var prev_intent := -1       # C2g — for intent-switch Form sources
 	var def_streak := 0          # C2g — consecutive Player Defensive balls (Building Phase)
 	var intent_override := -1    # C2g — Boundary Hunter snaps intent to Aggressive
@@ -175,11 +181,15 @@ static func simulate_innings(
 		# C2e — a Manager Boost press at this over's start fires a side-aware buff.
 		if boost_plan != null and balls == (over - 1) * 6 and boost_plan.presses_on(over):
 			runtime.on_boost_press(jokers, player_is_batting, intent, boost_plan.base_mult, boost_plan.base_n, balls + 1)
+		# DF4 — the opponent presses its own Boost (base buff, no jokers), side-aware.
+		if opp_boost_plan != null and balls == (over - 1) * 6 and opp_boost_plan.presses_on(over):
+			opp_runtime.on_boost_press([], opp_is_batting, intent, opp_boost_plan.base_mult, opp_boost_plan.base_n, balls + 1)
 		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type, is_chase)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
+		var opp_win := opp_runtime.tick_mults(opp_is_batting)  # DF2 — opponent base buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
-			intent, tuning, rng, jm.x * win.x, jm.y * win.y)
+			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y)
 		# C2f — DRS: a Player review can overturn a close decision. Batting: a Player
 		# dismissal -> survive (dot). Bowling: a Player-bowled dot -> claim a wicket.
 		# Mutates o so the existing wicket/runs handling takes over. RNG is consumed
@@ -191,6 +201,11 @@ static func simulate_innings(
 			elif (not player_is_batting) and player_bowling and not o.wicket and o.runs == 0:
 				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(true, 0)
+		# DF5 — opponent base DRS: review to survive its own dismissal (no jokers, no
+		# payoffs). Only in the opponent's batting innings.
+		if opp_drs_policy != null and (not player_is_batting) and o.wicket:
+			if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
+				o = BallOutcome.new(false, 0)
 		balls += 1
 		s["balls"] += 1
 		if player_bowling:
@@ -207,6 +222,7 @@ static func simulate_innings(
 		elif player_bowling:
 			formed = o.wicket
 		runtime.on_ball_end(jokers, player_is_batting, balls, formed)
+		opp_runtime.on_ball_end([], opp_is_batting, balls, false)  # DF2 — decay opponent buffs
 		# C2g — Building Phase: count consecutive Player Defensive balls -> Form every 6.
 		if player_is_batting and s["is_player"]:
 			if intent == BallResolver.Intent.DEFENSIVE and not o.wicket:

@@ -32,3 +32,28 @@ func test_drs_reviews_any_dismissal_not_just_hero() -> void:
 # DF3: real T20 allows 2 unsuccessful reviews per innings.
 func test_default_review_count_is_two() -> void:
 	assert_eq(DRSPolicy.new().base_reviews, 2, "base_reviews default should be 2 (T20 rule)")
+
+# DF4: the opponent's own boost buffs the opponent's batting innings (more runs).
+func test_opponent_boost_lifts_opponent_innings() -> void:
+	var boost := BoostPlan.at([1, 10, 16])
+	# player_is_batting = false -> this is the opponent's batting innings.
+	var base := InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false)
+	var boosted := InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false, null, null, null, null, null, [], 0, boost, null)
+	assert_gt(boosted.total, base.total, "opponent boost should lift the opponent's score")
+
+# DF5: the opponent reviews to survive its own dismissals (base rule, no jokers).
+func test_opponent_drs_saves_opponent_wickets() -> void:
+	var hi := DRSPolicy.new()
+	hi.base_reviews = 50
+	hi.base_p = 1.0
+	var base := InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false)
+	var saved := InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false, null, null, null, null, null, [], 0, null, hi)
+	assert_lt(saved.wickets, base.wickets, "opponent DRS should save opponent batters")
