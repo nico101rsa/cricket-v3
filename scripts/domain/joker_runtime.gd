@@ -13,13 +13,13 @@ const FORM_DOUBLE_WINDOW := 6  # Hot Streak: 2 Form events within this many ball
 
 # C2e — Boost-press modifier magnitudes (pool-fixed, strawman; balance-tunable).
 const BOOST_EXTEND_N := 2          # Power Up
-const BOOST_AMPLIFY_MULT := 1.20  # Power Surge
+const BOOST_AMPLIFY_MULT := 1.40  # Power Surge
 const BOOST_AMPLIFY_N := 3
 const BOOST_COMEBACK_MULT := 1.50  # The Comeback Press (3rd press)
 const BOOST_COMEBACK_N := 6
 const BOOST_COMEBACK_PRESS := 3
 const BOOST_BATTERY_MULT := 1.10   # Boost Battery kicker
-const BOOST_COMPOUND_BONUS := 1.25  # Compounding Pressure (favourable roll)
+const BOOST_COMPOUND_BONUS := 1.40  # Compounding Pressure (favourable roll)
 const BOOST_COMPOUND_GUARD := 0.85  # Compounding Pressure (defensive roll)
 
 # Active buffs: each {side:int, target:int, mult:float, balls_left:int}.
