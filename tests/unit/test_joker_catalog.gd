@@ -23,7 +23,7 @@ func test_death_over_shape() -> void:
 	assert_eq(j.side, JokerEffect.Side.BOWLING)
 	assert_eq(j.target, JokerEffect.Target.RUNS)
 	assert_eq(j.ball_min, 90)
-	assert_almost_eq(j.mult, 0.80, 0.0001)
+	assert_almost_eq(j.mult, 0.83, 0.0001)
 	assert_eq(j.rarity, "Rare")
 
 func _group(id: String) -> Dictionary:
@@ -44,7 +44,7 @@ func test_field_restrictions_shape() -> void:
 	var e: JokerEffect = _group("field_restrictions")["effects"][0]
 	assert_eq(e.side, JokerEffect.Side.BATTING)
 	assert_eq(e.field_req, FieldPlan.Mode.CATCHING)
-	assert_almost_eq(e.mult, 1.12, 0.0001)
+	assert_almost_eq(e.mult, 1.05, 0.0001)
 
 func test_chase_master_shape() -> void:
 	var e: JokerEffect = _group("the_chase_master")["effects"][0]
@@ -173,6 +173,19 @@ func test_defensive_captain_sets_field() -> void:
 	assert_eq(e.sets_field, FieldPlan.Mode.DEFENSIVE)
 	assert_eq(e.bowl_intent_req, BallResolver.Intent.DEFENSIVE)
 	assert_almost_eq(e.mult, 1.0, 0.0001, "enabler bends no roll")
+
+func test_carry_your_bat_scores_while_defending() -> void:
+	var rows: Array = _group("carry_your_bat")["effects"]
+	var wicket_mult := 1.0
+	var runs_mult := 1.0
+	for e in rows:
+		if e.target == JokerEffect.Target.WICKET:
+			wicket_mult = e.mult
+		else:
+			runs_mult = e.mult
+	# Must still protect the wicket but NOT suppress scoring (the bug was runs 0.90).
+	assert_lt(wicket_mult, 1.0, "Carry Your Bat still lowers wicket risk")
+	assert_gte(runs_mult, 1.0, "Carry Your Bat must not suppress scoring (was 0.90 -> net-negative)")
 
 func test_multi_buff_groups_have_two_effects() -> void:
 	assert_eq(_group("carry_your_bat")["effects"].size(), 2, "Carry Your Bat = wicket + runs")

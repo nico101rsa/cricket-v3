@@ -146,7 +146,7 @@ func test_boost_power_up_extends_window() -> void:
 func test_boost_power_surge_amplifies() -> void:
 	var rt := JokerRuntime.new()
 	rt.on_boost_press([_boost(JokerEffect.BoostRole.AMPLIFY)], true, BallResolver.Intent.BALANCED, 1.5, 6, 1)
-	assert_almost_eq(rt.active[0]["mult"], 1.5 * 1.20, 0.0001, "Power Surge: mult x1.2")
+	assert_almost_eq(rt.active[0]["mult"], 1.5 * 1.40, 0.0001, "Power Surge: mult x1.4")
 	assert_eq(rt.active[0]["balls_left"], 9, "Power Surge: 6 + 3")
 
 func test_boost_comeback_only_on_third_press() -> void:
@@ -170,10 +170,10 @@ func test_boost_compound_needs_aggressive() -> void:
 	var rt := JokerRuntime.new()
 	rt.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
 	assert_almost_eq(rt.tick_mults(true).y, 1.0, 0.0001, "balanced -> no compound")
-	# Aggressive press -> runs x1.25 and wicket x0.85.
+	# Aggressive press -> runs x1.40 and wicket x0.85.
 	var rt2 := JokerRuntime.new()
 	rt2.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.AGGRESSIVE, 1.0, 6, 1)
-	assert_almost_eq(rt2.tick_mults(true).y, 1.25, 0.0001, "aggressive -> runs x1.25")
+	assert_almost_eq(rt2.tick_mults(true).y, 1.40, 0.0001, "aggressive -> runs x1.40")
 	assert_almost_eq(rt2.tick_mults(true).x, 0.85, 0.0001, "aggressive -> wicket x0.85")
 
 func test_boost_pedal_enables_compound() -> void:
@@ -181,7 +181,7 @@ func test_boost_pedal_enables_compound() -> void:
 	var rt := JokerRuntime.new()
 	var jk := [_boost(JokerEffect.BoostRole.COMPOUND), _boost(JokerEffect.BoostRole.PEDAL)]
 	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
-	assert_almost_eq(rt.tick_mults(true).y, 1.25, 0.0001, "pedal -> aggressive -> compound fires")
+	assert_almost_eq(rt.tick_mults(true).y, 1.40, 0.0001, "pedal -> aggressive -> compound fires")
 
 func test_boost_adrenaline_chains_form() -> void:
 	# Boost Adrenaline fires a Form event, which triggers a Form joker (Ride the Wave).
@@ -204,7 +204,7 @@ func _rng(s: int) -> RandomNumberGenerator:
 func test_init_reviews_counts_grants() -> void:
 	var rt := JokerRuntime.new()
 	rt.init_reviews([_drs(JokerEffect.DRSRole.EXTRA_REVIEW, 0.0), _drs(JokerEffect.DRSRole.MASTER, 0.0)], 1)
-	assert_eq(rt.reviews_left, 3, "base 1 + Spare Review + Review Master")
+	assert_eq(rt.reviews_left, 4, "base 1 + Spare Review (+1) + Review Master (+2)")
 
 func test_try_review_consumes_on_fail() -> void:
 	var rt := JokerRuntime.new()
@@ -222,13 +222,14 @@ func test_try_review_retains_on_success() -> void:
 	assert_true(rt.try_review([], true, BallResolver.Intent.BALANCED, 1.0, 1, _rng(1)))
 	assert_eq(rt.reviews_left, 1, "success retains the review")
 
-func test_captains_call_never_consumes() -> void:
+func test_captains_call_grants_spare_reviews() -> void:
 	var rt := JokerRuntime.new()
 	var jk := [_drs(JokerEffect.DRSRole.RETAIN, 0.0)]
 	rt.init_reviews(jk, 1)
-	# Always fail, but Captain's Call retains.
+	assert_eq(rt.reviews_left, 3, "Captain's Call grants +2 reviews (base 1 + 2)")
+	# A failed review now consumes normally (no more infinite retain-on-fail).
 	rt.try_review(jk, true, BallResolver.Intent.BALANCED, 0.0, 1, _rng(1))
-	assert_eq(rt.reviews_left, 1, "Captain's Call: failed review not consumed")
+	assert_eq(rt.reviews_left, 2, "failed review consumed")
 
 func test_accuracy_raises_success_rate() -> void:
 	var base_s := 0; var acc_s := 0

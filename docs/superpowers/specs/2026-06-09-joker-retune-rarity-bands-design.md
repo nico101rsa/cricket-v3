@@ -237,3 +237,72 @@ floor, not the solo arm.
 - `scripts/data/joker_catalog.gd` — re-tuned magnitudes (DB1).
 - `tests/unit/` — teammate-review, opponent-review, 2-review tests; rebaselined snapshot/value tests.
 - `docs/joker-pool-v1.md`, `docs/mockups/distribution-viewer-v1.html` — final magnitudes + DATA.
+
+---
+
+## 10. Findings & residuals (built 2026-06-10)
+
+Tuned inline TDD against the fair-fight baseline (no-joker floor **48.1%**). Plan:
+`docs/superpowers/plans/2026-06-10-joker-retune-rarity-bands.md`. **363 tests green.**
+Final sweep magnitudes are in `docs/joker-pool-v1.md`.
+
+### 10.1 Tuned into band ✅
+The over-strong / negative jokers — the actual balance danger — are all fixed:
+
+| Joker | Rarity | Before | After | Band |
+|---|---|---|---|---|
+| The Review Master | L | +28.4% | **+9.6%** | 7–12 ✅ |
+| Snicko | R | +13.6% | **+4.9%** | 4–7 ✅ |
+| The Captain's Call | R | +9.8% | **+5.9%** | 4–7 ✅ |
+| Carry Your Bat | R | **−2.9%** | **+4.6%** | 4–7 ✅ (bug fixed) |
+| Field Restrictions | C | +5.3% | **+4.0%** | 1–4 ✅ |
+| Powerplay Punch | C | +5.2% | **+4.0%** | 1–4 ✅ |
+| Death-Over Stranglehold | R | +7.2% | **+6.5%** | 4–7 ✅ |
+| Power Surge | R | +2.9% | **+4.8%** | 4–7 ✅ |
+
+Already-in-band (untouched): Choke Hold +8.7 (L), Cool Head +3.9 / Spare Review +3.2 /
+Captain's Eye +2.8 / Squeeze +3.0 / Tight Lines +2.7 (C), Dot Ball +4.5 / Boundary Hunter +4.8 (R).
+At the Rare floor within ±1 tolerance: Slog Over Specialist +3.5, Compounding Pressure +3.5.
+
+### 10.2 DB3 fallback applied — the DRS "retain on fail" mechanic was retired
+Data dials alone could **not** bring Captain's Call (+9.8%) or Review Master (+17% after the bonus
+cut) into band: both relied on `retain`-on-failure = effectively **infinite reviews**, which has no
+scalar to tune. Per DB3 we made the one sanctioned mechanic change: `RETAIN`/`MASTER` no longer set
+retain-on-fail; instead they grant **bounded extra reviews** up front (Captain's Call +2, Review
+Master +2). Base **retain-on-success** (the real T20 rule — keep your review on an overturn) is
+unchanged, so the in-band DRS Commons (Cool Head/Spare/Captain's Eye) were unaffected.
+`DRS_MASTER_BONUS` 0.30→**0.06**, Snicko accuracy 0.25→**0.12**.
+
+### 10.3 Participation-limited residuals (DB4 — documented, NOT inflated)
+The neutral 5/5/5/5 sweep with a fixed game-plan **under-fires conditional jokers** — they read low
+because their condition rarely comes up, not because the magnitude is small. Per DB4 we left these at
+firing-strength (Slog, Compounding, Chase Master were bumped, gained nothing, and reverted). In-combo
+value is real and shows in the stack arms (§10.4).
+
+| Joker | Rarity | Solo Δwin | Why it under-fires in the neutral sweep |
+|---|---|---|---|
+| The Chase Master | L | +3.0% | gated on batting 2nd (toss ~50%) + Aggressive — a bump 1.20→1.30 moved it 0% |
+| The Comeback Press | L | +1.3% | only the 3rd Manager Boost of a match gets the payoff |
+| Match-Winner's Vigil | L | +1.1% | fires on a Player Form event while batting (Form sources rarely held solo) |
+| The Strike Bowler | L | +1.0% | needs a bowling change *into* a catching field |
+| Wicket Maiden | R | +0.6% | fires on a Player wicket while bowling (Form-bowl event) |
+| First-Change Specialist | R | +0.4% | fires on any bowling change (few changes per innings) |
+| The Trap | R | +0.4% | needs catching field + spin on simultaneously |
+| Hot Streak | R | +0.2% | needs 2 Form events within 6 balls |
+| Bowler's Backing | R | +0.1% | payoff only after a *successful* review while bowling |
+| Cordon Killer, Attack the Stumps | C | +0.7% | need catching field / Aggressive bowling captaincy held |
+| Ride the Wave | C | +0.5% | consumes a Player Form event (needs a Form source) |
+| Pace Pack, Spinner's Web | C | +0.2% | fire on a specific bowling change |
+| Dead Bat, Block the Shine, Pressure Cooker, Rotate the Strike, Spinner's Web | C | ≈0% | Defensive/Balanced/opp-Defensive states the sweep's aggressive plan rarely hits |
+
+**Key finding:** the neutral sweep is a good oracle for *unconditional* magnitude but **cannot measure
+conditional jokers' true band strength** — that needs a scenario sweep that exercises each joker's
+firing condition. That is the same theme as all-rounder participation and is **deferred** (a future
+"participation/scenario sweep" rung). No joker is negative; no single joker is an auto-win.
+
+### 10.4 Enablers + stacks (in-combo)
+Enablers read ~0% solo **by design** and clear their floor in-combo: Defensive Captain, Hot Spot, the
+3 Form sources, Pedal, Adrenaline, Power Up, Boost Battery (all 0.0–0.5% solo). Stack arms post-tune:
+Reviewer **+34.0%** (was +43.6 — the DRS nerf landed), Boost-stack +22.6, Batting +14.8,
+Field-defensive +12.6, Bowling-intent +9.8, Form-source combo +6.2, Wicket-Hunter +3.5,
+Form-window +2.4. Full pool (all 45) +51.8% (illustrative — never held at once).

@@ -13,13 +13,13 @@ const FORM_DOUBLE_WINDOW := 6  # Hot Streak: 2 Form events within this many ball
 
 # C2e — Boost-press modifier magnitudes (pool-fixed, strawman; balance-tunable).
 const BOOST_EXTEND_N := 2          # Power Up
-const BOOST_AMPLIFY_MULT := 1.20  # Power Surge
+const BOOST_AMPLIFY_MULT := 1.40  # Power Surge
 const BOOST_AMPLIFY_N := 3
 const BOOST_COMEBACK_MULT := 1.50  # The Comeback Press (3rd press)
 const BOOST_COMEBACK_N := 6
 const BOOST_COMEBACK_PRESS := 3
 const BOOST_BATTERY_MULT := 1.10   # Boost Battery kicker
-const BOOST_COMPOUND_BONUS := 1.25  # Compounding Pressure (favourable roll)
+const BOOST_COMPOUND_BONUS := 1.40  # Compounding Pressure (favourable roll)
 const BOOST_COMPOUND_GUARD := 0.85  # Compounding Pressure (defensive roll)
 
 # Active buffs: each {side:int, target:int, mult:float, balls_left:int}.
@@ -31,9 +31,14 @@ var boost_press_count: int = 0
 # C2f — DRS reviews remaining this innings (set by init_reviews when a DRSPolicy is used).
 var reviews_left: int = 0
 
-const DRS_MASTER_BONUS := 0.30      # The Review Master P(success) bonus
+const DRS_MASTER_BONUS := 0.06      # The Review Master P(success) bonus
 const DRS_BOWLING_BUFF_MULT := 1.20  # Bowler's Backing wicket buff
 const DRS_BOWLING_BUFF_N := 6
+# Bounded extra-review grants (replace the old "infinite retain-on-fail" mechanic,
+# which had no scalar to tune — DB3 fallback, 2026-06-10). Base retain-on-success
+# (keep your review when a decision is overturned) is unchanged.
+const RETAIN_EXTRA_REVIEWS := 2     # The Captain's Call (#43) — spare reviews
+const MASTER_EXTRA_REVIEWS := 2     # The Review Master (#45)
 
 # Product of active buffs on the side that's batting/bowling this innings. Call at
 # ball start; the returned (wicket_mult, runs_mult) multiplies the stateless mults.
@@ -171,28 +176,31 @@ func on_boost_press(jokers: Array, player_is_batting: bool, intent: int, base_mu
 func init_reviews(jokers: Array, base_reviews: int) -> void:
 	reviews_left = base_reviews
 	for j in jokers:
-		if j.drs_role == JokerEffect.DRSRole.EXTRA_REVIEW or j.drs_role == JokerEffect.DRSRole.MASTER:
-			reviews_left += 1
+		match j.drs_role:
+			JokerEffect.DRSRole.EXTRA_REVIEW:
+				reviews_left += 1
+			JokerEffect.DRSRole.RETAIN:
+				reviews_left += RETAIN_EXTRA_REVIEWS
+			JokerEffect.DRSRole.MASTER:
+				reviews_left += MASTER_EXTRA_REVIEWS
 
 # C2f — attempt a DRS review on a close decision. Returns whether it is overturned
 # (batting: the Player survives; bowling: a wicket is claimed). Rolls exactly one
-# randf when a review is available. On success the review is retained (base rule);
-# on fail it is consumed unless a retain joker (#43 / #45). Fires success payoffs.
+# randf when a review is available. On success the review is retained (base T20
+# rule); on fail it is consumed. The Captain's Call / Review Master grant extra
+# reviews up front (init_reviews) rather than the old infinite retain-on-fail.
+# Fires success payoffs.
 func try_review(jokers: Array, player_is_batting: bool, intent: int, base_p: float, ball: int, rng: RandomNumberGenerator) -> bool:
 	if reviews_left <= 0:
 		return false
 	var p := base_p
-	var retain := false
 	for j in jokers:
 		match j.drs_role:
 			JokerEffect.DRSRole.ACCURACY:
 				if j.intent_req == -1 or intent == j.intent_req:
 					p += j.drs_p_bonus
-			JokerEffect.DRSRole.RETAIN:
-				retain = true
 			JokerEffect.DRSRole.MASTER:
 				p += DRS_MASTER_BONUS
-				retain = true
 	p = clampf(p, 0.0, 1.0)
 	var success := rng.randf() < p
 	if success:
@@ -203,6 +211,6 @@ func try_review(jokers: Array, player_is_batting: bool, intent: int, base_p: flo
 				JokerEffect.DRSRole.BOWLING_BUFF:
 					if not player_is_batting:
 						active.append({"side": JokerEffect.Side.BOWLING, "target": JokerEffect.Target.WICKET, "mult": DRS_BOWLING_BUFF_MULT, "balls_left": DRS_BOWLING_BUFF_N})
-	elif not retain:
+	else:
 		reviews_left -= 1
 	return success

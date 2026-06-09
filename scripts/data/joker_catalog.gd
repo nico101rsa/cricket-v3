@@ -9,7 +9,7 @@ static func slice_v1() -> Array:
 			JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.92,
 			BallResolver.Intent.DEFENSIVE),
 		JokerEffect.make("powerplay_punch", "Powerplay Punch", "Common",
-			JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.10,
+			JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.06,
 			BallResolver.Intent.AGGRESSIVE),
 		JokerEffect.make("block_the_shine", "Block the Shine", "Common",
 			JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.90,
@@ -18,7 +18,7 @@ static func slice_v1() -> Array:
 			JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.92,
 			-1, 36, 90),
 		JokerEffect.make("death_over_stranglehold", "Death-Over Stranglehold", "Rare",
-			JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.80,
+			JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.83,
 			-1, 90, 120),
 	]
 
@@ -36,7 +36,7 @@ static func implemented_groups() -> Array:
 				BallResolver.Intent.DEFENSIVE)]),
 		_g("powerplay_punch", "Powerplay Punch", "Common", [
 			JokerEffect.make("powerplay_punch", "Powerplay Punch", "Common",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.10,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.05,
 				BallResolver.Intent.AGGRESSIVE)]),
 		_g("block_the_shine", "Block the Shine", "Common", [
 			JokerEffect.make("block_the_shine", "Block the Shine", "Common",
@@ -48,7 +48,7 @@ static func implemented_groups() -> Array:
 				-1, 36, 90)]),
 		_g("death_over_stranglehold", "Death-Over Stranglehold", "Rare", [
 			JokerEffect.make("death_over_stranglehold", "Death-Over Stranglehold", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.80,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.83,
 				-1, 90, 120)]),
 		# --- C2a: stateless leftovers (intent / ball-window only) ---
 		_g("rotate_the_strike", "Rotate the Strike", "Common", [
@@ -60,16 +60,16 @@ static func implemented_groups() -> Array:
 				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.85,
 				BallResolver.Intent.DEFENSIVE),
 			JokerEffect.make("carry_your_bat", "Carry Your Bat", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 0.90,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.12,
 				BallResolver.Intent.DEFENSIVE)]),
 		_g("slog_over_specialist", "Slog Over Specialist", "Rare", [
 			JokerEffect.make("slog_over_specialist", "Slog Over Specialist", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.25,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.35,
 				BallResolver.Intent.AGGRESSIVE, 90, 120)]),
 		# --- C2a: field-gated (bowling side) ---
 		_g("tight_lines", "Tight Lines", "Common", [
 			JokerEffect.make("tight_lines", "Tight Lines", "Common",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.90,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.93,
 				-1, 1, 120, FieldPlan.Mode.DEFENSIVE)]),
 		_g("dot_ball_pressure", "Dot Ball Pressure", "Rare", [
 			JokerEffect.make("dot_ball_pressure", "Dot Ball Pressure", "Rare",
@@ -187,7 +187,7 @@ static func implemented_groups() -> Array:
 		_g("hot_spot", "Hot Spot", "Common", [
 			_drs("hot_spot", "Hot Spot", "Common", JokerEffect.DRSRole.FORM_ON_SUCCESS, 0.0)]),
 		_g("snicko", "Snicko", "Rare", [
-			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.25)]),
+			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.12)]),
 		_g("the_captains_call", "The Captain's Call", "Rare", [
 			_drs("the_captains_call", "The Captain's Call", "Rare", JokerEffect.DRSRole.RETAIN, 0.0)]),
 		_g("bowlers_backing", "Bowler's Backing", "Rare", [
@@ -215,7 +215,7 @@ static func implemented_groups() -> Array:
 		# #9 Field Restrictions: batting against a catching (opposition) field -> runs x1.12.
 		_g("field_restrictions", "Field Restrictions", "Common", [
 			JokerEffect.make("field_restrictions", "Field Restrictions", "Common",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.12,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.05,
 				-1, 1, 120, FieldPlan.Mode.CATCHING)]),
 		# #15 The Chase Master: 2nd innings (chasing) + Aggressive -> runs x1.20.
 		_g("the_chase_master", "The Chase Master", "Legendary", [
