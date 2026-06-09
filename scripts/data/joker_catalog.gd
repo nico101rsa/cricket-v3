@@ -187,7 +187,7 @@ static func implemented_groups() -> Array:
 		_g("hot_spot", "Hot Spot", "Common", [
 			_drs("hot_spot", "Hot Spot", "Common", JokerEffect.DRSRole.FORM_ON_SUCCESS, 0.0)]),
 		_g("snicko", "Snicko", "Rare", [
-			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.25)]),
+			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.12)]),
 		_g("the_captains_call", "The Captain's Call", "Rare", [
 			_drs("the_captains_call", "The Captain's Call", "Rare", JokerEffect.DRSRole.RETAIN, 0.0)]),
 		_g("bowlers_backing", "Bowler's Backing", "Rare", [
