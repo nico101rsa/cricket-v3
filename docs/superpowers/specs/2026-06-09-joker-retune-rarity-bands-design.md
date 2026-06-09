@@ -1,9 +1,17 @@
 # Joker re-tune to rarity-tiered bands (Theme 7c balance) — Design
 
 **Date:** 2026-06-09
-**Status:** Design — awaiting Nico's review
+**Status:** Design — **PARKED as rung 2** (build after the fair-fight baseline rung)
 **Theme:** 7c balance harness · the long-deferred joker re-tune (handoff option B)
 **Prereqs on `main`:** all 45 jokers wired (PRs #18–#26); build-balance LOCKED (PRs #27–#31); 356 tests green.
+
+> **⚠️ Split (2026-06-09).** The measurement + DRS/opponent *mechanics* in this spec grew into their
+> own rung — **the fair-fight baseline** (`2026-06-09-fair-fight-baseline-design.md`, build FIRST).
+> That rung delivers: team-wide Player DRS, 2 reviews, opponent base DRS + boost, symmetric opponent
+> intent, the run-margin readout, and a no-joker even-★3 baseline ≈ 48–50%. **This spec (rung 2) keeps
+> only the rarity-band re-tune (§2, §5.2, §6) and runs against that honest baseline.** The §4 / §5.1
+> mechanics + decisions DM1–DM5 are **superseded** here and owned by the baseline spec (DF1–DF6); they
+> remain below for history but are NOT this rung's work. DB1–DB4 (the tuning decisions) still apply.
 
 ---
 
