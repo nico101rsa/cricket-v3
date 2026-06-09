@@ -41,9 +41,15 @@ This is a **mechanics + measurement** rung — no joker magnitudes change here.
 - **Opponent batting intent** — same plan as the Player's (already a sweep param).
 - **Run-margin readout** in the sweep (non-saturating measuring tool, reused by rung 2).
 
+**Now in scope (folded in during build, 2026-06-09):**
+- **Opponent reviews-to-*claim* while bowling** (turning a Player dot into a wicket). Initially
+  deferred, but a build-time probe showed the Player's claim-review was the *entire* residual keeping
+  the baseline above 50% (no DRS either side → 50.3%; DRS both sides but Player-only claim → 55.3%).
+  Adding the opponent claim-review (cheap — same runtime) took the baseline 53.7% → **48.1%**, hitting
+  DF6. So it's included. Implemented as a **unified DRS block**: both sides survive a wicket / claim a
+  dot, gated on the *original* outcome so a survived wicket can't be instantly re-claimed.
+
 **Out of scope (deferred, documented):**
-- **Opponent reviews-to-*claim* while bowling** (turning a Player not-out into out). Survival is the
-  intent-matching slice; claim is a further layer. The Player keeps its claim-review (existing).
 - **Water-meter boost fidelity** — fill²-scaling, recharge, the ~6-press budget (ADR 0005). The sim's
   fixed-press strawman (×mult for N balls per press) is adequate; full fidelity is a later job.
 - **Opponent jokers / opponent decision-AI** — the opponent runs *fixed* base scripts, no jokers, no
@@ -111,8 +117,11 @@ schedule. No save-for-later logic — acceptable V1.
   paths are untouched).
 - **DF3 (Nico):** Player DRS reviews **any team dismissal**; **2 reviews** (real T20 rule).
 - **DF4 (Nico):** opponent boost uses the **same 3-press schedule** as the Player, side-aware.
-- **DF5:** opponent **reviews-to-claim while bowling** and **boost water-meter fidelity** are deferred.
-- **DF6:** success = no-joker even-★3 baseline ≈ **48–50%** (the honest even-contest number).
+- **DF5:** opponent **reviews-to-claim while bowling** — initially deferred, **folded in** (it was the
+  whole residual above 50%; cheap via the unified DRS block). **Boost water-meter fidelity** and
+  **opponent jokers / decision-AI** remain deferred (self-play).
+- **DF6:** success = no-joker even-★3 baseline ≈ 48–50% — **ACHIEVED: 48.1%, mean margin −1.99 runs**
+  (a fair fight; the slight sub-50% matches the build-balance finding that ties take ~1% off the top).
 
 ## 7. Files touched
 
