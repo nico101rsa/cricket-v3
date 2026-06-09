@@ -28,3 +28,7 @@ func test_drs_reviews_any_dismissal_not_just_hero() -> void:
 		0, 0, 0, [], true, null, null, null, hi)
 	assert_lt(with_drs.wickets, no_drs.wickets,
 		"team-wide DRS should save non-hero batters too")
+
+# DF3: real T20 allows 2 unsuccessful reviews per innings.
+func test_default_review_count_is_two() -> void:
+	assert_eq(DRSPolicy.new().base_reviews, 2, "base_reviews default should be 2 (T20 rule)")
