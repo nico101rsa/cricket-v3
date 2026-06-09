@@ -192,10 +192,11 @@ func test_player_bowling_plan_routes_to_player_team_bowling() -> void:
 	var m := MatchResolver.simulate_match(
 		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), null, plan)
 	var player_team_bowl := BowlingAttack.new(5, 5)  # from player_team_attack/control
-	# The Player (5/5/5/5) bowls a 2-over quota at raw 5/5, overriding the spin plan on
-	# those overs (Player-as-bowler, spec 2026-06-08). The baseline must mirror that.
+	# The Player (5/5/5/5) bowls a 4-over quota at raw 5/5, overriding the spin plan on
+	# those overs (Player-as-bowler; the all-rounder bowls its full quota since the
+	# 2026-06-09 overs-curve change). The baseline must mirror that.
 	var standalone := InningsResolver.simulate_innings(
-		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan, 5, 5, 2)
+		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan, 5, 5, 4)
 	assert_eq(m.innings1.total, standalone.total, "Player team bowling used the plan")
 	assert_eq(m.innings1.wickets, standalone.wickets, "opposition wickets match plan run")
 
@@ -289,17 +290,29 @@ func test_teams_determinism_with_roster() -> void:
 # --- Slice 3: bowling budget conservation (D12) -------------------------------
 
 func test_conserved_bowling_no_overs_returns_scalar() -> void:
-	assert_eq(MatchResolver._conserved_bowling(5, 0, 8, 20), 5, "n=0 -> unchanged team scalar")
+	assert_almost_eq(MatchResolver._conserved_bowling(5, 0, 8, 20), 5.0, 0.0001, "n=0 -> unchanged team scalar")
 
 func test_conserved_bowling_neutral_player_unchanged() -> void:
-	# All-rounder bowls 2 overs at attack 5 == team scalar -> teammates unchanged.
-	assert_eq(MatchResolver._conserved_bowling(5, 2, 5, 20), 5, "player at team par -> no change")
+	# All-rounder bowls at attack 5 == team scalar -> teammates unchanged.
+	assert_almost_eq(MatchResolver._conserved_bowling(5, 2, 5, 20), 5.0, 0.0001, "player at team par -> no change")
 
-func test_conserved_bowling_strong_bowler_weakens_teammates() -> void:
-	# 4 overs at attack 8 -> the other 16 bowl weaker so the team total holds at ~100.
-	var c := MatchResolver._conserved_bowling(5, 4, 8, 20)
-	assert_eq(c, 4, "round((20*5 - 4*8)/16) = round(4.25) = 4")
-	assert_almost_eq(4 * 8 + 16 * c, 100, 8, "team total bowling ~= over_limit*scalar (within rounding)")
+func test_conserved_bowling_is_exact_not_rounded() -> void:
+	# Strong bowler: 4 overs at attack 8, no concentration penalty -> exact 4.25, NOT rounded to 4.
+	assert_almost_eq(MatchResolver._conserved_bowling(5, 4, 8, 20), 4.25, 0.0001, "(20*5 - 4*8)/16 = 4.25 exactly")
+
+func test_conserved_bowling_weak_player_compensated_above_scalar() -> void:
+	# Weak part-timer: 1 over at attack 3 -> teammates bowl ABOVE 5 to hold the total. This is
+	# the case the old integer round() under-compensated (dragging the team below par).
+	var c := MatchResolver._conserved_bowling(5, 1, 3, 20)
+	assert_gt(c, 5.0, "a weak player's overs are compensated by stronger teammates (> scalar)")
+
+func test_conserved_bowling_identity_holds_exactly() -> void:
+	# The whole point: total team bowling = over_limit * scalar, for any n/player_stat (k=0).
+	for case in [[5, 1, 3], [5, 4, 8], [6, 2, 4], [4, 3, 7]]:
+		var s: int = case[0]; var n: int = case[1]; var stat: int = case[2]
+		var c := MatchResolver._conserved_bowling(s, n, stat, 20)
+		assert_almost_eq(n * stat + (20 - n) * c, float(20 * s), 0.0001,
+			"team total bowling == over_limit*scalar for n=%d stat=%d" % [n, stat])
 
 func test_conserved_bowling_floored_at_1() -> void:
-	assert_eq(MatchResolver._conserved_bowling(1, 4, 8, 20), 1, "result floored at 1")
+	assert_almost_eq(MatchResolver._conserved_bowling(1, 4, 8, 20), 1.0, 0.0001, "result floored at 1.0")

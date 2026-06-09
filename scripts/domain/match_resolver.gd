@@ -42,23 +42,26 @@ static func _decide_result(
 static func _resolve_toss(rng: RandomNumberGenerator) -> bool:
 	return rng.randf() < 0.5
 
-# Bowling budget conservation (Slice 3, D12). When the Player bowls `n` of the
-# innings' `overs` at their own `player_stat` (attack or control), the other
-# (overs - n) bowlers bowl at this conserved value so the team's total bowling
-# (n*player_stat + (overs-n)*result) ~= overs*team_scalar — identical to a team
-# with no Player bowling, and to the opponent. Floors at 1. Pure. Spec §8.6 D12.
+# Bowling budget conservation (Slice 3 D12 + 2026-06-09 exact-float fix). When the
+# Player bowls `n` of the innings' `overs` at their own `player_stat` (attack or
+# control), the other (overs - n) bowlers bowl at this conserved value so the team's
+# total bowling (n*player_stat + (overs-n)*result) == overs*team_scalar EXACTLY —
+# identical to a team with no Player bowling, and to the opponent. Returns an exact
+# float (no rounding): a weak part-timer is compensated by teammates bowling slightly
+# ABOVE the scalar — integer rounding under-compensated this and dragged weak-bowler
+# builds below par. Floors at 1.0. Pure. Spec §3.3 of the all-rounder-viability design.
 #
 # `concentration_k` (calibration dial, default 0 = pure linear conservation) charges
 # a strong Player spell EXTRA, because n concentrated overs at a high attack take
 # convexly more wickets than the same linear attack-over budget spread thin — without
 # it, bowling builds keep a residual win edge (spec §8.6 D14 / §9.5.3). Penalty only
 # applies when the Player bowls ABOVE the team average (player_stat > team_scalar).
-static func _conserved_bowling(team_scalar: int, n: int, player_stat: int, overs: int,
-		concentration_k: float = 0.0) -> int:
+static func _conserved_bowling(team_scalar: float, n: int, player_stat: int, overs: int,
+		concentration_k: float = 0.0) -> float:
 	if n <= 0 or n >= overs:
 		return team_scalar
-	var penalty := concentration_k * n * maxf(0.0, float(player_stat - team_scalar))
-	return maxi(1, roundi((float(overs) * team_scalar - n * player_stat - penalty) / float(overs - n)))
+	var penalty := concentration_k * n * maxf(0.0, player_stat - team_scalar)
+	return maxf(1.0, (overs * team_scalar - n * player_stat - penalty) / float(overs - n))
 
 # Team-bundled match: derive six strength ints from the two Teams + Tour, flip
 # the toss, then delegate to simulate_match(). Fixed RNG draw order (toss, then
@@ -122,11 +125,11 @@ static func simulate_match_teams(
 static func simulate_match(
 		player_attrs: Attributes,
 		player_team_batting: int,
-		player_team_attack: int,
-		player_team_control: int,
+		player_team_attack: float,
+		player_team_control: float,
 		opp_batting: int,
-		opp_attack: int,
-		opp_control: int,
+		opp_attack: float,
+		opp_control: float,
 		player_bats_first: bool,
 		tuning: BallTuning,
 		itun: InningsTuning,
@@ -163,8 +166,11 @@ static func simulate_match(
 	var player_bowl: BowlingAttack = null
 	var ai_plan: BowlingPlan = null
 	if rotate:
-		opp_bowl = BowlingAttack.new(opp_attack, opp_control)
-		player_bowl = BowlingAttack.new(player_team_attack, player_team_control)
+		# BowlingAttack works in integer pace/spin profiles; round the (now float) scalars.
+		# Rotation is opt-in and not used in the balance sweep, so exact conservation lives
+		# in the constant-scalar path below, not here.
+		opp_bowl = BowlingAttack.new(roundi(opp_attack), roundi(opp_control))
+		player_bowl = BowlingAttack.new(roundi(player_team_attack), roundi(player_team_control))
 		ai_plan = BowlingPlan.textbook()
 
 	if player_bats_first:

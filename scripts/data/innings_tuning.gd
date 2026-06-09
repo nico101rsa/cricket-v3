@@ -18,11 +18,11 @@ extends Resource
 # build -> bowling overs (0..bowl_max_overs): overs = clamp(round(gain*share + base), 0, max)
 # where share = (attack+control)/(power+composure+attack+control). Strawman; harness-tunable.
 @export var bowl_max_overs: int = 4
-@export var bowl_overs_gain: float = 8.0
-@export var bowl_overs_base: float = -2.5
+@export var bowl_overs_gain: float = 13.0
+@export var bowl_overs_base: float = -2.6
 
 # Bowling budget conservation (Slice 3, D12): extra charge for a concentrated strong
 # Player spell (n overs above team-average attack take convexly more wickets than the
 # linear budget assumes). 0 = pure linear conservation. Calibrated to flatten the
 # bowling-build win edge (spec §9.5.3). See MatchResolver._conserved_bowling.
-@export var bowl_concentration_k: float = 1.0
+@export var bowl_concentration_k: float = 0.5

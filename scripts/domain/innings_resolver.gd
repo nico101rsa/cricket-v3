@@ -83,8 +83,8 @@ static func _build_batters(player_attrs: Attributes, partner_batting: int, itun:
 static func simulate_innings(
 		player_attrs: Attributes,
 		partner_batting: int,
-		opp_attack: int,
-		opp_control: int,
+		opp_attack: float,
+		opp_control: float,
 		tuning: BallTuning,
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,

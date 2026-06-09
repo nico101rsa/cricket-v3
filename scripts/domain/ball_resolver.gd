@@ -27,8 +27,8 @@ static func _sigmoid(x: float) -> float:
 static func resolve_ball(
 		bat_power: int,
 		bat_composure: int,
-		bowl_attack: int,
-		bowl_control: int,
+		bowl_attack: float,
+		bowl_control: float,
 		intent: Intent,
 		tuning: BallTuning,
 		rng: RandomNumberGenerator,

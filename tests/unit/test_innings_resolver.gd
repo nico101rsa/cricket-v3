@@ -43,9 +43,13 @@ func test_pure_batter_bowls_no_overs() -> void:
 	# 8/8/2/2: share 0.2 -> 8*0.2 - 2.5 = -0.9 -> round -1 -> clamp 0
 	assert_eq(InningsResolver.player_overs(_attrs(8, 8, 2, 2), itun), 0, "specialist batter doesn't bowl")
 
-func test_even_build_bowls_part_time() -> void:
-	# 5/5/5/5: share 0.5 -> 8*0.5 - 2.5 = 1.5 -> round 2
-	assert_eq(InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun), 2, "balanced build is a part-timer")
+func test_even_build_bowls_full_quota() -> void:
+	# 5/5/5/5: share 0.5 -> 13*0.5 - 2.6 = 3.9 -> round 4 (a real all-rounder bowls out)
+	assert_eq(InningsResolver.player_overs(_attrs(5, 5, 5, 5), itun), 4, "all-rounder bowls the full 4-over quota (authenticity)")
+
+func test_batting_ish_build_bowls_somewhat() -> void:
+	# 7/7/3/3: share 0.3 -> 13*0.3 - 2.6 = 1.3 -> round 1 (bowls somewhat, not zero — DA5)
+	assert_eq(InningsResolver.player_overs(_attrs(7, 7, 3, 3), itun), 1, "a 7/7 bowls somewhat (~1 over), not zero")
 
 func test_pure_bowler_bowls_full_quota() -> void:
 	# 2/2/8/8: share 0.8 -> 8*0.8 - 2.5 = 3.9 -> round 4 (== max)
