@@ -58,6 +58,21 @@ func test_opponent_drs_saves_opponent_wickets() -> void:
 		0, 0, 0, [], false, null, null, null, null, null, [], 0, null, hi)
 	assert_lt(saved.wickets, base.wickets, "opponent DRS should save opponent batters")
 
+# DF5: the opponent also reviews to CLAIM while bowling — a Player dot can be
+# overturned to a wicket. Use a strong batting side vs weak bowling so the base case
+# is NOT bowled out; then a claim-everything DRS (base_p=1.0) knocks it over.
+# (player_is_batting defaults to true here.)
+func test_opponent_claim_review_takes_player_wickets() -> void:
+	var hi := DRSPolicy.new()
+	hi.base_reviews = 50
+	hi.base_p = 1.0
+	var base := InningsResolver.simulate_innings(
+		null, 12, 2.0, 2.0, _tuning(), _itun(), _rng(7))
+	var claimed := InningsResolver.simulate_innings(
+		null, 12, 2.0, 2.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], true, null, null, null, null, null, [], 0, null, hi)
+	assert_gt(claimed.wickets, base.wickets, "opponent claim-review should take Player wickets")
+
 func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = 5; t.spread = 1.5; t.noise = 1

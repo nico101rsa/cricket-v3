@@ -190,22 +190,31 @@ static func simulate_innings(
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y)
-		# C2f — DRS: a Player review can overturn a close decision. Batting: a Player
-		# dismissal -> survive (dot). Bowling: a Player-bowled dot -> claim a wicket.
-		# Mutates o so the existing wicket/runs handling takes over. RNG is consumed
-		# only when a review is actually attempted (gated on drs_policy + reviews_left).
-		if drs_policy != null:
-			if player_is_batting and o.wicket:
-				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
+		# C2f — DRS: a review can overturn a close decision (see below).
+		# A review mutates o, then the existing wicket/runs handling takes over.
+		# RNG is consumed only when a review is actually attempted (a policy +
+		# reviews_left remaining).
+		# Both sides hold base DRS: the BATTING side reviews a wicket to survive; the
+		# BOWLING side reviews a dot to claim a wicket. The Player's runtime carries its
+		# jokers; the opponent's is base-only (empty jokers, no payoffs). Gate on the
+		# *original* outcome so a survived wicket can't be instantly re-claimed (no
+		# review "tennis") — at most one review fires per ball.
+		var orig_wicket := o.wicket
+		var orig_dot := (not o.wicket) and o.runs == 0
+		if orig_wicket:
+			if player_is_batting and drs_policy != null:
+				if runtime.try_review(jokers, true, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
-			elif (not player_is_batting) and player_bowling and not o.wicket and o.runs == 0:
-				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
+			elif (not player_is_batting) and opp_drs_policy != null:
+				if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
+					o = BallOutcome.new(false, 0)
+		elif orig_dot:
+			if (not player_is_batting) and player_bowling and drs_policy != null:
+				if runtime.try_review(jokers, false, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(true, 0)
-		# DF5 — opponent base DRS: review to survive its own dismissal (no jokers, no
-		# payoffs). Only in the opponent's batting innings.
-		if opp_drs_policy != null and (not player_is_batting) and o.wicket:
-			if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
-				o = BallOutcome.new(false, 0)
+			elif player_is_batting and opp_drs_policy != null:
+				if opp_runtime.try_review([], false, intent, opp_drs_policy.base_p, balls + 1, rng):
+					o = BallOutcome.new(true, 0)
 		balls += 1
 		s["balls"] += 1
 		if player_bowling:
