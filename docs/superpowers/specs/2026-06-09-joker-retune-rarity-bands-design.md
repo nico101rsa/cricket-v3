@@ -44,15 +44,20 @@ jokers, and the full GUT suite is green.
 
 ## 3. Scope (confirmed with Nico, 2026-06-09)
 
-**In scope** — "Fix DRS + tune" (the recommended middle option):
+**In scope** — "Fix DRS + tune" (the recommended middle option), plus opponent base DRS (Nico, 2026-06-09):
 - **DRS correctness fix** — review *any* team dismissal, not just the hero's (§5.1).
+- **DRS review count** — set `base_reviews` 1 → **2** to match the real T20 rule (DM4, §5.1).
+- **Opponent base DRS** — the opponent reviews to *survive* its own dismissals (base rule, **no jokers**),
+  so the no-joker floor reflects both teams playing the same game (DM5, §4.1/§5.1).
 - **Measurement upgrade** — symmetric opponent batting intent + run-margin readout (§4).
 - **Rarity-band re-tune** — magnitudes + a few scalar dials, no new mechanics (§5.2).
 
 **Out of scope (deferred, documented):**
-- **Opponent captain-tooling** (giving the opposition its own boost + DRS so the baseline
-  reaches ~50%). That builds two-captain symmetry — it edges into the deferred **self-play AI**
-  stage (7c layer E). We instead use the run-margin ruler to handle the residual headroom.
+- **Opponent boost + opponent reviews-to-claim-while-bowling.** Opponent *boost* collides with the
+  Player's bowling boost in the same innings (the harder two-captain rework); opponent reviews to
+  *claim* a Player wicket while bowling is a further DRS layer beyond "review my dismissals". Both edge
+  into the deferred **self-play AI** stage (7c layer E). The opponent-survive DRS above is the bounded,
+  intent-matching slice; the run-margin ruler handles any residual headroom above 50%.
 - **Trigger-participation** — some jokers read weak because a balanced 5/5/5/5 build rarely
   *fires* them (e.g. batting-Form Legendaries), not because the magnitude is small. We tune
   magnitude (how strong *when it fires*), not firing frequency. Participation is the same theme
@@ -66,15 +71,22 @@ intent, boosts at overs 1/10/16, 1 DRS review at p=0.4, catching/defensive field
 bowling) identically across all arms, so the only thing that changes between "no jokers" and
 "joker X" is the joker — that isolates each joker's effect. Two upgrades:
 
-### 4.1 Lower the baseline floor — symmetric opponent batting intent
-The current no-joker baseline wins ~62–64% purely because the opponent bats **passively**
-(balanced) while the Player attacks. Measured (N=4000, even ★3): giving the opponent the **same
-aggressive intent plan** drops the floor to **~56%** (field symmetry adds nothing further). The
-remaining ~6 points above 50% are structural Player-only edges (DRS, boosts, the statted hero) —
-un-mirrorable without opponent captain-tooling, which is out of scope. **Decision (DM1):** set
-`opp_intent_plan` = the Player's intent plan in the sweep scenario. A lower floor = more headroom
-to 100% = the strong jokers stay measurable. (The DRS fix in §5.1 will nudge this floor up; we
-re-measure it after — the exact number is informational, the win-*delta* per joker is what we tune.)
+### 4.1 Lower the baseline floor — symmetric opponent intent + opponent base DRS
+The current no-joker baseline wins ~62–64% purely because the opponent plays **passively** while
+the Player runs a sensible game-plan with its captain levers. Two changes make the floor an honest
+"both teams play the same game, the Player just holds jokers on top":
+- **DM1 — symmetric opponent batting intent.** Measured (N=4000, even ★3): giving the opponent the
+  **same aggressive intent plan** drops the floor ~64% → **~56%** (field symmetry adds nothing further).
+  Set `opp_intent_plan` = the Player's intent plan in the sweep scenario.
+- **DM5 — opponent base DRS (review-to-survive, no jokers).** The opponent reviews to survive its own
+  dismissals under the base rule (`base_reviews`, `base_p`), no jokers. This removes a Player-only edge
+  and pulls the floor further toward 50% (the opponent keeps wickets / scores more). The Player's
+  *additional* DRS edges (jokers; reviews-to-claim while bowling) remain, so the floor lands a few
+  points above 50% — fine; the run-margin ruler (§4.2) handles the residual.
+
+A lower floor = more headroom to 100% = the strong jokers stay measurable. The DRS fixes (team-wide,
+2 reviews, opponent DRS) all move this floor; we **re-measure it after** wiring them — the exact number
+is informational, the win-*delta* per joker is what we tune.
 
 ### 4.2 Add a run-margin readout (non-saturating ruler)
 Win-rate caps at 100% — once an arm wins ~every match, a stronger joker can't show it. **Decision
@@ -87,24 +99,40 @@ per arm. Win-delta stays the primary band metric (intuitive); margin is the tieb
 
 ## 5. The work
 
-### 5.1 DRS correctness fix (`scripts/domain/innings_resolver.gd`)
-Currently (line ~188): `if player_is_batting and o.wicket and s["is_player"]:` — only the hero's
-dismissal triggers a review-to-survive. **Decision (DM3):** drop the `s["is_player"]` gate so *any*
-batter's dismissal in the Player's innings can be reviewed:
-`if player_is_batting and o.wicket:`. This matches Nico's intent (DRS is a team-level tool) and
-makes the model honest. Notes:
-- **It makes DRS stronger** (more dismissals reviewable) — which is *why* the DRS family is the top
-  offender, and reinforces the re-tune-down in §5.2.
-- **No husbanding AI** — with `base_reviews=1`, the review is auto-spent on the *first* dismissal of
-  anyone. Acceptable V1 model; husbanding is a later AI concern.
-- **RNG draw order shifts** — a review (one `randf`) is now attempted on the first dismissal
-  regardless of who it is, so snapshot/determinism-*value* tests will need rebaselining
-  (determinism itself still holds: same seed → same result). This is a deliberate core change in the
-  same spirit as PR #16.
-- **Form-on-success payoffs** in `try_review` fire as before; firing a Form event off a teammate's
-  successful review is acceptable (team morale) — no special-casing this rung.
+### 5.1 DRS fixes (`scripts/domain/innings_resolver.gd`, `scripts/data/drs_policy.gd`, `scripts/domain/joker_runtime.gd`)
 
-TDD: add a test that a **teammate** dismissal (not the hero) can be overturned by a review.
+**DM3 — team-wide review (drop the hero gate).** Currently (line ~188):
+`if player_is_batting and o.wicket and s["is_player"]:` — only the hero's dismissal triggers a
+review-to-survive. Drop the `s["is_player"]` gate → `if player_is_batting and o.wicket:` so *any*
+batter's dismissal in the Player's innings can be reviewed. Matches Nico's intent (DRS is a team-level
+tool) and makes the model honest. It makes the Player's DRS **stronger** (more dismissals reviewable),
+reinforcing the re-tune-down in §5.2.
+
+**DM4 — 2 reviews.** Set `DRSPolicy.base_reviews` 1 → **2** (real T20 rule). Strengthens DRS; tuned for
+in §5.2.
+
+**DM5 — opponent base DRS (review-to-survive, no jokers).** In the opponent's batting innings (the
+innings where `player_is_batting == false` and the opponent bats), give the opponent its **own** review
+pool (`base_reviews`, `base_p`) and, on an opponent batter's dismissal, attempt a **no-joker**
+review-to-survive (overturn → not out). Implementation shape (detail in the plan): the per-innings
+`JokerRuntime` tracks a second counter (`opp_reviews_left`) and a `try_review_base()` path that applies
+**only** the base rule (no joker `drs_role` modifiers, no Form/bowling-buff payoffs). Routed where the
+opponent is the dismissed batter. The opponent's reviews-to-*claim* (while bowling, to get the Player
+out) are **out of scope** (§3) — survival is the intent-matching, floor-moving slice.
+
+**Shared notes:**
+- **No husbanding AI** — reviews are auto-spent on dismissals as they occur (no save-for-later logic).
+  Acceptable V1; husbanding is a later AI concern.
+- **RNG draw order shifts** — more reviews are now attempted (any dismissal, both teams), each a
+  `randf`, so snapshot/determinism-*value* tests will need rebaselining (determinism itself still holds:
+  same seed → same result). Deliberate core change, same spirit as PR #16.
+- **Form-on-success payoffs** in the Player's `try_review` fire as before (a teammate's successful
+  review firing a Form event is acceptable — team morale). The opponent's `try_review_base()` fires
+  **no** payoffs.
+
+TDD: a test that a **teammate** dismissal (not the hero) can be overturned by the Player's review; a
+test that the **opponent** can overturn a dismissal via its base review; a test that `base_reviews=2`
+allows two failed reviews before the pool is empty.
 
 ### 5.2 Rarity-band re-tune (pure data + a few scalar dials)
 Adjust **only magnitudes** — no mechanic changes. Levers:
@@ -176,6 +204,9 @@ floor, not the solo arm.
   DRS fix). Don't chase 50% (would need opponent captain-tooling, out of scope).
 - **DM2:** add a **run-margin** readout (non-saturating) alongside win-delta.
 - **DM3:** DRS reviews **any team dismissal** (drop the `is_player` gate). Team-level tool per intent.
+- **DM4 (Nico):** DRS `base_reviews` 1 → **2** (real T20 rule).
+- **DM5 (Nico):** the **opponent gets base DRS** (review-to-survive its own dismissals, no jokers) so the
+  floor reflects both teams playing the same game. Opponent boost + opponent reviews-to-claim deferred.
 - **DB3:** re-tune is **pure data** — catalog magnitudes + a few existing scalar dials, no new
   mechanics. If scalars alone can't bring the DRS family into band, the documented fallback is one
   mechanic tweak (drop DRS retain-on-success) — flagged, not pre-committed.
@@ -188,9 +219,13 @@ floor, not the solo arm.
 
 ## 9. Files touched
 
-- `tools/sweep_jokers.gd` — symmetric opp intent (DM1) + margin in `_scenario` return + print (DM2).
-- `scripts/domain/innings_resolver.gd` — DRS team-wide gate (DM3).
+- `tools/sweep_jokers.gd` — symmetric opp intent (DM1) + margin in `_scenario` return + print (DM2);
+  opponent gets a `DRSPolicy` (DM5).
+- `scripts/domain/innings_resolver.gd` — DRS team-wide gate (DM3); route opponent dismissals to the
+  opponent review pool (DM5).
+- `scripts/domain/joker_runtime.gd` — `opp_reviews_left` + `try_review_base()` (DM5); DRS scalar dials
+  (`DRS_MASTER_BONUS` etc.) if needed for the re-tune.
+- `scripts/data/drs_policy.gd` — `base_reviews` 1 → 2 (DM4); `base_p` dial if needed.
 - `scripts/data/joker_catalog.gd` — re-tuned magnitudes (DB1).
-- `scripts/data/drs_policy.gd` and/or `scripts/domain/joker_runtime.gd` — DRS scalar dials if needed.
-- `tests/unit/` — DRS team-wide test; rebaselined snapshot/value tests.
+- `tests/unit/` — teammate-review, opponent-review, 2-review tests; rebaselined snapshot/value tests.
 - `docs/joker-pool-v1.md`, `docs/mockups/distribution-viewer-v1.html` — final magnitudes + DATA.
