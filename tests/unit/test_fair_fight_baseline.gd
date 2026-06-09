@@ -57,3 +57,40 @@ func test_opponent_drs_saves_opponent_wickets() -> void:
 		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
 		0, 0, 0, [], false, null, null, null, null, null, [], 0, null, hi)
 	assert_lt(saved.wickets, base.wickets, "opponent DRS should save opponent batters")
+
+func _tour() -> TourDistribution:
+	var t := TourDistribution.new()
+	t.mean = 5; t.spread = 1.5; t.noise = 1
+	return t
+
+func _attrs() -> Attributes:
+	var a := Attributes.new()
+	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	return a
+
+# DF2: the opponent's tools are wired through the match (both innings). A strong
+# opponent batting boost (runs x2 all innings) makes the opponent post far more, so
+# the Player wins much less — an unmistakable directional check that the opponent
+# tooling reaches the sim. (The *base* boost is a small lever; this exaggerates it to
+# prove the plumbing. Runs, not wickets, decide the match — at even strength neither
+# side is bowled out, so a wicket-only lever like DRS barely moves the result; the
+# opponent DRS wiring is verified at the innings level and threads identically.)
+func test_opponent_boost_reaches_the_match() -> void:
+	var strong_boost := BoostPlan.new()
+	strong_boost.press_overs = [1]
+	strong_boost.base_mult = 2.0   # x2 runs
+	strong_boost.base_n = 120      # whole innings
+	var pt := Team.new(); pt.stars = 3.0
+	var ot := Team.new(); ot.stars = 3.0
+	var wins_passive := 0
+	var wins_armed := 0
+	for i in 120:
+		var rp := _rng(1000 + i)
+		var mp := MatchResolver.simulate_match_teams(_attrs(), pt, ot, _tour(),
+			_tuning(), _itun(), rp)
+		if mp.outcome == MatchResult.Outcome.PLAYER_WIN: wins_passive += 1
+		var ra := _rng(1000 + i)
+		var ma := MatchResolver.simulate_match_teams(_attrs(), pt, ot, _tour(),
+			_tuning(), _itun(), ra, null, null, [], null, null, null, null, null, null, strong_boost, null)
+		if ma.outcome == MatchResult.Outcome.PLAYER_WIN: wins_armed += 1
+	assert_lt(wins_armed, wins_passive, "a strong opponent boost should sharply lower the Player win-rate")
