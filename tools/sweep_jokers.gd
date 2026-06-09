@@ -77,18 +77,25 @@ func _init() -> void:
 	var palette := ["#888888", "#5ac77a", "#4a90d9", "#f2b134", "#e0607e", "#9b59b6",
 		"#1abc9c", "#e67e22", "#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#16a085", "#c0392b"]
 	var baseline_win := 0.0
+	var baseline_margin := 0.0
 	var arms_json: Array = []
 	var ai := 0
 	for arm in swept:
 		var runs := Sweep.values_of(arm["records"], "player_runs")
 		var wins := Sweep.values_of(arm["records"], "won")
+		var margins := Sweep.values_of(arm["records"], "margin")
 		var dist := Distribution.new(runs)
 		var win_sum := 0
 		for w in wins:
 			win_sum += w
 		var win_rate := float(win_sum) / runs.size()
+		var margin_sum := 0.0
+		for mg in margins:
+			margin_sum += mg
+		var mean_margin := margin_sum / margins.size()
 		if ai == 0:
 			baseline_win = win_rate
+			baseline_margin = mean_margin
 		var stride: int = maxi(1, runs.size() / 400)
 		var sampled: Array = []
 		var k := 0
@@ -102,6 +109,8 @@ func _init() -> void:
 			"stats": dist.to_dict(),
 			"win_rate": win_rate,
 			"win_delta": win_rate - baseline_win,
+			"mean_margin": mean_margin,
+			"margin_delta": mean_margin - baseline_margin,
 		})
 		ai += 1
 
@@ -180,15 +189,26 @@ func _opp_field_plan() -> FieldPlan:
 	f.death = FieldPlan.Mode.CATCHING
 	return f
 
+# DF1/DF4/DF5 — the opponent runs the same base game-plan: same intent (below, via
+# _intent_plan), and its own base captain tools (boost + DRS), minus jokers, so the
+# no-joker baseline is a fair fight.
+func _opp_boost_plan() -> BoostPlan:
+	return BoostPlan.at([1, 10, 16])
+
+func _opp_drs_policy() -> DRSPolicy:
+	return DRSPolicy.new()
+
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
 	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _opp_intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan())
-	var line := m.innings1.player_line()
-	if line.is_empty():
-		line = m.innings2.player_line()
+	# DF1 — the opponent bats with the same intent plan as the Player (symmetric tempo).
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan(), _opp_boost_plan(), _opp_drs_policy())
+	var p_inn := m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
+	var o_inn := m.innings2 if p_inn == m.innings1 else m.innings1
+	var line := p_inn.player_line()
 	var player_runs := int(line.get("runs", 0))
 	var won := 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0
-	return {"player_runs": player_runs, "won": won}
+	var margin := p_inn.total - o_inn.total   # DM2 — Player team total minus opponent total
+	return {"player_runs": player_runs, "won": won, "margin": margin}
