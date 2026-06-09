@@ -285,3 +285,21 @@ func test_teams_determinism_with_roster() -> void:
 	assert_eq(r1.innings1.total, r2.innings1.total, "still deterministic (innings1)")
 	assert_eq(r1.innings2.total, r2.innings2.total, "still deterministic (innings2)")
 	assert_eq(r1.outcome, r2.outcome, "still deterministic (outcome)")
+
+# --- Slice 3: bowling budget conservation (D12) -------------------------------
+
+func test_conserved_bowling_no_overs_returns_scalar() -> void:
+	assert_eq(MatchResolver._conserved_bowling(5, 0, 8, 20), 5, "n=0 -> unchanged team scalar")
+
+func test_conserved_bowling_neutral_player_unchanged() -> void:
+	# All-rounder bowls 2 overs at attack 5 == team scalar -> teammates unchanged.
+	assert_eq(MatchResolver._conserved_bowling(5, 2, 5, 20), 5, "player at team par -> no change")
+
+func test_conserved_bowling_strong_bowler_weakens_teammates() -> void:
+	# 4 overs at attack 8 -> the other 16 bowl weaker so the team total holds at ~100.
+	var c := MatchResolver._conserved_bowling(5, 4, 8, 20)
+	assert_eq(c, 4, "round((20*5 - 4*8)/16) = round(4.25) = 4")
+	assert_almost_eq(4 * 8 + 16 * c, 100, 8, "team total bowling ~= over_limit*scalar (within rounding)")
+
+func test_conserved_bowling_floored_at_1() -> void:
+	assert_eq(MatchResolver._conserved_bowling(1, 4, 8, 20), 1, "result floored at 1")

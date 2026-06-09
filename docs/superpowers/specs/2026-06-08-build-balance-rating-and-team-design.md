@@ -211,6 +211,24 @@ Resolving the one design fork the spec left open — archetypes are star-indepen
 
 ---
 
+## 8.6 Slice 3 implementation decisions (2026-06-09, recorded during writing-plans)
+
+The Slice-2 re-grounded baseline (§9.5.2) is a **U**: bowler-build the win-rate high (59%), batter fair (48.7%), all-rounder/mid builds the low (~45%). Reading the code (`InningsResolver._build_batters`, `MatchResolver.simulate_match`/`_teams`) pinned the two **independent** causes — which is why Slice 3 needs two mechanisms, not one:
+
+- **The bowler peak is a *free bowling lever*.** The roster (Slice 2) feeds **batting only**. The bowling side is purely scalar: the (20−n) non-Player overs bowl at the team's star-derived scalar `S`, and the Player adds their own `n`∈[0,4] overs at their *own* attack/control **on top** — so a bowler-Player's team bowls `n·a_p + (20−n)·S > 20·S` total, an extra lever the opponent (all 20 overs at `S`, no Player) never gets. Teammate bowling archetype points are invisible to the sim, so gap-fill on the batting order alone cannot touch this.
+- **The mid/all-rounder dip is a *batting deficit*.** A non-batter Player displaces a strong archetype (BATTER 16 pts or ALLROUNDER 10 pts) with fewer batting points, and nothing tops the team back up — so the team's batting total falls below the standard 122 and it scores less, with no compensating bowling (an all-rounder bowls 2 overs at ≈`S`, a neutral lever).
+
+**The Slice-3 design = two budget-conservation mechanisms (continuous, calibratable), completing what D6/D7 deferred. Decision: conserve at the *scalar/offset* level, NOT via discrete archetype-swap XIs (§4.3's "proxy").** Rationale: the team-sheet UI is deferred (§9), so the XI is invisible to the player today — only the sim + sweep read it; a continuous conserve hits flat-50 (D1) exactly for *any* build (discrete archetypes can't even land the intermediate 7/7…3/3 builds on the 122/98 split — the integer solve has no solution there), composes with the existing D6 uniform-offset machinery, and is trivially calibratable. All reversible internal seams; a future team-sheet can still derive a displayable XI from the conserved budget.
+
+- **D11 — Batting budget conservation (gap-fill baked into the roster).** `Team.build_xi(player_attrs, ppos)` keeps placing the Player at `ppos` (D9), then **tops up / docks the 10 teammates' batting points** by `(displaced archetype batting pts − player batting pts)` so the team's batting total returns to the standard **122** whatever the build. The correction is distributed as whole power/composure points **concentrated on the top-order teammates** (highest balls-faced leverage), baked directly into fresh teammate `Attributes` in the returned roster — the Player slot is never touched. The D6 star `team_offset` still applies uniformly on top in `_build_batters` (unchanged). Deficits are small (0–10 pts across the spectrum: batter 0 … 3/3 build 10), so the correction is a few +1 power/+1 composure bumps on the top order.
+- **D12 — Bowling budget conservation (completes §4.4 / undoes the D7 deferral, *without* per-bowler husbanding).** When the Player bowls `n = InningsResolver.player_overs(...)` overs at their own `(a_p, c_p)`, the (20−n) non-Player overs bowl at a **conserved** scalar `C = round((over_limit·S − n·a_p)/(over_limit − n))` (attack; same for control), so the team's total bowling = `over_limit·S` — identical to a no-Player-bowling team, identical to the opponent. Computed in `simulate_match_teams` (the roster/balance path only) and passed as `player_team_attack`/`player_team_control`; `n` is derived identically to `simulate_match`'s internal quota so the math lines up. Floored at 1. **`simulate_match`'s scalar path is byte-identical** (conservation lives only in `_teams`). This is a scalar redistribution, NOT husbanding — no per-bowler identity/rotation (4c stays deferred). General (uses the team's actual `S`), so directionality (5★ bowls better overall) is preserved → satisfies D4.
+- **D13 — Re-solve `wicket_value` (and `sr_par`/`rr_par` if needed) against the conserved teams.** With both budgets conserved, re-sweep and pick `wicket_value` so the per-build mean **rating** band flattens (§3.5 / §5). Record the value found in `RatingTuning` + here.
+- **D14 — Calibration is iterative on the sweep.** Tune the 122 batting target, the `S` bowling budget, the top-up distribution, and `wicket_value` until **both** bars read flat (win% ~50±2, rating band tight). The sweep (`tools/build_spectrum_sweep.gd`) is the oracle; numbers are diagnostics, not unit assertions. Unit tests assert the **invariants** (team batting total ≈ 122 for any build; team bowling total ≈ `over_limit·S` for any build; determinism; directionality), not the calibrated magnitudes.
+
+**Expected test impact:** new unit tests for the two conservation invariants + determinism + directionality. `test_match_resolver`/`test_team` existing assertions: determinism + 5★>0.5★ must still hold (re-verify); scalar-path joker tests untouched (D12 lives in `_teams`). Sweep/preview print-tables shift (diagnostics).
+
+---
+
 ## 9.5 Slice 1 calibration findings (2026-06-08)
 
 Slice 1 shipped the rating + sweep column. Par-lines derived from the generic 5/5/5/5 neutral build: **`sr_par = 111.6`, `rr_par = 6.4`** (so that build rates ~0). Per-build mean rating at `wicket_value = 10` (2000 matches/build, even ★3, neutral Intent):
@@ -257,6 +275,28 @@ Slice 2 shipped the discrete real roster (both teams are now 11 individual arche
 **The shape inverted.** Pre-roster (§9.5.1) the *batter* was the win-rate high (64) and the bowler 58; now the *bowler* is the high (**59.0**) and the batter sits at the fair line (48.7), with a **U-shaped valley** bottoming at the all-rounder/mid-builds (~45–46). Why: every team now carries a genuinely strong top order (six power-8 batters → team scores jumped to ~170), so a batter-Player merely displaces one of six strong batters (marginal) while a bowler-Player adds a real 4-over bowling lever the team doesn't otherwise concentrate. Two honest consequences of real opposition: Player **wickets/match collapsed** (bowler 0.85 vs the old 1.90 — bowling at a real power-8 top order is much harder) and **bat-avg fell** (batter 81 vs 86). The collapsed wicket rate also **defused the wicket_value=10 over-rating** — ratings now sit in a tight [−3, +8] band (was 11 vs 38), though still not flat: the all-rounder/mid-builds rate *worst* (the new dip to solve).
 
 **Neither bar is met yet — as expected; both are Slice 3's job.** Slice 3's gap-fill must (a) flatten the U so all builds land ~50% (the bowler's +9 edge and the mid-build −5 dip are the targets — likely by adjusting how the Player's build displaces teammates so a bowler-Player doesn't get a "free" extra lever), and (b) re-solve `wicket_value` and/or archetype profiles so the rating band flattens too. The honest read: making teams real didn't *flatten* balance, but it **re-grounded it on a realistic foundation** and revealed the true lever (the Player's marginal contribution to an already-strong team), which is exactly what gap-fill needs to target.
+
+---
+
+### 9.5.3 Slice 3 calibrated baseline — gap-fill + bowling conservation (2026-06-09)
+
+Slice 3 shipped both budget-conservation mechanisms (D11 batting gap-fill to 122; D12 bowling conservation with concentration dial) + re-solved the rating dials. Final calibration: `InningsTuning.bowl_concentration_k = 1.0`; `RatingTuning.sr_par = 107.4`, `rr_par = 9.0`, `wicket_value = 2.0`. Build-spectrum sweep (2000 even-★3 matches/build, neutral Intent):
+
+| build | win% | bat-avg | wkts/match | rating | r-bat | r-bowl |
+|---|---|---|---|---|---|---|
+| 8/8/2/2 (batter) | 48.7 | 81.4 | 0.00 | 9.1 | 9.1 | 0.0 |
+| 7/7/3/3 | 46.9 | 59.5 | 0.00 | 5.4 | 5.4 | 0.0 |
+| 6/6/4/4 | 47.1 | 36.8 | 0.09 | 0.4 | 0.9 | −0.5 |
+| 5/5/5/5 (all-r) | 48.3 | 25.9 | 0.19 | 0.3 | 0.0 | 0.4 |
+| 4/4/6/6 | 51.0 | 19.4 | 0.25 | 1.5 | −0.1 | 1.7 |
+| 3/3/7/7 | 48.2 | 12.4 | 0.51 | 4.9 | −0.1 | 5.0 |
+| 2/2/8/8 (bowler) | 47.2 | 10.5 | 0.82 | 9.6 | −0.1 | 9.7 |
+
+**Team bar (D1) — MET.** Win-rate is flat: every build **46.9–51.0%** (one mild high at 4/4=51.0), spread cut from the Slice-2 U's **13.7** (45.3→59.0) to **4.1**. The bowler peak (59→47.2) fell via D12; the all-rounder/mid dip (45→47–48) lifted via D11 (top-first distribution). The residual ±~2 reflects the integer rounding of the conserved bowling scalar (a pure 4-over spell can't be neutralised to the exact fraction) — acceptable.
+
+**Individual bar (§3.5) — batter≈bowler MET; all-rounder structurally lower.** With par re-derived from the generic 5/5/5/5 build (`sr_par=107.4`, `rr_par=9.0` — the old 111.6/6.4 were stale clone-path values), the average player rates ~0 and `wicket_value=2.0` is the value where **pure batter (9.1) ≈ pure bowler (9.6)**. The rating is a **"smile"**, not flat: specialists concentrate net-runs surplus (a batter scoring 81 at SR 149, or a bowler conceding 6.9 vs a 9.0 going-rate) while the all-rounder spreads its budget thin (mediocre at both) → it sits in a shallow valley (~0.3–1.5). **This is net-runs being honest, not a bug** — and no linear combination of the 3 dials can flatten it (specialisation inherently concentrates measurable surplus). The all-rounder's offsetting value — flexibility, joker-fit, covering both Key Moments, adapting Intent — lives in the meta/decision layer the neutral sweep deliberately excludes (D5). Spread 9.3 is inside the spec's ±10 rating band (§8). `wicket_value=2` is low because the bowling rating is dominated by **runs-saved (economy)**, not wickets; raising it would push the bowler above the batter.
+
+**Open call for Nico (non-blocking):** team-fairness is fully solved (the headline). If you want the *individual* rating to also read flat for an all-rounder, that needs a model change beyond net-runs (e.g. crediting flexibility/option-value) — a separate rung, not a dial tweak. Default taken: ship the honest net-runs rating as-is.
 
 ---
 

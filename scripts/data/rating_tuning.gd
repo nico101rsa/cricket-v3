@@ -7,6 +7,11 @@ extends Resource
 # an average player rates ~0. wicket_value is SOLVED empirically (it's the
 # batter-vs-bowler parity knob) — 10.0 is a starting guess pending Slice-3 calibration.
 
-@export var sr_par: float = 111.6       # par strike rate (generic 5/5/5/5 neutral SR)
-@export var rr_par: float = 6.4         # par economy (generic 5/5/5/5 neutral econ)
-@export var wicket_value: float = 10.0  # run-worth of one wicket (strawman; over-rewards bowlers — see Slice 3)
+@export var sr_par: float = 107.4       # par strike rate — re-derived from the 5/5/5/5 build's
+                                        # neutral output in the conserved-roster world (Slice 3)
+@export var rr_par: float = 9.0         # par economy — re-derived likewise (≈ the going run-rate
+                                        # an average part-time bowler concedes; Slice 3)
+@export var wicket_value: float = 2.0   # SOLVED Slice 3 (2026-06-09): the value at which a pure
+                                        # bowler's mean rating equals a pure batter's at derived par.
+                                        # Low because the rating's bowling value is dominated by
+                                        # runs-saved (economy), not wickets. See spec §9.5.3.

@@ -67,9 +67,39 @@ static func standard_xi() -> Array:
 	return xi
 
 # The Player's team order: the standard XI with the archetype at the Player's
-# 1-based batting position `ppos` replaced by the Player's own Attributes. Slice 2
-# crude displacement (no gap-fill yet — that is Slice 3). ppos is 1..9 (< 11), safe.
+# 1-based batting position `ppos` replaced by the Player, then the 10 teammates
+# topped up / docked so the team's batting points return to the standard 122 —
+# build-adaptive gap-fill (Slice 3, D11). ppos is 1..9 (< 11), safe.
 static func build_xi(player_attrs: Attributes, ppos: int) -> Array:
 	var xi := standard_xi()
+	var displaced: Attributes = xi[ppos - 1]
+	var deficit := (displaced.power + displaced.composure) - (player_attrs.power + player_attrs.composure)
 	xi[ppos - 1] = player_attrs
+	_apply_batting_gapfill(xi, ppos, deficit)
 	return xi
+
+# Spread `deficit` batting points across the 10 non-Player slots so the team
+# batting total lands back on 122. Walks the order TOP -> TAIL so the top-up lands
+# on the high-leverage top order (where runs actually get scored — tail points
+# barely face balls), alternating composure then power per sweep. Floors each stat
+# at 1. The Player slot (index ppos-1) is never touched. The top-first distribution
+# is a calibration lever (spec §8.6 D14).
+static func _apply_batting_gapfill(xi: Array, ppos: int, deficit: int) -> void:
+	if deficit == 0:
+		return
+	var step := 1 if deficit > 0 else -1
+	var remaining := absi(deficit)
+	var slots: Array[int] = []
+	for i in range(0, 11):   # 0 -> 10, top to tail
+		if i != ppos - 1:
+			slots.append(i)
+	var idx := 0
+	while remaining > 0:
+		var slot: int = slots[idx % slots.size()]
+		var a: Attributes = xi[slot]
+		if (idx / slots.size()) % 2 == 1:   # sweep 0 = composure, sweep 1 = power, ...
+			a.power = maxi(1, a.power + step)
+		else:
+			a.composure = maxi(1, a.composure + step)
+		remaining -= 1
+		idx += 1

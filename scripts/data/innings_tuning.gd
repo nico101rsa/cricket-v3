@@ -20,3 +20,9 @@ extends Resource
 @export var bowl_max_overs: int = 4
 @export var bowl_overs_gain: float = 8.0
 @export var bowl_overs_base: float = -2.5
+
+# Bowling budget conservation (Slice 3, D12): extra charge for a concentrated strong
+# Player spell (n overs above team-average attack take convexly more wickets than the
+# linear budget assumes). 0 = pure linear conservation. Calibrated to flatten the
+# bowling-build win edge (spec §9.5.3). See MatchResolver._conserved_bowling.
+@export var bowl_concentration_k: float = 1.0

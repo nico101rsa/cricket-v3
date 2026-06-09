@@ -42,6 +42,24 @@ static func _decide_result(
 static func _resolve_toss(rng: RandomNumberGenerator) -> bool:
 	return rng.randf() < 0.5
 
+# Bowling budget conservation (Slice 3, D12). When the Player bowls `n` of the
+# innings' `overs` at their own `player_stat` (attack or control), the other
+# (overs - n) bowlers bowl at this conserved value so the team's total bowling
+# (n*player_stat + (overs-n)*result) ~= overs*team_scalar — identical to a team
+# with no Player bowling, and to the opponent. Floors at 1. Pure. Spec §8.6 D12.
+#
+# `concentration_k` (calibration dial, default 0 = pure linear conservation) charges
+# a strong Player spell EXTRA, because n concentrated overs at a high attack take
+# convexly more wickets than the same linear attack-over budget spread thin — without
+# it, bowling builds keep a residual win edge (spec §8.6 D14 / §9.5.3). Penalty only
+# applies when the Player bowls ABOVE the team average (player_stat > team_scalar).
+static func _conserved_bowling(team_scalar: int, n: int, player_stat: int, overs: int,
+		concentration_k: float = 0.0) -> int:
+	if n <= 0 or n >= overs:
+		return team_scalar
+	var penalty := concentration_k * n * maxf(0.0, float(player_stat - team_scalar))
+	return maxi(1, roundi((float(overs) * team_scalar - n * player_stat - penalty) / float(overs - n)))
+
 # Team-bundled match: derive six strength ints from the two Teams + Tour, flip
 # the toss, then delegate to simulate_match(). Fixed RNG draw order (toss, then
 # the four strength derivations) before the core sim consumes the rest, so a
@@ -80,9 +98,17 @@ static func simulate_match_teams(
 	var player_roster := Team.build_xi(player_attrs, ppos)
 	var opp_roster := Team.standard_xi()
 
+	# Bowling budget conservation (Slice 3, D12): the Player bowls a 0-4 over quota
+	# at their own attack/control; the other overs are scaled down so the team's
+	# total bowling stays at over_limit*player_bowl — removing the free bowling
+	# lever a bowler-build otherwise got. No new RNG draws -> determinism preserved.
+	var n_overs := InningsResolver.player_overs(player_attrs, itun)
+	var cons_attack := _conserved_bowling(player_bowl, n_overs, player_attrs.attack, itun.over_limit, itun.bowl_concentration_k)
+	var cons_control := _conserved_bowling(player_bowl, n_overs, player_attrs.control, itun.over_limit, itun.bowl_concentration_k)
+
 	return simulate_match(
 		player_attrs,
-		player_bat, player_bowl, player_bowl,
+		player_bat, cons_attack, cons_control,
 		opp_bat, opp_bowl, opp_bowl,
 		player_bats_first, tuning, itun, rng,
 		player_intent_plan, player_bowling_plan, jokers, field_plan,

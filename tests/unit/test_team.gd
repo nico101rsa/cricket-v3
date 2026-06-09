@@ -114,3 +114,29 @@ func test_build_xi_places_player_at_position() -> void:
 		if p == player:
 			player_slots += 1
 	assert_eq(player_slots, 1, "the Player appears exactly once")
+
+# --- Slice 3: batting budget conservation (gap-fill, D11) ---------------------
+
+func _bat_pts(xi: Array) -> int:
+	var t := 0
+	for a in xi:
+		t += a.power + a.composure
+	return t
+
+func test_build_xi_conserves_team_batting_to_122() -> void:
+	var itun := InningsTuning.new()
+	for cfg in [[8, 8, 2, 2], [5, 5, 5, 5], [2, 2, 8, 8], [7, 6, 4, 3], [3, 3, 7, 7]]:
+		var p := Attributes.new()
+		p.power = cfg[0]; p.composure = cfg[1]; p.attack = cfg[2]; p.control = cfg[3]
+		var ppos := InningsResolver.player_position(p, itun)
+		var xi := Team.build_xi(p, ppos)
+		assert_eq(_bat_pts(xi), 122, "team batting conserved to 122 for build %s" % str(cfg))
+
+func test_build_xi_leaves_player_attrs_untouched() -> void:
+	var p := Attributes.new()
+	p.power = 2; p.composure = 2; p.attack = 8; p.control = 8
+	var ppos := InningsResolver.player_position(p, InningsTuning.new())
+	var xi := Team.build_xi(p, ppos)
+	assert_eq(p.power, 2, "Player power untouched by gap-fill")
+	assert_eq(p.composure, 2, "Player composure untouched by gap-fill")
+	assert_true(xi[ppos - 1] == p, "Player still at their slot, by reference")
