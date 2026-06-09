@@ -185,7 +185,7 @@ static func simulate_innings(
 		# Mutates o so the existing wicket/runs handling takes over. RNG is consumed
 		# only when a review is actually attempted (gated on drs_policy + reviews_left).
 		if drs_policy != null:
-			if player_is_batting and o.wicket and s["is_player"]:
+			if player_is_batting and o.wicket:
 				if runtime.try_review(jokers, player_is_batting, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
 			elif (not player_is_batting) and player_bowling and not o.wicket and o.runs == 0:
