@@ -174,6 +174,19 @@ func test_defensive_captain_sets_field() -> void:
 	assert_eq(e.bowl_intent_req, BallResolver.Intent.DEFENSIVE)
 	assert_almost_eq(e.mult, 1.0, 0.0001, "enabler bends no roll")
 
+func test_carry_your_bat_scores_while_defending() -> void:
+	var rows: Array = _group("carry_your_bat")["effects"]
+	var wicket_mult := 1.0
+	var runs_mult := 1.0
+	for e in rows:
+		if e.target == JokerEffect.Target.WICKET:
+			wicket_mult = e.mult
+		else:
+			runs_mult = e.mult
+	# Must still protect the wicket but NOT suppress scoring (the bug was runs 0.90).
+	assert_lt(wicket_mult, 1.0, "Carry Your Bat still lowers wicket risk")
+	assert_gte(runs_mult, 1.0, "Carry Your Bat must not suppress scoring (was 0.90 -> net-negative)")
+
 func test_multi_buff_groups_have_two_effects() -> void:
 	assert_eq(_group("carry_your_bat")["effects"].size(), 2, "Carry Your Bat = wicket + runs")
 	assert_eq(_group("dot_ball_pressure")["effects"].size(), 2, "Dot Ball Pressure = wicket + runs")

@@ -60,7 +60,7 @@ static func implemented_groups() -> Array:
 				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.85,
 				BallResolver.Intent.DEFENSIVE),
 			JokerEffect.make("carry_your_bat", "Carry Your Bat", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 0.90,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.12,
 				BallResolver.Intent.DEFENSIVE)]),
 		_g("slog_over_specialist", "Slog Over Specialist", "Rare", [
 			JokerEffect.make("slog_over_specialist", "Slog Over Specialist", "Rare",
