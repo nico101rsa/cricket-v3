@@ -112,3 +112,15 @@ func test_spin_middle_concedes_less_than_pace_middle() -> void:
 		psp += InningsResolver.simulate_innings(null, 5, 5, 5, _bt, _it, _rng(seed_value), 0, null, atk, BowlingPlan.textbook()).total
 		ppp += InningsResolver.simulate_innings(null, 5, 5, 5, _bt, _it, _rng(seed_value), 0, null, atk, BowlingPlan.pace_only()).total
 	assert_lt(psp, ppp, "P/S/P conceded (%d) < P/P/P conceded (%d)" % [psp, ppp])
+
+# BB5 lever 1 — archetype sharpening conserves the 20-point build equality.
+func test_archetypes_remain_20_point_builds() -> void:
+	for a in [Team.archetype_batter(), Team.archetype_bowler(), Team.archetype_allrounder()]:
+		assert_eq(a.power + a.composure + a.attack + a.control, 20, "every archetype is exactly 20 points")
+
+func test_sharpened_tail_is_steeper() -> void:
+	var bat := Team.archetype_batter()
+	var bowl := Team.archetype_bowler()
+	assert_eq(bat.power, 9, "sharpened batter power 9")
+	assert_eq(bowl.power, 1, "sharpened bowler power 1")
+	assert_eq(bowl.attack, 9, "sharpened bowler attack 9")

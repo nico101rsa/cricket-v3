@@ -39,14 +39,17 @@ func mutate_stars(rng: RandomNumberGenerator) -> void:
 # Archetypes are strawman 20-point builds (harness-tunable). Each call returns a
 # FRESH Attributes so callers never share mutable state.
 
+# Sharpened 9/1 split (bowling-balance BB5, Nico's tail-steepening lever
+# 2026-06-11, was 8/2): specialists are more specialist, so the batting card's
+# quality gradient is steeper — each wicket costs more. Still exactly 20 points.
 static func archetype_batter() -> Attributes:
 	var a := Attributes.new()
-	a.power = 8; a.composure = 8; a.attack = 2; a.control = 2
+	a.power = 9; a.composure = 9; a.attack = 1; a.control = 1
 	return a
 
 static func archetype_bowler() -> Attributes:
 	var a := Attributes.new()
-	a.power = 2; a.composure = 2; a.attack = 8; a.control = 8
+	a.power = 1; a.composure = 1; a.attack = 9; a.control = 9
 	return a
 
 static func archetype_allrounder() -> Attributes:

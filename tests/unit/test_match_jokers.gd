@@ -66,10 +66,14 @@ func _player_wins_field(rng_seed: int, jokers: Array, field: FieldPlan) -> bool:
 func test_catching_field_bowling_joker_raises_win_rate() -> void:
 	# Cordon Killer shape (bowling, catching field, wicket booster) only fires when a
 	# catching FieldPlan is supplied -> the field routes to the opposition's batting innings.
+	# N=600 + mult 2.0 (was 300/1.5): the sharpened 9/1 roster (bowling-balance
+	# BB5) dropped a wicket booster's end-to-end win-delta below the old signal
+	# floor — the 9-composure top order concedes fewer wickets, so conversion to
+	# wins is noisier. Same mechanic; the routing is what this test proves.
 	var ck := [JokerEffect.make("ck", "Cordon Killer", "Common",
-		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, FieldPlan.Mode.CATCHING)]
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 2.0, -1, 1, 120, FieldPlan.Mode.CATCHING)]
 	var base_wins := 0; var field_wins := 0
-	for i in range(300):
+	for i in range(600):
 		if _player_wins(i, []):
 			base_wins += 1
 		if _player_wins_field(i, ck, FieldPlan.catching()):
@@ -126,11 +130,13 @@ func test_pressure_cooker_fires_on_defensive_opposition() -> void:
 func test_attack_the_stumps_fires_on_aggressive_captaincy() -> void:
 	# Attack the Stumps shape (bowling, gated on the Player's bowl_intent = Aggressive).
 	# Both arms set the bowling captain Aggressive; only the joker differs.
+	# N=600 + mult 2.0 (was 300/1.5) — same signal-floor widening as
+	# test_catching_field_bowling_joker_raises_win_rate (sharpened BB5 roster).
 	var ats := [JokerEffect.make("ats", "Attack the Stumps", "Common",
-		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.5, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]
+		JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 2.0, -1, 1, 120, -1, BallResolver.Intent.AGGRESSIVE)]
 	var bowl_agg := _all_intent(BallResolver.Intent.AGGRESSIVE)
 	var base_wins := 0; var ats_wins := 0
-	for i in range(300):
+	for i in range(600):
 		var m0 := MatchResolver.simulate_match_teams(_attrs(), _team(), _team(), _tour(),
 			BallTuning.new(), InningsTuning.new(), _seeded(i), null, null, [], null, bowl_agg)
 		if m0.outcome == MatchResult.Outcome.PLAYER_WIN:

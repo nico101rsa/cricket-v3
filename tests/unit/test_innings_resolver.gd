@@ -356,19 +356,19 @@ func test_build_batters_uses_real_roster_individuals() -> void:
 	var roster := Team.standard_xi()
 	var batters := InningsResolver._build_batters(null, 5, itun, roster, 0)
 	assert_eq(batters.size(), 11, "11 batters")
-	assert_eq(batters[0]["power"], 8, "top order is a real BATTER (power 8, no tail-scaling)")
-	assert_eq(batters[0]["composure"], 8, "composure also from the archetype")
-	assert_eq(batters[10]["power"], 2, "tail is a real BOWLER (power 2)")
+	assert_eq(batters[0]["power"], 9, "top order is a real BATTER (power 9, no tail-scaling)")
+	assert_eq(batters[0]["composure"], 9, "composure also from the archetype")
+	assert_eq(batters[10]["power"], 1, "tail is a real BOWLER (power 1, sharpened BB5)")
 	for b in batters:
 		assert_false(b["is_player"], "opposition roster has no Player slot")
 
 func test_build_batters_offset_applied_and_floored() -> void:
 	var roster := Team.standard_xi()
 	var up := InningsResolver._build_batters(null, 5, itun, roster, 2)
-	assert_eq(up[0]["power"], 10, "offset lifts the top order (8+2)")
-	assert_eq(up[10]["power"], 4, "offset lifts the tail (2+2)")
+	assert_eq(up[0]["power"], 11, "offset lifts the top order (9+2)")
+	assert_eq(up[10]["power"], 3, "offset lifts the tail (1+2)")
 	var down := InningsResolver._build_batters(null, 5, itun, roster, -5)
-	assert_eq(down[10]["power"], 1, "power floored at 1 (2-5 clamped)")
+	assert_eq(down[10]["power"], 1, "power floored at 1 (1-5 clamped)")
 
 func test_build_batters_flags_player_by_identity() -> void:
 	var player := _attrs(8, 8, 2, 2)            # pure batter -> position 3
