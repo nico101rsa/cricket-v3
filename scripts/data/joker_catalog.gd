@@ -223,6 +223,14 @@ static func implemented_groups() -> Array:
 				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.40,
 				BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1,
 				JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE,
+				JokerEffect.DRSRole.NONE, 0.0, JokerEffect.FormSource.NONE, -1, 1),
+			# Mechanic-change rung: composure/survival row. Runs saturate vs the chase
+			# win-ceiling, so a dismissal-chance reduction converts where extra runs are
+			# wasted. Same gate (chasing + Aggressive). See capped-joker spec.
+			JokerEffect.make("the_chase_master", "The Chase Master", "Legendary",
+				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.62,
+				BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1,
+				JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE,
 				JokerEffect.DRSRole.NONE, 0.0, JokerEffect.FormSource.NONE, -1, 1)]),
 	]
 

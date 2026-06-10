@@ -37,8 +37,9 @@ func test_implemented_groups_count() -> void:
 	assert_eq(JokerCatalog.implemented_groups().size(), 45)
 
 func test_implemented_flat_count() -> void:
-	# 47 rows (thru C2g) + 2 single-row C2h jokers = 49 rows.
-	assert_eq(JokerCatalog.implemented().size(), 49)
+	# 47 rows (thru C2g) + 2 single-row C2h jokers = 49; +1 for the Chase Master's
+	# composure row (mechanic-change rung) = 50 rows.
+	assert_eq(JokerCatalog.implemented().size(), 50)
 
 func test_field_restrictions_shape() -> void:
 	var e: JokerEffect = _group("field_restrictions")["effects"][0]
@@ -47,13 +48,30 @@ func test_field_restrictions_shape() -> void:
 	assert_almost_eq(e.mult, 1.05, 0.0001)
 
 func test_chase_master_shape() -> void:
-	var e: JokerEffect = _group("the_chase_master")["effects"][0]
-	assert_eq(e.rarity, "Legendary")
-	assert_eq(e.intent_req, BallResolver.Intent.AGGRESSIVE)
-	assert_eq(e.chase_req, 1)
-	# Scenario-sweep rung: buffed 1.20 -> 1.40 (runs-mult saturates vs the chase
-	# win-ceiling, so this is near the convertible max; see spec §10).
-	assert_almost_eq(e.mult, 1.40, 0.0001)
+	# Mechanic-change rung: Chase Master is now a 2-row joker — runs (score harder)
+	# + a composure/survival row (wicket <1, converts where runs saturate vs the
+	# chase win-ceiling). Both gated identically (chasing + Aggressive). See spec
+	# 2026-06-10-capped-joker-mechanic-changes-design.md.
+	var effects: Array = _group("the_chase_master")["effects"]
+	assert_eq(effects.size(), 2, "Chase Master = runs + composure rows")
+	var runs_row: JokerEffect = null
+	var wicket_row: JokerEffect = null
+	for e in effects:
+		assert_eq(e.rarity, "Legendary")
+		assert_eq(e.intent_req, BallResolver.Intent.AGGRESSIVE, "both rows gated on Aggressive")
+		assert_eq(e.chase_req, 1, "both rows gated on the chase")
+		assert_eq(e.side, JokerEffect.Side.BATTING)
+		if e.target == JokerEffect.Target.RUNS:
+			runs_row = e
+		else:
+			wicket_row = e
+	assert_not_null(runs_row, "has a runs row")
+	assert_not_null(wicket_row, "has a composure (wicket) row")
+	assert_almost_eq(runs_row.mult, 1.40, 0.0001, "runs ×1.40 (near the convertible max)")
+	# Composure tuned to 0.62: lifts realized +3.6% -> +6.6% (Legendary floor); the
+	# survival converts where runs saturate vs the chase win-ceiling. See spec §6.
+	assert_almost_eq(wicket_row.mult, 0.62, 0.0001, "composure: dismissal ×0.62")
+	assert_lt(wicket_row.mult, 1.0, "composure reduces dismissal chance")
 
 func test_form_source_shapes() -> void:
 	assert_eq(_group("the_sheet_anchor")["effects"][0].form_source, JokerEffect.FormSource.ON_BALANCED)
