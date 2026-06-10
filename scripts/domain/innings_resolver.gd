@@ -195,10 +195,12 @@ static func simulate_innings(
 		# RNG is consumed only when a review is actually attempted (a policy +
 		# reviews_left remaining).
 		# Both sides hold base DRS: the BATTING side reviews a wicket to survive; the
-		# BOWLING side reviews a dot to claim a wicket. The Player's runtime carries its
-		# jokers; the opponent's is base-only (empty jokers, no payoffs). Gate on the
-		# *original* outcome so a survived wicket can't be instantly re-claimed (no
-		# review "tennis") — at most one review fires per ball.
+		# BOWLING side reviews a dot to claim a wicket. Both reviews are TEAM-WIDE on
+		# every over (Nico's ruling 2026-06-10: the hero is just part of the team) —
+		# the Player's runtime carries the team's jokers; the opponent's is base-only
+		# (empty jokers, no payoffs). Gate on the *original* outcome so a survived
+		# wicket can't be instantly re-claimed (no review "tennis") — at most one
+		# review fires per ball.
 		var orig_wicket := o.wicket
 		var orig_dot := (not o.wicket) and o.runs == 0
 		if orig_wicket:
@@ -209,7 +211,7 @@ static func simulate_innings(
 				if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
 		elif orig_dot:
-			if (not player_is_batting) and player_bowling and drs_policy != null:
+			if (not player_is_batting) and drs_policy != null:
 				if runtime.try_review(jokers, false, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(true, 0)
 			elif player_is_batting and opp_drs_policy != null:
