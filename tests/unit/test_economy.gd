@@ -75,21 +75,21 @@ func test_pay_reads_player_innings_when_batting_second() -> void:
 func test_economy_pays_a_tight_spell_without_a_wicket() -> void:
 	# 4 overs, 24 conceded (RR 6) vs club par: saved = rr_par_pay/6*24 - 24.
 	var idle: int = Economy.match_pay(_result(0, 0, true, 0), 3.0, _etun)["perf"]
-	var tight: int = Economy.match_pay(_result(0, 0, true, 24, 24), 3.0, _etun)["perf"]
+	var tight: int = Economy.match_pay(_result(0, 0, true, 24, 24, 0), 3.0, _etun)["perf"]
 	assert_eq(idle, 0)
 	assert_eq(tight, int(round(_etun.econ_rate * (_etun.rr_par_pay / 6.0 * 24 - 24))))
 
 
 func test_economy_scales_with_overs_bowled() -> void:
 	# The same spell quality (RR 6) over twice the overs pays twice the savings.
-	var two_overs: int = Economy.match_pay(_result(0, 0, true, 12, 12), 3.0, _etun)["perf"]
-	var four_overs: int = Economy.match_pay(_result(0, 0, true, 24, 24), 3.0, _etun)["perf"]
+	var two_overs: int = Economy.match_pay(_result(0, 0, true, 12, 12, 0), 3.0, _etun)["perf"]
+	var four_overs: int = Economy.match_pay(_result(0, 0, true, 24, 24, 0), 3.0, _etun)["perf"]
 	assert_almost_eq(four_overs, two_overs * 2, 1)
 
 
 func test_expensive_spell_pays_zero_not_negative() -> void:
 	# 2 overs for 30 (RR 15, above club par) earns nothing — and costs nothing.
-	var pay := Economy.match_pay(_result(0, 0, true, 12, 30), 3.0, _etun)
+	var pay := Economy.match_pay(_result(0, 0, true, 12, 30, 0), 3.0, _etun)
 	assert_eq(pay["perf"], 0)
 
 
@@ -110,6 +110,34 @@ func test_a_ton_stacks_the_fifty_and_hundred_bonuses() -> void:
 	var ninety_nine: int = Economy.match_pay(_result(99, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
 	var ton: int = Economy.match_pay(_result(100, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
 	assert_gte(float(ton - ninety_nine), _etun.ton_bonus)
+
+
+func test_versatility_pays_for_doing_both_jobs() -> void:
+	# Same outputs, but doing both disciplines earns the versatility bonus on
+	# top of the component pay (Nico 2026-06-10: the minor discipline's balls
+	# count more, so any build earns ~equal).
+	var bat_only: int = Economy.match_pay(_result(20, 0, true, 0, 0, 20), 3.0, _etun)["perf"]
+	var bowl_part: int = Economy.match_pay(_result(20, 0, true, 12, 24, 20), 3.0, _etun)["perf"]
+	var expected_bonus := _etun.versatility_rate * minf(20.0 / _etun.bat_ref_balls, 12.0 / _etun.bowl_ref_balls)
+	var expected_econ := _etun.econ_rate * (_etun.rr_par_pay / 6.0 * 12 - 24)
+	assert_almost_eq(float(bowl_part - bat_only), expected_bonus + expected_econ, 1.0)
+
+
+func test_versatility_scales_with_the_minor_discipline() -> void:
+	# More balls in the minor discipline (bowling here) → bigger bonus. Conceded
+	# runs sit exactly at club par so the economy term stays 0 in both arms.
+	var par_6 := int(round(_etun.rr_par_pay / 6.0 * 6))
+	var par_12 := int(round(_etun.rr_par_pay / 6.0 * 12))
+	var one_over: int = Economy.match_pay(_result(20, 0, true, 6, par_6, 20), 3.0, _etun)["perf"]
+	var two_overs: int = Economy.match_pay(_result(20, 0, true, 12, par_12, 20), 3.0, _etun)["perf"]
+	assert_gt(two_overs, one_over)
+
+
+func test_no_versatility_for_a_single_discipline() -> void:
+	# A pure batting match (no bowling) earns no versatility bonus: perf is
+	# exactly the batting components.
+	var pay := Economy.match_pay(_result(30, 0, true, 0, 0, 30), 3.0, _etun)
+	assert_eq(pay["perf"], int(round(_etun.runs_rate * 30)))
 
 
 func test_attr_upgrade_cost_scales_with_current_value() -> void:

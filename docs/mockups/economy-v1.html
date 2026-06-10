@@ -22,13 +22,14 @@
 <script>
 // Paste fresh numbers from tools/sweep_economy.gd + JokerCatalog.PRICES here.
 // Sweep of 2026-06-10 (tools/sweep_economy.gd, N=2000/arm, even ★3) — the performance contract:
-// game fee ₸33 (~50% of a specialist's take-home) + runs ₸0.4 · tempo >SR110 ₸1.3 · 50/100 = ₸20/₸100
-// · wickets ₸8 · economy below club-par RR12 ₸1.3/run-saved scaled by overs (going rate measured 9.0).
+// game fee ₸33 (~50% of take-home) + runs ₸0.4 · tempo >SR110 ₸1.3 · 50/100 = ₸20/₸100 · wickets ₸8
+// · economy below club-par RR12 ₸1.3/run-saved scaled by overs (going rate measured 9.0) · versatility
+// ₸100 × min(bat-balls/20, bowl-balls/24) — the minor discipline's balls count more → any build earns ~equal.
 const DATA = {
 	income: [
 		{name: 'batter 8/8/2/2', pay: 66.6, season: 533, win: 48.7},
-		{name: 'bowler 2/2/8/8', pay: 65.4, season: 523, win: 48.6},
-		{name: 'balanced 5/5/5/5', pay: 54.3, season: 434, win: 48.0},
+		{name: 'bowler 2/2/8/8', pay: 66.6, season: 533, win: 48.6},
+		{name: 'balanced 5/5/5/5', pay: 66.4, season: 531, win: 48.0},
 	],
 	priceLadder: [
 		{name: 'Dead Bat (band-floor Common)', price: 30, rarity: 'Common'},
@@ -38,7 +39,7 @@ const DATA = {
 		{name: 'The Chase Master (realized +6.6%)', price: 220, rarity: 'Legendary'},
 		{name: 'The Review Master (+9.6%)', price: 235, rarity: 'Legendary'},
 	],
-	seasonIncome: 434, // balanced build ×8 matches (performance contract)
+	seasonIncome: 531, // balanced build ×8 matches (performance contract + versatility)
 	roi: [
 		{name: 'Cool Head (Common ₸50)', tonsPerWinPoint: 12.8},
 		{name: "The Captain's Call (Rare ₸110)", tonsPerWinPoint: 18.6},
