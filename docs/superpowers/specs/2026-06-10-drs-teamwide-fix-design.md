@@ -51,6 +51,47 @@ Existing tests: directional DRS tests should stand (the fix only *adds* claim op
 
 Bowling-balance (phase tilt, matchup term, wicket cost — next rung, design in E1 spec §10.3) · E2 conditional policy · opponent jokers · DRS UX/`tryReview` swipe surface (Theme 6) · re-running the full E1 self-play oracle (its headline numbers were measured DRS-off and stand; the bowling-balance rung re-runs it as *its* acceptance test).
 
-## 10. Findings (filled at close)
+## 10. Findings (2026-06-10)
 
-_To be written after the sweeps._
+### 10.1 The asymmetry is gone (DD4 acceptance — PASS)
+
+`tools/probe_side_asymmetry.gd`, N=4000/arm, same seeds as the E1 table:
+
+| mirror arm | before (E1 §10.1) | after |
+|---|---|---|
+| all null (scalar, no DRS) | 50.2 / 48.8 | 50.2 / 48.8 (unchanged — no DRS in arm) |
+| **DRS both only** | **46.3 / 53.0 ✗** | **49.5 / 49.5 ✓** |
+| intent textbook both only | 49.8 / 48.8 | 49.8 / 48.8 (unchanged) |
+| rotation textbook both only | 50.2 / 48.5 | 50.2 / 48.5 (unchanged) |
+| full textbook config | 44.0 / 55.1 ✗ | 49.1 / 50.0 ✓ |
+
+The fix was the whole mechanism: DRS-carrying mirrors snap to dead even, non-DRS arms are byte-identical.
+
+### 10.2 New fair-fight floor: 48.9% (was 48.1%)
+
+The `sweep_jokers.gd` no-joker arm reads **48.85%** (N=2000). The rise is smaller than the probe's 6.7pts because the joker sweep's hero (5/5/5/5) already bowled 4 overs — so the Player slot had 4-of-20 claim coverage rather than zero — and because the 2-review budget binds long before 20 overs of claim opportunities do. Honest caveat: at N=2000 the old and new floors are within mutual noise (SE ≈ 1.1pt); the *probe* (N=4000 mirrors, the designed instrument) is the proof the bias is gone, the floor number is just re-based bookkeeping. **48.9% is the new joker-tuning floor.**
+
+### 10.3 The extra-review jokers exploded, and were pulled in (DD9)
+
+Team-wide claims mean every extra review converts (a claim opportunity now exists on ~every dot, not only on hero overs). The two bounded-grant jokers blew their bands and got the rung-2 treatment — grants **+2 → +1** (`RETAIN_EXTRA_REVIEWS` / `MASTER_EXTRA_REVIEWS` in `joker_runtime.gd`):
+
+| joker | pre-fix delta | post-fix (+2 grants) | final (+1 grants) | band |
+|---|---|---|---|---|
+| The Captain's Call (Rare) | +5.9 | **+9.4 ✗** | **+4.2 ✓** | 4–7 |
+| The Review Master (Legendary) | +9.6 | **+15.5 ✗** | **+9.0 ✓** | 7–12 |
+
+The other DRS jokers landed in/near band without touching dials: Cool Head +4.8 (0.8 over Common top — borderline, left per DD9), Spare Review +4.2 (0.2 over — left), Snicko +5.5 (in band), Captain's Eye +0.4 (pre-existing fire-rate residual: it gates on Defensive intent the sweep plan rarely holds). The all-in **Reviewer archetype stack now reads +45.8** (was ~+34) — measurement-only arm, but worth knowing: committing the whole hand to reviews is the strongest archetype, by more than before.
+
+### 10.4 Prices: 14 moved (DE4 re-interpolation), all ≤ ₸20
+
+Captain's Call ₸110→90 · Review Master ₸235→230 · Snicko ₸100→105 · Spare Review ₸45→50 · Captain's Eye ₸40→30 · Powerplay Punch ₸50→40 · Squeeze the Middle ₸45→40 · Death-Over Stranglehold ₸115→100 · Carry Your Bat ₸95→90 · Tight Lines ₸40→35 · Dot Ball Pressure ₸95→90 · Power Surge ₸100→95 · Boundary Hunter ₸100→95 · Field Restrictions ₸50→40. The non-DRS moves are sweep-to-sweep delta drift inside bands (±1–1.5pt at N=2000), not DRS effects — e.g. Wicket Maiden read +1.6 this run vs +4.0 at the mechanic-change rung (still floor-priced ₸90 either way). Pool doc ₸ column + viewer DATA mirrored.
+
+### 10.5 Build-balance + economy stand (DD7/DD8 — verified, untouched)
+
+Build win-rate spread **2.0pts** (46.9–48.9, was 2.0) — the side-level bias was constant across builds, as predicted. Pay spread **₸0.2** (₸66.4–66.6, was ₸0.2); marginal attribute values match 7c-D (+1 power ≈ +0.5%, rest ≈ noise). No re-tuning.
+
+### 10.6 What downstream rungs inherit
+
+- **Every future baseline is honest** — the "known-dirty baseline" warning is retired.
+- **The bowling-balance rung** (next) tunes against floor 48.9% and re-runs the E1 oracle as its acceptance test.
+- Tests: **397 green** (+1, `test_player_claim_review_is_team_wide`).
