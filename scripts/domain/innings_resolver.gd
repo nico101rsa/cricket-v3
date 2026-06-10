@@ -34,6 +34,19 @@ static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
 		overs.append(clampi(roundi((i + 0.5) * float(total_overs) / float(n)), 1, total_overs))
 	return overs
 
+# The over's effective bowling profile: kind profile + that kind's phase bonus
+# on both stats (BB1), floored at 1.0. Pure; unit-tested directly.
+static func phased_profile(attack: BowlingAttack, kind: int, over: int, itun: InningsTuning) -> Vector2:
+	var prof := attack.profile(kind)
+	var ph := IntentPlan.phase_of(over)
+	var bonus: float = itun.pace_phase_bonus[ph] if kind == BowlingPlan.Kind.PACE else itun.spin_phase_bonus[ph]
+	return Vector2(maxf(1.0, prof.x + bonus), maxf(1.0, prof.y + bonus))
+
+# The bowler kind resolve_ball sees: the Player's bowling kind is deferred
+# (player-as-bowler D4), so Player-bowled overs carry no kind (BB4).
+static func ball_kind(player_bowling: bool, bowler_type: int) -> int:
+	return -1 if player_bowling else bowler_type
+
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
@@ -152,8 +165,11 @@ static func simulate_innings(
 			prev_intent = intent
 		var bat_attack := opp_attack
 		var bat_control := opp_control
+		var bowler_type := -1  # current over's BowlingPlan.Kind (C2d/BB3); -1 = no rotation
+		if bowling_plan != null:
+			bowler_type = bowling_plan.for_over(over)
 		if bowling_attack != null and bowling_plan != null:
-			var prof := bowling_attack.profile(bowling_plan.for_over(over))
+			var prof := phased_profile(bowling_attack, bowler_type, over, itun)
 			bat_attack = prof.x
 			bat_control = prof.y
 		var player_bowling := player_bowler_overs > 0 and player_overs_set.has(over)
@@ -170,9 +186,6 @@ static func simulate_innings(
 		var bowl_intent := -1  # the bowling captain's intent (C2b); -1 = none set
 		if bowl_intent_plan != null:
 			bowl_intent = bowl_intent_plan.for_over(over)
-		var bowler_type := -1  # current over's BowlingPlan.Kind (C2d); -1 = no rotation
-		if bowling_plan != null:
-			bowler_type = bowling_plan.for_over(over)
 		# C2d — a setNextBowler event fires at each spell start (overs 1/7/16) while
 		# the Player captains the bowling (opposition batting innings), pushing buffs
 		# that apply from this over onward (so before tick_mults below).
@@ -189,7 +202,8 @@ static func simulate_innings(
 		var opp_win := opp_runtime.tick_mults(opp_is_batting)  # DF2 — opponent base buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
-			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y)
+			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y,
+			ball_kind(player_bowling, bowler_type))
 		# C2f — DRS: a review can overturn a close decision (see below).
 		# A review mutates o, then the existing wicket/runs handling takes over.
 		# RNG is consumed only when a review is actually attempted (a policy +
