@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Joker Balance — Cricket Sim</title>
+<style>
+  :root{
+    --bg:#11151c; --panel:#1a212b; --ink:#e8edf3; --muted:#9aa7b6; --line:#2a3543;
+    --common:#5ac77a; --rare:#4a90d9; --legend:#f2b134;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:980px;margin:0 auto;padding:28px 22px 80px}
+  h1{font-size:26px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 26px}
+  h2{font-size:19px;margin:34px 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .muted{color:var(--muted)}
+  p{margin:8px 0}
+  /* how-it-works roll diagram */
+  .roll{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+  .rollcard{flex:1;min-width:220px;background:#141a22;border:1px solid var(--line);border-radius:10px;padding:14px}
+  .rollcard h4{margin:0 0 6px;font-size:14px}
+  .bar{height:14px;border-radius:7px;background:#24303d;position:relative;overflow:hidden;margin:8px 0}
+  .bar>span{position:absolute;top:0;left:0;height:100%;border-radius:7px}
+  .tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;color:#0c1117}
+  .tag.c{background:var(--common)} .tag.r{background:var(--rare)} .tag.l{background:var(--legend)}
+  /* band chart */
+  .lane{margin:16px 0}
+  .lanehd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .lanehd b{font-size:15px} .lanehd .rng{font-size:12px;color:var(--muted)}
+  .track{position:relative;height:64px;background:#141a22;border:1px solid var(--line);border-radius:10px}
+  .band{position:absolute;top:0;height:100%;opacity:.16;border-left:1px dashed;border-right:1px dashed}
+  .grid{position:absolute;top:0;height:100%;border-left:1px solid #222d3a}
+  .gl{position:absolute;bottom:-18px;transform:translateX(-50%);font-size:10px;color:#5e6b7a}
+  .dot{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid #0c1117;cursor:default}
+  .dot:hover{transform:translate(-50%,-50%) scale(1.5);z-index:5}
+  .dotlab{position:absolute;font-size:10px;color:var(--muted);white-space:nowrap;transform:translateX(-50%)}
+  .axislabel{text-align:right;font-size:11px;color:var(--muted);margin-top:22px}
+  /* conditional before/after */
+  .cond{display:grid;grid-template-columns:1fr;gap:10px}
+  .crow{display:grid;grid-template-columns:160px 1fr;gap:12px;align-items:center}
+  .crow .nm{font-size:13px}
+  .ba{position:relative;height:30px;background:#141a22;border:1px solid var(--line);border-radius:8px}
+  .seg{position:absolute;top:0;height:100%;border-radius:8px;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:700;color:#0c1117}
+  .ghost{position:absolute;top:0;height:100%;border-radius:8px;background:#33414f;opacity:.5}
+  .legendrow{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+  .key{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:12px;height:12px;border-radius:3px;display:inline-block}
+  ul{margin:8px 0 8px 2px;padding-left:18px} li{margin:6px 0}
+  .big{font-size:17px;font-weight:700}
+  code{background:#0e141b;padding:1px 5px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Joker balance — how they work & where they landed</h1>
+  <p class="sub">Cricket Sim · balance harness (sweep over 2000 even-★3 matches per joker) · 2026-06-10</p>
+
+  <!-- ============ HOW JOKERS WORK ============ -->
+  <h2>1 · How a joker works</h2>
+  <div class="panel">
+    <p>Every ball, the sim makes <b>two hidden rolls</b>: <b>“did a wicket fall?”</b> and <b>“how many runs?”</b>.
+    A joker is just a <b>multiplier on one of those rolls</b> — nothing more exotic.</p>
+    <div class="roll">
+      <div class="rollcard">
+        <h4>🎯 The wicket roll</h4>
+        <div class="bar"><span style="width:32%;background:var(--rare)"></span></div>
+        <p class="muted" style="font-size:12px;margin:2px 0">A joker with <code>wicket ×0.62</code> (batting) <b>shrinks</b> your chance of getting out. Bowling, <code>wicket ×1.45</code> <b>grows</b> the chance of taking one.</p>
+      </div>
+      <div class="rollcard">
+        <h4>🏏 The runs roll</h4>
+        <div class="bar"><span style="width:64%;background:var(--common)"></span></div>
+        <p class="muted" style="font-size:12px;margin:2px 0"><code>runs ×1.40</code> (batting) makes you <b>score faster</b>. Bowling, <code>runs ×0.62</code> <b>chokes</b> the runs you concede.</p>
+      </div>
+    </div>
+    <p style="margin-top:14px">Three things shape a joker:</p>
+    <ul>
+      <li><b>Rarity</b> sets how strong it’s allowed to be — a Common is a small edge, a Legendary is build-defining.</li>
+      <li><b>A condition</b> (optional): some only fire in a situation — <i>while chasing</i>, <i>after taking a wicket</i>, <i>on a Defensive over</i>. These do nothing until that situation happens.</li>
+      <li><b>Combos</b>: some jokers (“enablers”) do nothing alone — they switch <i>another</i> joker on. They’re keys, not payoffs.</li>
+    </ul>
+    <p class="muted">We measure a joker’s strength as its <b>win-rate lift</b>: how much more often you win <i>with</i> it vs without, in an otherwise even match. That number must land inside its rarity’s band.</p>
+  </div>
+
+  <!-- ============ THE BANDS / BALANCE CHART ============ -->
+  <h2>2 · The balance — always-on jokers sit in their rarity band</h2>
+  <p class="muted">Each dot is one joker, placed by its win-rate lift. The shaded zone is that rarity’s target band. These are the jokers that fire <b>every match</b>, so this number <i>is</i> their real strength.</p>
+  <div class="panel" id="chart"></div>
+  <div class="legendrow">
+    <span class="key"><span class="swatch" style="background:var(--common)"></span> Common (+1–4%)</span>
+    <span class="key"><span class="swatch" style="background:var(--rare)"></span> Rare (+4–7%)</span>
+    <span class="key"><span class="swatch" style="background:var(--legend)"></span> Legendary (+7–12%)</span>
+    <span class="key muted">hover a dot for its name + number</span>
+  </div>
+
+  <!-- ============ CONDITIONAL ============ -->
+  <h2>3 · Conditional jokers — measured in their situation</h2>
+  <p class="muted">These read near-zero above because their trigger doesn’t happen in a neutral match.
+  That’s not weakness — it’s a sleeping joker. Measured <b>in the situation that fires it</b> (or after a mechanic fix), they reach their band. Faded bar = neutral reading; solid bar = in-context / fixed.</p>
+  <div class="panel cond" id="cond"></div>
+  <p class="muted" style="margin-top:12px">The remaining conditional jokers (Strike Bowler, Comeback Press, The Trap, Pace Pack, the bowling-change &amp; Form-combo set…) work the same way — they fire on a bowling change, a 3rd Boost, a catching field, etc. The scenario sweep confirmed they’re dormant-not-weak; each carries a <b>fire-rate</b> used to price it.</p>
+
+  <!-- ============ CONCLUSION ============ -->
+  <h2>4 · What the sweep concluded</h2>
+  <div class="panel">
+    <p class="big">The pool is balanced by rarity, and the dangerous outliers are gone.</p>
+    <ul>
+      <li><b>Every always-on joker sits in its band.</b> No joker is negative, none is an auto-win. (The old +28% Review Master is now +9.6%.)</li>
+      <li><b>“Sleeping” jokers were the trap.</b> ~18 conditional jokers read +0–1% in a plain match — not because they’re weak, but because their situation never came up. Measuring them <i>in situation</i> proved it (The Chase Master: <b>+3% → +13%</b> when actually chasing).</li>
+      <li><b>You can’t always fix a weak situational joker with a bigger number.</b> The Chase Master’s extra runs are <i>wasted</i> once you pass the target; Wicket Maiden’s extra wicket-chance only pays if a wicket falls. The fix was a <b>second effect that always converts</b> — composure (survival) for the chase, economy (dot pressure) for the wicket over. Both then reached their band.</li>
+      <li><b>One thing left for the economy rung:</b> a <b>loadout cap</b>. Stacking <i>every</i> joker of one type reads very high (all 8 review jokers = +34%), but you’ll only ever hold ~5 — so that’s a shop rule, not a balance bug.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+const BANDS = {
+  Legendary:{lo:7,hi:12,color:'#f2b134'},
+  Rare:{lo:4,hi:7,color:'#4a90d9'},
+  Common:{lo:1,hi:4,color:'#5ac77a'},
+};
+// Always-on jokers: win-rate lift (%) — this IS their real strength (they fire every match)
+const ALWAYS = {
+  Legendary:[["The Review Master",9.6],["Choke Hold",8.7]],
+  Rare:[["Death-Over Stranglehold",6.5],["The Captain's Call",5.9],["Snicko",4.9],["Power Surge",4.8],["Boundary Hunter",4.8],["Carry Your Bat",4.6],["Dot Ball Pressure",4.5],["Slog Over Specialist",3.5],["Compounding Pressure",3.5]],
+  Common:[["Powerplay Punch",4.0],["Field Restrictions",4.0],["Cool Head",3.9],["Spare Review",3.2],["Squeeze the Middle",3.0],["Captain's Eye",2.8],["Tight Lines",2.7]],
+};
+const XMIN=-1, XMAX=14;
+const px = v => ((v-XMIN)/(XMAX-XMIN))*100;
+
+const chart = document.getElementById('chart');
+["Legendary","Rare","Common"].forEach(rar=>{
+  const b=BANDS[rar];
+  const lane=document.createElement('div'); lane.className='lane';
+  lane.innerHTML=`<div class="lanehd"><b style="color:${b.color}">${rar}</b><span class="rng">target band +${b.lo}% to +${b.hi}%</span></div>`;
+  const track=document.createElement('div'); track.className='track';
+  // band region
+  const band=document.createElement('div'); band.className='band';
+  band.style.left=px(b.lo)+'%'; band.style.width=(px(b.hi)-px(b.lo))+'%';
+  band.style.background=b.color; band.style.borderColor=b.color;
+  track.appendChild(band);
+  // gridlines + labels at 0,5,10
+  [0,5,10].forEach(g=>{
+    const gl=document.createElement('div'); gl.className='grid'; gl.style.left=px(g)+'%'; track.appendChild(gl);
+    const t=document.createElement('div'); t.className='gl'; t.style.left=px(g)+'%'; t.textContent='+'+g+'%'; track.appendChild(t);
+  });
+  // dots — stagger labels above/below to reduce overlap
+  ALWAYS[rar].forEach((j,i)=>{
+    const [name,val]=j;
+    const d=document.createElement('div'); d.className='dot';
+    d.style.left=px(val)+'%'; d.style.background=b.color;
+    d.title=`${name}: +${val}%`;
+    track.appendChild(d);
+    const lab=document.createElement('div'); lab.className='dotlab';
+    lab.style.left=px(val)+'%';
+    lab.style.top=(i%2? 'calc(50% + 12px)':'calc(50% - 26px)');
+    lab.textContent=name.replace(/^The /,'');
+    track.appendChild(lab);
+  });
+  lane.appendChild(track);
+  chart.appendChild(lane);
+});
+
+// Conditional: name, rarity color, neutral reading, in-context reading, context label
+const COND=[
+  ["The Chase Master","#f2b134",3.2,13.1,"when chasing (realized +6.6% at ~50% toss)"],
+  ["Wicket Maiden","#4a90d9",1.0,4.0,"after the economy fix → in Rare band"],
+  ["Match-Winner's Vigil","#f2b134",1.7,4.9,"paired with a Form source (in-combo)"],
+];
+const condEl=document.getElementById('cond');
+const cmax=14;
+COND.forEach(c=>{
+  const [name,col,neu,ctx,note]=c;
+  const row=document.createElement('div'); row.className='crow';
+  row.innerHTML=`<div class="nm"><b>${name}</b><br><span class="muted" style="font-size:11px">${note}</span></div>`;
+  const ba=document.createElement('div'); ba.className='ba';
+  const ghost=document.createElement('div'); ghost.className='ghost'; ghost.style.width=(neu/cmax*100)+'%';
+  const seg=document.createElement('div'); seg.className='seg';
+  seg.style.width=(ctx/cmax*100)+'%'; seg.style.background=col;
+  seg.textContent=`+${neu}% → +${ctx}%`;
+  ba.appendChild(ghost); ba.appendChild(seg); row.appendChild(ba);
+  condEl.appendChild(row);
+});
+</script>
+</body>
+</html>
