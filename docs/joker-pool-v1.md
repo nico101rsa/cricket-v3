@@ -11,6 +11,8 @@ V1 = first complete pass. Names and verb compositions are the authoring intent a
 > **Capped-joker mechanic changes (2026-06-10).** Resolved the two rung-3 residuals by giving each a **second component that converts in the common case** (not a bigger first number): **The Chase Master** gains a composure/survival row (`buffNextBalls(wicket, ×0.62)`, same chase+Aggressive gate) → realized **+3.6% → +6.6%** (Legendary floor); **Wicket Maiden** gains an economy/dot-pressure row (`buffNextBalls(runs, ×0.62)` over the post-wicket window) → **+1.0% → +4.0%** (Rare floor). Both are now in band. See spec `2026-06-10-capped-joker-mechanic-changes-design.md`.
 >
 > **₸ prices set (2026-06-10, rung 7c-D).** Tons inflow is now defined (`Economy.match_pay`: base ₸50 at ★3, −₸8/★ stronger, + perf ₸/run + ₸/wicket — spec `2026-06-10-tons-economy-7cD-design.md`), and every joker is priced by **within-band linear interpolation of its realized (fire-rate-discounted) win-delta** onto the rarity price band, rounded to ₸5. Conditional/enabler jokers whose neutral-context delta reads ~0 price at their band floor — the fire-rate discount expressed inside the band, so rarity ≈ price stays legible. Prices live in `JokerCatalog.PRICES`; the ₸ column below mirrors them.
+>
+> **DRS team-wide fix (2026-06-10).** The bowling side's claim review now fires on **every over for both sides** (Nico's ruling: the hero is just part of the team — previously the Player's claims were gated to hero-bowled overs while the opponent claimed on all 20, ~6.7 win-pts of hidden bias). New no-joker floor **48.9%** (was 48.1%). Team-wide claims made every extra review convert, so the bounded grants were pulled in **+2 → +1** (The Captain's Call +9.4%→+4.2%, The Review Master +15.5%→+9.0% — both back in band). All 45 prices re-interpolated from the fresh deltas (14 moved ≤ ₸20). See spec `2026-06-10-drs-teamwide-fix-design.md`.
 
 ---
 
@@ -53,7 +55,7 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | 3 | Block the Shine | Common | trigger: innings ball ≤ 18 while batting → `buffNextBalls(wicket, ×0.90, n=18)` at innings start | *First 18 balls of your innings: wicket chance −10%.* | "See it off. The bowlers will tire." | 30 |
 | 4 | Rotate the Strike | Common | while `setIntent(Balanced)`: `buffNextBalls(runs, ×1.08, n=1)` per ball | *While Balanced: runs roll +8%.* | "Singles add up. Singles always add up." | 30 |
 | 5 | Building Phase | Rare | while `setIntent(Defensive)` AND Player has faced 6 consecutive balls: `formEvent(Player, +1)`, repeats every 6 | *Every full over you survive while Defensive: Player Form +1.* | "Twenty minutes in. Eyes are in. Now bat." | 90 |
-| 6 | Carry Your Bat | Rare | while `setIntent(Defensive)`: `buffNextBalls(wicket, ×0.85, n=1)` AND `buffNextBalls(runs, ×1.12, n=1)` per ball | *While Defensive: wicket chance −15%, runs roll +12%.* | "Bat all 20 overs. The rest is bonus." | 95 |
+| 6 | Carry Your Bat | Rare | while `setIntent(Defensive)`: `buffNextBalls(wicket, ×0.85, n=1)` AND `buffNextBalls(runs, ×1.12, n=1)` per ball | *While Defensive: wicket chance −15%, runs roll +12%.* | "Bat all 20 overs. The rest is bonus." | 90 |
 | 7 | Match-Winner's Vigil | Legendary | when `formEvent(Player, +)` fires while batting: `setIntent(Defensive)` AND `buffNextBalls(wicket, ×0.62, n=24)` | *Player Form rises while batting → snap Defensive, wicket chance −38% for next 24 balls.* | "Get there. Stay there." | 220 |
 
 ---
@@ -62,12 +64,12 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 
 | # | Name | Rarity | Verb composition | Effect text (user-facing) | Flavour | ₸ |
 |---|---|---|---|---|---|---|
-| 8 | Powerplay Punch | Common | while `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.05, n=1)` per ball | *While Aggressive: runs roll +5%.* | "First six overs. Send it." | 50 |
-| 9 | Field Restrictions | Common | while batting AND opposing `fieldMode(catching)`: `buffNextBalls(runs, ×1.05, n=1)` per ball | *While batting against a catching field: runs roll +5%.* | "Catching field? Hit it over them." | 50 |
+| 8 | Powerplay Punch | Common | while `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.05, n=1)` per ball | *While Aggressive: runs roll +5%.* | "First six overs. Send it." | 40 |
+| 9 | Field Restrictions | Common | while batting AND opposing `fieldMode(catching)`: `buffNextBalls(runs, ×1.05, n=1)` per ball | *While batting against a catching field: runs roll +5%.* | "Catching field? Hit it over them." | 40 |
 | 10 | Ride the Wave | Common | when `formEvent(Player, +)` fires while batting: `buffNextBalls(runs, ×1.20, n=3)` | *Player Form rises while batting → runs roll +20% for 3 balls.* | "Hot. Hot. Hot." | 30 |
 | 11 | Captain's Statement | Common | when `setIntent(Aggressive)` fires: `formEvent(Player, +1)` | *Switch to Aggressive → Player Form +1.* | "Tell the change-room. We're chasing this down." | 30 |
 | 12 | Slog Over Specialist | Rare | from ball 90 while `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.35, n=1)` per ball | *Death overs (last 30 balls) while Aggressive: runs roll +35%.* | "Bowlers are tired. Bat first, ask later." | 90 |
-| 13 | Boundary Hunter | Rare | when `formEvent(Player, +)` fires while batting: `setIntent(Aggressive)` | *Player Form rises while batting → snap to Aggressive.* | "One four. One more. One more." | 100 |
+| 13 | Boundary Hunter | Rare | when `formEvent(Player, +)` fires while batting: `setIntent(Aggressive)` | *Player Form rises while batting → snap to Aggressive.* | "One four. One more. One more." | 95 |
 | 14 | Hot Streak | Rare | when `formEvent(Player, +)` fires twice within 6 balls: `buffNextBalls(runs, ×1.30, n=6)` AND `buffNextBalls(wicket, ×0.85, n=6)` | *Two Form gains in an over: runs roll +30%, wicket chance −15% for 6 balls.* | "Stay in. The over's yours." | 90 |
 | 15 | The Chase Master | Legendary | while 2nd-innings AND `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.40, n=1)` AND `buffNextBalls(wicket, ×0.62, n=1)` per ball | *Second innings + Aggressive: runs roll +40% **and** dismissal chance −38% every ball — score harder and don't throw it away.* | "Required rate? What required rate." | 220 |
 
@@ -77,12 +79,12 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 
 | # | Name | Rarity | Verb composition | Effect text (user-facing) | Flavour | ₸ |
 |---|---|---|---|---|---|---|
-| 16 | Tight Lines | Common | while bowling AND `fieldMode(defensive)`: `buffNextBalls(runs, ×0.93, n=1)` per ball | *While bowling with a defensive field: runs conceded −7%.* | "Yorkers wide of off. All night." | 40 |
-| 17 | Squeeze the Middle | Common | while bowling AND innings ball ∈ [36, 90]: `buffNextBalls(runs, ×0.92, n=1)` per ball | *Middle overs (overs 7–15): runs conceded −8%.* | "Slow it down. Make them swing." | 45 |
+| 16 | Tight Lines | Common | while bowling AND `fieldMode(defensive)`: `buffNextBalls(runs, ×0.93, n=1)` per ball | *While bowling with a defensive field: runs conceded −7%.* | "Yorkers wide of off. All night." | 35 |
+| 17 | Squeeze the Middle | Common | while bowling AND innings ball ∈ [36, 90]: `buffNextBalls(runs, ×0.92, n=1)` per ball | *Middle overs (overs 7–15): runs conceded −8%.* | "Slow it down. Make them swing." | 40 |
 | 18 | Defensive Captain | Common | when `setIntent(Defensive)` fires while bowling: also `fieldMode(defensive)` set | *Switch to Defensive while bowling → also set a defensive field.* | "Boundary riders in. Sweepers wide. Strangle them." | 30 |
 | 19 | Pressure Cooker | Common | while bowling AND opposing `setIntent(Defensive)`: `buffNextBalls(wicket, ×1.10, n=1)` per ball | *Bowling against a Defensive opposition: wicket chance +10%.* | "They're shutting up shop. Force the error." | 30 |
-| 20 | Dot Ball Pressure | Rare | while bowling AND `fieldMode(defensive)`: `buffNextBalls(wicket, ×1.12, n=1)` AND `buffNextBalls(runs, ×0.88, n=1)` per ball | *While bowling with a defensive field: wicket chance +12%, runs conceded −12%.* | "Suffocation. They're swinging at thin air." | 95 |
-| 21 | Death-Over Stranglehold | Rare | while bowling AND innings ball ≥ 90: `buffNextBalls(runs, ×0.83, n=1)` per ball | *Death overs (last 30 balls) while bowling: runs conceded −17%.* | "They came for sixes. They'll leave with twos." | 115 |
+| 20 | Dot Ball Pressure | Rare | while bowling AND `fieldMode(defensive)`: `buffNextBalls(wicket, ×1.12, n=1)` AND `buffNextBalls(runs, ×0.88, n=1)` per ball | *While bowling with a defensive field: wicket chance +12%, runs conceded −12%.* | "Suffocation. They're swinging at thin air." | 90 |
+| 21 | Death-Over Stranglehold | Rare | while bowling AND innings ball ≥ 90: `buffNextBalls(runs, ×0.83, n=1)` per ball | *Death overs (last 30 balls) while bowling: runs conceded −17%.* | "They came for sixes. They'll leave with twos." | 100 |
 | 22 | Choke Hold | Legendary | while bowling AND `fieldMode(defensive)` AND `setIntent(Defensive)`: `buffNextBalls(runs, ×0.75, n=1)` AND `buffNextBalls(wicket, ×1.15, n=1)` per ball | *Defensive intent + defensive field while bowling: runs conceded −25%, wicket chance +15%.* | "The kind of over they show on the highlights reel. As context for the collapse." | 230 |
 
 ---
@@ -112,7 +114,7 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | 32 | Boost Battery | Common | when Manager Boost fires: also `buffNextBalls(runs, ×1.10, n=Boost.n)` if batting / `buffNextBalls(wicket, ×1.10, n=Boost.n)` if bowling | *Manager Boost gets a side-aware kicker: +10% to runs (batting) or wicket chance (bowling) for the boost window.* | "Same press. More juice." | 30 |
 | 33 | Boost Adrenaline | Common | when Manager Boost fires: `formEvent(Player, +1)` | *Press Manager Boost → Player Form +1.* | "The crowd. The captain. The moment." | 30 |
 | 34 | Pedal to the Metal | Common | when Manager Boost fires: also `setIntent(Aggressive)` | *Manager Boost → Intent snaps to Aggressive.* | "No half measures. Stand up. Take it." | 30 |
-| 35 | Power Surge | Rare | when Manager Boost fires: amplify `mult` by ×1.40 AND extend `n` by +3 | *Manager Boost: multiplier amplified by +40%, window +3 balls.* | "Why press once when you can press once, harder." | 100 |
+| 35 | Power Surge | Rare | when Manager Boost fires: amplify `mult` by ×1.40 AND extend `n` by +3 | *Manager Boost: multiplier amplified by +40%, window +3 balls.* | "Why press once when you can press once, harder." | 95 |
 | 36 | Compounding Pressure | Rare | when Manager Boost fires AND `setIntent(Aggressive)`: also `buffNextBalls(runs, ×1.40, n=Boost.n)` AND `buffNextBalls(wicket, ×0.85, n=Boost.n)` if batting; mirror if bowling | *Manager Boost while Aggressive: runs roll +40%, wicket chance −15% across the boost window (side-aware).* | "Pick a moment. Make it loud." | 90 |
 | 37 | The Comeback Press | Legendary | every Manager Boost fire: `formEvent(Player, +2)`. On the **3rd** Manager Boost of the Match: amplify `mult` by ×1.50 AND extend `n` by +6 | *Every Manager Boost: Player Form +2. Your 3rd Boost of the Match: multiplier ×1.5, window +6 balls.* | "Three presses. The third one is the one they remember." | 220 |
 
@@ -125,13 +127,13 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | # | Name | Rarity | Verb composition | Effect text (user-facing) | Flavour | ₸ |
 |---|---|---|---|---|---|---|
 | 38 | Cool Head | Common | when `tryReview` fires: P(success) +10% | *DRS reviews: success chance +10%.* | "Watch it again. Now watch it again." | 50 |
-| 39 | Captain's Eye | Common | when `tryReview` fires while `setIntent(Defensive)`: P(success) +20% | *DRS while Defensive: success chance +20%.* | "Calm helps. The bat doesn't lie." | 40 |
-| 40 | Spare Review | Common | at innings start: +1 to the `tryReview` resource counter for this innings | *+1 DRS review per innings.* | "We saved one. We had a feeling." | 45 |
+| 39 | Captain's Eye | Common | when `tryReview` fires while `setIntent(Defensive)`: P(success) +20% | *DRS while Defensive: success chance +20%.* | "Calm helps. The bat doesn't lie." | 30 |
+| 40 | Spare Review | Common | at innings start: +1 to the `tryReview` resource counter for this innings | *+1 DRS review per innings.* | "We saved one. We had a feeling." | 50 |
 | 41 | Hot Spot | Common | when `tryReview` succeeds: `formEvent(Player, +1)` | *Successful DRS → Player Form +1.* | "They got it wrong. We knew." | 30 |
-| 42 | Snicko | Rare | when `tryReview` fires: P(success) +12% | *DRS reviews: success chance +12%.* | "Spike. Spike. Spike. Three views, three spikes." | 100 |
-| 43 | The Captain's Call | Rare | at innings start: +2 to the `tryReview` resource counter for this innings | *+2 DRS reviews per innings.* | "Umpire's call? We'll try again." | 110 |
+| 42 | Snicko | Rare | when `tryReview` fires: P(success) +12% | *DRS reviews: success chance +12%.* | "Spike. Spike. Spike. Three views, three spikes." | 105 |
+| 43 | The Captain's Call | Rare | at innings start: +1 to the `tryReview` resource counter for this innings | *+1 DRS review per innings.* | "Umpire's call? We'll try again." | 90 |
 | 44 | Bowler's Backing | Rare | when `tryReview` succeeds while bowling: `buffNextBalls(wicket, ×1.20, n=6)` | *Successful DRS while bowling → wicket chance +20% for 6 balls.* | "One overturned. Now stick another in the same spot." | 90 |
-| 45 | The Review Master | Legendary | when `tryReview` fires: P(success) +6%; at innings start: +2 to the `tryReview` counter; when `tryReview` succeeds: `formEvent(Player, +2)` | *DRS reviews: success +6%, +2 reviews per innings. Successful review → Player Form +2.* | "We don't waste reviews. We make moments." | 235 |
+| 45 | The Review Master | Legendary | when `tryReview` fires: P(success) +6%; at innings start: +1 to the `tryReview` counter; when `tryReview` succeeds: `formEvent(Player, +2)` | *DRS reviews: success +6%, +1 review per innings. Successful review → Player Form +2.* | "We don't waste reviews. We make moments." | 230 |
 
 ---
 
