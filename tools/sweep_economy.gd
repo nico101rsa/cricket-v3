@@ -36,7 +36,7 @@ func _init() -> void:
 
 	var balanced_win := 0.0
 	var rows: Array = []
-	print("arm                    win%   base   perf   total ₸/match   season(×8)   runs  wkts  bowl-balls")
+	print("arm                    win%   base   perf   total ₸/match   season(×8)   runs bat-b  50%  100%  wkts  bowl-b bowl-r")
 	for ai in swept.size():
 		var recs = swept[ai]["records"]
 		var win := 100.0 * _sum(Sweep.values_of(recs, "won")) / n
@@ -44,14 +44,21 @@ func _init() -> void:
 		var perf := _mean(Sweep.values_of(recs, "perf"))
 		var total := _mean(Sweep.values_of(recs, "total"))
 		var runs := _mean(Sweep.values_of(recs, "runs"))
+		var bat_balls := _mean(Sweep.values_of(recs, "bat_balls"))
+		var fifty := 100.0 * _sum(Sweep.values_of(recs, "fifty")) / n
+		var hundred := 100.0 * _sum(Sweep.values_of(recs, "hundred")) / n
 		var wkts := _mean(Sweep.values_of(recs, "wkts"))
 		var bowl_balls := _mean(Sweep.values_of(recs, "bowl_balls"))
+		var bowl_runs := _mean(Sweep.values_of(recs, "bowl_runs"))
 		if swept[ai]["name"] == "balanced 5/5/5/5":
 			balanced_win = win
 		rows.append({"name": swept[ai]["name"], "win_rate": win, "base": base, "perf": perf,
-			"pay": total, "season": total * 8.0, "runs": runs, "wkts": wkts, "bowl_balls": bowl_balls})
-		print("%-22s %5.1f %6.1f %6.1f %7.1f       %6.0f   %5.1f %5.2f %7.1f" % [
-			swept[ai]["name"], win, base, perf, total, total * 8.0, runs, wkts, bowl_balls])
+			"pay": total, "season": total * 8.0, "runs": runs, "bat_balls": bat_balls,
+			"fifty_pct": fifty, "hundred_pct": hundred,
+			"wkts": wkts, "bowl_balls": bowl_balls, "bowl_runs": bowl_runs})
+		print("%-22s %5.1f %6.1f %6.1f %7.1f       %6.0f   %5.1f %5.1f %4.1f%% %4.1f%% %5.2f %7.1f %6.1f" % [
+			swept[ai]["name"], win, base, perf, total, total * 8.0,
+			runs, bat_balls, fifty, hundred, wkts, bowl_balls, bowl_runs])
 
 	print("")
 	print("marginal Δwin% vs balanced (the +1-attribute value):")
@@ -83,8 +90,12 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		"won": 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0,
 		"base": pay["base"], "perf": pay["perf"], "total": pay["total"],
 		"runs": int(line.get("runs", 0)),
+		"bat_balls": int(line.get("balls", 0)),
+		"fifty": 1 if int(line.get("runs", 0)) >= 50 else 0,
+		"hundred": 1 if int(line.get("runs", 0)) >= 100 else 0,
 		"wkts": bowl_inn.player_bowl_wickets,
 		"bowl_balls": bowl_inn.player_bowl_balls,
+		"bowl_runs": bowl_inn.player_bowl_runs,
 	}
 
 func _sum(arr: Array) -> float:

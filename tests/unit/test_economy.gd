@@ -10,12 +10,16 @@ func before_each() -> void:
 
 
 # A MatchResult where the Player batted in innings `bat_first ? 1 : 2` scoring
-# `runs`, and bowled `bowl_balls` in the other innings taking `wkts`.
-func _result(runs: int, wkts: int, bat_first: bool = true, bowl_balls: int = 0) -> MatchResult:
-	var player_batters := [{"position": 3, "is_player": true, "runs": runs, "balls": maxi(runs, 1), "out": false}]
+# `runs` off `bat_balls` (default: a run-a-ball), and bowled `bowl_balls` in the
+# other innings taking `wkts` for `bowl_runs` conceded.
+func _result(runs: int, wkts: int, bat_first: bool = true, bowl_balls: int = 0,
+		bowl_runs: int = 0, bat_balls: int = -1) -> MatchResult:
+	if bat_balls < 0:
+		bat_balls = maxi(runs, 1)
+	var player_batters := [{"position": 3, "is_player": true, "runs": runs, "balls": bat_balls, "out": false}]
 	var opp_batters := [{"position": 1, "is_player": false, "runs": 30, "balls": 25, "out": true}]
 	var player_inn := InningsResult.new(150, 4, 120, [], player_batters)
-	var opp_inn := InningsResult.new(140, 6, 120, [], opp_batters, wkts, 24, bowl_balls)
+	var opp_inn := InningsResult.new(140, 6, 120, [], opp_batters, wkts, bowl_runs, bowl_balls)
 	var m := MatchResult.new()
 	m.player_bats_first = bat_first
 	m.innings1 = player_inn if bat_first else opp_inn
@@ -68,11 +72,44 @@ func test_pay_reads_player_innings_when_batting_second() -> void:
 	assert_eq(first["perf"], second["perf"])
 
 
-func test_bowling_workload_pays_without_a_wicket() -> void:
+func test_economy_pays_a_tight_spell_without_a_wicket() -> void:
+	# 4 overs, 24 conceded (RR 6) vs club par: saved = rr_par_pay/6*24 - 24.
 	var idle: int = Economy.match_pay(_result(0, 0, true, 0), 3.0, _etun)["perf"]
-	var four_overs: int = Economy.match_pay(_result(0, 0, true, 24), 3.0, _etun)["perf"]
+	var tight: int = Economy.match_pay(_result(0, 0, true, 24, 24), 3.0, _etun)["perf"]
 	assert_eq(idle, 0)
-	assert_eq(four_overs, int(round(_etun.bowl_balls_rate * 24)))
+	assert_eq(tight, int(round(_etun.econ_rate * (_etun.rr_par_pay / 6.0 * 24 - 24))))
+
+
+func test_economy_scales_with_overs_bowled() -> void:
+	# The same spell quality (RR 6) over twice the overs pays twice the savings.
+	var two_overs: int = Economy.match_pay(_result(0, 0, true, 12, 12), 3.0, _etun)["perf"]
+	var four_overs: int = Economy.match_pay(_result(0, 0, true, 24, 24), 3.0, _etun)["perf"]
+	assert_almost_eq(four_overs, two_overs * 2, 1)
+
+
+func test_expensive_spell_pays_zero_not_negative() -> void:
+	# 2 overs for 30 (RR 15, above club par) earns nothing — and costs nothing.
+	var pay := Economy.match_pay(_result(0, 0, true, 12, 30), 3.0, _etun)
+	assert_eq(pay["perf"], 0)
+
+
+func test_fast_runs_pay_more_than_slow_runs() -> void:
+	var slow: int = Economy.match_pay(_result(40, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
+	var fast: int = Economy.match_pay(_result(40, 0, true, 0, 0, 20), 3.0, _etun)["perf"]
+	assert_gt(fast, slow)
+
+
+func test_fifty_milestone_pays_a_flat_bonus() -> void:
+	# Same balls faced so the tempo term moves by one run at most.
+	var forty_nine: int = Economy.match_pay(_result(49, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
+	var fifty: int = Economy.match_pay(_result(50, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
+	assert_gte(float(fifty - forty_nine), _etun.fifty_bonus)
+
+
+func test_a_ton_stacks_the_fifty_and_hundred_bonuses() -> void:
+	var ninety_nine: int = Economy.match_pay(_result(99, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
+	var ton: int = Economy.match_pay(_result(100, 0, true, 0, 0, 60), 3.0, _etun)["perf"]
+	assert_gte(float(ton - ninety_nine), _etun.ton_bonus)
 
 
 func test_attr_upgrade_cost_scales_with_current_value() -> void:
