@@ -2,7 +2,13 @@ extends SceneTree
 
 # E1 oracle (spec 2026-06-10-selfplay-baseline-7cE1-design.md): self-play search
 # over the 216 static no-joker policies. Pure team-vs-team (no statted Player,
-# spec D2), even ★3, fair-fight DRS both sides, no Boost (D1).
+# spec D2), even ★3, no Boost (D1). DRS is OFF in the team-vs-team arms: the
+# 2026-06-10 side-asymmetry probe (spec §10) showed the "symmetric default"
+# isn't — the player slot's claim-review is gated on the hero's own overs
+# (innings_resolver DRS block) while the opponent claims on all 20, worth ~6.7
+# win points to the opponent slot. Fix deferred (it moves the fair-fight
+# baseline the joker prices were measured against). The hero-validation arms
+# keep DRS both sides: both arms share the bias, so their comparison is fair.
 # Phases:
 #   1  screen all 216 responses vs the fixed opponent (SCREEN_N paired matches)
 #   2  refine the top K + the current policy on fresh seeds (REFINE_N)
@@ -222,9 +228,9 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 			a_bats_first, _tuning, _itun, rng,
 			PolicySearch.intent_plan_of(pol_a), PolicySearch.bowling_plan_of(pol_a),
 			[], null, null,
-			PolicySearch.intent_plan_of(pol_b), null, DRSPolicy.new(), null,
+			PolicySearch.intent_plan_of(pol_b), null, null, null,
 			Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
-			null, DRSPolicy.new(),
+			null, null,
 			PolicySearch.bowling_plan_of(pol_b))
 
 	return {

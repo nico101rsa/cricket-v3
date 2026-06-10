@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Self-play policy search — rung 7c-E1</title>
+<style>
+	body { font-family: -apple-system, sans-serif; background: #14181f; color: #e8e6e1; max-width: 980px; margin: 24px auto; padding: 0 16px; }
+	h1 { font-size: 1.3rem; } h2 { font-size: 1.05rem; margin-top: 2em; color: #f0c75e; }
+	.note { font-size: .8rem; color: #8a867e; margin-top: .5em; }
+	table.heat { border-collapse: collapse; margin-top: 8px; }
+	table.heat th { font-size: .7rem; color: #b8b4ac; font-weight: 500; padding: 2px 4px; }
+	table.heat th.rowh { text-align: right; padding-right: 8px; }
+	table.heat td { width: 64px; height: 22px; text-align: center; font-size: .72rem; color: #14181f; border: 1px solid #14181f; }
+	td.tb { outline: 2px solid #e8e6e1; outline-offset: -2px; }
+	td.eqa { outline: 2px solid #f0c75e; outline-offset: -2px; }
+	td.eqb { outline: 2px dashed #f0c75e; outline-offset: -2px; }
+	.bar-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+	.bar-label { width: 220px; font-size: .85rem; text-align: right; color: #b8b4ac; }
+	.bar { height: 22px; border-radius: 3px; background: #4a90d9; min-width: 2px; }
+	.bar.gold { background: #f0c75e; } .bar.grey { background: #6a6660; }
+	.bar-val { font-size: .8rem; }
+	ol.traj { font-size: .85rem; color: #b8b4ac; line-height: 1.6; }
+	ol.traj b { color: #e8e6e1; }
+	.legend { font-size: .75rem; color: #8a867e; margin-top: 6px; }
+</style>
+</head>
+<body>
+<h1>Self-play policy search <span style="color:#8a867e;font-size:.8em">— rung 7c-E1, no jokers, even ★3, team-vs-team</span></h1>
+<p class="note">A static policy = batting Intent per phase (Defensive/Balanced/Aggressive over Powerplay/Middle/Death) × bowler type per phase (Pace/Spin). 27 × 8 = 216 policies. Label reads <b>PP/Mid/Death · PP/Mid/Death</b>, e.g. textbook = A/B/A·P/S/P.</p>
+
+<div id="meta"></div>
+<div id="heatmap"></div>
+<div id="trajectory"></div>
+<div id="gaps"></div>
+<div id="heroes"></div>
+
+<script>
+// Paste the DATA line from tools/sweep_policy_selfplay.gd (full run) below.
+const DATA = {"a":"A/A/A·S/S/S","b":"A/A/A·S/S/S","equilibrium":true,"gap_n":4000,"gaps":[{"name":"eq vs eq","tie":0.01225,"win":0.47475},{"name":"eq vs naive","tie":0.00675,"win":0.7625},{"name":"eq vs textbook","tie":0.00825,"win":0.67725},{"name":"eq vs balanced","tie":0.007,"win":0.785},{"name":"textbook vs textbook","tie":0.01175,"win":0.481},{"name":"naive vs naive","tie":0.0095,"win":0.48925}],"heroes":[{"name":"hero+eq vs eq","win":0.43725},{"name":"hero+textbook vs eq","win":0.309}],"landscape":[{"label":"D/D/D·P/P/P","win":0.2},{"label":"D/D/D·P/P/S","win":0.2025},{"label":"D/D/D·P/S/P","win":0.2475},{"label":"D/D/D·P/S/S","win":0.2675},{"label":"D/D/D·S/P/P","win":0.1625},{"label":"D/D/D·S/P/S","win":0.19},{"label":"D/D/D·S/S/P","win":0.255},{"label":"D/D/D·S/S/S","win":0.3},{"label":"D/D/B·P/P/P","win":0.215},{"label":"D/D/B·P/P/S","win":0.2375},{"label":"D/D/B·P/S/P","win":0.2725},{"label":"D/D/B·P/S/S","win":0.3075},{"label":"D/D/B·S/P/P","win":0.1825},{"label":"D/D/B·S/P/S","win":0.205},{"label":"D/D/B·S/S/P","win":0.2975},{"label":"D/D/B·S/S/S","win":0.3475},{"label":"D/D/A·P/P/P","win":0.225},{"label":"D/D/A·P/P/S","win":0.2425},{"label":"D/D/A·P/S/P","win":0.2825},{"label":"D/D/A·P/S/S","win":0.3175},{"label":"D/D/A·S/P/P","win":0.2025},{"label":"D/D/A·S/P/S","win":0.22},{"label":"D/D/A·S/S/P","win":0.3075},{"label":"D/D/A·S/S/S","win":0.37},{"label":"D/B/D·P/P/P","win":0.2575},{"label":"D/B/D·P/P/S","win":0.2725},{"label":"D/B/D·P/S/P","win":0.3325},{"label":"D/B/D·P/S/S","win":0.385},{"label":"D/B/D·S/P/P","win":0.235},{"label":"D/B/D·S/P/S","win":0.27},{"label":"D/B/D·S/S/P","win":0.3575},{"label":"D/B/D·S/S/S","win":0.4125},{"label":"D/B/B·P/P/P","win":0.28},{"label":"D/B/B·P/P/S","win":0.3225},{"label":"D/B/B·P/S/P","win":0.3625},{"label":"D/B/B·P/S/S","win":0.4375},{"label":"D/B/B·S/P/P","win":0.2675},{"label":"D/B/B·S/P/S","win":0.32},{"label":"D/B/B·S/S/P","win":0.415},{"label":"D/B/B·S/S/S","win":0.475},{"label":"D/B/A·P/P/P","win":0.2875},{"label":"D/B/A·P/P/S","win":0.315},{"label":"D/B/A·P/S/P","win":0.405},{"label":"D/B/A·P/S/S","win":0.46},{"label":"D/B/A·S/P/P","win":0.28},{"label":"D/B/A·S/P/S","win":0.325},{"label":"D/B/A·S/S/P","win":0.4425},{"label":"D/B/A·S/S/S","win":0.49},{"label":"D/A/D·P/P/P","win":0.33},{"label":"D/A/D·P/P/S","win":0.3475},{"label":"D/A/D·P/S/P","win":0.45},{"label":"D/A/D·P/S/S","win":0.5175},{"label":"D/A/D·S/P/P","win":0.34},{"label":"D/A/D·S/P/S","win":0.3825},{"label":"D/A/D·S/S/P","win":0.4825},{"label":"D/A/D·S/S/S","win":0.5525},{"label":"D/A/B·P/P/P","win":0.37},{"label":"D/A/B·P/P/S","win":0.3975},{"label":"D/A/B·P/S/P","win":0.505},{"label":"D/A/B·P/S/S","win":0.5425},{"label":"D/A/B·S/P/P","win":0.3925},{"label":"D/A/B·S/P/S","win":0.45},{"label":"D/A/B·S/S/P","win":0.5425},{"label":"D/A/B·S/S/S","win":0.6125},{"label":"D/A/A·P/P/P","win":0.38},{"label":"D/A/A·P/P/S","win":0.43},{"label":"D/A/A·P/S/P","win":0.525},{"label":"D/A/A·P/S/S","win":0.5775},{"label":"D/A/A·S/P/P","win":0.4},{"label":"D/A/A·S/P/S","win":0.4575},{"label":"D/A/A·S/S/P","win":0.565},{"label":"D/A/A·S/S/S","win":0.605},{"label":"B/D/D·P/P/P","win":0.2175},{"label":"B/D/D·P/P/S","win":0.2225},{"label":"B/D/D·P/S/P","win":0.2775},{"label":"B/D/D·P/S/S","win":0.3175},{"label":"B/D/D·S/P/P","win":0.1775},{"label":"B/D/D·S/P/S","win":0.22},{"label":"B/D/D·S/S/P","win":0.2975},{"label":"B/D/D·S/S/S","win":0.345},{"label":"B/D/B·P/P/P","win":0.235},{"label":"B/D/B·P/P/S","win":0.26},{"label":"B/D/B·P/S/P","win":0.29},{"label":"B/D/B·P/S/S","win":0.345},{"label":"B/D/B·S/P/P","win":0.2},{"label":"B/D/B·S/P/S","win":0.255},{"label":"B/D/B·S/S/P","win":0.335},{"label":"B/D/B·S/S/S","win":0.3775},{"label":"B/D/A·P/P/P","win":0.26},{"label":"B/D/A·P/P/S","win":0.275},{"label":"B/D/A·P/S/P","win":0.3125},{"label":"B/D/A·P/S/S","win":0.365},{"label":"B/D/A·S/P/P","win":0.2275},{"label":"B/D/A·S/P/S","win":0.275},{"label":"B/D/A·S/S/P","win":0.37},{"label":"B/D/A·S/S/S","win":0.4},{"label":"B/B/D·P/P/P","win":0.2825},{"label":"B/B/D·P/P/S","win":0.305},{"label":"B/B/D·P/S/P","win":0.3825},{"label":"B/B/D·P/S/S","win":0.455},{"label":"B/B/D·S/P/P","win":0.285},{"label":"B/B/D·S/P/S","win":0.3225},{"label":"B/B/D·S/S/P","win":0.41},{"label":"B/B/D·S/S/S","win":0.465},{"label":"B/B/B·P/P/P","win":0.315},{"label":"B/B/B·P/P/S","win":0.3375},{"label":"B/B/B·P/S/P","win":0.4425},{"label":"B/B/B·P/S/S","win":0.4825},{"label":"B/B/B·S/P/P","win":0.315},{"label":"B/B/B·S/P/S","win":0.36},{"label":"B/B/B·S/S/P","win":0.475},{"label":"B/B/B·S/S/S","win":0.5125},{"label":"B/B/A·P/P/P","win":0.3175},{"label":"B/B/A·P/P/S","win":0.3475},{"label":"B/B/A·P/S/P","win":0.4575},{"label":"B/B/A·P/S/S","win":0.4875},{"label":"B/B/A·S/P/P","win":0.3425},{"label":"B/B/A·S/P/S","win":0.3625},{"label":"B/B/A·S/S/P","win":0.47},{"label":"B/B/A·S/S/S","win":0.5325},{"label":"B/A/D·P/P/P","win":0.365},{"label":"B/A/D·P/P/S","win":0.3975},{"label":"B/A/D·P/S/P","win":0.52},{"label":"B/A/D·P/S/S","win":0.5625},{"label":"B/A/D·S/P/P","win":0.3725},{"label":"B/A/D·S/P/S","win":0.425},{"label":"B/A/D·S/S/P","win":0.5325},{"label":"B/A/D·S/S/S","win":0.6075},{"label":"B/A/B·P/P/P","win":0.4075},{"label":"B/A/B·P/P/S","win":0.4475},{"label":"B/A/B·P/S/P","win":0.5425},{"label":"B/A/B·P/S/S","win":0.5975},{"label":"B/A/B·S/P/P","win":0.425},{"label":"B/A/B·S/P/S","win":0.47},{"label":"B/A/B·S/S/P","win":0.575},{"label":"B/A/B·S/S/S","win":0.65},{"label":"B/A/A·P/P/P","win":0.425},{"label":"B/A/A·P/P/S","win":0.4525},{"label":"B/A/A·P/S/P","win":0.56},{"label":"B/A/A·P/S/S","win":0.5925},{"label":"B/A/A·S/P/P","win":0.43},{"label":"B/A/A·S/P/S","win":0.4875},{"label":"B/A/A·S/S/P","win":0.575},{"label":"B/A/A·S/S/S","win":0.6325},{"label":"A/D/D·P/P/P","win":0.24},{"label":"A/D/D·P/P/S","win":0.2625},{"label":"A/D/D·P/S/P","win":0.2925},{"label":"A/D/D·P/S/S","win":0.33},{"label":"A/D/D·S/P/P","win":0.215},{"label":"A/D/D·S/P/S","win":0.24},{"label":"A/D/D·S/S/P","win":0.3225},{"label":"A/D/D·S/S/S","win":0.385},{"label":"A/D/B·P/P/P","win":0.265},{"label":"A/D/B·P/P/S","win":0.2925},{"label":"A/D/B·P/S/P","win":0.3175},{"label":"A/D/B·P/S/S","win":0.37},{"label":"A/D/B·S/P/P","win":0.2375},{"label":"A/D/B·S/P/S","win":0.285},{"label":"A/D/B·S/S/P","win":0.36},{"label":"A/D/B·S/S/S","win":0.415},{"label":"A/D/A·P/P/P","win":0.275},{"label":"A/D/A·P/P/S","win":0.3},{"label":"A/D/A·P/S/P","win":0.3325},{"label":"A/D/A·P/S/S","win":0.395},{"label":"A/D/A·S/P/P","win":0.26},{"label":"A/D/A·S/P/S","win":0.305},{"label":"A/D/A·S/S/P","win":0.3925},{"label":"A/D/A·S/S/S","win":0.43},{"label":"A/B/D·P/P/P","win":0.3025},{"label":"A/B/D·P/P/S","win":0.3375},{"label":"A/B/D·P/S/P","win":0.42},{"label":"A/B/D·P/S/S","win":0.4725},{"label":"A/B/D·S/P/P","win":0.305},{"label":"A/B/D·S/P/S","win":0.365},{"label":"A/B/D·S/S/P","win":0.455},{"label":"A/B/D·S/S/S","win":0.5},{"label":"A/B/B·P/P/P","win":0.335},{"label":"A/B/B·P/P/S","win":0.37},{"label":"A/B/B·P/S/P","win":0.4725},{"label":"A/B/B·P/S/S","win":0.5025},{"label":"A/B/B·S/P/P","win":0.3475},{"label":"A/B/B·S/P/S","win":0.4},{"label":"A/B/B·S/S/P","win":0.5025},{"label":"A/B/B·S/S/S","win":0.5525},{"label":"A/B/A·P/P/P","win":0.345},{"label":"A/B/A·P/P/S","win":0.355},{"label":"A/B/A·P/S/P","win":0.485},{"label":"A/B/A·P/S/S","win":0.5025},{"label":"A/B/A·S/P/P","win":0.35},{"label":"A/B/A·S/P/S","win":0.3825},{"label":"A/B/A·S/S/P","win":0.4975},{"label":"A/B/A·S/S/S","win":0.5475},{"label":"A/A/D·P/P/P","win":0.4},{"label":"A/A/D·P/P/S","win":0.435},{"label":"A/A/D·P/S/P","win":0.53},{"label":"A/A/D·P/S/S","win":0.5575},{"label":"A/A/D·S/P/P","win":0.4025},{"label":"A/A/D·S/P/S","win":0.47},{"label":"A/A/D·S/S/P","win":0.5525},{"label":"A/A/D·S/S/S","win":0.6125},{"label":"A/A/B·P/P/P","win":0.4325},{"label":"A/A/B·P/P/S","win":0.4725},{"label":"A/A/B·P/S/P","win":0.5475},{"label":"A/A/B·P/S/S","win":0.6025},{"label":"A/A/B·S/P/P","win":0.46},{"label":"A/A/B·S/P/S","win":0.505},{"label":"A/A/B·S/S/P","win":0.6075},{"label":"A/A/B·S/S/S","win":0.6375},{"label":"A/A/A·P/P/P","win":0.4425},{"label":"A/A/A·P/P/S","win":0.4625},{"label":"A/A/A·P/S/P","win":0.5475},{"label":"A/A/A·P/S/S","win":0.5975},{"label":"A/A/A·S/P/P","win":0.4675},{"label":"A/A/A·S/P/S","win":0.505},{"label":"A/A/A·S/S/P","win":0.5825},{"label":"A/A/A·S/S/S","win":0.6525}],"refine_n":4000,"screen_n":400,"trajectory":[{"best":"B/A/A·S/S/S","best_win":0.7045,"cur":"A/B/A·P/S/P","cur_win":0.49675,"iter":0,"kept":false,"side":"A"},{"best":"A/A/A·S/S/S","best_win":0.5805,"cur":"A/B/A·P/S/P","cur_win":0.29075,"iter":1,"kept":false,"side":"B"},{"best":"A/A/A·S/S/S","best_win":0.5065,"cur":"B/A/A·S/S/S","cur_win":0.41075,"iter":2,"kept":false,"side":"A"},{"best":"A/A/A·S/S/S","best_win":0.48475,"cur":"A/A/A·S/S/S","cur_win":0.48475,"iter":3,"kept":true,"side":"B"},{"best":"A/A/A·S/S/S","best_win":0.51025,"cur":"A/A/A·S/S/S","cur_win":0.51025,"iter":4,"kept":true,"side":"A"}]};
+
+const el = id => document.getElementById(id);
+if (!DATA) {
+	el('meta').innerHTML = '<p class="note">No data pasted yet — run tools/sweep_policy_selfplay.gd and paste its DATA JSON.</p>';
+} else {
+	render(DATA);
+}
+
+function render(d) {
+	el('meta').innerHTML = `<p class="note">Search: screen N=${d.screen_n}/arm → refine N=${d.refine_n} (top 12 + incumbent, fresh seeds) → alternate best response. Result: <b style="color:#f0c75e">${d.equilibrium ? 'EQUILIBRIUM' : 'NO FIXED POINT (cycling)'}</b> — A: <b>${d.a}</b> vs B: <b>${d.b}</b>.</p>`;
+
+	// --- heatmap: rows = 27 intent triples, cols = 8 bowling triples ---
+	const rows = [], cols = [];
+	for (const c of d.landscape) {
+		const [ri, ci] = c.label.split('·');
+		if (!rows.includes(ri)) rows.push(ri);
+		if (!cols.includes(ci)) cols.push(ci);
+	}
+	const win = {};
+	for (const c of d.landscape) win[c.label] = c.win;
+	const lo = Math.min(...d.landscape.map(c => c.win));
+	const hi = Math.max(...d.landscape.map(c => c.win));
+	const color = w => {
+		const t = (w - lo) / (hi - lo || 1);
+		// cold steel-blue -> warm gold
+		const r = Math.round(74 + t * (240 - 74)), g = Math.round(105 + t * (199 - 105)), b = Math.round(160 + t * (94 - 160));
+		return `rgb(${r},${g},${b})`;
+	};
+	let h = `<h2>The 216-policy landscape — win% vs textbook (iteration 0, N=${d.screen_n})</h2><table class="heat"><tr><th></th>`;
+	for (const c of cols) h += `<th>${c}</th>`;
+	h += '</tr>';
+	for (const r of rows) {
+		h += `<tr><th class="rowh">${r}</th>`;
+		for (const c of cols) {
+			const lbl = r + '·' + c, w = win[lbl];
+			const cls = lbl === 'A/B/A·P/S/P' ? 'tb' : lbl === d.a ? 'eqa' : lbl === d.b ? 'eqb' : '';
+			h += `<td class="${cls}" style="background:${color(w)}">${(100 * w).toFixed(0)}</td>`;
+		}
+		h += '</tr>';
+	}
+	h += '</table><div class="legend">White outline = textbook · solid gold = final A policy · dashed gold = final B policy. Rows = batting intent (PP/Mid/Death), cols = bowler type (PP/Mid/Death).</div>';
+	el('heatmap').innerHTML = h;
+
+	// --- trajectory ---
+	let t = '<h2>Best-response trajectory</h2><ol class="traj" start="0">';
+	for (const s of d.trajectory)
+		t += `<li>side <b>${s.side}</b>: holding <b>${s.cur}</b> (${(100 * s.cur_win).toFixed(1)}%) → best reply <b>${s.best}</b> (${(100 * s.best_win).toFixed(1)}%) — ${s.kept ? 'KEEP (no real gain)' : 'ADOPT'}</li>`;
+	t += '</ol>';
+	el('trajectory').innerHTML = t;
+
+	// --- gap + hero bars ---
+	bars(el('gaps'), `Skill gap (head-to-head win% of first side, N=${d.gap_n})`, d.gaps,
+		r => `${(100 * r.win).toFixed(1)}%  (ties ${(100 * r.tie).toFixed(1)}%)`,
+		r => r.name === 'eq vs naive' ? 'gold' : (r.name.includes('vs eq') || r.name.endsWith('vs textbook') || r.name.endsWith('vs balanced')) ? '' : 'grey');
+	bars(el('heroes'), 'Statted-hero validation (5/5/5/5 Player in the XI)', d.heroes,
+		r => `${(100 * r.win).toFixed(1)}%`, r => r.name.includes('+eq') ? 'gold' : 'grey');
+}
+
+function bars(target, title, rows, fmt, colorFn) {
+	let h = `<h2>${title}</h2>`;
+	for (const r of rows)
+		h += `<div class="bar-row"><div class="bar-label">${r.name}</div>
+			<div class="bar ${colorFn ? colorFn(r) : ''}" style="width:${(r.win * 540).toFixed(0)}px"></div>
+			<div class="bar-val">${fmt(r)}</div></div>`;
+	target.innerHTML = h;
+}
+</script>
+</body>
+</html>
