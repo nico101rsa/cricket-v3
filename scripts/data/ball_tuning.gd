@@ -26,3 +26,10 @@ const RUN_VALUES: Array[int] = [0, 1, 2, 3, 4, 6]
 # Runs distributions (aligned to RUN_VALUES), blended DEF->AGG by s.
 @export var def_dist: Array[float] = [0.68, 0.255, 0.035, 0.004, 0.020, 0.006]
 @export var agg_dist: Array[float] = [0.30, 0.300, 0.090, 0.010, 0.200, 0.100]
+
+# --- Intent x bowler-kind matchup (BB3, bowling-balance spec): added to the
+# wicket logit when the bowler's kind is known. Indexed by BallResolver.Intent
+# [DEF, BAL, AGG]. Strawman: only slogging spin is extra-risky (stumped /
+# holed out to the deep).
+@export var matchup_w_pace: Array[float] = [0.0, 0.0, 0.0]
+@export var matchup_w_spin: Array[float] = [0.0, 0.0, 0.30]
