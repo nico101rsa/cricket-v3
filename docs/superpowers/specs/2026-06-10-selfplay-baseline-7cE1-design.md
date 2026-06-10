@@ -44,7 +44,7 @@ Audit of every decision lever in the no-joker sim:
   - `intent_plan_of(policy) -> IntentPlan`, `bowling_plan_of(policy) -> BowlingPlan` — plan construction.
   - `label_of(policy) -> String` — compact display label (e.g. `AGG/BAL/AGG · P/S/P`).
   - `best_index(win_rates: Array) -> int` — argmax (ties → lower index).
-  - `random_policy(rng) -> Dictionary` — one uniform draw from the 216 (the naive player).
+  - `random_policy(policies, rng) -> Dictionary` — one uniform draw from the supplied policy list (the naive player).
 - **`opp_bowling_plan` seam** in `MatchResolver` (D6).
 - **Oracle** `tools/sweep_policy_selfplay.gd`: phases printed as they complete; emits the viz DATA block.
 - **Viz** `docs/mockups/policy-selfplay-v1.html` (reuses the distribution-viewer pattern).
