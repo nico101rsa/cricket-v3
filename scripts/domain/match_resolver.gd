@@ -86,9 +86,15 @@ static func simulate_match_teams(
 		drs_policy: DRSPolicy = null,
 		opp_field_plan: FieldPlan = null,
 		opp_boost_plan: BoostPlan = null,
-		opp_drs_policy: DRSPolicy = null
+		opp_drs_policy: DRSPolicy = null,
+		force_player_bats_first: int = -1
 ) -> MatchResult:
-	var player_bats_first := _resolve_toss(rng)
+	# Always consume the toss draw so the RNG stream (and the default path) is
+	# unchanged; only the *result* is overridden when forced (-1 = use toss,
+	# 1 = Player bats first, 0 = Player bats second). The chase sweep profile forces
+	# 0 so the Player's innings carries a target (is_chase) -> The Chase Master fires.
+	var tossed := _resolve_toss(rng)
+	var player_bats_first := tossed if force_player_bats_first == -1 else (force_player_bats_first == 1)
 	var player_bat := player_team.batting_strength(tour, rng)
 	var player_bowl := player_team.bowling_strength(tour, rng)
 	var opp_bat := opp_team.batting_strength(tour, rng)
