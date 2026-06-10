@@ -173,7 +173,59 @@ Update the magnitude asserts in `tests/unit/test_joker_catalog.gd` for every buf
 - `docs/mockups/distribution-viewer-v1.html` — refreshed `DATA`.
 - `PROJECT_ROADMAP.md` — status + handoff.
 
-## 10. Findings & residuals (built — fill in)
+## 10. Findings & residuals (built 2026-06-10)
 
-_To be completed during the build: honest in-condition delta table (whole pool), fire-rate per
-conditional joker, marginal-in-combo numbers, the buffs applied, and the strongest-stack ceiling check._
+Built inline TDD against the fair-fight floor (no-joker baseline **48.1%** standard / **47.9%** chase).
+N=2000/arm. **366 tests green** (+3, the toss-force seam). Sweep: `tools/sweep_jokers.gd`.
+
+### 10.1 The measurement worked — Chase Master vindicated
+The chase profile (Player forced to bat 2nd) measures the headline conditional Legendary honestly:
+
+| Joker | Standard Δ (dormant) | In-condition Δ (chase) | Fire-rate | Realized |
+|---|---|---|---|---|
+| The Chase Master | +3.2% | **+7.2%** | ~0.50 (toss) | ~+3.6% |
+
+So The Chase Master **is a genuine Legendary when it fires** (+7.2%, in band) — rung 2 only saw its
+dormant +3%. The scenario sweep does what the neutral sweep couldn't.
+
+### 10.2 The key finding — realized-to-band works only where magnitude has headroom
+DS2 said "buff situational jokers so realized ≈ band". Measurement shows this is **achievable for some
+mechanics and not others** — a real refinement of the directive:
+
+- **The Chase Master's runs-mult saturates against the chase win-ceiling.** Cranking it 1.20 → 1.45 →
+  1.70 moved in-condition only +7.0 → +7.5 → **+7.9%** — a 42%-bigger number bought +0.9% win. Because
+  in a chase, **runs scored past the target are wasted** (you've already won), so a runs-buff has an
+  intrinsic ceiling. Set to **1.40** (flavourful, captures ~all the convertible win%, not a misleadingly
+  huge number). It **cannot** reach realized-Legendary band by magnitude — its toss fire-rate is hard-
+  capped at ~50% and the mechanic saturates. Reaching band would need a **mechanic change** (e.g. a
+  wicket-survival component that converts in a chase where runs don't) — flagged for Nico, not done here
+  (out of magnitude-only scope; changes feel).
+- **Wicket Maiden** (Rare, FORM_BOWL on a Player bowling wicket) is **participation-capped**: buffed
+  1.30 → **1.45** (+0.6 → +1.0% std), but its trigger is a rare emergent event with a short window and
+  further cranking risks a wicket→window→wicket spiral. Honest residual; price it as low-fire-rate.
+- **Match-Winner's Vigil** (Legendary, FORM_BAT) **does respond to magnitude** — buffed 0.80 → **0.62**;
+  its in-combo value (with Form sources) rose **+2.7% → +4.9%**. Held at 0.62 (not pushed to full
+  Legendary band) because it is a repeating defensive wicket-mult on a 24-ball window and a player can
+  drive its Form events — over-buffing risks a near-immortality exploit (DS3 controllability guardrail).
+
+### 10.3 Synergy / combo measurement
+- **Form sources earn their slots:** Form-source combo +6.2% − Form-consumers-only +0.9% = **+5.3%
+  marginal** from adding the enablers. The "key" is valuable once it has a "door" (§5).
+- **Vigil in-combo** (Vigil + Captain's Statement + Building Phase) = **+4.9%** vs +1.7% solo.
+
+### 10.4 Fire-rate (the rung-D pricing input)
+**Chase fire-rate = 0.50** (the toss; uncontrollable, so it cannot be farmed above ~50%). Realized
+strength = in-condition × fire-rate. This is the discount rung-D pricing applies to conditional jokers.
+
+### 10.5 Ceiling check (DS5)
+No buffed joker is anywhere near an auto-win (Chase Master realized +3.6% is the strongest). The
+full-archetype **stack** arms — Reviewer +34.0%, Boost +22.6%, Batting +15.5% — exceed the ~+20% target
+but are **unchanged from rung 2** and require holding *every* joker of a type (8 / 7 jokers); a realistic
+~5-slot loadout cannot assemble them. This is a **loadout-size / shop-cost concern for rung D**, not a
+per-joker magnitude bug. Full pool (all 45) +51.9% is illustrative only (never held).
+
+### 10.6 What's unblocked
+Rung D (the ₸ economy) now has honest per-joker strength + fire-rates to price against. Two design
+threads handed to Nico: (a) whether to give Chase Master / Wicket Maiden a **mechanic change** to reach
+realized-band (vs pricing them cheap as situational), and (b) the **loadout cap** that keeps full-
+archetype stacks out of real play.
