@@ -264,6 +264,73 @@ static func _drs(id: String, jname: String, rarity: String, role: int, p_bonus: 
 		intent_req, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
 		JokerEffect.BoostRole.NONE, role, p_bonus)
 
+# --- ₸ prices (rung 7c-D, spec 2026-06-10-tons-economy-7cD §5.3) ---
+# Within-band linear interpolation of each joker's REALIZED win-delta (the
+# standard-profile sweep of 2026-06-10 — the toss/conditions fire naturally, so
+# the measured delta is already fire-rate-discounted) onto its rarity price
+# band, rounded to ₸5. Code is the source of truth; docs/joker-pool-v1.md
+# mirrors these numbers. Re-derive by re-running tools/sweep_jokers.gd.
+
+const PRICE_BANDS := {"Common": Vector2i(30, 50), "Rare": Vector2i(90, 120), "Legendary": Vector2i(220, 250)}
+const DELTA_BANDS := {"Common": Vector2(1.0, 4.0), "Rare": Vector2(4.0, 7.0), "Legendary": Vector2(7.0, 12.0)}
+
+const PRICES := {
+	"attack_the_stumps": 30,
+	"block_the_shine": 30,
+	"boost_adrenaline": 30,
+	"boost_battery": 30,
+	"boundary_hunter": 100,
+	"bowlers_backing": 90,
+	"building_phase": 90,
+	"captains_eye": 40,
+	"captains_statement": 30,
+	"carry_your_bat": 95,
+	"choke_hold": 230,
+	"compounding_pressure": 90,
+	"cool_head": 50,
+	"cordon_killer": 30,
+	"dead_bat": 30,
+	"death_over_stranglehold": 115,
+	"defensive_captain": 30,
+	"dot_ball_pressure": 95,
+	"field_restrictions": 50,
+	"first_change_specialist": 90,
+	"hot_spot": 30,
+	"hot_streak": 90,
+	"match_winners_vigil": 220,
+	"pace_pack": 30,
+	"pedal_to_the_metal": 30,
+	"power_surge": 100,
+	"power_up": 30,
+	"powerplay_punch": 50,
+	"pressure_cooker": 30,
+	"ride_the_wave": 30,
+	"rotate_the_strike": 30,
+	"slog_over_specialist": 90,
+	"snicko": 100,
+	"spare_review": 45,
+	"spinners_web": 30,
+	"squeeze_the_middle": 45,
+	"the_captains_call": 110,
+	"the_chase_master": 220,
+	"the_comeback_press": 220,
+	"the_review_master": 235,
+	"the_sheet_anchor": 30,
+	"the_strike_bowler": 220,
+	"the_trap": 90,
+	"tight_lines": 40,
+	"wicket_maiden": 90,
+}
+
+
+static func price(id: String) -> int:
+	return PRICES[id]
+
+
+static func price_band(rarity: String) -> Vector2i:
+	return PRICE_BANDS[rarity]
+
+
 # Flat list of every implemented effect row (the form the resolver consumes).
 static func implemented() -> Array:
 	var out: Array = []
