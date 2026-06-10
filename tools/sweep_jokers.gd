@@ -10,6 +10,10 @@ extends SceneTree
 var _tuning: BallTuning
 var _itun: InningsTuning
 var _tour: TourDistribution
+var _profile := "standard"   # "standard" (toss) or "chase" (Player forced to bat 2nd)
+
+const PALETTE := ["#888888", "#5ac77a", "#4a90d9", "#f2b134", "#e0607e", "#9b59b6",
+	"#1abc9c", "#e67e22", "#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#16a085", "#c0392b"]
 
 func _init() -> void:
 	_tuning = BallTuning.new()
@@ -37,6 +41,15 @@ func _init() -> void:
 		"building_phase": true, "boundary_hunter": true,
 		"ride_the_wave": true, "hot_streak": true}
 	var form_combo: Array = []
+	# Marginal baseline: the Form consumers without the sources, so the sources'
+	# marginal value = (Form-source combo Δ) - (Form-consumers only Δ).
+	var form_consumer_ids := {"ride_the_wave": true, "hot_streak": true}
+	var form_consumers: Array = []
+	# In-combo measurement for Match-Winner's Vigil (a FORM_BAT consumer): pair it
+	# with batting Form sources that fire under the sweep's intent plan (Captain's
+	# Statement on the Aggressive switch + Building Phase on surviving Defensive overs).
+	var vigil_combo_ids := {"match_winners_vigil": true, "captains_statement": true, "building_phase": true}
+	var vigil_combo: Array = []
 	var full_pool: Array = []
 	for g in groups:
 		if bowl_intent_ids.has(g["id"]):
@@ -51,6 +64,10 @@ func _init() -> void:
 			reviewer_stack.append_array(g["effects"])
 		if form_combo_ids.has(g["id"]):
 			form_combo.append_array(g["effects"])
+		if form_consumer_ids.has(g["id"]):
+			form_consumers.append_array(g["effects"])
+		if vigil_combo_ids.has(g["id"]):
+			vigil_combo.append_array(g["effects"])
 		full_pool.append_array(g["effects"])
 		for e in g["effects"]:
 			if e.side == JokerEffect.Side.BATTING and e.trigger == JokerEffect.Trigger.NONE:
@@ -69,18 +86,46 @@ func _init() -> void:
 	arms.append({"name": "Boost-stack stack", "config": boost_stack})
 	arms.append({"name": "Reviewer stack", "config": reviewer_stack})
 	arms.append({"name": "Form-source combo", "config": form_combo})
+	arms.append({"name": "Form-consumers only", "config": form_consumers})
+	arms.append({"name": "Vigil + sources", "config": vigil_combo})
 	arms.append({"name": "Full pool (all 45)", "config": full_pool})
 
-	var n := 2000
-	var swept := Sweep.run(arms, n, _scenario)
+	# Chase profile: only the jokers whose trigger needs batting 2nd. Each block
+	# carries its own "Baseline (no jokers)" arm so win-delta is same-context.
+	var chase_ids := {"the_chase_master": true, "match_winners_vigil": true}
+	var chase_arms: Array = [{"name": "Baseline (no jokers)", "config": []}]
+	for g in groups:
+		if chase_ids.has(g["id"]):
+			chase_arms.append({"name": g["jname"], "config": g["effects"]})
 
-	var palette := ["#888888", "#5ac77a", "#4a90d9", "#f2b134", "#e0607e", "#9b59b6",
-		"#1abc9c", "#e67e22", "#3498db", "#2ecc71", "#e74c3c", "#f39c12", "#16a085", "#c0392b"]
+	var n := 2000
+	_profile = "standard"
+	var swept := Sweep.run(arms, n, _scenario)
+	_profile = "chase"
+	var swept_chase := Sweep.run(chase_arms, n, _scenario)
+
+	# Chase fire-rate: how often the Player bats 2nd in standard play (the passive
+	# rate the toss yields ~0.5). This is the rung-D pricing discount for chase jokers:
+	# realized = in-condition delta * fire-rate. It does NOT change any magnitude.
+	var base_bs := Sweep.values_of(swept[0]["records"], "batted_second")
+	var bs_sum := 0
+	for v in base_bs:
+		bs_sum += v
+	var chase_fire_rate := float(bs_sum) / base_bs.size()
+	print("CHASE_FIRE_RATE %f" % chase_fire_rate)
+
+	print(JSON.stringify({"metric": "player_runs",
+		"arms": _reduce(swept), "chase_arms": _reduce(swept_chase)}))
+	quit()
+
+# Reduce a swept block into per-arm JSON. win_delta/margin_delta are measured
+# against the block's own arm 0 (its no-joker baseline) -> same-context deltas.
+func _reduce(swept_block: Array) -> Array:
 	var baseline_win := 0.0
 	var baseline_margin := 0.0
-	var arms_json: Array = []
+	var out: Array = []
 	var ai := 0
-	for arm in swept:
+	for arm in swept_block:
 		var runs := Sweep.values_of(arm["records"], "player_runs")
 		var wins := Sweep.values_of(arm["records"], "won")
 		var margins := Sweep.values_of(arm["records"], "margin")
@@ -102,9 +147,9 @@ func _init() -> void:
 		while k < runs.size():
 			sampled.append(runs[k])
 			k += stride
-		arms_json.append({
+		out.append({
 			"name": arm["name"],
-			"color": palette[ai % palette.size()],
+			"color": PALETTE[ai % PALETTE.size()],
 			"values": sampled,
 			"stats": dist.to_dict(),
 			"win_rate": win_rate,
@@ -113,9 +158,7 @@ func _init() -> void:
 			"margin_delta": mean_margin - baseline_margin,
 		})
 		ai += 1
-
-	print(JSON.stringify({"metric": "player_runs", "arms": arms_json}))
-	quit()
+	return out
 
 # A fixed intent plan shared by every arm, chosen to exercise all three bands so
 # the intent-gated jokers actually fire: AGGRESSIVE powerplay+death (Powerplay
@@ -204,11 +247,15 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
 	# DF1 — the opponent bats with the same intent plan as the Player (symmetric tempo).
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan(), _opp_boost_plan(), _opp_drs_policy())
+	# Chase profile forces the Player to bat 2nd (force=0) so is_chase fires; standard uses the toss.
+	var force := 0 if _profile == "chase" else -1
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan(), _opp_boost_plan(), _opp_drs_policy(), force)
 	var p_inn := m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
 	var o_inn := m.innings2 if p_inn == m.innings1 else m.innings1
 	var line := p_inn.player_line()
 	var player_runs := int(line.get("runs", 0))
 	var won := 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0
 	var margin := p_inn.total - o_inn.total   # DM2 — Player team total minus opponent total
-	return {"player_runs": player_runs, "won": won, "margin": margin}
+	# The chase trigger's passive occurrence: did the Player bat 2nd (target>0 -> is_chase)?
+	var batted_second := 1 if p_inn == m.innings2 else 0
+	return {"player_runs": player_runs, "won": won, "margin": margin, "batted_second": batted_second}

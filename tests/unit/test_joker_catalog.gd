@@ -51,7 +51,9 @@ func test_chase_master_shape() -> void:
 	assert_eq(e.rarity, "Legendary")
 	assert_eq(e.intent_req, BallResolver.Intent.AGGRESSIVE)
 	assert_eq(e.chase_req, 1)
-	assert_almost_eq(e.mult, 1.20, 0.0001)
+	# Scenario-sweep rung: buffed 1.20 -> 1.40 (runs-mult saturates vs the chase
+	# win-ceiling, so this is near the convertible max; see spec §10).
+	assert_almost_eq(e.mult, 1.40, 0.0001)
 
 func test_form_source_shapes() -> void:
 	assert_eq(_group("the_sheet_anchor")["effects"][0].form_source, JokerEffect.FormSource.ON_BALANCED)
@@ -124,6 +126,9 @@ func test_wicket_maiden_bowling_trigger() -> void:
 	assert_eq(e.side, JokerEffect.Side.BOWLING)
 	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BOWL)
 	assert_eq(e.window_n, 6)
+	# Scenario-sweep rung: buffed 1.30 -> 1.45 (emergent FORM_BOWL trigger is
+	# participation-capped; further cranking spirals — see spec §10).
+	assert_almost_eq(e.mult, 1.45, 0.0001)
 
 func test_hot_streak_two_double_rows() -> void:
 	var g := _group("hot_streak")
@@ -138,7 +143,9 @@ func test_match_winners_vigil_long_window() -> void:
 	assert_eq(e.rarity, "Legendary")
 	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BAT)
 	assert_eq(e.window_n, 24)
-	assert_almost_eq(e.mult, 0.80, 0.0001)
+	# Scenario-sweep rung: buffed 0.80 -> 0.62 (in-combo with Form sources; held
+	# below full Legendary band to avoid an immortality exploit — see spec §10).
+	assert_almost_eq(e.mult, 0.62, 0.0001)
 
 func test_attack_the_stumps_shape() -> void:
 	var g := _group("attack_the_stumps")
