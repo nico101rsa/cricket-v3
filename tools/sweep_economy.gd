@@ -36,18 +36,22 @@ func _init() -> void:
 
 	var balanced_win := 0.0
 	var rows: Array = []
-	print("arm                    win%   base   perf   total ₸/match   season(×8)")
+	print("arm                    win%   base   perf   total ₸/match   season(×8)   runs  wkts  bowl-balls")
 	for ai in swept.size():
 		var recs = swept[ai]["records"]
 		var win := 100.0 * _sum(Sweep.values_of(recs, "won")) / n
 		var base := _mean(Sweep.values_of(recs, "base"))
 		var perf := _mean(Sweep.values_of(recs, "perf"))
 		var total := _mean(Sweep.values_of(recs, "total"))
+		var runs := _mean(Sweep.values_of(recs, "runs"))
+		var wkts := _mean(Sweep.values_of(recs, "wkts"))
+		var bowl_balls := _mean(Sweep.values_of(recs, "bowl_balls"))
 		if swept[ai]["name"] == "balanced 5/5/5/5":
 			balanced_win = win
 		rows.append({"name": swept[ai]["name"], "win_rate": win, "base": base, "perf": perf,
-			"pay": total, "season": total * 8.0})
-		print("%-22s %5.1f %6.1f %6.1f %7.1f       %6.0f" % [swept[ai]["name"], win, base, perf, total, total * 8.0])
+			"pay": total, "season": total * 8.0, "runs": runs, "wkts": wkts, "bowl_balls": bowl_balls})
+		print("%-22s %5.1f %6.1f %6.1f %7.1f       %6.0f   %5.1f %5.2f %7.1f" % [
+			swept[ai]["name"], win, base, perf, total, total * 8.0, runs, wkts, bowl_balls])
 
 	print("")
 	print("marginal Δwin% vs balanced (the +1-attribute value):")
@@ -68,9 +72,19 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var ot := Team.new(); ot.stars = 3.0
 	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng)
 	var pay := Economy.match_pay(m, pt.stars, _etun)
+	# The Player's stat split, for decomposing perf pay per build.
+	var bat_inn := m.innings1
+	var bowl_inn := m.innings2
+	if m.innings1.player_line().is_empty():
+		bat_inn = m.innings2
+		bowl_inn = m.innings1
+	var line := bat_inn.player_line()
 	return {
 		"won": 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0,
 		"base": pay["base"], "perf": pay["perf"], "total": pay["total"],
+		"runs": int(line.get("runs", 0)),
+		"wkts": bowl_inn.player_bowl_wickets,
+		"bowl_balls": bowl_inn.player_bowl_balls,
 	}
 
 func _sum(arr: Array) -> float:

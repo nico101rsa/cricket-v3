@@ -10,12 +10,12 @@ func before_each() -> void:
 
 
 # A MatchResult where the Player batted in innings `bat_first ? 1 : 2` scoring
-# `runs`, and bowled in the other innings taking `wkts`.
-func _result(runs: int, wkts: int, bat_first: bool = true) -> MatchResult:
+# `runs`, and bowled `bowl_balls` in the other innings taking `wkts`.
+func _result(runs: int, wkts: int, bat_first: bool = true, bowl_balls: int = 0) -> MatchResult:
 	var player_batters := [{"position": 3, "is_player": true, "runs": runs, "balls": maxi(runs, 1), "out": false}]
 	var opp_batters := [{"position": 1, "is_player": false, "runs": 30, "balls": 25, "out": true}]
 	var player_inn := InningsResult.new(150, 4, 120, [], player_batters)
-	var opp_inn := InningsResult.new(140, 6, 120, [], opp_batters, wkts, 24, 24)
+	var opp_inn := InningsResult.new(140, 6, 120, [], opp_batters, wkts, 24, bowl_balls)
 	var m := MatchResult.new()
 	m.player_bats_first = bat_first
 	m.innings1 = player_inn if bat_first else opp_inn
@@ -66,6 +66,13 @@ func test_pay_reads_player_innings_when_batting_second() -> void:
 	var first := Economy.match_pay(_result(42, 2, true), 3.0, _etun)
 	var second := Economy.match_pay(_result(42, 2, false), 3.0, _etun)
 	assert_eq(first["perf"], second["perf"])
+
+
+func test_bowling_workload_pays_without_a_wicket() -> void:
+	var idle: int = Economy.match_pay(_result(0, 0, true, 0), 3.0, _etun)["perf"]
+	var four_overs: int = Economy.match_pay(_result(0, 0, true, 24), 3.0, _etun)["perf"]
+	assert_eq(idle, 0)
+	assert_eq(four_overs, int(round(_etun.bowl_balls_rate * 24)))
 
 
 func test_attr_upgrade_cost_scales_with_current_value() -> void:

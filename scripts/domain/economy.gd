@@ -21,8 +21,12 @@ static func match_pay(result: MatchResult, team_stars: float, tuning: EconomyTun
 		bat_inn = result.innings2
 		bowl_inn = result.innings1
 	var line := bat_inn.player_line()
+	# Perf = runs scored + wickets taken + bowling workload (balls bowled pay
+	# whether or not a wicket falls — the component that keeps a bowling or
+	# all-rounder build's pay near a batter's; 2026-06-10 re-tune).
 	var perf := int(round(tuning.runs_rate * int(line.get("runs", 0))
-		+ tuning.wicket_rate * bowl_inn.player_bowl_wickets))
+		+ tuning.wicket_rate * bowl_inn.player_bowl_wickets
+		+ tuning.bowl_balls_rate * bowl_inn.player_bowl_balls))
 	return {"base": base, "perf": perf, "total": base + perf}
 
 
