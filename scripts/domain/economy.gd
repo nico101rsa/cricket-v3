@@ -1,16 +1,22 @@
 class_name Economy
 extends RefCounted
 
-# Pure ₸ calculators (spec 2026-06-10-tons-economy-7cD §5.2). No state, no RNG —
-# the Shop screen and the harness both call these. KMs are not in the sim yet,
-# so perf pay reads runs + wickets only (DE3).
+# Pure ₸ calculators (spec 2026-06-10-tons-economy-7cD §5.2 + the performance-
+# contract re-design of the same day, spec §10.2). No state, no RNG — the Shop
+# screen and the harness both call these. KMs are not in the sim yet (DE3).
+#
+# match_pay = game fee (~50% of the take-home, by Team ★) + a 5-component
+# performance bonus:
+#   1. batting runs            runs_rate × runs
+#   2. strike-rate tempo       sr_rate × runs above a par-SR baseline (clamped ≥0)
+#   3. milestones              fifty_bonus at 50+, ton_bonus on top at 100+
+#   4. wickets taken           wicket_rate × wickets
+#   5. economy, scaled by overs econ_rate × runs saved vs a baseline RR over the
+#      spell (more overs → bigger stake; clamped ≥0)
 
 const MIN_BASE_PAY := 10
 
 
-# ₸ earned by one match: Team base (stronger Teams pay less) + performance
-# bonus. Returns the breakdown because the Result screen displays it
-# ("base 50 + perf 18 = 68 ₸").
 static func match_pay(result: MatchResult, team_stars: float, tuning: EconomyTuning) -> Dictionary:
 	var base := int(round(tuning.base_pay - tuning.star_pay_slope * (team_stars - 3.0)))
 	base = maxi(base, MIN_BASE_PAY)
@@ -21,12 +27,24 @@ static func match_pay(result: MatchResult, team_stars: float, tuning: EconomyTun
 		bat_inn = result.innings2
 		bowl_inn = result.innings1
 	var line := bat_inn.player_line()
-	# Perf = runs scored + wickets taken + bowling workload (balls bowled pay
-	# whether or not a wicket falls — the component that keeps a bowling or
-	# all-rounder build's pay near a batter's; 2026-06-10 re-tune).
-	var perf := int(round(tuning.runs_rate * int(line.get("runs", 0))
-		+ tuning.wicket_rate * bowl_inn.player_bowl_wickets
-		+ tuning.bowl_balls_rate * bowl_inn.player_bowl_balls))
+	var runs := int(line.get("runs", 0))
+	var balls := int(line.get("balls", 0))
+
+	var perf_f := tuning.runs_rate * runs
+	if balls > 0:
+		# Tempo: runs above what par strike-rate would have scored off the same balls.
+		perf_f += tuning.sr_rate * maxf(0.0, runs - tuning.sr_par_pay / 100.0 * balls)
+	if runs >= 50:
+		perf_f += tuning.fifty_bonus
+	if runs >= 100:
+		perf_f += tuning.ton_bonus
+	perf_f += tuning.wicket_rate * bowl_inn.player_bowl_wickets
+	if bowl_inn.player_bowl_balls > 0:
+		# Economy: runs saved vs the baseline RR over the whole spell — the same
+		# spell quality pays double over twice the overs.
+		perf_f += tuning.econ_rate * maxf(0.0,
+			tuning.rr_par_pay / 6.0 * bowl_inn.player_bowl_balls - bowl_inn.player_bowl_runs)
+	var perf := int(round(perf_f))
 	return {"base": base, "perf": perf, "total": base + perf}
 
 
