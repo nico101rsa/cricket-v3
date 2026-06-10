@@ -130,17 +130,19 @@ Sweep-level acceptance (§5.5) verified by running the oracle, recorded in §10 
 
 ### 10.1 Final dials (`EconomyTuning`)
 
-`base_pay 50` · `star_pay_slope 8` · `runs_rate 0.5` · `wicket_rate 11` — **unchanged from strawman** (pay-fairness passed first try). `attr_cost_base 12 → 10` (the one harness tune — see 10.4). `sell_refund_frac 0.5` · `loadout_cap 4` as specced.
+`base_pay 50` · `star_pay_slope 8` · `runs_rate 0.5` · **`wicket_rate 11 → 7`** · **`bowl_balls_rate 0 → 0.5`** (the workload re-tune, 10.2) · `attr_cost_base 12 → 10` (see 10.4) · `sell_refund_frac 0.5` · `loadout_cap 4` as specced.
 
-### 10.2 Income per build (sweep_economy, N=2000/arm, even ★3)
+### 10.2 Income per build (sweep_economy, N=2000/arm, even ★3) — workload re-tune
 
-| build | win% | base | perf | ₸/match | ₸/season (×8) |
-|---|---|---|---|---|---|
-| batter 8/8/2/2 | 48.7 | 50 | 17.1 | **67.1** | 537 |
-| bowler 2/2/8/8 | 48.6 | 50 | 9.2 | **59.2** | 473 |
-| balanced 5/5/5/5 | 48.0 | 50 | 6.3 | **56.3** | 450 |
+The first pass (runs + wickets only) paid batter ₸67.1 / bowler ₸59.2 / balanced ₸56.3 — a ~19% batter↔all-rounder gap. The stat split exposed why: the bowler and all-rounder bat so deep they score ~0–3 runs (vs the batter's ~34), bowl ~23 balls each, and differ only by wickets (0.82 vs 0.42) — most of their work earned nothing. **Nico's call (2026-06-10): pay must be near-flat across builds (~₸2).** Fixed with a **converting third component — `bowl_balls_rate` ₸0.5/ball bowled** (a ball bowled pays like a run scored; the workload pays whether or not a wicket falls), `wicket_rate` trimmed 11 → 7 so wicket-takers don't overshoot. Solved on the measured split, verified:
 
-All three within **±11% of the mean** (₸60.9) — fairness criterion met with strawman dials. Honest note: the pairwise batter↔balanced gap is ~19% — the same **"pay smile"** as the net-runs rating (Slice 3 finding): specialists concentrate *measurable* output (runs, wickets) and pay tracks the scoreboard, which is thematically right. Compressing it further would mean shrinking the perf share below the documented "base 50 + perf 18" feel — not taken. Win-rate stays flat (47.9–48.7) — pay differs mildly, *winning* doesn't.
+| build | win% | runs | wkts | balls bowled | perf | ₸/match | ₸/season (×8) |
+|---|---|---|---|---|---|---|---|
+| batter 8/8/2/2 | 48.7 | 33.8 | 0.00 | 0 | 17.1 | **67.1** | 537 |
+| bowler 2/2/8/8 | 48.6 | 0.2 | 0.82 | 23.2 | 17.5 | **67.5** | 540 |
+| balanced 5/5/5/5 | 48.0 | 3.2 | 0.42 | 23.2 | 16.2 | **66.2** | 529 |
+
+**Spread ₸1.3 — inside the ~₸2 target.** Every build earns ~₸66–67/match (~₸530–540/Season); win-rate flat (47.9–48.7). The earlier "pay smile" note is superseded: the smile came from paying only countable output; paying the bowling *workload* (the job, not just its jackpot moments) flattens it without shrinking the perf share — perf is still ~₸17 ≈ the documented "base 50 + perf 18" feel.
 
 ### 10.3 The 45 prices (in `JokerCatalog.PRICES`, mirrored in the pool doc)
 
@@ -160,8 +162,8 @@ Computed from a fresh `sweep_jokers.gd` run (post mechanic-change catalog) via t
 | +1 power (₸50, ~3-Season horizon) | ~33 /Season |
 
 - **No dominant spend** ✓ — all within a factor ~2.6. ₸-per-point *rises* with rarity: the slot-scarcity premium (4 slots make one strong card worth more per point than two weak ones). Within a single Season jokers strictly beat attributes — the intended Balatro shape (jokers are run power; attributes are meta-progression).
-- **Scarcity** ✓ — full-greed Season spend ≈ ₸670 (mid C+R+L+R jokers ₸470 + four +1 upgrades ₸200) > best Season income ₸537.
-- **Affordability pacing** ✓ — first paid Shop (after Match 3): ~₸169 banked vs Common ₸30–50; a Legendary = 41–52% of a Season's income (reachable only by saving — "if only I had more money").
+- **Scarcity** ✓ — full-greed Season spend ≈ ₸670 (mid C+R+L+R jokers ₸470 + four +1 upgrades ₸200) > best Season income ₸540 (post workload re-tune).
+- **Affordability pacing** ✓ — first paid Shop (after Match 3): ~₸200 banked vs Common ₸30–50; a Legendary = 41–44% of a Season's income (reachable only by saving — "if only I had more money").
 
 ### 10.6 Residuals / threads for later rungs
 

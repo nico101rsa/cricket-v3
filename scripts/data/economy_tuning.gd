@@ -9,7 +9,11 @@ extends Resource
 @export var base_pay: float = 50.0        # base contract ₸ per match at ★3 ("base 50 + perf 18")
 @export var star_pay_slope: float = 8.0   # ₸ less per ★ above 3 — stronger Teams pay less (CONTEXT §Tons)
 @export var runs_rate: float = 0.5        # perf ₸ per run scored
-@export var wicket_rate: float = 11.0     # perf ₸ per wicket taken
+@export var wicket_rate: float = 7.0      # perf ₸ per wicket taken (11→7 in the workload re-tune)
+@export var bowl_balls_rate: float = 0.5  # perf ₸ per ball bowled — pays the bowling WORKLOAD
+                                          # (overs bowled are a paid job whether or not a wicket
+                                          # falls), the converting component that closes the
+                                          # batter↔bowler↔all-rounder pay gap (2026-06-10 re-tune)
 @export var attr_cost_base: float = 10.0  # +1 attribute costs attr_cost_base × current value (DE7;
                                           # tuned 12→10 by sweep_economy: +1 attr ≈ +0.5% win and is
                                           # Career-permanent — 10× lands it ~1.3–2.6× joker ₸-per-win-

@@ -21,12 +21,13 @@
 <div id="roi"></div>
 <script>
 // Paste fresh numbers from tools/sweep_economy.gd + JokerCatalog.PRICES here.
-// Sweep of 2026-06-10 (tools/sweep_economy.gd, N=2000/arm, even ★3, dials base 50 / slope 8 / runs 0.5 / wicket 11).
+// Sweep of 2026-06-10 (tools/sweep_economy.gd, N=2000/arm, even ★3, dials base 50 / slope 8 /
+// runs 0.5 / wicket 7 / bowl-ball 0.5 — the workload re-tune: pay is near-flat across builds).
 const DATA = {
 	income: [
+		{name: 'bowler 2/2/8/8', pay: 67.5, season: 540, win: 48.6},
 		{name: 'batter 8/8/2/2', pay: 67.1, season: 537, win: 48.7},
-		{name: 'bowler 2/2/8/8', pay: 59.2, season: 473, win: 48.6},
-		{name: 'balanced 5/5/5/5', pay: 56.3, season: 450, win: 48.0},
+		{name: 'balanced 5/5/5/5', pay: 66.2, season: 529, win: 48.0},
 	],
 	priceLadder: [
 		{name: 'Dead Bat (band-floor Common)', price: 30, rarity: 'Common'},
@@ -36,7 +37,7 @@ const DATA = {
 		{name: 'The Chase Master (realized +6.6%)', price: 220, rarity: 'Legendary'},
 		{name: 'The Review Master (+9.6%)', price: 235, rarity: 'Legendary'},
 	],
-	seasonIncome: 450, // balanced build ×8 matches
+	seasonIncome: 529, // balanced build ×8 matches (post workload re-tune)
 	roi: [
 		{name: 'Cool Head (Common ₸50)', tonsPerWinPoint: 12.8},
 		{name: "The Captain's Call (Rare ₸110)", tonsPerWinPoint: 18.6},
