@@ -87,7 +87,8 @@ static func simulate_match_teams(
 		opp_field_plan: FieldPlan = null,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null,
-		force_player_bats_first: int = -1
+		force_player_bats_first: int = -1,
+		opp_bowling_plan: BowlingPlan = null
 ) -> MatchResult:
 	# Always consume the toss draw so the RNG stream (and the default path) is
 	# unchanged; only the *result* is overridden when forced (-1 = use toss,
@@ -125,7 +126,7 @@ static func simulate_match_teams(
 		player_intent_plan, player_bowling_plan, jokers, field_plan,
 		player_bowl_intent_plan, opp_intent_plan, boost_plan, drs_policy, opp_field_plan,
 		player_roster, opp_roster, player_bat - ref3, opp_bat - ref3,
-		opp_boost_plan, opp_drs_policy)
+		opp_boost_plan, opp_drs_policy, opp_bowling_plan)
 
 # Simulate a full T20 match: first innings, then a chase to target = total1 + 1,
 # then decide the result. player_bats_first sets the toss (which side bats first).
@@ -157,7 +158,8 @@ static func simulate_match(
 		player_bat_offset: int = 0,
 		opp_bat_offset: int = 0,
 		opp_boost_plan: BoostPlan = null,
-		opp_drs_policy: DRSPolicy = null
+		opp_drs_policy: DRSPolicy = null,
+		opp_bowling_plan: BowlingPlan = null
 ) -> MatchResult:
 	var max_balls := itun.over_limit * 6
 	var innings1: InningsResult
@@ -170,19 +172,22 @@ static func simulate_match(
 	var p_bowl_attack := player_attrs.attack if player_attrs != null else 0
 	var p_bowl_control := player_attrs.control if player_attrs != null else 0
 
-	# Rotation is opt-in: only when the Player supplies a bowling plan. Then both
-	# sides rotate (Player's team via the plan; opposition via a textbook default).
-	var rotate := player_bowling_plan != null
+	# Rotation activates when EITHER side supplies a plan; a side with a null
+	# plan rotates textbook() (the previous hardcoded opponent behaviour, now
+	# symmetric — E1 spec D6). Both null -> no rotation, byte-identical to 4b.
+	var rotate := player_bowling_plan != null or opp_bowling_plan != null
 	var opp_bowl: BowlingAttack = null
 	var player_bowl: BowlingAttack = null
 	var ai_plan: BowlingPlan = null
+	var p_plan: BowlingPlan = null
 	if rotate:
 		# BowlingAttack works in integer pace/spin profiles; round the (now float) scalars.
 		# Rotation is opt-in and not used in the balance sweep, so exact conservation lives
 		# in the constant-scalar path below, not here.
 		opp_bowl = BowlingAttack.new(roundi(opp_attack), roundi(opp_control))
 		player_bowl = BowlingAttack.new(roundi(player_team_attack), roundi(player_team_control))
-		ai_plan = BowlingPlan.textbook()
+		ai_plan = opp_bowling_plan if opp_bowling_plan != null else BowlingPlan.textbook()
+		p_plan = player_bowling_plan if player_bowling_plan != null else BowlingPlan.textbook()
 
 	if player_bats_first:
 		# Player's team posts (their intent), opposition chases.
@@ -193,14 +198,14 @@ static func simulate_match(
 			player_roster, player_bat_offset, opp_boost_plan, opp_drs_policy)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, innings1.total + 1, opp_intent_plan, player_bowl, player_bowling_plan,
+			tuning, itun, rng, innings1.total + 1, opp_intent_plan, player_bowl, p_plan,
 			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
 			opp_roster, opp_bat_offset, opp_boost_plan, opp_drs_policy)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
-			tuning, itun, rng, 0, opp_intent_plan, player_bowl, player_bowling_plan,
+			tuning, itun, rng, 0, opp_intent_plan, player_bowl, p_plan,
 			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
 			opp_roster, opp_bat_offset, opp_boost_plan, opp_drs_policy)
 		innings2 = InningsResolver.simulate_innings(
