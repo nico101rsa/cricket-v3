@@ -44,6 +44,11 @@ static func match_pay(result: MatchResult, team_stars: float, tuning: EconomyTun
 		# spell quality pays double over twice the overs.
 		perf_f += tuning.econ_rate * maxf(0.0,
 			tuning.rr_par_pay / 6.0 * bowl_inn.player_bowl_balls - bowl_inn.player_bowl_runs)
+	# Versatility: doing both jobs pays, scaled by the MINOR discipline's
+	# involvement (its balls count more) — equalizes mean pay across builds.
+	var bat_inv := minf(1.0, balls / tuning.bat_ref_balls)
+	var bowl_inv := minf(1.0, bowl_inn.player_bowl_balls / tuning.bowl_ref_balls)
+	perf_f += tuning.versatility_rate * minf(bat_inv, bowl_inv)
 	var perf := int(round(perf_f))
 	return {"base": base, "perf": perf, "total": base + perf}
 

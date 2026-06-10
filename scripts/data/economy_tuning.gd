@@ -23,6 +23,15 @@ extends Resource
                                           # pay accrues per run kept below this over the spell
 @export var econ_rate: float = 1.3        # ₸ per run saved vs club par, scaled by balls bowled (clamped ≥0)
 
+# Versatility (Nico 2026-06-10: any build must earn ~equal — the minor
+# discipline's balls count more). Bonus = versatility_rate × min(balls faced /
+# bat_ref_balls, balls bowled / bowl_ref_balls), each capped at 1. Pure
+# specialists score 0 on their minor discipline → no bonus; doing both jobs
+# pays the gap an opportunity-starved all-rounder loses on raw components.
+@export var versatility_rate: float = 100.0  # solved on the realized bonus (sweep 2026-06-10)
+@export var bat_ref_balls: float = 20.0   # a "full" batting innings worth of balls
+@export var bowl_ref_balls: float = 24.0  # a full 4-over spell
+
 # Shop / meta
 @export var attr_cost_base: float = 10.0  # +1 attribute costs attr_cost_base × current value (DE7;
                                           # tuned 12→10: +1 attr ≈ +0.5% win and is Career-permanent —

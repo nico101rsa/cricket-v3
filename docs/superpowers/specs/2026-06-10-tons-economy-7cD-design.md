@@ -130,19 +130,21 @@ Sweep-level acceptance (§5.5) verified by running the oracle, recorded in §10 
 
 ### 10.1 Final dials (`EconomyTuning`) — the performance contract
 
-`base_pay 33` (**game fee ≈ 50% of a specialist's take-home** — Nico's 2026-06-10 spec) · `star_pay_slope 5` · **batting:** `runs_rate 0.4` / tempo `sr_par_pay 110` + `sr_rate 1.3` / milestones `fifty_bonus 20` + `ton_bonus 100` (a Ton pays a ₸100 — ADR 0008) · **bowling:** `wicket_rate 8` / economy `rr_par_pay 12` ("club par" = the **measured going rate 9.0** + 3) + `econ_rate 1.3` · `attr_cost_base 10` (10.4) · `sell_refund_frac 0.5` · `loadout_cap 4`.
+`base_pay 33` (**game fee ≈ 50% of a specialist's take-home** — Nico's 2026-06-10 spec) · `star_pay_slope 5` · **batting:** `runs_rate 0.4` / tempo `sr_par_pay 110` + `sr_rate 1.3` / milestones `fifty_bonus 20` + `ton_bonus 100` (a Ton pays a ₸100 — ADR 0008) · **bowling:** `wicket_rate 8` / economy `rr_par_pay 12` ("club par" = the **measured going rate 9.0** + 3) + `econ_rate 1.3` · **versatility:** `versatility_rate 100` × min(balls faced/`bat_ref_balls 20`, balls bowled/`bowl_ref_balls 24`, each capped 1) · `attr_cost_base 10` (10.4) · `sell_refund_frac 0.5` · `loadout_cap 4`.
 
 ### 10.2 Income per build — the performance contract (sweep_economy, N=2000/arm, even ★3)
 
 The pay formula went through three passes this day. **(1)** Runs+wickets only → batter ₸67 / bowler ₸59 / all-rounder ₸56 (the "pay smile": deep-batting builds score ~0–3 runs and their 4-over workload earned nothing). **(2)** Nico's flat-pay call (~₸2) → a `bowl_balls_rate` workload component flattened it to ₸66–67 everywhere (PR #39). **(3)** Nico then specced the real contract — **game fee ≈ 50% of total + five performance components: runs · strike-rate · 50/100 milestones · wickets · economy scaled by overs** — which supersedes flat pay. Components are baselined on *measured* going rates so ordinary performances still earn: tempo pays runs above SR 110; economy pays runs kept below **club-par RR 12** over the spell (going rate measured at **9.0** — the baseline RR Nico asked to determine; the average build concedes 34.7 off 23.2 balls), both clamped at ₸0 (a bad day earns nothing, never fines). Verified:
 
+The raw contract paid batter ₸66.6 / bowler ₸65.4 / all-rounder ₸54.3 — an ~₸11 *opportunity-driven* all-rounder gap (bats #8 facing ~3 balls, bowls at the going rate). **(4) Nico's equalization call (~₸1.5 target, "freedom to select any build"): the versatility bonus** — his "minor discipline's balls count more" idea made continuous: `versatility_rate × min(balls faced/20, balls bowled/24)` (each capped at 1). Pure specialists score ~0 on their minor discipline → no bonus; a dual-role match pays its smaller job a premium per ball (~₸5/ball faced, ~₸4.2/ball bowled at rate 100; a batter bowling one over collects ~₸25 for it). Luck-proof: hard-capped at the rate, zero when either discipline is absent. Rate solved on the *realized* bonus (first pass 75 → measured shortfall → **100**). Final verified table:
+
 | build | win% | base | perf | ₸/match | fee share | ₸/season (×8) |
 |---|---|---|---|---|---|---|
 | batter 8/8/2/2 | 48.7 | 33 | 33.6 | **66.6** | 49.5% | 533 |
-| bowler 2/2/8/8 | 48.6 | 33 | 32.4 | **65.4** | 50.5% | 523 |
-| balanced 5/5/5/5 | 48.0 | 33 | 21.3 | **54.3** | 60.8% | 434 |
+| bowler 2/2/8/8 | 48.6 | 33 | 33.6 | **66.6** | 49.5% | 533 |
+| balanced 5/5/5/5 | 48.0 | 33 | 33.4 | **66.4** | 49.7% | 531 |
 
-Specialists within ₸1.2 and at the 50/50 fee:perf split. **Honest trade-off (flagged to Nico):** a true performance contract re-opens an ~₸11 all-rounder gap — it's *opportunity-driven* (bats #8 facing ~3 balls, bowls at the going rate), not a dial bug; the same shape as the rating smile. The compressing dial is `rr_par_pay` (higher club par pays bowling volume more, at the cost of diluting the "rewarded for performance" feel). Total pay scale kept at ~₸66 so all rung-D prices/scarcity stay valid.
+**Spread ₸0.2 — equalization met** (target ~₸1.5) with the 50/50 fee:perf split intact and total scale at ~₸66 so all rung-D prices/scarcity stay valid. The +1-attribute arms sit ₸66.9–69.1 (upgrades pay slightly more — directionally right).
 
 ### 10.3 The 45 prices (in `JokerCatalog.PRICES`, mirrored in the pool doc)
 
@@ -162,8 +164,8 @@ Computed from a fresh `sweep_jokers.gd` run (post mechanic-change catalog) via t
 | +1 power (₸50, ~3-Season horizon) | ~33 /Season |
 
 - **No dominant spend** ✓ — all within a factor ~2.6. ₸-per-point *rises* with rarity: the slot-scarcity premium (4 slots make one strong card worth more per point than two weak ones). Within a single Season jokers strictly beat attributes — the intended Balatro shape (jokers are run power; attributes are meta-progression).
-- **Scarcity** ✓ — full-greed Season spend ≈ ₸670 (mid C+R+L+R jokers ₸470 + four +1 upgrades ₸200) > best Season income ₸533 (performance contract).
-- **Affordability pacing** ✓ — first paid Shop (after Match 3): ~₸165–200 banked vs Common ₸30–50; a Legendary = 41–54% of a Season's income by build (reachable only by saving — "if only I had more money").
+- **Scarcity** ✓ — full-greed Season spend ≈ ₸670 (mid C+R+L+R jokers ₸470 + four +1 upgrades ₸200) > Season income ₸531–533 (performance contract + versatility).
+- **Affordability pacing** ✓ — first paid Shop (after Match 3): ~₸200 banked vs Common ₸30–50; a Legendary = 41–44% of a Season's income (reachable only by saving — "if only I had more money").
 
 ### 10.6 Residuals / threads for later rungs
 
