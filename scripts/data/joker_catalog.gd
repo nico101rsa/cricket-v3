@@ -115,7 +115,7 @@ static func implemented_groups() -> Array:
 		# #29 Wicket Maiden: Player wicket while bowling -> wicket x1.30 for 6 balls.
 		_g("wicket_maiden", "Wicket Maiden", "Rare", [
 			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.30,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.45,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6)]),
 		# #14 Hot Streak (multi-buff): 2 Form events within 6 balls (batting) ->
 		# runs x1.30 AND wicket x0.85 for 6 balls.
@@ -130,7 +130,7 @@ static func implemented_groups() -> Array:
 		# balls. The "snap to Defensive" intent write is simplified away (spec D5).
 		_g("match_winners_vigil", "Match-Winner's Vigil", "Legendary", [
 			JokerEffect.make("match_winners_vigil", "Match-Winner's Vigil", "Legendary",
-				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.80,
+				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.62,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BAT, 24)]),
 		# --- C2d: setNextBowler-fire (bowling-change windows) ---
 		# #24 Pace Pack: change to pace -> wicket x1.15 for 6 balls.
@@ -220,7 +220,7 @@ static func implemented_groups() -> Array:
 		# #15 The Chase Master: 2nd innings (chasing) + Aggressive -> runs x1.20.
 		_g("the_chase_master", "The Chase Master", "Legendary", [
 			JokerEffect.make("the_chase_master", "The Chase Master", "Legendary",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.20,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.40,
 				BallResolver.Intent.AGGRESSIVE, 1, 120, -1, -1, -1,
 				JokerEffect.Trigger.NONE, 0, -1, JokerEffect.BoostRole.NONE,
 				JokerEffect.DRSRole.NONE, 0.0, JokerEffect.FormSource.NONE, -1, 1)]),

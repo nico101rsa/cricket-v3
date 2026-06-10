@@ -316,3 +316,37 @@ func test_conserved_bowling_identity_holds_exactly() -> void:
 
 func test_conserved_bowling_floored_at_1() -> void:
 	assert_almost_eq(MatchResolver._conserved_bowling(1, 4, 8, 20), 1.0, 0.0001, "result floored at 1.0")
+
+# --- Scenario-sweep rung: toss-force seam -------------------------------------
+
+func test_force_bats_first_overrides_toss() -> void:
+	# force = 1 -> Player bats first; force = 0 -> Player bats second, every seed.
+	var p := _attrs(5, 5, 5, 5)
+	for sv in [1, 2, 3, 7, 99]:
+		var m1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(sv),
+			null, null, [], null, null, null, null, null, null, null, null, 1)
+		assert_true(m1.player_bats_first, "force=1 -> Player bats first (seed %d)" % sv)
+		var m0 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(sv),
+			null, null, [], null, null, null, null, null, null, null, null, 0)
+		assert_false(m0.player_bats_first, "force=0 -> Player bats second (seed %d)" % sv)
+
+func test_force_default_is_byte_identical_to_toss() -> void:
+	# Omitting the param and passing -1 must produce the identical match -- the
+	# override must not perturb the RNG stream when not forcing.
+	var p := _attrs(5, 5, 5, 5)
+	var ma := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(42))
+	var mb := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(42),
+		null, null, [], null, null, null, null, null, null, null, null, -1)
+	assert_eq(ma.player_bats_first, mb.player_bats_first, "default == explicit -1: toss")
+	assert_eq(ma.innings1.total, mb.innings1.total, "default == explicit -1: innings1 total")
+	assert_eq(ma.innings2.total, mb.innings2.total, "default == explicit -1: innings2 total")
+	assert_eq(ma.outcome, mb.outcome, "default == explicit -1: outcome")
+
+func test_force_bats_second_makes_player_innings_a_chase() -> void:
+	# The reason the seam exists: batting 2nd sets target > 0 (is_chase), which fires
+	# The Chase Master. Here we just assert the Player's innings is innings2 when forced.
+	var p := _attrs(5, 5, 5, 5)
+	var m := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(5),
+		null, null, [], null, null, null, null, null, null, null, null, 0)
+	assert_true(m.innings1.player_line().is_empty(), "opposition bats first (innings1) when Player forced to bat 2nd")
+	assert_false(m.innings2.player_line().is_empty(), "Player chases in innings2 when forced to bat 2nd")

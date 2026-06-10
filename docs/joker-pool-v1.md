@@ -5,6 +5,8 @@ The content half of Theme 4. Architecture is locked by ADR 0007 (authoring gramm
 V1 = first complete pass. Names and verb compositions are the authoring intent and should hold up.
 
 > **Magnitudes tuned 2026-06-10 (rarity-band re-tune, rung 2).** The multipliers below now reflect the balance-harness re-tune against the fair-fight baseline (48.1% no-joker floor) — each non-enabler joker's solo win-delta targets its rarity band (Common +1–4% · Rare +4–7% · Legendary +7–12%). ₸ prices remain strawman. Conditional jokers that the neutral sweep under-fires (Form-consumers, bowling-change triggers, toss-gated chases) sit below band by fire-rate, not magnitude — see the spec's residuals table. The DRS "retain on fail" mechanic (Captain's Call / Review Master) was replaced by bounded extra-review grants.
+>
+> **Scenario-sweep rung (2026-06-10, rung 3).** Conditional jokers were re-measured in contexts that fire them (a chase profile + designed combos), and the under-powered *uncontrollable* ones buffed toward realized band: **The Chase Master ×1.20→×1.40**, **Match-Winner's Vigil ×0.80→×0.62**, **Wicket Maiden ×1.30→×1.45**. **Fire-rates (rung-D pricing input):** The Chase Master fires ~**50%** of matches (the toss; in-condition +7.2% → realized ~+3.6%). Two honest residuals: the Chase Master's runs-mult **saturates against the chase win-ceiling** (runs past the target are wasted) and Wicket Maiden's emergent trigger is **participation-capped** — neither reaches realized band by magnitude alone (would need a mechanic change). See spec `2026-06-10-scenario-sweep-conditional-jokers-design.md` §10.
 
 ---
 
@@ -48,7 +50,7 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | 4 | Rotate the Strike | Common | while `setIntent(Balanced)`: `buffNextBalls(runs, ×1.08, n=1)` per ball | *While Balanced: runs roll +8%.* | "Singles add up. Singles always add up." | 50 |
 | 5 | Building Phase | Rare | while `setIntent(Defensive)` AND Player has faced 6 consecutive balls: `formEvent(Player, +1)`, repeats every 6 | *Every full over you survive while Defensive: Player Form +1.* | "Twenty minutes in. Eyes are in. Now bat." | 90 |
 | 6 | Carry Your Bat | Rare | while `setIntent(Defensive)`: `buffNextBalls(wicket, ×0.85, n=1)` AND `buffNextBalls(runs, ×1.12, n=1)` per ball | *While Defensive: wicket chance −15%, runs roll +12%.* | "Bat all 20 overs. The rest is bonus." | 110 |
-| 7 | Match-Winner's Vigil | Legendary | when `formEvent(Player, +)` fires while batting: `setIntent(Defensive)` AND `buffNextBalls(wicket, ×0.80, n=24)` | *Player Form rises while batting → snap Defensive, wicket chance −20% for next 24 balls.* | "Get there. Stay there." | 220 |
+| 7 | Match-Winner's Vigil | Legendary | when `formEvent(Player, +)` fires while batting: `setIntent(Defensive)` AND `buffNextBalls(wicket, ×0.62, n=24)` | *Player Form rises while batting → snap Defensive, wicket chance −38% for next 24 balls.* | "Get there. Stay there." | 220 |
 
 ---
 
@@ -63,7 +65,7 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | 12 | Slog Over Specialist | Rare | from ball 90 while `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.35, n=1)` per ball | *Death overs (last 30 balls) while Aggressive: runs roll +35%.* | "Bowlers are tired. Bat first, ask later." | 100 |
 | 13 | Boundary Hunter | Rare | when `formEvent(Player, +)` fires while batting: `setIntent(Aggressive)` | *Player Form rises while batting → snap to Aggressive.* | "One four. One more. One more." | 90 |
 | 14 | Hot Streak | Rare | when `formEvent(Player, +)` fires twice within 6 balls: `buffNextBalls(runs, ×1.30, n=6)` AND `buffNextBalls(wicket, ×0.85, n=6)` | *Two Form gains in an over: runs roll +30%, wicket chance −15% for 6 balls.* | "Stay in. The over's yours." | 120 |
-| 15 | The Chase Master | Legendary | while 2nd-innings AND `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.20, n=1)` per ball; when `formEvent(Player, +)` fires: extend the active buff `n+=2` | *Second innings + Aggressive: runs roll +20% every ball, window extends 2 balls each time Form rises.* | "Required rate? What required rate." | 240 |
+| 15 | The Chase Master | Legendary | while 2nd-innings AND `setIntent(Aggressive)`: `buffNextBalls(runs, ×1.40, n=1)` per ball; when `formEvent(Player, +)` fires: extend the active buff `n+=2` | *Second innings + Aggressive: runs roll +40% every ball, window extends 2 balls each time Form rises.* | "Required rate? What required rate." | 240 |
 
 ---
 
@@ -91,7 +93,7 @@ These are the corners of ADR 0007's grammar this pool leans on. Worth pinning so
 | 26 | Attack the Stumps | Common | while bowling AND `setIntent(Aggressive)`: `buffNextBalls(wicket, ×1.12, n=1)` per ball | *Bowling with an Aggressive captaincy: wicket chance +12%.* | "Bowled, LBW, hit-the-stumps. Three ways to get them." | 45 |
 | 27 | First-Change Specialist | Rare | every `setNextBowler(*)` fire: `buffNextBalls(wicket, ×1.20, n=6)` AND `fieldMode(catching)` set | *Every bowling change: wicket chance +20% for 6 balls, and a catching field snaps in.* | "New bowler, new plan, new chance. Every time." | 100 |
 | 28 | The Trap | Rare | while `fieldMode(catching)` AND most-recent `setNextBowler` = `spin`: `buffNextBalls(wicket, ×1.25, n=1)` per ball | *Catching field with spin on: wicket chance +25%.* | "Bat-pad, silly point, deep midwicket. Pick your poison." | 110 |
-| 29 | Wicket Maiden | Rare | when `formEvent(Player, +)` fires while bowling: `buffNextBalls(wicket, ×1.30, n=6)` | *Player Form rises while bowling → wicket chance +30% for 6 balls.* | "On a roll. The hat-trick ball is the next one." | 105 |
+| 29 | Wicket Maiden | Rare | when `formEvent(Player, +)` fires while bowling: `buffNextBalls(wicket, ×1.45, n=6)` | *Player Form rises while bowling → wicket chance +45% for 6 balls.* | "On a roll. The hat-trick ball is the next one." | 105 |
 | 30 | The Strike Bowler | Legendary | when `setNextBowler(*)` fires AND `fieldMode(catching)` is set: `buffNextBalls(wicket, ×1.35, n=12)` AND `formEvent(Player, +1)` | *Bowling change into a catching field: wicket chance +35% for 12 balls, Player Form +1.* | "Top of the run-up. The captain has a feeling. The captain is right." | 250 |
 
 ---
