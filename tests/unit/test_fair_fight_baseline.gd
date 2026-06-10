@@ -73,6 +73,24 @@ func test_opponent_claim_review_takes_player_wickets() -> void:
 		0, 0, 0, [], true, null, null, null, null, null, [], 0, null, hi)
 	assert_gt(claimed.wickets, base.wickets, "opponent claim-review should take Player wickets")
 
+# DRS team-wide fix (spec 2026-06-10, DD6): the PLAYER slot's claim review must
+# fire on ALL overs, even with ZERO hero-bowled overs. Opponent batting innings
+# (player_is_batting=false), player_bowler_overs=0, claim-everything Player DRS
+# -> more opponent wickets than the no-DRS base. Pre-fix the player_bowling gate
+# made this structurally impossible (0 hero overs -> 0 claims).
+func test_player_claim_review_is_team_wide() -> void:
+	var hi := DRSPolicy.new()
+	hi.base_reviews = 50
+	hi.base_p = 1.0
+	var base := InningsResolver.simulate_innings(
+		null, 12, 2.0, 2.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false)
+	var claimed := InningsResolver.simulate_innings(
+		null, 12, 2.0, 2.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], false, null, null, null, hi)
+	assert_gt(claimed.wickets, base.wickets,
+		"Player claim-review should take opponent wickets on non-hero overs")
+
 func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = 5; t.spread = 1.5; t.noise = 1

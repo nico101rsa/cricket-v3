@@ -37,8 +37,10 @@ const DRS_BOWLING_BUFF_N := 6
 # Bounded extra-review grants (replace the old "infinite retain-on-fail" mechanic,
 # which had no scalar to tune — DB3 fallback, 2026-06-10). Base retain-on-success
 # (keep your review when a decision is overturned) is unchanged.
-const RETAIN_EXTRA_REVIEWS := 2     # The Captain's Call (#43) — spare reviews
-const MASTER_EXTRA_REVIEWS := 2     # The Review Master (#45)
+# 2→1 (DRS team-wide fix, 2026-06-10): claims now fire on all 20 overs, so every
+# extra review converts — +2 grants read far over band (+9.4 Rare / +15.5 Legendary).
+const RETAIN_EXTRA_REVIEWS := 1     # The Captain's Call (#43) — spare reviews
+const MASTER_EXTRA_REVIEWS := 1     # The Review Master (#45)
 
 # Product of active buffs on the side that's batting/bowling this innings. Call at
 # ball start; the returned (wicket_mult, runs_mult) multiplies the stateless mults.

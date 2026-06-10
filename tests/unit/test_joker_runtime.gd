@@ -204,7 +204,7 @@ func _rng(s: int) -> RandomNumberGenerator:
 func test_init_reviews_counts_grants() -> void:
 	var rt := JokerRuntime.new()
 	rt.init_reviews([_drs(JokerEffect.DRSRole.EXTRA_REVIEW, 0.0), _drs(JokerEffect.DRSRole.MASTER, 0.0)], 1)
-	assert_eq(rt.reviews_left, 4, "base 1 + Spare Review (+1) + Review Master (+2)")
+	assert_eq(rt.reviews_left, 3, "base 1 + Spare Review (+1) + Review Master (+1)")
 
 func test_try_review_consumes_on_fail() -> void:
 	var rt := JokerRuntime.new()
@@ -226,10 +226,10 @@ func test_captains_call_grants_spare_reviews() -> void:
 	var rt := JokerRuntime.new()
 	var jk := [_drs(JokerEffect.DRSRole.RETAIN, 0.0)]
 	rt.init_reviews(jk, 1)
-	assert_eq(rt.reviews_left, 3, "Captain's Call grants +2 reviews (base 1 + 2)")
+	assert_eq(rt.reviews_left, 2, "Captain's Call grants +1 review (base 1 + 1)")
 	# A failed review now consumes normally (no more infinite retain-on-fail).
 	rt.try_review(jk, true, BallResolver.Intent.BALANCED, 0.0, 1, _rng(1))
-	assert_eq(rt.reviews_left, 2, "failed review consumed")
+	assert_eq(rt.reviews_left, 1, "failed review consumed")
 
 func test_accuracy_raises_success_rate() -> void:
 	var base_s := 0; var acc_s := 0
