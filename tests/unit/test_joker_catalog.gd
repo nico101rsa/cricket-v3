@@ -37,9 +37,9 @@ func test_implemented_groups_count() -> void:
 	assert_eq(JokerCatalog.implemented_groups().size(), 45)
 
 func test_implemented_flat_count() -> void:
-	# 47 rows (thru C2g) + 2 single-row C2h jokers = 49; +1 for the Chase Master's
-	# composure row (mechanic-change rung) = 50 rows.
-	assert_eq(JokerCatalog.implemented().size(), 50)
+	# 47 rows (thru C2g) + 2 single-row C2h jokers = 49; mechanic-change rung adds the
+	# Chase Master composure row + the Wicket Maiden economy row = 51 rows.
+	assert_eq(JokerCatalog.implemented().size(), 51)
 
 func test_field_restrictions_shape() -> void:
 	var e: JokerEffect = _group("field_restrictions")["effects"][0]
@@ -139,14 +139,29 @@ func test_ride_the_wave_trigger_shape() -> void:
 	assert_almost_eq(e.mult, 1.20, 0.0001)
 
 func test_wicket_maiden_bowling_trigger() -> void:
-	var g := _group("wicket_maiden")
-	var e: JokerEffect = g["effects"][0]
-	assert_eq(e.side, JokerEffect.Side.BOWLING)
-	assert_eq(e.trigger, JokerEffect.Trigger.FORM_BOWL)
-	assert_eq(e.window_n, 6)
-	# Scenario-sweep rung: buffed 1.30 -> 1.45 (emergent FORM_BOWL trigger is
-	# participation-capped; further cranking spirals — see spec §10).
-	assert_almost_eq(e.mult, 1.45, 0.0001)
+	# Mechanic-change rung: Wicket Maiden is now a 2-row joker — wicket (×>1) +
+	# an economy/dot-pressure row (runs ×<1) over the same post-wicket window.
+	# Economy always converts (every ball conceded counts) where extra wicket-chance
+	# only pays off if a wicket falls; thematically a wicket-maiden = wicket + no runs.
+	var effects: Array = _group("wicket_maiden")["effects"]
+	assert_eq(effects.size(), 2, "Wicket Maiden = wicket + economy rows")
+	var wicket_row: JokerEffect = null
+	var runs_row: JokerEffect = null
+	for e in effects:
+		assert_eq(e.side, JokerEffect.Side.BOWLING)
+		assert_eq(e.trigger, JokerEffect.Trigger.FORM_BOWL, "both rows fire on the bowling Form event")
+		assert_eq(e.window_n, 6, "both over the 6-ball post-wicket window")
+		if e.target == JokerEffect.Target.WICKET:
+			wicket_row = e
+		else:
+			runs_row = e
+	assert_not_null(wicket_row, "has a wicket row")
+	assert_not_null(runs_row, "has an economy (runs) row")
+	assert_almost_eq(wicket_row.mult, 1.45, 0.0001, "wicket ×1.45")
+	# Economy tuned to 0.62: lifts the joker +1.0% -> +4.0% (Rare floor); economy
+	# converts where extra wicket-chance can't (it only pays if a wicket falls).
+	assert_almost_eq(runs_row.mult, 0.62, 0.0001, "economy: runs ×0.62")
+	assert_lt(runs_row.mult, 1.0, "economy concedes fewer runs")
 
 func test_hot_streak_two_double_rows() -> void:
 	var g := _group("hot_streak")
@@ -215,6 +230,9 @@ func test_carry_your_bat_scores_while_defending() -> void:
 func test_multi_buff_groups_have_two_effects() -> void:
 	assert_eq(_group("carry_your_bat")["effects"].size(), 2, "Carry Your Bat = wicket + runs")
 	assert_eq(_group("dot_ball_pressure")["effects"].size(), 2, "Dot Ball Pressure = wicket + runs")
+	# Mechanic-change rung: both capped jokers gained a converting second component.
+	assert_eq(_group("the_chase_master")["effects"].size(), 2, "Chase Master = runs + composure")
+	assert_eq(_group("wicket_maiden")["effects"].size(), 2, "Wicket Maiden = wicket + economy")
 
 func test_cordon_killer_field_shape() -> void:
 	var g := _group("cordon_killer")

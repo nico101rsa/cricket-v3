@@ -116,6 +116,12 @@ static func implemented_groups() -> Array:
 		_g("wicket_maiden", "Wicket Maiden", "Rare", [
 			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
 				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.45,
+				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6),
+			# Mechanic-change rung: economy/dot-pressure row. Extra wicket-chance only
+			# pays off if a wicket falls; conceding fewer runs always converts. Same
+			# 6-ball post-wicket window. Thematically a wicket-maiden = wicket + no runs.
+			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.62,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6)]),
 		# #14 Hot Streak (multi-buff): 2 Form events within 6 balls (batting) ->
 		# runs x1.30 AND wicket x0.85 for 6 balls.
