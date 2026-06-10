@@ -126,6 +126,47 @@ Sweep-level acceptance (§5.5) verified by running the oracle, recorded in §10 
 5. No-dominant-spend ROI check (§5.5) passes (or the failing dial is re-tuned and the final value recorded).
 6. Pool doc + roadmap updated; the "prices rescale when inflow is set" note replaced by the tuned numbers.
 
-## 10. Findings (filled at build end)
+## 10. Findings (build of 2026-06-10)
 
-*To be completed by the build: final dial values, the 45-price table, income per build, marginal attribute values, ROI table, scarcity/pacing numbers, and any residuals for the next rung.*
+### 10.1 Final dials (`EconomyTuning`)
+
+`base_pay 50` · `star_pay_slope 8` · `runs_rate 0.5` · `wicket_rate 11` — **unchanged from strawman** (pay-fairness passed first try). `attr_cost_base 12 → 10` (the one harness tune — see 10.4). `sell_refund_frac 0.5` · `loadout_cap 4` as specced.
+
+### 10.2 Income per build (sweep_economy, N=2000/arm, even ★3)
+
+| build | win% | base | perf | ₸/match | ₸/season (×8) |
+|---|---|---|---|---|---|
+| batter 8/8/2/2 | 48.7 | 50 | 17.1 | **67.1** | 537 |
+| bowler 2/2/8/8 | 48.6 | 50 | 9.2 | **59.2** | 473 |
+| balanced 5/5/5/5 | 48.0 | 50 | 6.3 | **56.3** | 450 |
+
+All three within **±11% of the mean** (₸60.9) — fairness criterion met with strawman dials. Honest note: the pairwise batter↔balanced gap is ~19% — the same **"pay smile"** as the net-runs rating (Slice 3 finding): specialists concentrate *measurable* output (runs, wickets) and pay tracks the scoreboard, which is thematically right. Compressing it further would mean shrinking the perf share below the documented "base 50 + perf 18" feel — not taken. Win-rate stays flat (47.9–48.7) — pay differs mildly, *winning* doesn't.
+
+### 10.3 The 45 prices (in `JokerCatalog.PRICES`, mirrored in the pool doc)
+
+Computed from a fresh `sweep_jokers.gd` run (post mechanic-change catalog) via the §5.3 rule. Spread within bands: Commons ₸30–50 (top: Cool Head/Field Restrictions/Powerplay Punch ₸50 at +3.9/+4.0/+4.0%), Rares ₸90–115 (top: Death-Over Stranglehold ₸115 at +6.5%, The Captain's Call ₸110 at +5.9%), Legendaries ₸220–235 (The Review Master ₸235 at +9.6%, Choke Hold ₸230 at +8.7%). **Cross-check:** The Chase Master's standard-profile delta read **+6.6%** — exactly the realized number the mechanic-change rung predicted (in-condition × ~50% toss fire-rate) → band floor ₸220. Conditional/enabler jokers whose neutral delta reads ~0 (Form sources, bowling-change triggers, intent-snap enablers) all price at band floor — the fire-rate discount expressed inside the band, rarity ≈ price stays legible.
+
+### 10.4 Marginal attribute value + the attr-cost tune
+
++1 power **+0.5%** win · +1 attack +0.1% · +1 composure 0.0% · +1 control −0.2% (≈ the N=2000 noise floor). A single attribute point barely moves win% — the Player is one lever in an 11-player conserved team (the Slice-2 finding, again). So attribute upgrades are a **Career-horizon** investment, not a this-Season win lever; at `attr_cost_base 12` a 5→6 upgrade cost ₸60 ≈ ₸120 per +1% single-Season — far outside the joker range. Tuned **12 → 10** (5→6 = ₸50): on a ~3-Season horizon that's ≈ **₸33 per +1% per Season** → 1.3–2.6× the joker ₸-per-point, inside the ~2× permanence-premium target (DE7).
+
+### 10.5 ROI + scarcity acceptance (§5.5) — all pass
+
+| spend | ₸ per +1% win |
+|---|---|
+| Cool Head (Common ₸50, +3.9%) | 12.8 |
+| The Captain's Call (Rare ₸110, +5.9%) | 18.6 |
+| The Review Master (Legendary ₸235, +9.6%) | 24.5 |
+| +1 power (₸50, ~3-Season horizon) | ~33 /Season |
+
+- **No dominant spend** ✓ — all within a factor ~2.6. ₸-per-point *rises* with rarity: the slot-scarcity premium (4 slots make one strong card worth more per point than two weak ones). Within a single Season jokers strictly beat attributes — the intended Balatro shape (jokers are run power; attributes are meta-progression).
+- **Scarcity** ✓ — full-greed Season spend ≈ ₸670 (mid C+R+L+R jokers ₸470 + four +1 upgrades ₸200) > best Season income ₸537.
+- **Affordability pacing** ✓ — first paid Shop (after Match 3): ~₸169 banked vs Common ₸30–50; a Legendary = 41–52% of a Season's income (reachable only by saving — "if only I had more money").
+
+### 10.6 Residuals / threads for later rungs
+
+- **Conditional jokers price at band floor by construction** — fine for V1, but when the *player-controlled* context arrives (real Intent control in Theme 6, KM-driven Form), their realized deltas rise and prices should be re-derived (one `sweep_jokers.gd` + `compute_prices` re-run).
+- **KM perf pay** (`km_rate`) joins `match_pay` when KMs land in the sim (DE3).
+- **Tour-difficulty price scaling** (CONTEXT §Tons) = one multiplier on `PRICES`, deferred to the Career rung.
+- **Sell-refund 50% and the Shop's transactional rules** (buy/hold/sell state machine) build with the Theme-5 Shop screen; this rung supplies its data layer.
+- Marginal attribute deltas are noise-floor measurements — if a future rung needs precise attribute pricing, run the +1 arms at N≥10000 or measure ±3-point bundles.
