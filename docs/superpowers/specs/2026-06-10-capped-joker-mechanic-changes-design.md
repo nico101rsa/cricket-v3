@@ -63,7 +63,40 @@ saturates, that is itself a finding — record it and stop rather than cranking.
 - `docs/mockups/distribution-viewer-v1.html` — refreshed `DATA`.
 - `PROJECT_ROADMAP.md` — status + handoff.
 
-## 6. Findings (built — fill in)
+## 6. Findings (built 2026-06-10)
 
-_To complete during the build: did composure break Chase Master's ceiling? final magnitudes +
-in-condition / realized deltas for both; any residual._
+**Both mechanic changes worked — the converting second component is the unlock.** Inline TDD, **366
+tests green**. N=2000/arm.
+
+### The Chase Master — composure broke the saturation ceiling
+The runs-mult alone capped at +7.2% in-condition (rung 3). Adding the composure (survival) row lifted it:
+
+| Config | In-condition (chase) | Realized (×0.50 toss) |
+|---|---|---|
+| runs ×1.40 only (rung 3) | +7.2% | +3.6% |
+| runs ×1.40 + composure ×0.80 | +10.2% | +5.1% |
+| **runs ×1.40 + composure ×0.62** (final) | **+13.1%** | **+6.6%** |
+
+Realized **+3.6% → +6.6%** (Legendary floor, within tolerance) — composure roughly doubled the realized
+strength because *not getting out* wins close chases even when extra runs are wasted. **No blowout**
+(player-runs mean 9.3 vs 9.9 baseline, max 113 vs 107). Locked **composure ×0.62**.
+
+### Wicket Maiden — economy lifted it into band
+The wicket-mult alone read +1.0% (only pays off if a second wicket falls). Adding the economy (runs ×<1)
+row over the same 6-ball window:
+
+| Config | Standard win-delta |
+|---|---|
+| wicket ×1.45 only (rung 3) | +1.0% |
+| wicket ×1.45 + economy ×0.85 | +2.1% |
+| **wicket ×1.45 + economy ×0.62** (final) | **+4.0%** (Rare floor) |
+
+Economy converts where the wicket-chance can't (every conceded ball counts), and it does **not** spiral
+(it causes no extra wickets), so it is the safe lever. Locked **economy ×0.62**.
+
+### Takeaway
+The rung-3 "magnitude-capped" residual is resolved: a saturated/rare-trigger first component is fixed not
+by a bigger number but by a **second component that converts in the common case** (survival for a chase,
+economy for a wicket window). Both jokers now reach their rarity-band floor. Wicket Maiden remains
+fire-rate-limited (it only fires on a Player bowling wicket) so it sits at the Rare floor, not mid-band —
+an honest, accepted cap.
