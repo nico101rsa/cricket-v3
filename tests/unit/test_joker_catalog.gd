@@ -251,3 +251,22 @@ func test_rotate_the_strike_shape() -> void:
 	assert_eq(e.target, JokerEffect.Target.RUNS)
 	assert_eq(e.intent_req, BallResolver.Intent.BALANCED)
 	assert_almost_eq(e.mult, 1.08, 0.0001)
+
+# --- ₸ prices (rung 7c-D, spec 2026-06-10-tons-economy-7cD §5.3) ---
+
+func test_every_joker_has_a_price_in_its_rarity_band() -> void:
+	for g in JokerCatalog.implemented_groups():
+		var id: String = g["id"]
+		var band: Vector2i = JokerCatalog.price_band(g["rarity"])
+		assert_true(JokerCatalog.PRICES.has(id), "%s has no price" % id)
+		var p: int = JokerCatalog.price(id)
+		assert_between(p, band.x, band.y, "%s priced %d outside band %s" % [id, p, str(band)])
+		assert_eq(p % 5, 0, "%s price %d not a multiple of 5" % [id, p])
+
+func test_price_count_matches_pool() -> void:
+	assert_eq(JokerCatalog.PRICES.size(), JokerCatalog.implemented_groups().size())
+
+func test_price_bands_match_pool_doc() -> void:
+	assert_eq(JokerCatalog.price_band("Common"), Vector2i(30, 50))
+	assert_eq(JokerCatalog.price_band("Rare"), Vector2i(90, 120))
+	assert_eq(JokerCatalog.price_band("Legendary"), Vector2i(220, 250))
