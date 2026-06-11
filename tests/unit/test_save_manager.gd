@@ -97,3 +97,34 @@ func test_archiving_a_loaded_player_then_clearing_it_keeps_the_legend_intact():
 	assert_eq(arc.size(), 1)
 	assert_not_null(arc.entries[0].player, "player embedded inline, survived clear_player()")
 	assert_eq(arc.entries[0].player.name.first_name, "Jonty")
+
+# --- Card-rescale migration (DR12): legacy 20-point saves scale x6.25 on load ---
+
+func _legacy_player() -> Player:
+	var p := _make_player()
+	p.attributes.power = 8; p.attributes.composure = 8; p.attributes.attack = 2; p.attributes.control = 2
+	p.starting_attributes = p.attributes.duplicate_typed()
+	return p
+
+func test_legacy_player_attributes_migrate_to_100_scale():
+	var p := _legacy_player()
+	sm.migrate_player(p)
+	assert_eq(p.attributes.power, 50.0, "legacy 8 -> 50")
+	assert_eq(p.attributes.control, 12.5, "legacy 2 -> 12.5")
+	assert_eq(p.starting_attributes.power, 50.0, "starting snapshot migrates too")
+
+func test_current_scale_player_is_not_double_migrated():
+	var p := _make_player()   # already /100 (sum 125)
+	sm.migrate_player(p)
+	assert_eq(p.attributes.power, 35.0, "a /100 build passes through untouched")
+
+func test_legacy_save_on_disk_loads_migrated():
+	var p := _legacy_player()
+	sm.save_player(p)
+	var loaded = sm.load_player()
+	assert_eq(loaded.attributes.power, 50.0, "load_player migrates a legacy save")
+
+func test_legacy_legend_archive_loads_migrated():
+	sm.archive_to_legends(_legacy_player(), LegendEntry.END_REASON_RETIRED, 3)
+	var arc = sm.load_legends()
+	assert_eq(arc.entries[0].player.attributes.power, 50.0, "load_legends migrates legacy entries")
