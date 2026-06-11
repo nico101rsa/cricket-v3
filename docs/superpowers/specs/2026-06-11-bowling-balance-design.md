@@ -148,6 +148,41 @@ Tuning loop: adjust `*_phase_bonus`, `matchup_w_*`, then BB5 levers; judge on `E
 | `tests/unit/…` | new tests per §8 |
 | docs/viewers | pool doc, viewer DATA mirrors, roadmap |
 
-## 10. Findings
+## 10. Findings (close-out, 2026-06-11)
 
-*(filled at close-out)*
+### 10.1 Headline — the static layer is un-solved, and textbook cricket emerged
+
+Final full oracle run (N=4000 refine), shipped dials:
+
+| §6 criterion | result |
+|---|---|
+| 1. No constant-kind equilibrium | ✓ fixed point **B/A/B·P/S/P vs B/A/A·P/S/P** — both sides bowl textbook P/S/P; the two sides hold *different* batting plans within 0.5 pt (flat top = live choice) |
+| 2. All-AGG vs textbook | ✓ **+0.2** on the best rotation (50.2, was ~+20); the old dominant **A/A/A·S/S/S now LOSES to textbook 36.2%** |
+| 3. Textbook competitive | ✓ iter-0 best-response gain **7.9** (≤8); textbook mirror 48.2; the top 6 replies to textbook are ALL P/S/P rotations |
+| 4. Skill gap | ✓ eq-vs-naive **71.3** (+22 over the 49.3 mirror); hero validation: hero+eq 51.5 vs hero+textbook 44.6 (+6.9) |
+| 5. Scoring environment | ✓ textbook mirror **153.5 mean / RR 8.13 / 6.26 wkts / 30% all-out** (Nico's bands 150–167 / 8–9 / 5–7) |
+| 6. Suite | ✓ **411 green**; scalar paths byte-identical (poison-dial tests) |
+
+The search also *discovered real cricket*: the equilibrium bats **B in the Powerplay** (see off the buffed new-ball pace), attacks the middle, and bowls P/S/P. eq-vs-textbook = 57.0 (was 67.7) — textbook is a genuinely strong plan now.
+
+### 10.2 Final dials
+
+`pace_phase_bonus [1.5, −1.5, 1.5]` / `spin_phase_bonus [−1.5, 1.5, −1.5]` (±0.7 strawman was inert — the base ±2 style tilt is control-dominated; ±1.5 is where the per-phase buy flips) · `matchup_w_spin [0, 0, +0.30]` · `base_r 0.0→0.2` (BB11 re-peg) · BOWLER archetype bats **1/1** (BB5) · `DRSPolicy.base_p 0.4→0.32` · joker dials per §10.4.
+
+### 10.3 BB5 — Nico's tail lever: tried fully, shipped half, by measurement
+
+- **Full sharpening (BATTER 9/9/1/1 + BOWLER 1/1/9/9): rejected.** It barely moved the strategy structure (gain 8.0→7.7) but **blew the build-equality spread 2.0→4.6 pts** and sank the hero floor ~7 pts: 9-power openers saturate the scoring sigmoid, and any hero becomes a relative hole that gap-fill repays in worthless 10th-composure points. Also pushed the env to the band edge (167.0) with an inverted phase shape.
+- **Tail-only (BOWLER bats 1/1, BATTER stays 8/8): shipped.** Build spread back to **2.0** exactly; wickets/innings 5.07→**6.26** and all-out 17.7%→**30.4%** (the lever working: more wickets fall and they cost more); env re-pegged via `base_r`.
+
+### 10.4 BB7 ripple — what the new mechanics did to everything above them
+
+- **Two measurement-fairness bugs found and fixed en route:** (1) `sweep_jokers` gave the Player P/S/S but the opponent textbook P/S/P — EV-equivalent pre-tilt, ~10 win-pts apart post-tilt → opponent now bowls the same plan (floor 39.2→45.9 in steps); (2) **BB4 reversed**: kind-less hero overs missed the phase bonus, a hidden **~3.5 runs/match tax on bowling-capable builds** — hero overs now inherit the rotation's kind. **New symmetric-plan floor: 45.9%** (margin −1.25, ≈ hero-context residual; the side-asymmetry probe is dead clean, all mirrors 49–50.5). The old 48.9 floor is not comparable — it contained a Player-favouring plan asymmetry nobody could see pre-tilt.
+- **Joker bands:** the steeper tail inflated every DRS joker (more wickets = more reviews): Cool Head +6.9→**+1.6**, Snicko +8.2→**+4.1**, Spare Review +5.7→**+3.5**, Review Master **+8.0** (dials: accuracies 0.10→0.05 / 0.12→0.10, base_p 0.32). Pressure/survival Rares lifted into band: Carry Your Bat **+4.6**, Dot Ball Pressure **+5.1**, Compounding Pressure **+4.7**, Choke Hold **+7.7**, Chase Master realized **+7.7**. **Recorded residuals** (borderline / fire-rate class, not chased): Captain's Call +3.5 (integer grant, no scalar), Wicket Maiden +2.0 + Boundary Hunter +2.2 (participation/condition-capped — the rung-3 residual class; Boundary Hunter is *structurally* worse now because the matchup term prices its latched aggression — arguably the mechanic working).
+- **17 prices re-interpolated** (DE4); pool doc + economy viewer mirrored.
+- **Economy re-pegged:** the env shift broke pay equality (spread ₸5.3 — hotter SRs overpaid the batter's tempo component) → `sr_par_pay 110→125`, `wicket_rate 8→10` (thematic: wickets cost more, taking them pays more) → **pay 66.2/65.8/66.4, spread ₸0.6, fee share ~50%**.
+
+### 10.5 Known divergence + seeds for later rungs
+
+- **Phase shape inverted vs real T20:** PP is our fastest phase (9.7) and death milder (7.4); real cricket runs PP ~8.3 / death ~9.9. Cause: scoring saturation at the top + the steep tail putting weak hitters in at the death. Fix needs a real mechanic (set-batter momentum / death-overs urgency), not dials — future-rung seed. `phase_runs` on `InningsResult` + `probe_scoring_env.gd` are the permanent instruments.
+- The equilibrium converged again (B/A/x·P/S/P) rather than cycling — acceptable per §6 (phase-mixed, flat top), but **E2's state-conditional layer** is still what makes the choice opponent- and match-state-dependent.
+- The joker sweep's hero-context floor (45.9) vs the probe's clean team-vs-team mirrors: the ~−1.25-run residual is the all-rounder hero in a plan-ful match (conservation convexity under phase bonuses) — small, documented, watch at E2.
