@@ -98,6 +98,45 @@ Runtime estimate ~25–35 min full (backgrounded), ~2 min quick. Viz: **`docs/mo
 - `tools/sweep_policy_state.gd` — the E2 oracle (new)
 - `docs/mockups/policy-state-v1.html` — viz (new)
 
-## 10. Findings
+## 10. Findings (2026-06-11, full oracle run: screen N=400 / refine N=4000, 25.1 min)
 
-*(filled at close-out)*
+### 10.1 The headline — the static equilibrium is dethroned
+
+The joint-space self-play (216 statics + 320 adaptives, both sides free to pick either) converged to an **EQUILIBRIUM where both sides play state-aware policies**:
+
+- **A: `B/A/A·P/S/P+u10d6c4`** — bat Balanced/Aggressive/Aggressive, bowl textbook, **escalate when req RR ≥ 10, ease off when ≤ 6, protect at 4 wickets down**
+- **B: `B/A/A·P/S/P+u11d6c4`** (same family, escalation threshold 11)
+
+Side B, starting from the static equilibrium `B/A/B·P/S/P`, **abandoned it for an adaptive policy** (iter 0: +1.7 pts gain) — the static eq is no longer a best response to anything. The winning rule profile is textbook cricket: chase hard when the rate demands it, don't slog a cruise, shut the gate when a collapse starts. Note the *base* also shifted (death B → A): with the down-rule available to brake a won chase, slogging the death costs less.
+
+### 10.2 Magnitude — real but modest (as predicted in §6)
+
+| arm (N=4000) | win% |
+|---|---|
+| new-eq vs static-eq | **50.6** |
+| best adaptive vs static-eq (refine) | **51.6** |
+| adaptive mirror | 48.9 |
+| static-eq mirror | 49.1 |
+| new-eq vs new-eq | 48.8 |
+
+Against the ~48.9–49.1 mirror floor, state-awareness is worth **~+1.6 pts head-to-head** — small because only ~half of matches are chases, the rules move intent at most one band, and the static top was already near-optimal in EV. The depth is structural, not a blowout: **the choice now depends on the match state, which is what E2 was for.**
+
+### 10.3 E3 ladder anchors (refreshed) + hero transfer
+
+- new-eq vs **naive** 74.1 · vs **textbook** 58.4 · vs **balanced** 57.2 · vs **static-eq** 50.6 → ladder: naive ≈ floor, textbook ≈ mid, static-eq ≈ high, **adaptive-eq ≈ ceiling**.
+- **Hero validation (D2-style):** hero side playing new-eq beats hero playing static-eq by **+2.0 pts** (53.5 vs 51.5 against the same static-eq opponent) — the conclusion transfers to real matches.
+
+### 10.4 A1–A6 acceptance ledger
+
+- **A1 regression:** all 411 pre-rung tests untouched and green (suite 411 → 428); explicit byte-identical tests at plan and innings level pass.
+- **A2 directional:** chase-escalation converts more 170-chases than the static base (seed-summed N=300, green).
+- **A3 dethrone:** ✅ structurally (self-play abandons the static eq) and numerically (+1.6 pts over mirror floor).
+- **A4 fairness:** adaptive mirror 48.9 / static mirror 49.1 — clean.
+- **A5 env:** `probe_scoring_env` reads **identically on this branch and on `main`** (154.7 / RR 8.20 / 6.27 wkts / phase 9.72|6.57|7.47, fixed seeds) — byte-identical confirmed. *Note:* the roadmap's quoted 153.5/8.13 was the BB11 commit-time run; later in-rung bowling-balance commits moved the current-main reading to 154.7/8.20 — still comfortably inside Nico's bands (150–167 / 8–9 / 5–7). Recorded here so the next session pegs against 154.7, not 153.5.
+- **A6:** ladder table above; no joker/economy ripple (defaults unchanged, DS6 held — the 45.9% floor, prices, and pay are untouched).
+
+### 10.5 Seeds for later rungs
+
+- **E3 difficulty ladder:** the opponent-AI brain is now `B/A/A·P/S/P+u11d6c4` at the ceiling; blend dial spans naive → textbook → static-eq → adaptive-eq.
+- **Deferred state levers** (DS1): Boost press timing + water meter, DRS review thresholds — both joker-coupled; revisit if a future rung wants more state depth. State-aware *bowling* stays unattractive while the bowling top is flat.
+- If a future rung ships adaptive plans as a sim *default* (e.g. the E3 opponent), re-measure the joker floor then (DS6 note).
