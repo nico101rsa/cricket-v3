@@ -210,7 +210,65 @@ Premium, recorded (eyeball, not gated). Viz `docs/mockups/difficulty-ladder-v1.h
 4. Threading through league/season + tests.
 5. Oracle + viz + full detached run; §10 findings; roadmap close-out.
 
-## 10. Findings (filled in-rung)
+## 10. Findings (filled in-rung, 2026-06-12)
 
-*(Re-anchored ladder numbers, beat-rate surface, brain-isolation arms, floor-bind note, env
-texture probes — recorded when the runs land.)*
+### 10.1 Full-N ladder re-anchor (post-rescale, 25.6 min, N=4000 gap arms)
+
+The joint-space self-play **converged (EQUILIBRIUM), both sides adaptive — the E2 conclusion
+holds on the /100 card scale**, but the equilibrium profile drifted: A `B/A/B·P/S/P+u10d5c5`
+vs B `B/A/A·P/S/P+u9d5c5` (E2 pre-rescale: `+u10d6c4`/`+u11d6c4`). **The shipped
+`OpponentBrain.ADAPTIVE` literal = the side-A profile `B/A/B·P/S/P+u10d5c5`** (also the
+dethrone winner): Balanced death band, chase-up ≥ 10 req RR, cruise-down ≤ 5, collapse gate at
+5 wickets — the death slog now comes *from the chase rule*, not the base band. Margins are
+structural-not-blowout, as at E2: dethrone +1.1 (50.3 vs incumbent 49.2), hero transfer +1.2
+(51.7 vs 50.5).
+
+**Re-anchored ladder (new-eq vs X, N=4000):** naive **69.5** · textbook **56.7** · balanced
+**54.9** · static-eq **50.4** — ordering unchanged (naive=floor, textbook=mid, static-eq=high,
+adaptive-eq=ceiling); the naive gap compressed vs E2's 74.1 (the rescale's proportional noise
+widened match variance). Mirrors clean (adaptive 49.0 / static-eq 50.0).
+
+### 10.2 The measured grid (oracle full run, N=200 Seasons/cell, 3.3 min)
+
+Reference creation build (35/30/30/30, Team ★3, textbook plans), beat = top-3:
+
+| Tour | Club | City | Province |
+|---|---|---|---|
+| Practise | 96.0 | 94.0 | 77.5 |
+| Home s/w/e | 94.0 / 85.5 / 77.5 | 77.5 / 78.0 / 75.0 | 54.0 / 48.0 / 50.5 |
+| Away s/w/e | 48.0 / 50.5 / 51.5 | 47.0 / 43.0 / 42.0 | 43.5 / 34.5 / 34.5 |
+| Premium | 43.5 | 20.0 | **15.0** |
+
+**DL10 acceptance: PASS.** Monotone within level (wobbles ≤ 3.5 pts = N=200 noise, e.g. Club
+Away 48→50.5→51.5); the canon jumps are visible cliffs (Club 77.5→48 at Home→Away, City
+42→20 at →Premium); overlap honored everywhere (City Practise 94 vs Club Premium 43.5;
+Province Practise 77.5 vs City Premium 20). Province Premium — the Career-ending Final — reads
+beat 15% / win-Final **1%** for a fresh creation build: properly brutal; attribute growth +
+jokers are what close it (the Career rung's economy). Win-Final ≤ 65.5% even at Club Practise
+(the two-knockout championship coin-flip, known emergent).
+
+**Brain isolation (same league strength, City Home-winter):** naive opponent → beat 87.5 /
+game-win 79.9; adaptive → beat **46.0** / game-win 55.4. The brain alone is worth **~24.5
+game-win pts ≈ 41.5 beat pts** — season structure amplifies the per-match gap. Difficulty is
+genuinely two-axis (cards + brain), as designed (DL2).
+
+### 10.3 Env texture at the extremes (probe, N=2000, eyeball not gated)
+
+- **Club Practise** (`ENV_TOUR_MEAN=12.5`, frac 0.40): **120.5 avg / RR 6.89 / 8.2 wkts /
+  54.5% all-out** — weak club cricket, tail can't bat. Floor note (DL3): frac 0.40 < 0.5, so
+  the roster path's batting factor floors at 0.5 while bowling keeps falling — that's the
+  high wicket count. The league/season path (DL11, scalar) has no floor. True sub-0.4
+  "village" texture = lower the floor in a future rung.
+- **Province Premium** (`ENV_TOUR_MEAN=40.625`, frac 1.30): **167.2 / RR 8.76 / 5.3 wkts /
+  24.1% all-out** — the top of Nico's real-T20 band, batting-friendly as the card-rescale §10
+  predicted for high bands.
+
+### 10.4 Notes & seeds
+
+- Cells with equal d are identical simulations this rung (same seeds, d is the only input) —
+  e.g. City Practise ≡ Club Home-summer. Levels diverge when later rungs add per-cell ★
+  fields, pitch conditions (ideas backlog cluster 1), or formats.
+- The 0.5-d steps inside an Away block move beat-rate less than noise — if within-block
+  progression should *feel* distinct, that's a d-sheet/feel dial for playtest, not a bug.
+- DL9 held: no oracle defaults changed — joker floor 45.5%, prices, pay untouched.
+- Viz: `docs/mockups/difficulty-ladder-v1.html` (full-run DATA pasted, eyeballed ✓).
