@@ -250,6 +250,57 @@ Run after Stage B, all numbers recorded in §10:
 If mid-league drift exceeds a gate: it's a missed dial, not a re-tune target — find it (the
 Stage-A checkpoint should make this near-impossible).
 
-## 10. Findings (filled at close-out)
+## 10. Findings (close-out, 2026-06-11)
 
-*(recorded after the ledger runs)*
+### 10.1 Stage A — the rescale is exact
+`probe_scoring_env` after the full ×6.25 sweep (legacy grid snapped) printed **byte-identical**
+output to the `main` baseline — every digit: 154.7 mean / sd 39.2 / min-max 19-254 / RR 8.20 /
+6.27 wickets / all-out 30.1% / phase RR 9.72-6.57-7.47. The dial table in §3 is therefore
+provably complete. 435 tests green at the checkpoint.
+
+### 10.2 Stage B ledger (mid league)
+
+| Check | Peg | Measured | Verdict |
+|---|---|---|---|
+| Scoring env | 154.7 / 8.20 / 6.27 | **153.4 / 8.22 / 6.24** (sd 43.1, all-out 32.0) | ✓ in band; −1.3 runs = the proportional-noise widening (DR7), no re-peg |
+| Build spread | 2.0 pts | **1.9 pts** (46.6–48.5 across 7 builds) | ✓ |
+| Pay spread | ₸0.6 | **₸0.3** (66.7 / 67.0 / 67.0, fee share 49.3%) | ✓ after one-dial re-peg: `runs_rate` 0.4 → **0.45** (the noise change trimmed batter runs ~₸2) |
+| Side symmetry | mirrors 49–50.5 | 48.5–50.7 across all 5 arms | ✓ |
+| No-joker floor | 45.9% | *(see 10.3)* | |
+| Phase shape | PP fastest (known divergence) | PP 9.67 / mid 6.54 / death 7.31 | unchanged, watch-list stands |
+
+### 10.3 Joker bands + policy smoke
+Full 47-arm `sweep_jokers` (N=2000): **no-joker floor 45.5%** (peg 45.9 ±1 ✓). Every joker
+within ~1 pt of its published band — Legendaries: The Chase Master +8.0, The Review Master +7.8,
+Choke Hold +7.4, Power Surge +6.6, Death-Over Stranglehold +5.8; Rares in band (Carry Your Bat
++4.5, Dot Ball Pressure +4.5, Snicko +4.2, Captain's Call +3.8); known fire-rate/participation
+residuals unchanged (Wicket Maiden +1.9, Boundary Hunter +1.4); enablers read +0.0 as designed;
+no joker negative, none an auto-win; stacks shaped as before (Reviewer +36.5 › Boost +26.8 ›
+Batting +18.4); Chase Master fire-rate 50.5%. **No price re-interpolation needed** — logit-space
+effects rode through the rescale exactly as §2 predicted.
+
+`E2_QUICK` policy smoke (2.4 min): joint self-play converges (A `B/A/A·P/S/P+u11d5c4`,
+B `B/A/B·P/S/P`); adaptive-eq vs naive 72.3 / textbook 56.7 / balanced 55.3, hero transfer +3.7
+(53.0 vs 49.3). The +1.6-pt dethrone margin is below smoke resolution (N=300) — **re-anchor the
+E3 ladder with a full 25-min run when E3 starts** (recorded for the handoff).
+
+### 10.4 League texture (the new capability, eyeball record)
+`ENV_TOUR_MEAN` override added to the probe (permanent, for E3):
+- **Band 1** (mean 7.8125, factor 0.25 — top batter card 12.5, tail 1.6): **112.8 mean / RR 6.51
+  / 8.7 wkts / 60.5% all-out**, death (4.48) *slower* than PP (7.90) — the tail genuinely can't
+  bat. Reads like club cricket, not a degenerate sim. ✓
+- **Band 5** (mean 40.625, factor 1.3 — top batter 65): **167.2 / RR 8.76 / 5.31 wkts / 24.1%
+  all-out**. Elite. Note the asymmetry: batting scales multiplicatively, bowling linearly in the
+  logit — high bands lean batting-friendly; E3 tunes band means with this in hand.
+
+### 10.5 Decisions taken during the build (deviations from plan)
+- Team batting total is **712.5** (legacy 114 — the BB5 steep-tail split), not the 122 the
+  roadmap prose quoted; spec table corrected.
+- Plan Tasks 11+12 merged into one commit: switching the tools' `ref3` to `REF_SCALAR` without
+  the simultaneous factor change would have biased the probes mid-stream.
+- Gap-fill ships once (Task 6) with SCALE-chunk walks + a fractional final chunk — exact for
+  Stage A byte-identity AND for 5-grid creation deficits; no Stage-B re-step needed.
+- `test_match_resolver`'s star-directionality tour used a custom `spread = 3` the conversion
+  regex missed — under the snapped grid all stars collapsed to the mean (coin-flip win rates).
+  Caught by the suite; the lesson: **a units sweep needs a leftover-literal grep per dial, not
+  just per pattern** (the §3 dial list was the checklist that caught everything else).
