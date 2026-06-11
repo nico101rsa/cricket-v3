@@ -56,12 +56,12 @@ static func _resolve_toss(rng: RandomNumberGenerator) -> bool:
 # convexly more wickets than the same linear attack-over budget spread thin — without
 # it, bowling builds keep a residual win edge (spec §8.6 D14 / §9.5.3). Penalty only
 # applies when the Player bowls ABOVE the team average (player_stat > team_scalar).
-static func _conserved_bowling(team_scalar: float, n: int, player_stat: int, overs: int,
+static func _conserved_bowling(team_scalar: float, n: int, player_stat: float, overs: int,
 		concentration_k: float = 0.0) -> float:
 	if n <= 0 or n >= overs:
 		return team_scalar
 	var penalty := concentration_k * n * maxf(0.0, player_stat - team_scalar)
-	return maxf(1.0, (overs * team_scalar - n * player_stat - penalty) / float(overs - n))
+	return maxf(Attributes.SCALE, (overs * team_scalar - n * player_stat - penalty) / float(overs - n))
 
 # Team-bundled match: derive six strength ints from the two Teams + Tour, flip
 # the toss, then delegate to simulate_match(). Fixed RNG draw order (toss, then
@@ -134,10 +134,10 @@ static func simulate_match_teams(
 # innings passes null. Flat param list mirrors simulate_innings (spec §2).
 static func simulate_match(
 		player_attrs: Attributes,
-		player_team_batting: int,
+		player_team_batting: float,
 		player_team_attack: float,
 		player_team_control: float,
-		opp_batting: int,
+		opp_batting: float,
 		opp_attack: float,
 		opp_control: float,
 		player_bats_first: bool,
@@ -155,8 +155,8 @@ static func simulate_match(
 		opp_field_plan: FieldPlan = null,
 		player_roster: Array = [],
 		opp_roster: Array = [],
-		player_bat_offset: int = 0,
-		opp_bat_offset: int = 0,
+		player_bat_offset: float = 0.0,
+		opp_bat_offset: float = 0.0,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null,
 		opp_bowling_plan: BowlingPlan = null
@@ -169,8 +169,8 @@ static func simulate_match(
 	var p_bowl_overs := 0
 	if player_attrs != null:
 		p_bowl_overs = InningsResolver.player_overs(player_attrs, itun)
-	var p_bowl_attack := player_attrs.attack if player_attrs != null else 0
-	var p_bowl_control := player_attrs.control if player_attrs != null else 0
+	var p_bowl_attack := player_attrs.attack if player_attrs != null else 0.0
+	var p_bowl_control := player_attrs.control if player_attrs != null else 0.0
 
 	# Rotation activates when EITHER side supplies a plan; a side with a null
 	# plan rotates textbook() (the previous hardcoded opponent behaviour, now
@@ -181,11 +181,12 @@ static func simulate_match(
 	var ai_plan: BowlingPlan = null
 	var p_plan: BowlingPlan = null
 	if rotate:
-		# BowlingAttack works in integer pace/spin profiles; round the (now float) scalars.
-		# Rotation is opt-in and not used in the balance sweep, so exact conservation lives
-		# in the constant-scalar path below, not here.
-		opp_bowl = BowlingAttack.new(roundi(opp_attack), roundi(opp_control))
-		player_bowl = BowlingAttack.new(roundi(player_team_attack), roundi(player_team_control))
+		# STAGE A: profiles snapped to the legacy grid (old roundi(x) ≡ snap for scalars
+		# ×6.25) — Stage B passes the raw floats (card-rescale DR8). Rotation is opt-in and
+		# not used in the balance sweep, so exact conservation lives in the constant-scalar
+		# path below, not here.
+		opp_bowl = BowlingAttack.new(roundi(opp_attack / Attributes.SCALE) * Attributes.SCALE, roundi(opp_control / Attributes.SCALE) * Attributes.SCALE)
+		player_bowl = BowlingAttack.new(roundi(player_team_attack / Attributes.SCALE) * Attributes.SCALE, roundi(player_team_control / Attributes.SCALE) * Attributes.SCALE)
 		ai_plan = opp_bowling_plan if opp_bowling_plan != null else BowlingPlan.textbook()
 		p_plan = player_bowling_plan if player_bowling_plan != null else BowlingPlan.textbook()
 

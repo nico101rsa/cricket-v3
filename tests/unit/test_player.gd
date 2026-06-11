@@ -13,10 +13,10 @@ func test_from_draft_copies_identity_and_snapshots_attributes():
 	draft.appearance = Appearance.Bucket.INDIAN
 	var n := NamePair.new(); n.first_name = "Ricky"; n.surname = "Stumps"
 	draft.name = n
-	draft.attributes.power = 7
-	draft.attributes.composure = 6
-	draft.attributes.attack = 4
-	draft.attributes.control = 3  # sum = 20
+	draft.attributes.power = 43.75
+	draft.attributes.composure = 37.5
+	draft.attributes.attack = 25.0
+	draft.attributes.control = 18.75  # sum = 20
 
 	var p := Player.from_draft(draft)
 
@@ -24,8 +24,8 @@ func test_from_draft_copies_identity_and_snapshots_attributes():
 	assert_eq(p.country, Country.Code.AUS)
 	assert_eq(p.appearance, Appearance.Bucket.INDIAN)
 	assert_eq(p.name.surname, "Stumps")
-	assert_eq(p.attributes.power, 7)
-	assert_eq(p.starting_attributes.power, 7, "starting snapshot matches")
+	assert_eq(p.attributes.power, 43.75)
+	assert_eq(p.starting_attributes.power, 43.75, "starting snapshot matches")
 	assert_gt(p.created_at, 0, "created_at populated")
 
 func test_starting_attributes_are_independent_copy():
@@ -33,5 +33,5 @@ func test_starting_attributes_are_independent_copy():
 	var n := NamePair.new(); n.first_name = "X"; n.surname = "Y"
 	draft.name = n
 	var p := Player.from_draft(draft)
-	p.attributes.power = 8
-	assert_eq(p.starting_attributes.power, 5, "starting snapshot unaffected by later mutation")
+	p.attributes.power = 50.0
+	assert_eq(p.starting_attributes.power, 31.25, "starting snapshot unaffected by later mutation")

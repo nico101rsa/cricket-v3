@@ -8,7 +8,7 @@ const Attributes = preload("res://scripts/data/attributes.gd")
 const NamePair = preload("res://scripts/data/name_pair.gd")
 const Appearance = preload("res://scripts/domain/appearance.gd")
 
-func _legend(first: String, surname: String, pw: int, co: int, at: int, ct: int) -> LegendEntry:
+func _legend(first: String, surname: String, pw: float, co: float, at: float, ct: float) -> LegendEntry:
 	var p := Player.new()
 	var n := NamePair.new()
 	n.first_name = first; n.surname = surname
@@ -52,8 +52,8 @@ func test_hero_is_most_recent_and_count_reflects_size():
 	await get_tree().process_frame
 	# archive is oldest-first; the bowler is appended last -> hero
 	hof.render_archive(_archive([
-		_legend("Jonty", "Springer", 8, 8, 2, 2),   # oldest, batter
-		_legend("Dale", "Steyner", 2, 2, 8, 8),       # newest, bowler
+		_legend("Jonty", "Springer", 50.0, 50.0, 12.5, 12.5),   # oldest, batter
+		_legend("Dale", "Steyner", 12.5, 12.5, 50.0, 50.0),       # newest, bowler
 	]))
 	assert_eq(hof._count.text, "2 Legends")
 	assert_string_contains(hof._hero_name.text, "DALE STEYNER")
@@ -64,9 +64,9 @@ func test_earlier_list_has_n_minus_one_rows():
 	add_child_autofree(hof)
 	await get_tree().process_frame
 	hof.render_archive(_archive([
-		_legend("A", "One", 8, 8, 2, 2),
-		_legend("B", "Two", 8, 8, 2, 2),
-		_legend("C", "Three", 2, 2, 8, 8),
+		_legend("A", "One", 50.0, 50.0, 12.5, 12.5),
+		_legend("B", "Two", 50.0, 50.0, 12.5, 12.5),
+		_legend("C", "Three", 12.5, 12.5, 50.0, 50.0),
 	]))
 	assert_eq(hof._earlier_list.get_child_count(), 2)
 
@@ -74,7 +74,7 @@ func test_single_legend_has_zero_earlier_rows():
 	var hof = HallOfFame.instantiate()
 	add_child_autofree(hof)
 	await get_tree().process_frame
-	hof.render_archive(_archive([_legend("A", "One", 8, 8, 2, 2)]))
+	hof.render_archive(_archive([_legend("A", "One", 50.0, 50.0, 12.5, 12.5)]))
 	assert_eq(hof._earlier_list.get_child_count(), 0)
 
 func test_earlier_rows_are_laid_out_with_visible_height():
@@ -84,9 +84,9 @@ func test_earlier_rows_are_laid_out_with_visible_height():
 	add_child_autofree(hof)
 	await get_tree().process_frame
 	hof.render_archive(_archive([
-		_legend("A", "One", 8, 8, 2, 2),
-		_legend("B", "Two", 8, 8, 2, 2),
-		_legend("C", "Three", 2, 2, 8, 8),
+		_legend("A", "One", 50.0, 50.0, 12.5, 12.5),
+		_legend("B", "Two", 50.0, 50.0, 12.5, 12.5),
+		_legend("C", "Three", 12.5, 12.5, 50.0, 50.0),
 	]))
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -100,7 +100,7 @@ func test_hero_meta_and_strip_singularise_for_a_one_season_one_level_career():
 	var hof = HallOfFame.instantiate()
 	add_child_autofree(hof)
 	await get_tree().process_frame
-	var e := _legend("Solo", "Career", 5, 5, 5, 5)
+	var e := _legend("Solo", "Career", 31.25, 31.25, 31.25, 31.25)
 	e.seasons_played = 1
 	e.levels_won = 1
 	hof.render_archive(_archive([e]))
@@ -115,7 +115,7 @@ func test_hero_meta_keeps_plural_for_multiple_seasons_and_levels():
 	var hof = HallOfFame.instantiate()
 	add_child_autofree(hof)
 	await get_tree().process_frame
-	var e := _legend("Multi", "Career", 5, 5, 5, 5)
+	var e := _legend("Multi", "Career", 31.25, 31.25, 31.25, 31.25)
 	e.seasons_played = 3
 	e.levels_won = 2
 	hof.render_archive(_archive([e]))
@@ -131,8 +131,8 @@ func test_earlier_rows_never_overflow_the_scroll_width():
 	add_child_autofree(hof)
 	await get_tree().process_frame
 	hof.render_archive(_archive([
-		_legend("Bartholomew", "Cunningham-Smith", 5, 5, 5, 5),
-		_legend("Hero", "Latest", 2, 2, 8, 8),
+		_legend("Bartholomew", "Cunningham-Smith", 31.25, 31.25, 31.25, 31.25),
+		_legend("Hero", "Latest", 12.5, 12.5, 50.0, 50.0),
 	]))
 	await get_tree().process_frame
 	await get_tree().process_frame

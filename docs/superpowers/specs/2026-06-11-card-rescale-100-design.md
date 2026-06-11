@@ -64,9 +64,9 @@ single digits" = 1 old unit = 6.25 ✓.
 | Bowler card batting side (the BB5 tail) | 1/1 | 6.25/6.25 |
 | All-rounder card | 5/5/5/5 | 31.25 ×4 |
 | Card budget (any XI member / Player) | 20 | **125** |
-| Team batting total (gap-fill target) | 122 | 762.5 |
+| Team batting total (gap-fill target) | 114 (BB5 steep-tail split) | 712.5 |
 | Team bowling scalar (tour mean, internal) | 5 | 31.25 |
-| ★3 mid-tour scalar = the global card anchor `REF_SCALAR` | 5.3→5 | **33.125** (unrounded) |
+| ★3 mid-tour scalar = the global card anchor `REF_SCALAR` | 5.3→5 | **31.25** (★3-centred mapping, DR5) |
 
 The specialist bowler lands at 56, not 50: the bowler archetype is 1/1/9/9 because the
 **tail-steepening lever** (bowling-balance BB5, Nico's call, measured 2026-06-11) moved batting
@@ -113,10 +113,19 @@ deliberate behaviour changes of §5–§7. Mid-league drift is re-measured by th
 `_build_batters` does `power + offset`, floored at 1. Every card in a bad team is shifted down by
 the same amount and squashes into the floor — the worst league is texture-dead.
 
-**DR5 — replace the offset with a factor.**
-- New global constant `MatchResolver.REF_SCALAR := 33.125` — the mid-tour ★3 scalar
-  (= `percentile(3/5)` of the mid tour, unrounded), i.e. *the strength at which a card plays at
-  face value*. A ★3 team in the mid tour has factor ≈ 1.0 → top batter plays at 50.
+**DR5 — replace the offset with a factor, and centre the star map on ★3.**
+- The old pipeline *rounded* tour strength (★3 read `roundi(5.3) = 5`), so unrounding it would
+  silently hand mid-league bowling +0.3 old points — a known drift smuggled in by a units rung.
+  Instead the star→strength mapping is **re-centred on ★3** (the even-contest balance baseline):
+  `Team.strength_frac() = clampf((stars − 3.0) / 5.0 + 0.5, 0.0, 1.0)` replaces `stars / 5.0`
+  at both strength call sites — ★3 → frac 0.5 → **exactly the tour mean**, ★0.5 → 0.0,
+  ★5 → 0.9. (The old map's centre was ★2.75 and rounding blurred it; the top half-star band
+  compresses slightly — star-gap directional tests are threshold-based and stand.)
+- New global constant `MatchResolver.REF_SCALAR := 31.25` — the mid-tour ★3 scalar
+  (= the mid tour mean under the ★3-centred map), i.e. *the strength at which a card plays at
+  face value*. A ★3 team in the mid tour has factor 1.0 (± noise) → top batter plays at 50,
+  and the ★3 strength distribution {25, 31.25, 37.5} is byte-equal to the old {4,5,6} × 6.25 —
+  the strength pipeline itself contributes **zero** Stage-B drift.
 - `team_bat_factor = team_bat_scalar / REF_SCALAR` (float), threaded where `team_bat_offset`
   went (`simulate_innings`/`simulate_match` param `team_bat_offset: int` →
   `team_bat_factor: float = 1.0`).

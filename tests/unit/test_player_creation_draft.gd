@@ -28,6 +28,6 @@ func test_identity_complete_requires_all_three_picks_and_a_name():
 
 func test_attributes_default_to_balanced_all_rounder():
 	var d := PlayerCreationDraft.new()
-	assert_eq(d.attributes.power, 5)
-	assert_eq(d.attributes.sum(), 20)
+	assert_eq(d.attributes.power, 31.25)
+	assert_eq(d.attributes.sum(), 125.0)
 	assert_true(d.attributes.is_valid_creation_distribution())

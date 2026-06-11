@@ -1,7 +1,7 @@
 extends GutTest
 
 func test_pace_attack_tilted_spin_control_tilted() -> void:
-	var ba := BowlingAttack.new(5, 5)  # default tilt 2 -> pace (7,3), spin (3,7)
+	var ba := BowlingAttack.new(31.25, 31.25)  # default tilt 12.5 -> pace (43.75,18.75), spin (18.75,43.75)
 	var pace := ba.profile(BowlingPlan.Kind.PACE)
 	var spin := ba.profile(BowlingPlan.Kind.SPIN)
 	assert_gt(pace.x, pace.y, "pace: attack > control")
@@ -9,11 +9,11 @@ func test_pace_attack_tilted_spin_control_tilted() -> void:
 	assert_gt(pace.x, spin.x, "pace attack > spin attack")
 	assert_gt(spin.y, pace.y, "spin control > pace control")
 
-func test_profiles_floor_at_one() -> void:
-	var ba := BowlingAttack.new(1, 1)  # tilt 2 would push to -1; must clamp to 1
+func test_profiles_floor_at_one_legacy_point() -> void:
+	var ba := BowlingAttack.new(6.25, 6.25)  # tilt 12.5 would push negative; must clamp to SCALE
 	var pace := ba.profile(BowlingPlan.Kind.PACE)
 	var spin := ba.profile(BowlingPlan.Kind.SPIN)
-	assert_gte(pace.x, 1, "pace attack >= 1")
-	assert_gte(pace.y, 1, "pace control floored at 1")
-	assert_gte(spin.x, 1, "spin attack floored at 1")
-	assert_gte(spin.y, 1, "spin control >= 1")
+	assert_gte(pace.x, 6.25, "pace attack >= SCALE")
+	assert_gte(pace.y, 6.25, "pace control floored at SCALE")
+	assert_gte(spin.x, 6.25, "spin attack floored at SCALE")
+	assert_gte(spin.y, 6.25, "spin control >= SCALE")

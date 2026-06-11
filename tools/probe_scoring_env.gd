@@ -13,8 +13,8 @@ func _init() -> void:
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var tour := TourDistribution.new()
-	tour.mean = 5
-	tour.spread = 1.5
+	tour.mean = 31.25
+	tour.spread = 9.375
 	tour.noise = 1
 	var pol := PolicySearch.textbook()
 	var totals: Array = []

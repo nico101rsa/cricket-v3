@@ -17,14 +17,14 @@ func _init() -> void:
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var tour := TourDistribution.new()
-	tour.mean = 5
-	tour.spread = 1.5   # matches the tuned default (flatter underdog drop-off)
+	tour.mean = 31.25
+	tour.spread = 9.375   # matches the tuned default (flatter underdog drop-off)
 	tour.noise = 1
 	var player := Attributes.new()
-	player.power = 5
-	player.composure = 5
-	player.attack = 5
-	player.control = 5
+	player.power = 31.25
+	player.composure = 31.25
+	player.attack = 31.25
+	player.control = 31.25
 
 	var stars := [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
 	var n := 300

@@ -10,8 +10,10 @@ const RUN_VALUES: Array[int] = [0, 1, 2, 3, 4, 6]
 
 # --- Stage 1: wicket log-odds = base_w + k_w*(attack - composure) + intent_w[intent]
 @export var base_w: float = -3.3174  # ln(0.035/0.965): even contest ~3.5%/ball
-@export var k_w: float = 0.24        # gain per attribute point of bowler advantage.
-                                     # Tuned 0.42 -> 0.24 (2026-06-08): the old gain let a
+@export var k_w: float = 0.0384      # gain per attribute point of bowler advantage.
+                                     # = 0.24 / Attributes.SCALE — card-rescale 2026-06-11 (DR1):
+                                     # attributes x6.25, gains /6.25 -> logits bit-equal.
+                                     # History: tuned 0.42 -> 0.24 (2026-06-08): the old gain let a
                                      # 4-over specialist take ~3.17 wkts/match (unreal) and made
                                      # an 8-composure batter near-immortal (avg ~141). At 0.24 the
                                      # specialist takes ~1.9 wkts (elite-realistic) and the batting
@@ -22,7 +24,7 @@ const RUN_VALUES: Array[int] = [0, 1, 2, 3, 4, 6]
 @export var base_r: float = 0.2  # was 0.0; BB11 environment re-peg after the steep
                                   # tail pulled the textbook-mirror mean to 149 — lifts
                                   # scoring ~6 runs back into the 150-167 band
-@export var k_r: float = 0.34
+@export var k_r: float = 0.0544   # = 0.34 / Attributes.SCALE (card-rescale DR1)
 @export var intent_r: Array[float] = [-0.75, 0.0, 0.80]
 
 # Runs distributions (aligned to RUN_VALUES), blended DEF->AGG by s.

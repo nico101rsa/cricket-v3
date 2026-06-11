@@ -12,8 +12,8 @@ var _tour: TourDistribution
 
 func _init() -> void:
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 
 	var arms := [

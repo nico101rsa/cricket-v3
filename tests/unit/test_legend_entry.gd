@@ -17,12 +17,12 @@ func _player(spw, sco, sat, sct, fpw, fco, fat, fct) -> Player:
 
 func test_start_role_reads_starting_attributes():
 	var e := LegendEntry.new()
-	e.player = _player(8, 8, 2, 2, 8, 8, 2, 2)  # batter-shaped start
+	e.player = _player(50.0, 50.0, 12.5, 12.5, 50.0, 50.0, 12.5, 12.5)  # batter-shaped start
 	assert_eq(e.start_role(), ClassifierLabel.Kind.BATTER)
 
 func test_end_role_reads_final_attributes_and_can_differ():
 	var e := LegendEntry.new()
-	e.player = _player(8, 8, 2, 2, 2, 2, 8, 8)  # batter start, bowler-drifted end
+	e.player = _player(50.0, 50.0, 12.5, 12.5, 12.5, 12.5, 50.0, 50.0)  # batter start, bowler-drifted end
 	assert_eq(e.start_role(), ClassifierLabel.Kind.BATTER)
 	assert_eq(e.end_role(), ClassifierLabel.Kind.BOWLER)
 

@@ -36,12 +36,12 @@ func test_load_player_returns_null_when_no_save_exists():
 
 func test_save_then_load_returns_equivalent_player():
 	var p := _make_player()
-	p.attributes.power = 7
+	p.attributes.power = 43.75
 	sm.save_player(p)
 	var loaded = sm.load_player()
 	assert_not_null(loaded)
 	assert_eq(loaded.name.first_name, "Jonty")
-	assert_eq(loaded.attributes.power, 7)
+	assert_eq(loaded.attributes.power, 43.75)
 
 func test_clear_player_removes_save():
 	sm.save_player(_make_player())
