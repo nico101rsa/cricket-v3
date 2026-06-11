@@ -34,4 +34,4 @@ func test_starting_attributes_are_independent_copy():
 	draft.name = n
 	var p := Player.from_draft(draft)
 	p.attributes.power = 50.0
-	assert_eq(p.starting_attributes.power, 31.25, "starting snapshot unaffected by later mutation")
+	assert_eq(p.starting_attributes.power, 35.0, "starting snapshot unaffected by later mutation (draft default 35/30/30/30)")
