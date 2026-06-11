@@ -8,4 +8,4 @@ extends RefCounted
 # modify it. Strawman, balance-tunable. See spec 2026-06-08-…-7cC2f-drs-design.md.
 
 var base_reviews: int = 2
-var base_p: float = 0.4
+var base_p: float = 0.32

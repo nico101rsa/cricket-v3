@@ -57,10 +57,10 @@ static func implemented_groups() -> Array:
 				BallResolver.Intent.BALANCED)]),
 		_g("carry_your_bat", "Carry Your Bat", "Rare", [
 			JokerEffect.make("carry_your_bat", "Carry Your Bat", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.85,
+				JokerEffect.Side.BATTING, JokerEffect.Target.WICKET, 0.78,
 				BallResolver.Intent.DEFENSIVE),
 			JokerEffect.make("carry_your_bat", "Carry Your Bat", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.12,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.16,
 				BallResolver.Intent.DEFENSIVE)]),
 		_g("slog_over_specialist", "Slog Over Specialist", "Rare", [
 			JokerEffect.make("slog_over_specialist", "Slog Over Specialist", "Rare",
@@ -73,10 +73,10 @@ static func implemented_groups() -> Array:
 				-1, 1, 120, FieldPlan.Mode.DEFENSIVE)]),
 		_g("dot_ball_pressure", "Dot Ball Pressure", "Rare", [
 			JokerEffect.make("dot_ball_pressure", "Dot Ball Pressure", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.12,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.18,
 				-1, 1, 120, FieldPlan.Mode.DEFENSIVE),
 			JokerEffect.make("dot_ball_pressure", "Dot Ball Pressure", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.88,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.84,
 				-1, 1, 120, FieldPlan.Mode.DEFENSIVE)]),
 		_g("cordon_killer", "Cordon Killer", "Common", [
 			JokerEffect.make("cordon_killer", "Cordon Killer", "Common",
@@ -96,7 +96,7 @@ static func implemented_groups() -> Array:
 		# #22 Choke Hold (Legendary, multi-buff): defensive field + Defensive captain.
 		_g("choke_hold", "Choke Hold", "Legendary", [
 			JokerEffect.make("choke_hold", "Choke Hold", "Legendary",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.75,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.72,
 				-1, 1, 120, FieldPlan.Mode.DEFENSIVE, BallResolver.Intent.DEFENSIVE),
 			JokerEffect.make("choke_hold", "Choke Hold", "Legendary",
 				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.15,
@@ -115,13 +115,13 @@ static func implemented_groups() -> Array:
 		# #29 Wicket Maiden: Player wicket while bowling -> wicket x1.30 for 6 balls.
 		_g("wicket_maiden", "Wicket Maiden", "Rare", [
 			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.45,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.WICKET, 1.55,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6),
 			# Mechanic-change rung: economy/dot-pressure row. Extra wicket-chance only
 			# pays off if a wicket falls; conceding fewer runs always converts. Same
 			# 6-ball post-wicket window. Thematically a wicket-maiden = wicket + no runs.
 			JokerEffect.make("wicket_maiden", "Wicket Maiden", "Rare",
-				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.62,
+				JokerEffect.Side.BOWLING, JokerEffect.Target.RUNS, 0.55,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.FORM_BOWL, 6)]),
 		# #14 Hot Streak (multi-buff): 2 Form events within 6 balls (batting) ->
 		# runs x1.30 AND wicket x0.85 for 6 balls.
@@ -184,7 +184,7 @@ static func implemented_groups() -> Array:
 			_boost("the_comeback_press", "The Comeback Press", "Legendary", JokerEffect.BoostRole.COMEBACK)]),
 		# --- C2f: DRS / tryReview (Reviewer archetype) ---
 		_g("cool_head", "Cool Head", "Common", [
-			_drs("cool_head", "Cool Head", "Common", JokerEffect.DRSRole.ACCURACY, 0.10)]),
+			_drs("cool_head", "Cool Head", "Common", JokerEffect.DRSRole.ACCURACY, 0.05)]),
 		_g("captains_eye", "Captain's Eye", "Common", [
 			_drs("captains_eye", "Captain's Eye", "Common", JokerEffect.DRSRole.ACCURACY, 0.20,
 				BallResolver.Intent.DEFENSIVE)]),
@@ -193,7 +193,7 @@ static func implemented_groups() -> Array:
 		_g("hot_spot", "Hot Spot", "Common", [
 			_drs("hot_spot", "Hot Spot", "Common", JokerEffect.DRSRole.FORM_ON_SUCCESS, 0.0)]),
 		_g("snicko", "Snicko", "Rare", [
-			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.12)]),
+			_drs("snicko", "Snicko", "Rare", JokerEffect.DRSRole.ACCURACY, 0.08)]),
 		_g("the_captains_call", "The Captain's Call", "Rare", [
 			_drs("the_captains_call", "The Captain's Call", "Rare", JokerEffect.DRSRole.RETAIN, 0.0)]),
 		_g("bowlers_backing", "Bowler's Backing", "Rare", [
@@ -213,7 +213,7 @@ static func implemented_groups() -> Array:
 		# #13 Boundary Hunter: a Form event snaps the Player's intent to Aggressive.
 		_g("boundary_hunter", "Boundary Hunter", "Rare", [
 			JokerEffect.make("boundary_hunter", "Boundary Hunter", "Rare",
-				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.0,
+				JokerEffect.Side.BATTING, JokerEffect.Target.RUNS, 1.10,
 				-1, 1, 120, -1, -1, -1, JokerEffect.Trigger.NONE, 0, -1,
 				JokerEffect.BoostRole.NONE, JokerEffect.DRSRole.NONE, 0.0,
 				JokerEffect.FormSource.NONE, BallResolver.Intent.AGGRESSIVE)]),

@@ -157,10 +157,11 @@ func test_wicket_maiden_bowling_trigger() -> void:
 			runs_row = e
 	assert_not_null(wicket_row, "has a wicket row")
 	assert_not_null(runs_row, "has an economy (runs) row")
-	assert_almost_eq(wicket_row.mult, 1.45, 0.0001, "wicket ×1.45")
-	# Economy tuned to 0.62: lifts the joker +1.0% -> +4.0% (Rare floor); economy
-	# converts where extra wicket-chance can't (it only pays if a wicket falls).
-	assert_almost_eq(runs_row.mult, 0.62, 0.0001, "economy: runs ×0.62")
+	assert_almost_eq(wicket_row.mult, 1.55, 0.0001, "wicket ×1.55 (bowling-balance band re-tune)")
+	# Economy 0.62 -> 0.55 (bowling-balance band re-tune: the steep tail moved the
+	# realized delta to +1.7, below Rare floor); economy converts where extra
+	# wicket-chance can't (it only pays if a wicket falls).
+	assert_almost_eq(runs_row.mult, 0.55, 0.0001, "economy: runs ×0.55")
 	assert_lt(runs_row.mult, 1.0, "economy concedes fewer runs")
 
 func test_hot_streak_two_double_rows() -> void:

@@ -170,10 +170,10 @@ func test_boost_compound_needs_aggressive() -> void:
 	var rt := JokerRuntime.new()
 	rt.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
 	assert_almost_eq(rt.tick_mults(true).y, 1.0, 0.0001, "balanced -> no compound")
-	# Aggressive press -> runs x1.40 and wicket x0.85.
+	# Aggressive press -> runs x1.55 and wicket x0.85 (bowling-balance band re-tune).
 	var rt2 := JokerRuntime.new()
 	rt2.on_boost_press([_boost(JokerEffect.BoostRole.COMPOUND)], true, BallResolver.Intent.AGGRESSIVE, 1.0, 6, 1)
-	assert_almost_eq(rt2.tick_mults(true).y, 1.40, 0.0001, "aggressive -> runs x1.40")
+	assert_almost_eq(rt2.tick_mults(true).y, 1.55, 0.0001, "aggressive -> runs x1.55")
 	assert_almost_eq(rt2.tick_mults(true).x, 0.85, 0.0001, "aggressive -> wicket x0.85")
 
 func test_boost_pedal_enables_compound() -> void:
@@ -181,7 +181,7 @@ func test_boost_pedal_enables_compound() -> void:
 	var rt := JokerRuntime.new()
 	var jk := [_boost(JokerEffect.BoostRole.COMPOUND), _boost(JokerEffect.BoostRole.PEDAL)]
 	rt.on_boost_press(jk, true, BallResolver.Intent.BALANCED, 1.0, 6, 1)
-	assert_almost_eq(rt.tick_mults(true).y, 1.40, 0.0001, "pedal -> aggressive -> compound fires")
+	assert_almost_eq(rt.tick_mults(true).y, 1.55, 0.0001, "pedal -> aggressive -> compound fires")
 
 func test_boost_adrenaline_chains_form() -> void:
 	# Boost Adrenaline fires a Form event, which triggers a Form joker (Ride the Wave).
