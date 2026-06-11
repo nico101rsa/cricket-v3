@@ -34,6 +34,18 @@ static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
 		overs.append(clampi(roundi((i + 0.5) * float(total_overs) / float(n)), 1, total_overs))
 	return overs
 
+# A kind's phase effectiveness bonus for a 1-based over (BB1). Pure.
+static func phase_bonus(kind: int, over: int, itun: InningsTuning) -> float:
+	var ph := IntentPlan.phase_of(over)
+	return itun.pace_phase_bonus[ph] if kind == BowlingPlan.Kind.PACE else itun.spin_phase_bonus[ph]
+
+# The over's effective bowling profile: kind profile + that kind's phase bonus
+# on both stats (BB1), floored at 1.0. Pure; unit-tested directly.
+static func phased_profile(attack: BowlingAttack, kind: int, over: int, itun: InningsTuning) -> Vector2:
+	var prof := attack.profile(kind)
+	var bonus := phase_bonus(kind, over, itun)
+	return Vector2(maxf(1.0, prof.x + bonus), maxf(1.0, prof.y + bonus))
+
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
@@ -116,6 +128,7 @@ static func simulate_innings(
 	var balls := 0
 	var total := 0
 	var fall: Array = []
+	var phase_runs: Array = [0, 0, 0]  # BB11 — runs per [PP, middle, death]
 	var player_overs_set: Array[int] = []
 	if player_bowler_overs > 0:
 		player_overs_set = player_bowling_overs(player_bowler_overs, itun.over_limit)
@@ -152,14 +165,25 @@ static func simulate_innings(
 			prev_intent = intent
 		var bat_attack := opp_attack
 		var bat_control := opp_control
+		var bowler_type := -1  # current over's BowlingPlan.Kind (C2d/BB3); -1 = no rotation
+		if bowling_plan != null:
+			bowler_type = bowling_plan.for_over(over)
 		if bowling_attack != null and bowling_plan != null:
-			var prof := bowling_attack.profile(bowling_plan.for_over(over))
+			var prof := phased_profile(bowling_attack, bowler_type, over, itun)
 			bat_attack = prof.x
 			bat_control = prof.y
 		var player_bowling := player_bowler_overs > 0 and player_overs_set.has(over)
 		if player_bowling:
 			bat_attack = player_bowler_attack
 			bat_control = player_bowler_control
+			# BB4 (reversed 2026-06-11): the hero bowls WITHIN the rotation — their
+			# overs inherit the plan kind's phase bonus, or the team pays a hidden
+			# ~3.5-run/match tax on bowling-capable builds (measured, spec §10).
+			# The Player's own pace/spin identity stays deferred (D4).
+			if bowling_plan != null:
+				var pb := phase_bonus(bowler_type, over, itun)
+				bat_attack = maxf(1.0, bat_attack + pb)
+				bat_control = maxf(1.0, bat_control + pb)
 		var field_mode := FieldPlan.Mode.NEUTRAL
 		if field_plan != null:
 			field_mode = field_plan.for_over(over)
@@ -170,9 +194,6 @@ static func simulate_innings(
 		var bowl_intent := -1  # the bowling captain's intent (C2b); -1 = none set
 		if bowl_intent_plan != null:
 			bowl_intent = bowl_intent_plan.for_over(over)
-		var bowler_type := -1  # current over's BowlingPlan.Kind (C2d); -1 = no rotation
-		if bowling_plan != null:
-			bowler_type = bowling_plan.for_over(over)
 		# C2d — a setNextBowler event fires at each spell start (overs 1/7/16) while
 		# the Player captains the bowling (opposition batting innings), pushing buffs
 		# that apply from this over onward (so before tick_mults below).
@@ -189,7 +210,8 @@ static func simulate_innings(
 		var opp_win := opp_runtime.tick_mults(opp_is_batting)  # DF2 — opponent base buffs
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
-			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y)
+			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y,
+			bowler_type)
 		# C2f — DRS: a review can overturn a close decision (see below).
 		# A review mutates o, then the existing wicket/runs handling takes over.
 		# RNG is consumed only when a review is actually attempted (a policy +
@@ -259,6 +281,7 @@ static func simulate_innings(
 		else:
 			s["runs"] += o.runs
 			total += o.runs
+			phase_runs[IntentPlan.phase_of(over)] += o.runs
 			if o.runs % 2 == 1:
 				var tmp := striker
 				striker = nonstriker
@@ -269,4 +292,4 @@ static func simulate_innings(
 			striker = nonstriker
 			nonstriker = tmp2
 
-	return InningsResult.new(total, wickets, balls, fall, batters, pb_wickets, pb_runs, pb_balls)
+	return InningsResult.new(total, wickets, balls, fall, batters, pb_wickets, pb_runs, pb_balls, phase_runs)

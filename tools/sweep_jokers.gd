@@ -249,7 +249,10 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	# DF1 — the opponent bats with the same intent plan as the Player (symmetric tempo).
 	# Chase profile forces the Player to bat 2nd (force=0) so is_chase fires; standard uses the toss.
 	var force := 0 if _profile == "chase" else -1
-	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan(), _opp_boost_plan(), _opp_drs_policy(), force)
+	# DF1 + bowling-balance BB1: the opponent bowls the SAME P/S/S plan — with the
+	# phase-dependent tilt the two plans must match, or the floor measures plan
+	# quality, not fairness (the textbook default read ~10 win pts over P/S/S).
+	var m := MatchResolver.simulate_match_teams(a, pt, ot, _tour, _tuning, _itun, rng, _intent_plan(), _bowling_plan(), config, _field_plan(), _bowl_intent_plan(), _intent_plan(), _boost_plan(), _drs_policy(), _opp_field_plan(), _opp_boost_plan(), _opp_drs_policy(), force, _bowling_plan())
 	var p_inn := m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
 	var o_inn := m.innings2 if p_inn == m.innings1 else m.innings1
 	var line := p_inn.player_line()

@@ -27,25 +27,26 @@
 // ₸100 × min(bat-balls/20, bowl-balls/24) — the minor discipline's balls count more → any build earns ~equal.
 const DATA = {
 	income: [
-		{name: 'batter 8/8/2/2', pay: 66.6, season: 533, win: 48.7},
-		{name: 'bowler 2/2/8/8', pay: 66.6, season: 533, win: 48.6},
-		{name: 'balanced 5/5/5/5', pay: 66.4, season: 531, win: 48.0},
+		// post-bowling-balance environment (2026-06-11): sr_par_pay 125, wicket_rate 10
+		{name: 'batter 8/8/2/2', pay: 66.2, season: 529, win: 49.4},
+		{name: 'bowler 2/2/8/8', pay: 66.4, season: 531, win: 50.2},
+		{name: 'balanced 5/5/5/5', pay: 65.8, season: 527, win: 48.5},
 	],
 	priceLadder: [
-		// post-DRS-teamwide-fix deltas (2026-06-10, floor 48.9%)
+		// post-bowling-balance deltas (2026-06-11, symmetric-plan floor 45.9%)
 		{name: 'Dead Bat (band-floor Common)', price: 30, rarity: 'Common'},
-		{name: 'Cool Head (+4.8%)', price: 50, rarity: 'Common'},
-		{name: 'Snicko (+5.5%)', price: 105, rarity: 'Rare'},
-		{name: "The Captain's Call (+4.2%)", price: 90, rarity: 'Rare'},
-		{name: 'The Chase Master (realized +7.0%)', price: 220, rarity: 'Legendary'},
-		{name: 'The Review Master (+9.0%)', price: 230, rarity: 'Legendary'},
+		{name: 'Cool Head (+1.6%)', price: 35, rarity: 'Common'},
+		{name: 'Snicko (+4.1%)', price: 90, rarity: 'Rare'},
+		{name: "The Captain's Call (+3.5%, borderline)", price: 90, rarity: 'Rare'},
+		{name: 'The Chase Master (realized +7.7%)', price: 225, rarity: 'Legendary'},
+		{name: 'The Review Master (+8.0%)', price: 225, rarity: 'Legendary'},
 	],
-	seasonIncome: 531, // balanced build ×8 matches (performance contract + versatility)
+	seasonIncome: 527, // balanced build ×8 matches (performance contract + versatility)
 	roi: [
-		{name: 'Cool Head (Common ₸50)', tonsPerWinPoint: 10.4},
-		{name: "The Captain's Call (Rare ₸90)", tonsPerWinPoint: 21.4},
-		{name: 'The Review Master (Legendary ₸230)', tonsPerWinPoint: 25.6},
-		{name: '+1 power attribute (₸50, per Season over ~3 Seasons)', tonsPerWinPoint: 37.0},
+		{name: 'Cool Head (Common ₸35)', tonsPerWinPoint: 21.9},
+		{name: "The Captain's Call (Rare ₸90)", tonsPerWinPoint: 25.7},
+		{name: 'The Review Master (Legendary ₸225)', tonsPerWinPoint: 28.1},
+		{name: '+1 power attribute (₸50, per Season over ~3 Seasons)', tonsPerWinPoint: 55.6},
 	],
 };
 function bars(el, title, rows, valueKey, fmt, colorFn, maxOverride) {

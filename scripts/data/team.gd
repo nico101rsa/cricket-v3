@@ -39,6 +39,13 @@ func mutate_stars(rng: RandomNumberGenerator) -> void:
 # Archetypes are strawman 20-point builds (harness-tunable). Each call returns a
 # FRESH Attributes so callers never share mutable state.
 
+# Tail-steepened split (bowling-balance BB5, Nico's lever 2026-06-11): the
+# BOWLER's batting drops 2/2 -> 1/1 so the card falls off a cliff after the
+# all-rounder — each top-order wicket walks the innings toward a near-useless
+# tail, making wickets more expensive. The BATTER stays 8/8/2/2: a fully
+# sharpened 9/9 top order saturated the scoring curve and blew the build-
+# equality spread to 4.6 pts (measured 2026-06-11), so only the tail half of
+# the lever ships. Both archetypes remain exactly 20-point builds.
 static func archetype_batter() -> Attributes:
 	var a := Attributes.new()
 	a.power = 8; a.composure = 8; a.attack = 2; a.control = 2
@@ -46,7 +53,7 @@ static func archetype_batter() -> Attributes:
 
 static func archetype_bowler() -> Attributes:
 	var a := Attributes.new()
-	a.power = 2; a.composure = 2; a.attack = 8; a.control = 8
+	a.power = 1; a.composure = 1; a.attack = 9; a.control = 9
 	return a
 
 static func archetype_allrounder() -> Attributes:

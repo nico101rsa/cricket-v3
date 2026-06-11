@@ -13,13 +13,24 @@ var powerplay: int = BallResolver.Intent.BALANCED  # overs 1..6
 var middle: int = BallResolver.Intent.BALANCED     # overs 7..15
 var death: int = BallResolver.Intent.BALANCED      # overs 16..20
 
+# Phase index for a 1-based over: 0 = Powerplay, 1 = middle, 2 = death.
+# Single source of truth for phase boundaries (BB2, bowling-balance spec).
+static func phase_of(over: int) -> int:
+	if over <= POWERPLAY_OVERS:
+		return 0
+	if over < DEATH_START_OVER:
+		return 1
+	return 2
+
 # 1-based over number -> Intent band for that over.
 func for_over(over: int) -> int:
-	if over <= POWERPLAY_OVERS:
-		return powerplay
-	if over < DEATH_START_OVER:
-		return middle
-	return death
+	match IntentPlan.phase_of(over):
+		0:
+			return powerplay
+		1:
+			return middle
+		_:
+			return death
 
 # Neutral baseline: BALANCED in every phase (== the pre-rung-4a hardcode).
 static func balanced() -> IntentPlan:

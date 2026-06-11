@@ -19,7 +19,7 @@ const BOOST_COMEBACK_MULT := 1.50  # The Comeback Press (3rd press)
 const BOOST_COMEBACK_N := 6
 const BOOST_COMEBACK_PRESS := 3
 const BOOST_BATTERY_MULT := 1.10   # Boost Battery kicker
-const BOOST_COMPOUND_BONUS := 1.40  # Compounding Pressure (favourable roll)
+const BOOST_COMPOUND_BONUS := 1.55  # Compounding Pressure (favourable roll)
 const BOOST_COMPOUND_GUARD := 0.85  # Compounding Pressure (defensive roll)
 
 # Active buffs: each {side:int, target:int, mult:float, balls_left:int}.

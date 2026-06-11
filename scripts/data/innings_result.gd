@@ -16,8 +16,13 @@ var player_bowl_wickets: int
 var player_bowl_runs: int
 var player_bowl_balls: int
 
+# Runs scored per phase [Powerplay, middle, death] (IntentPlan.phase_of buckets).
+# Always sums to total. BB11 — feeds the scoring-environment probe (and a future
+# score worm).
+var phase_runs: Array = [0, 0, 0]
+
 func _init(p_total: int = 0, p_wickets: int = 0, p_balls: int = 0, p_fall: Array = [], p_batters: Array = [],
-		p_bowl_wickets: int = 0, p_bowl_runs: int = 0, p_bowl_balls: int = 0) -> void:
+		p_bowl_wickets: int = 0, p_bowl_runs: int = 0, p_bowl_balls: int = 0, p_phase_runs: Array = []) -> void:
 	total = p_total
 	wickets = p_wickets
 	balls = p_balls
@@ -26,6 +31,8 @@ func _init(p_total: int = 0, p_wickets: int = 0, p_balls: int = 0, p_fall: Array
 	player_bowl_wickets = p_bowl_wickets
 	player_bowl_runs = p_bowl_runs
 	player_bowl_balls = p_bowl_balls
+	if not p_phase_runs.is_empty():
+		phase_runs = p_phase_runs
 
 # The Player's batting row, or {} if the Player did not feature.
 func player_line() -> Dictionary:

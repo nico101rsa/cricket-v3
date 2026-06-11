@@ -26,3 +26,14 @@ extends Resource
 # linear budget assumes). 0 = pure linear conservation. Calibrated to flatten the
 # bowling-build win edge (spec §9.5.3). See MatchResolver._conserved_bowling.
 @export var bowl_concentration_k: float = 0.5
+
+# Per-kind phase effectiveness bonus (BB1, bowling-balance spec), added to BOTH
+# attack and control at the profile lookup, indexed by IntentPlan.phase_of
+# [PP, middle, death]. Mirrored signs keep the per-phase sum across kinds ~zero.
+# Real-T20 shape: pace owns the Powerplay + death, spin owns the middle
+# (E1 spec §10.3, Nico's benchmarks).
+# ±1.5 (was strawman ±0.7): the base ±2 style tilt is control-dominated, so a
+# small swing never flips the per-phase buy — at ±1.5 pace's PP/death economy
+# pulls within ~1 control point of spin while keeping a ~7-point attack edge.
+@export var pace_phase_bonus: Array[float] = [1.5, -1.5, 1.5]
+@export var spin_phase_bonus: Array[float] = [-1.5, 1.5, -1.5]

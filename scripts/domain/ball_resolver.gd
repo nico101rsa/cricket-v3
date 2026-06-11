@@ -33,10 +33,18 @@ static func resolve_ball(
 		tuning: BallTuning,
 		rng: RandomNumberGenerator,
 		wicket_mult: float = 1.0,
-		runs_mult: float = 1.0
+		runs_mult: float = 1.0,
+		bowler_kind: int = -1
 ) -> BallOutcome:
 	# Stage 1 — wicket roll (Composure vs Attack), in log-odds; jokers scale p_wicket.
-	var logit_w := tuning.base_w + tuning.k_w * (bowl_attack - bat_composure) + tuning.intent_w[intent]
+	# bowler_kind (BowlingPlan.Kind, -1 = unknown) adds the intent x kind matchup
+	# term (BB3) — e.g. slogging spin carries extra wicket risk.
+	var matchup := 0.0
+	if bowler_kind == BowlingPlan.Kind.PACE:
+		matchup = tuning.matchup_w_pace[intent]
+	elif bowler_kind == BowlingPlan.Kind.SPIN:
+		matchup = tuning.matchup_w_spin[intent]
+	var logit_w := tuning.base_w + tuning.k_w * (bowl_attack - bat_composure) + tuning.intent_w[intent] + matchup
 	var p_wicket := clampf(_sigmoid(logit_w) * wicket_mult, 0.0, 1.0)
 	if rng.randf() < p_wicket:
 		return BallOutcome.new(true, 0)

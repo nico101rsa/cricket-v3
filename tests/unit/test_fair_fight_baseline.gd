@@ -34,16 +34,21 @@ func test_default_review_count_is_two() -> void:
 	assert_eq(DRSPolicy.new().base_reviews, 2, "base_reviews default should be 2 (T20 rule)")
 
 # DF4: the opponent's own boost buffs the opponent's batting innings (more runs).
+# Summed over 30 paired seeds (was a single seed-7 innings, which tied 109-109
+# when the bowling-balance rung re-pegged base_r — a one-seed coin flip).
 func test_opponent_boost_lifts_opponent_innings() -> void:
 	var boost := BoostPlan.at([1, 10, 16])
 	# player_is_batting = false -> this is the opponent's batting innings.
-	var base := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
-		0, 0, 0, [], false)
-	var boosted := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
-		0, 0, 0, [], false, null, null, null, null, null, [], 0, boost, null)
-	assert_gt(boosted.total, base.total, "opponent boost should lift the opponent's score")
+	var base_sum := 0
+	var boosted_sum := 0
+	for seed_value in range(1, 31):
+		base_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value), 0, null, null, null,
+			0, 0, 0, [], false).total
+		boosted_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value), 0, null, null, null,
+			0, 0, 0, [], false, null, null, null, null, null, [], 0, boost, null).total
+	assert_gt(boosted_sum, base_sum, "opponent boost should lift the opponent's score")
 
 # DF5: the opponent reviews to survive its own dismissals (base rule, no jokers).
 func test_opponent_drs_saves_opponent_wickets() -> void:

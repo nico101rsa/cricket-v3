@@ -303,8 +303,11 @@ func test_sheet_anchor_adds_form_events() -> void:
 	var plan := _agg_bal_agg()
 	var rtw := _ride_the_wave()
 	var combo := _ride_the_wave() + [_sheet_anchor()]
+	# N=600 (was 200): the bowling-balance base_r re-peg re-rolled this paired
+	# comparison below its old signal floor (one extra ~6-ball window per innings
+	# is a small effect against full-innings divergence noise).
 	var rtw_r := 0; var combo_r := 0
-	for i in range(200):
+	for i in range(600):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
 		rtw_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, plan, null, null, 0, 0, 0, rtw, true).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
