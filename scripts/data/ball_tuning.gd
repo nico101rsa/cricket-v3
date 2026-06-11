@@ -19,7 +19,9 @@ const RUN_VALUES: Array[int] = [0, 1, 2, 3, 4, 6]
 @export var intent_w: Array[float] = [-0.55, 0.0, 0.60]  # [defensive, balanced, aggressive]
 
 # --- Stage 2: scoring strength s = sigmoid(base_r + k_r*(power - control) + intent_r[intent])
-@export var base_r: float = 0.0
+@export var base_r: float = 0.2  # was 0.0; BB11 environment re-peg after the steep
+                                  # tail pulled the textbook-mirror mean to 149 — lifts
+                                  # scoring ~6 runs back into the 150-167 band
 @export var k_r: float = 0.34
 @export var intent_r: Array[float] = [-0.75, 0.0, 0.80]
 
