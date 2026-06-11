@@ -124,3 +124,15 @@ func test_sharpened_tail_is_steeper() -> void:
 	assert_eq(bat.power, 9, "sharpened batter power 9")
 	assert_eq(bowl.power, 1, "sharpened bowler power 1")
 	assert_eq(bowl.attack, 9, "sharpened bowler attack 9")
+
+# BB11 — per-phase runs on InningsResult (scoring-environment probe + future
+# score worm). The three buckets must always sum to the innings total.
+func test_phase_runs_sum_to_total() -> void:
+	for seed_value in range(1, 30):
+		var r := InningsResolver.simulate_innings(null, 5, 5, 5, _bt, _it, _rng(seed_value))
+		assert_eq(r.phase_runs[0] + r.phase_runs[1] + r.phase_runs[2], r.total,
+			"phase runs sum to total (seed %d)" % seed_value)
+
+func test_phase_runs_default_zeros() -> void:
+	var r := InningsResult.new()
+	assert_eq(r.phase_runs, [0, 0, 0], "bare InningsResult has zeroed phase buckets")

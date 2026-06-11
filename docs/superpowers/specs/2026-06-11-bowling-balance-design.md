@@ -100,6 +100,7 @@ Either lever may also end up *partially* applied (e.g. tail sharpening adopted a
 | **BB8** | Deferred: MEDIUM kind, pitch/conditions, Player bowling kind, husbanding, deeper intent re-shape (E2). | §10.3 seed + scope discipline. |
 | **BB9** | Scalar path byte-identical: no `bowling_plan` ⇒ no tilt; `bowler_kind=-1` ⇒ no matchup. | Protects the entire pre-rotation test base and the joker unit tests. |
 | **BB10** | All new dials are exported tuning data (InningsTuning / BallTuning), never literals in resolvers. | Harness convention since rung 1. |
+| **BB11** | Scoring environment is an acceptance rail: textbook mirror first-innings mean **150–167** @ RR 8–9, wickets ~5–7, phases ordered; permanent oracle `tools/probe_scoring_env.gd`. | Nico (2026-06-11): the wicket-cost/tilt levers move the average T20 score; balance = structure AND environment, anchored to his real benchmarks. |
 
 ## 6. Acceptance criteria (the tuning loop's exit)
 
@@ -109,7 +110,10 @@ Tuning loop: adjust `*_phase_bonus`, `matchup_w_*`, then BB5 levers; judge on `E
 2. **All-AGG no longer dominates textbook:** textbook vs A/A/A (same rotation) head-to-head within **±5 points** of even (was ~−20).
 3. **Textbook is competitive:** the iteration-0 best-response gain over textbook ≤ **8 points** (was ~+20 to all-AGG·all-spin), and textbook's mirror stays ~48–49 (sanity).
 4. **Skill gap survives (ADR 0003):** best-found vs naive still ≥ ~+15 points over mirror — depth restored must not flatten decisions into irrelevance.
-5. **Scalar regression tests all green** (byte-identity, BB9) and the full suite ≥ 397 + new tests.
+5. **Scoring environment stays real (BB11, Nico 2026-06-11):** the rung's levers (sharpened top order, phase bonuses, matchup term) all move the run environment, so it is re-anchored to Nico's real-T20 benchmarks: textbook-vs-textbook **first-innings mean 150–167** (global T20 first-innings average band), **run rate ~8–9/over**, wickets/innings **~5–7** as a sanity rail. Phase run rates are *recorded* (real shape: PP ~8.3 / mid ~7.6 / death ~9.9) but not gated this rung — see §10. Measured by a new permanent oracle `tools/probe_scoring_env.gd`; tune `BallTuning` scoring dials (`base_r`/distributions) ONLY if outside the band — win-structure dials stay where acceptance put them.
+6. **Scalar regression tests all green** (byte-identity, BB9) and the full suite ≥ 397 + new tests.
+
+**The full balance ledger this rung must leave healthy** (the rung touches the core, so every layer above re-verifies): (1) scoring environment §6.5 · (2) phase shape §6.5 · (3) strategy depth §6.1–6.3 · (4) skill gap §6.4 · (5) build equality win+pay §7 · (6) joker bands+prices §7 · (7) DRS side symmetry §7.
 
 ## 7. Ripple verification (BB7, after acceptance passes)
 

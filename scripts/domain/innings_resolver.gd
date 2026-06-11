@@ -129,6 +129,7 @@ static func simulate_innings(
 	var balls := 0
 	var total := 0
 	var fall: Array = []
+	var phase_runs: Array = [0, 0, 0]  # BB11 — runs per [PP, middle, death]
 	var player_overs_set: Array[int] = []
 	if player_bowler_overs > 0:
 		player_overs_set = player_bowling_overs(player_bowler_overs, itun.over_limit)
@@ -273,6 +274,7 @@ static func simulate_innings(
 		else:
 			s["runs"] += o.runs
 			total += o.runs
+			phase_runs[IntentPlan.phase_of(over)] += o.runs
 			if o.runs % 2 == 1:
 				var tmp := striker
 				striker = nonstriker
@@ -283,4 +285,4 @@ static func simulate_innings(
 			striker = nonstriker
 			nonstriker = tmp2
 
-	return InningsResult.new(total, wickets, balls, fall, batters, pb_wickets, pb_runs, pb_balls)
+	return InningsResult.new(total, wickets, balls, fall, batters, pb_wickets, pb_runs, pb_balls, phase_runs)
