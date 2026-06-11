@@ -4,11 +4,11 @@ extends RefCounted
 # Pure function: maps an Attributes distribution to a flavour label.
 # Thresholds are V1 strawman (spec §3.5) — Theme 7 balance harness will tune.
 
-const BATTER_HI := 6       # Power AND Composure must be ≥ this for Batter family
-const BOWLER_HI := 6       # Attack AND Control must be ≥ this for Bowler
-const BATTER_LO := 4       # Attack AND Control must be ≤ this for Batter family
-const BOWLER_LO := 4       # Power AND Composure must be ≤ this for Bowler
-const WK_GAP    := 2       # Composure - Power must be ≥ this for WK refinement
+const BATTER_HI := 37.5    # Power AND Composure must be ≥ this for Batter family (6 legacy × 6.25, card-rescale 2026-06-11)
+const BOWLER_HI := 37.5    # Attack AND Control must be ≥ this for Bowler
+const BATTER_LO := 25.0    # Attack AND Control must be ≤ this for Batter family (4 × 6.25)
+const BOWLER_LO := 25.0    # Power AND Composure must be ≤ this for Bowler
+const WK_GAP    := 12.5    # Composure - Power must be ≥ this for WK refinement (2 × 6.25)
 
 static func classify(a: Attributes) -> int:
 	var bat_family := a.power >= BATTER_HI \

@@ -16,19 +16,19 @@ func _init() -> void:
 	_tuning = BallTuning.new()
 	_itun = InningsTuning.new()
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 	_etun = EconomyTuning.new()
 
 	var arms: Array = [
-		{"name": "batter 8/8/2/2", "config": {"power": 8, "composure": 8, "attack": 2, "control": 2}},
-		{"name": "balanced 5/5/5/5", "config": {"power": 5, "composure": 5, "attack": 5, "control": 5}},
-		{"name": "bowler 2/2/8/8", "config": {"power": 2, "composure": 2, "attack": 8, "control": 8}},
-		{"name": "+1 power 6/5/5/5", "config": {"power": 6, "composure": 5, "attack": 5, "control": 5}},
-		{"name": "+1 composure 5/6/5/5", "config": {"power": 5, "composure": 6, "attack": 5, "control": 5}},
-		{"name": "+1 attack 5/5/6/5", "config": {"power": 5, "composure": 5, "attack": 6, "control": 5}},
-		{"name": "+1 control 5/5/5/6", "config": {"power": 5, "composure": 5, "attack": 5, "control": 6}},
+		{"name": "batter 50/50/12.5/12.5", "config": {"power": 50.0, "composure": 50.0, "attack": 12.5, "control": 12.5}},
+		{"name": "balanced 31.25 x4", "config": {"power": 31.25, "composure": 31.25, "attack": 31.25, "control": 31.25}},
+		{"name": "bowler 12.5/12.5/50/50", "config": {"power": 12.5, "composure": 12.5, "attack": 50.0, "control": 50.0}},
+		{"name": "+6.25 power", "config": {"power": 37.5, "composure": 31.25, "attack": 31.25, "control": 31.25}},
+		{"name": "+6.25 composure", "config": {"power": 31.25, "composure": 37.5, "attack": 31.25, "control": 31.25}},
+		{"name": "+6.25 attack", "config": {"power": 31.25, "composure": 31.25, "attack": 37.5, "control": 31.25}},
+		{"name": "+6.25 control", "config": {"power": 31.25, "composure": 31.25, "attack": 31.25, "control": 37.5}},
 	]
 
 	var n := 2000

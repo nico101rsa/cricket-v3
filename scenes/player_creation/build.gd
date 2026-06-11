@@ -35,8 +35,8 @@ func _ready() -> void:
 	for s in [_power_slider, _composure_slider, _attack_slider, _control_slider]:
 		s.min_value = Attributes.CREATION_MIN
 		s.max_value = Attributes.CREATION_MAX
-		s.step = 1
-		s.value = 5
+		s.step = 5    # card-rescale DR10: the /100 budget is spent in 5-point blocks
+		s.value = 30
 		s.value_changed.connect(_on_slider_changed)
 	_back_btn.pressed.connect(func(): back_pressed.emit(_draft))
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
@@ -45,10 +45,10 @@ func _ready() -> void:
 	_push_draft_to_ui()
 
 func _on_slider_changed(_v: float) -> void:
-	_draft.attributes.power     = int(_power_slider.value)
-	_draft.attributes.composure = int(_composure_slider.value)
-	_draft.attributes.attack    = int(_attack_slider.value)
-	_draft.attributes.control   = int(_control_slider.value)
+	_draft.attributes.power     = _power_slider.value
+	_draft.attributes.composure = _composure_slider.value
+	_draft.attributes.attack    = _attack_slider.value
+	_draft.attributes.control   = _control_slider.value
 	_refresh_readouts()
 
 func _push_draft_to_ui() -> void:
@@ -74,14 +74,14 @@ func _refresh_recap() -> void:
 	_recap_label.text = "%s · %s · %s" % [name_text, _draft.city, country_key]
 
 func _refresh_readouts() -> void:
-	_power_readout.text     = str(_draft.attributes.power)
-	_composure_readout.text = str(_draft.attributes.composure)
-	_attack_readout.text    = str(_draft.attributes.attack)
-	_control_readout.text   = str(_draft.attributes.control)
+	_power_readout.text     = str(int(round(_draft.attributes.power)))
+	_composure_readout.text = str(int(round(_draft.attributes.composure)))
+	_attack_readout.text    = str(int(round(_draft.attributes.attack)))
+	_control_readout.text   = str(int(round(_draft.attributes.control)))
 
 	var remaining := Attributes.CREATION_TOTAL - _draft.attributes.sum()
-	_points_label.text = "POINTS REMAINING: %d / %d" % [remaining, Attributes.CREATION_TOTAL]
-	_points_label.modulate = Color.WHITE if remaining == 0 else Color(1, 0.3, 0.3)
+	_points_label.text = "POINTS REMAINING: %d / %d" % [int(round(remaining)), int(round(Attributes.CREATION_TOTAL))]
+	_points_label.modulate = Color.WHITE if is_zero_approx(remaining) else Color(1, 0.3, 0.3)
 
 	var label := Classifier.classify(_draft.attributes)
 	_classifier_label.text = "YOUR PLAYER IS A: %s" % ClassifierLabel.display_name(label)

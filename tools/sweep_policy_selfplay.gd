@@ -41,8 +41,8 @@ func _init() -> void:
 	_tuning = BallTuning.new()
 	_itun = InningsTuning.new()
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 	_policies = PolicySearch.enumerate()
 
@@ -193,10 +193,10 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var m: MatchResult
 	if config.get("hero", false):
 		var a := Attributes.new()
-		a.power = 5
-		a.composure = 5
-		a.attack = 5
-		a.control = 5
+		a.power = 31.25
+		a.composure = 31.25
+		a.attack = 31.25
+		a.control = 31.25
 		var pt := Team.new()
 		pt.stars = 3.0
 		var ot := Team.new()
@@ -220,7 +220,6 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		var a_bowl := pt2.bowling_strength(_tour, rng)
 		var b_bat := ot2.batting_strength(_tour, rng)
 		var b_bowl := ot2.bowling_strength(_tour, rng)
-		var ref3 := _tour.percentile(3.0 / 5.0)
 		m = MatchResolver.simulate_match(
 			null,
 			a_bat, a_bowl, a_bowl,
@@ -229,7 +228,7 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 			PolicySearch.intent_plan_of(pol_a), PolicySearch.bowling_plan_of(pol_a),
 			[], null, null,
 			PolicySearch.intent_plan_of(pol_b), null, null, null,
-			Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
+			Team.standard_xi(), Team.standard_xi(), a_bat / MatchResolver.REF_SCALAR, b_bat / MatchResolver.REF_SCALAR,
 			null, null,
 			PolicySearch.bowling_plan_of(pol_b))
 

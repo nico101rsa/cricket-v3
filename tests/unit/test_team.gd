@@ -1,6 +1,6 @@
 extends GutTest
 
-func _tour(mean: int, spread: int, noise: int) -> TourDistribution:
+func _tour(mean: float, spread: float, noise: int) -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = mean
 	t.spread = spread
@@ -18,11 +18,11 @@ func _rng(seed_value: int) -> RandomNumberGenerator:
 	return r
 
 func test_stronger_stars_higher_mean_strength() -> void:
-	var tour := _tour(5, 3, 1)
+	var tour := _tour(31.25, 18.75, 1)
 	var strong := _team(5.0)
 	var weak := _team(1.0)
-	var strong_sum := 0
-	var weak_sum := 0
+	var strong_sum := 0.0
+	var weak_sum := 0.0
 	var n := 200
 	for s in range(n):
 		strong_sum += strong.batting_strength(tour, _rng(s))
@@ -30,21 +30,21 @@ func test_stronger_stars_higher_mean_strength() -> void:
 	assert_gt(strong_sum, weak_sum, "5.0 stars derives higher batting than 1.0 stars on average")
 
 func test_noise_bounded_and_floored() -> void:
-	var tour := _tour(5, 3, 1)
-	var tm := _team(5.0)            # percentile(1.0) == 8
+	var tour := _tour(31.25, 18.75, 1)
+	var tm := _team(5.0)            # strength_frac 0.9 -> percentile == 46.25
 	for s in range(50):
 		var v := tm.bowling_strength(tour, _rng(s))
-		assert_true(v >= 7 and v <= 9, "5.0-star strength within mean+spread +- noise (got %d)" % v)
-	# Floor: a tiny band + lowest star can push below 1; must clamp to 1.
-	var tiny := _tour(1, 1, 5)     # percentile(0.1) == roundi(1 + (0.1-0.5)*2*1) == 0
+		assert_true(v >= 40.0 and v <= 52.5, "5.0-star strength within percentile(0.9) +- noise (got %f)" % v)
+	# Floor: a tiny band + lowest star can push below one legacy point; must clamp to SCALE.
+	var tiny := _tour(6.25, 6.25, 5)     # strength_frac(0.5*) = 0.0 -> percentile = 0.0
 	var cellar := _team(0.5)
 	for s in range(50):
-		assert_true(cellar.batting_strength(tiny, _rng(s)) >= 1, "strength floored at 1")
+		assert_true(cellar.batting_strength(tiny, _rng(s)) >= Attributes.SCALE, "strength floored at one legacy point")
 
 func test_zero_noise_matches_percentile() -> void:
-	var tour := _tour(5, 3, 0)
-	assert_eq(_team(5.0).batting_strength(tour, _rng(1)), tour.percentile(1.0), "5.0 stars, no noise -> percentile(1.0)")
-	assert_eq(_team(0.5).bowling_strength(tour, _rng(1)), tour.percentile(0.1), "0.5 stars, no noise -> percentile(0.1)")
+	var tour := _tour(31.25, 18.75, 0)
+	assert_eq(_team(5.0).batting_strength(tour, _rng(1)), tour.percentile(0.9), "5.0 stars, no noise -> percentile(strength_frac=0.9)")
+	assert_eq(_team(0.5).bowling_strength(tour, _rng(1)), tour.percentile(0.0), "0.5 stars, no noise -> percentile(strength_frac=0.0)")
 
 func test_mutate_stars_distribution() -> void:
 	var unchanged := 0
@@ -76,38 +76,39 @@ func test_mutate_stars_clamped() -> void:
 		lo.mutate_stars(_rng(s))
 		assert_gte(lo.stars, 0.5, "never below 0.5")
 
-func test_archetypes_are_valid_20pt_builds() -> void:
-	# NPC archetypes keep the 20-point budget but are exempt from the
-	# Player-creation per-attribute cap [1,8] (bowling-balance BB5: the
-	# BOWLER's 1/1/9/9 split steepens the tail so wickets cost more).
+func test_archetypes_are_valid_125pt_builds() -> void:
+	# NPC archetypes keep the 125-point budget but are exempt from the
+	# Player-creation per-attribute cap [5,50] (bowling-balance BB5: the
+	# BOWLER's 6.25/6.25/56.25/56.25 split steepens the tail so wickets cost
+	# more; card-rescale 2026-06-11 = legacy values × 6.25).
 	for a in [Team.archetype_batter(), Team.archetype_bowler(), Team.archetype_allrounder()]:
-		assert_eq(a.sum(), 20, "archetype is a 20-point build")
+		assert_eq(a.sum(), 125.0, "archetype is a 125-point build")
 	var bat := Team.archetype_batter()
-	assert_eq([bat.power, bat.composure, bat.attack, bat.control], [8, 8, 2, 2], "BATTER 8/8/2/2")
+	assert_eq([bat.power, bat.composure, bat.attack, bat.control], [50.0, 50.0, 12.5, 12.5], "BATTER 50/50/12.5/12.5")
 	var bwl := Team.archetype_bowler()
-	assert_eq([bwl.power, bwl.composure, bwl.attack, bwl.control], [1, 1, 9, 9], "BOWLER 1/1/9/9 (steep tail, BB5)")
+	assert_eq([bwl.power, bwl.composure, bwl.attack, bwl.control], [6.25, 6.25, 56.25, 56.25], "BOWLER 6.25/6.25/56.25/56.25 (steep tail, BB5)")
 	var ar := Team.archetype_allrounder()
-	assert_eq([ar.power, ar.composure, ar.attack, ar.control], [5, 5, 5, 5], "ALLROUNDER 5/5/5/5")
+	assert_eq([ar.power, ar.composure, ar.attack, ar.control], [31.25, 31.25, 31.25, 31.25], "ALLROUNDER 31.25 x4")
 
 func test_standard_xi_shape_and_point_split() -> void:
 	var xi := Team.standard_xi()
 	assert_eq(xi.size(), 11, "a full XI of 11 players")
 	for i in range(6):
-		assert_eq(xi[i].power, 8, "slots 1..6 are top-order batters (power 8)")
-	assert_eq(xi[6].power, 5, "slot 7 is the all-rounder")
+		assert_eq(xi[i].power, 50.0, "slots 1..6 are top-order batters (power 50)")
+	assert_eq(xi[6].power, 31.25, "slot 7 is the all-rounder")
 	for i in range(7, 11):
-		assert_eq(xi[i].power, 1, "slots 8..11 are bowlers (power 1, steep tail BB5)")
-	var bat_pts := 0
-	var bowl_pts := 0
+		assert_eq(xi[i].power, 6.25, "slots 8..11 are bowlers (power 6.25, steep tail BB5)")
+	var bat_pts := 0.0
+	var bowl_pts := 0.0
 	for p in xi:
 		bat_pts += p.power + p.composure
 		bowl_pts += p.attack + p.control
-	assert_eq(bat_pts, 114, "team batting points = 114 (steep-tail split, BB5)")
-	assert_eq(bowl_pts, 106, "team bowling points = 106 (steep-tail split, BB5)")
+	assert_eq(bat_pts, 712.5, "team batting points = 712.5 (legacy 114 x SCALE, BB5 split)")
+	assert_eq(bowl_pts, 662.5, "team bowling points = 662.5 (legacy 106 x SCALE, BB5 split)")
 
 func test_build_xi_places_player_at_position() -> void:
 	var player := Attributes.new()
-	player.power = 7; player.composure = 6; player.attack = 4; player.control = 3
+	player.power = 43.75; player.composure = 37.5; player.attack = 25.0; player.control = 18.75
 	var xi := Team.build_xi(player, 3)
 	assert_eq(xi.size(), 11, "still a full XI")
 	assert_true(xi[2] == player, "the Player object sits at 1-based position 3")
@@ -119,26 +120,54 @@ func test_build_xi_places_player_at_position() -> void:
 
 # --- Slice 3: batting budget conservation (gap-fill, D11) ---------------------
 
-func _bat_pts(xi: Array) -> int:
-	var t := 0
+func _bat_pts(xi: Array) -> float:
+	var t := 0.0
 	for a in xi:
 		t += a.power + a.composure
 	return t
 
 func test_build_xi_conserves_team_batting_total() -> void:
 	var itun := InningsTuning.new()
-	for cfg in [[8, 8, 2, 2], [5, 5, 5, 5], [2, 2, 8, 8], [7, 6, 4, 3], [3, 3, 7, 7]]:
+	for cfg in [[50.0, 50.0, 12.5, 12.5], [31.25, 31.25, 31.25, 31.25], [12.5, 12.5, 50.0, 50.0], [43.75, 37.5, 25.0, 18.75], [18.75, 18.75, 43.75, 43.75]]:
 		var p := Attributes.new()
 		p.power = cfg[0]; p.composure = cfg[1]; p.attack = cfg[2]; p.control = cfg[3]
 		var ppos := InningsResolver.player_position(p, itun)
 		var xi := Team.build_xi(p, ppos)
-		assert_eq(_bat_pts(xi), 114, "team batting conserved to 114 for build %s (steep-tail split, BB5)" % str(cfg))
+		assert_almost_eq(_bat_pts(xi), 712.5, 1e-6, "team batting conserved to 712.5 for build %s (BB5 split)" % str(cfg))
+
+func test_build_xi_conserves_fractional_deficit_exactly() -> void:
+	# Card-rescale DR9: a build off the legacy grid (e.g. the creation 5-grid)
+	# leaves a fractional deficit; the gap-fill's fractional final chunk must
+	# conserve it exactly.
+	var itun := InningsTuning.new()
+	var p := Attributes.new()
+	p.power = 35.0; p.composure = 30.0; p.attack = 30.0; p.control = 30.0
+	var ppos := InningsResolver.player_position(p, itun)
+	var xi := Team.build_xi(p, ppos)
+	assert_almost_eq(_bat_pts(xi), 712.5, 1e-6, "fractional deficit conserved exactly")
 
 func test_build_xi_leaves_player_attrs_untouched() -> void:
 	var p := Attributes.new()
-	p.power = 2; p.composure = 2; p.attack = 8; p.control = 8
+	p.power = 12.5; p.composure = 12.5; p.attack = 50.0; p.control = 50.0
 	var ppos := InningsResolver.player_position(p, InningsTuning.new())
 	var xi := Team.build_xi(p, ppos)
-	assert_eq(p.power, 2, "Player power untouched by gap-fill")
-	assert_eq(p.composure, 2, "Player composure untouched by gap-fill")
+	assert_eq(p.power, 12.5, "Player power untouched by gap-fill")
+	assert_eq(p.composure, 12.5, "Player composure untouched by gap-fill")
 	assert_true(xi[ppos - 1] == p, "Player still at their slot, by reference")
+
+# --- Card-rescale Stage B: the *3-centred star map (DR5) ----------------------
+
+func test_strength_frac_is_star3_centred():
+	var t := _team(3.0)
+	assert_almost_eq(t.strength_frac(), 0.5, 1e-9, "*3 = the tour centre (the balance anchor)")
+	t.stars = 0.5
+	assert_almost_eq(t.strength_frac(), 0.0, 1e-9, "*0.5 = band floor")
+	t.stars = 5.0
+	assert_almost_eq(t.strength_frac(), 0.9, 1e-9, "*5 sits inside the band top")
+
+func test_star3_zero_noise_strength_is_ref_scalar():
+	var t := _team(3.0)
+	var tour := TourDistribution.new()
+	tour.noise = 0
+	assert_almost_eq(t.batting_strength(tour, _rng(1)), MatchResolver.REF_SCALAR, 1e-9,
+		"a *3 mid-tour team plays its cards at face value")

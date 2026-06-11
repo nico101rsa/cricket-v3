@@ -19,8 +19,8 @@ func _init() -> void:
 	_tuning = BallTuning.new()
 	_itun = InningsTuning.new()
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 
 	var groups := JokerCatalog.implemented_groups()
@@ -243,7 +243,7 @@ func _opp_drs_policy() -> DRSPolicy:
 
 func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a := Attributes.new()
-	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	a.power = 31.25; a.composure = 31.25; a.attack = 31.25; a.control = 31.25
 	var pt := Team.new(); pt.stars = 3.0
 	var ot := Team.new(); ot.stars = 3.0
 	# DF1 — the opponent bats with the same intent plan as the Player (symmetric tempo).

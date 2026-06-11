@@ -15,17 +15,19 @@ func _init() -> void:
 	_tuning = BallTuning.new()
 	_itun = InningsTuning.new()
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 	_rtun = RatingTuning.new()
 
 	var arms: Array = []
-	for b in range(8, 1, -1):  # 8,7,6,5,4,3,2 -> full-batting ... full-bowling
+	for b in range(8, 1, -1):  # legacy 8,7,...,2 -> full-batting ... full-bowling
 		var w := 10 - b
+		var bs := b * Attributes.SCALE   # card-rescale: builds live on /100
+		var ws := w * Attributes.SCALE
 		arms.append({
-			"name": "%d/%d/%d/%d" % [b, b, w, w],
-			"config": {"power": b, "composure": b, "attack": w, "control": w},
+			"name": "%2d/%2d" % [int(bs), int(ws)],
+			"config": {"power": bs, "composure": bs, "attack": ws, "control": ws},
 		})
 
 	var n := 2000

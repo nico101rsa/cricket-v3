@@ -3,8 +3,8 @@ extends Resource
 
 # A star-rated side. Per-Match batting & bowling strengths derive from
 # (stars, tour, small noise) per ADR 0009: tour.percentile(stars/5) + noise,
-# two independent draws, floored at 1. The Markov star-mutation rule lives in
-# 7b-2. See spec 2026-06-07-season-wrapper-7b1-design.md §3.
+# two independent draws, floored at one legacy point (SCALE). The Markov
+# star-mutation rule lives in 7b-2. See spec 2026-06-07-season-wrapper-7b1-design.md §3.
 
 const STARS_MIN := 0.5
 const STARS_MAX := 5.0
@@ -16,11 +16,19 @@ const MUTATE_SWING := 0.35          # cumulative: P(+-0.5) = 0.30; else no chang
 @export var stars: float = 2.5                # on the 0.5..5.0 half-step set
 @export var last_season_event: String = ""    # ADR 0009 flavour; unused this rung
 
-func batting_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> int:
-	return maxi(1, tour.percentile(stars / STARS_MAX) + rng.randi_range(-tour.noise, tour.noise))
+# The star -> band-fraction map, centred on ★3 (card-rescale DR5): ★3 is the
+# even-contest balance baseline, so it sits exactly ON the tour mean — a ★3
+# mid-tour team plays its cards at face value (factor 1.0). ★0.5 -> 0.0,
+# ★5 -> 0.9 (the top half-star band sits inside the spread). The legacy
+# stars/5 map centred on ★2.75 and the old integer snap blurred it.
+func strength_frac() -> float:
+	return clampf((stars - 3.0) / 5.0 + 0.5, 0.0, 1.0)
 
-func bowling_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> int:
-	return maxi(1, tour.percentile(stars / STARS_MAX) + rng.randi_range(-tour.noise, tour.noise))
+func batting_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
+
+func bowling_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
 
 # Mutate stars Markov-style at a Season rollover (ADR 0009). Two RNG draws
 # (magnitude, then direction), clamped to [0.5, 5.0]. Catastrophic flavour string
@@ -40,29 +48,32 @@ func mutate_stars(rng: RandomNumberGenerator) -> void:
 # FRESH Attributes so callers never share mutable state.
 
 # Tail-steepened split (bowling-balance BB5, Nico's lever 2026-06-11): the
-# BOWLER's batting drops 2/2 -> 1/1 so the card falls off a cliff after the
-# all-rounder — each top-order wicket walks the innings toward a near-useless
-# tail, making wickets more expensive. The BATTER stays 8/8/2/2: a fully
-# sharpened 9/9 top order saturated the scoring curve and blew the build-
+# BOWLER's batting drops 2/2 -> 1/1 (legacy units) so the card falls off a cliff
+# after the all-rounder — each top-order wicket walks the innings toward a
+# near-useless tail, making wickets more expensive. The BATTER stays 8/8/2/2: a
+# fully sharpened 9/9 top order saturated the scoring curve and blew the build-
 # equality spread to 4.6 pts (measured 2026-06-11), so only the tail half of
-# the lever ships. Both archetypes remain exactly 20-point builds.
+# the lever ships. Card-rescale 2026-06-11: all values ×6.25 on the /100 scale —
+# every archetype is exactly a 125-point build (the BB5 asymmetry preserved,
+# spec DR2: bowler bowling reads 56.25, not a round 50).
 static func archetype_batter() -> Attributes:
 	var a := Attributes.new()
-	a.power = 8; a.composure = 8; a.attack = 2; a.control = 2
+	a.power = 50.0; a.composure = 50.0; a.attack = 12.5; a.control = 12.5
 	return a
 
 static func archetype_bowler() -> Attributes:
 	var a := Attributes.new()
-	a.power = 1; a.composure = 1; a.attack = 9; a.control = 9
+	a.power = 6.25; a.composure = 6.25; a.attack = 56.25; a.control = 56.25
 	return a
 
 static func archetype_allrounder() -> Attributes:
 	var a := Attributes.new()
-	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	a.power = 31.25; a.composure = 31.25; a.attack = 31.25; a.control = 31.25
 	return a
 
 # The fixed standard XI, in batting order: 6 BATTER, 1 ALLROUNDER, 4 BOWLER.
-# Point split = (122 batting / 98 bowling) per spec §4.2. Used unchanged by the
+# Point split = (712.5 batting / 662.5 bowling, legacy 114/106 × SCALE, BB5
+# steep-tail split). Used unchanged by the
 # opponent, and as the template the Player slots into (build_xi).
 static func standard_xi() -> Array:
 	var xi: Array = []
@@ -86,27 +97,31 @@ static func build_xi(player_attrs: Attributes, ppos: int) -> Array:
 	return xi
 
 # Spread `deficit` batting points across the 10 non-Player slots so the team
-# batting total lands back on 122. Walks the order TOP -> TAIL so the top-up lands
-# on the high-leverage top order (where runs actually get scored — tail points
-# barely face balls), alternating composure then power per sweep. Floors each stat
-# at 1. The Player slot (index ppos-1) is never touched. The top-first distribution
-# is a calibration lever (spec §8.6 D14).
-static func _apply_batting_gapfill(xi: Array, ppos: int, deficit: int) -> void:
-	if deficit == 0:
+# batting total lands back on the standard 712.5 (= legacy 114 × SCALE, BB5 split). Walks the
+# order TOP -> TAIL so the top-up lands on the high-leverage top order (where runs
+# actually get scored — tail points barely face balls), alternating composure then
+# power per sweep, in one-legacy-point (SCALE) chunks with a fractional final
+# chunk so any float deficit conserves exactly (card-rescale DR9). Floors each
+# stat at SCALE while docking (can strand deficit, same as the integer era). The
+# Player slot (index ppos-1) is never touched. The top-first distribution is a
+# calibration lever (spec §8.6 D14).
+static func _apply_batting_gapfill(xi: Array, ppos: int, deficit: float) -> void:
+	if is_zero_approx(deficit):
 		return
-	var step := 1 if deficit > 0 else -1
-	var remaining := absi(deficit)
+	var dir := 1.0 if deficit > 0.0 else -1.0
+	var remaining := absf(deficit)
 	var slots: Array[int] = []
 	for i in range(0, 11):   # 0 -> 10, top to tail
 		if i != ppos - 1:
 			slots.append(i)
 	var idx := 0
-	while remaining > 0:
+	while remaining > 0.0:
+		var step := minf(Attributes.SCALE, remaining)   # final chunk is fractional (DR9)
 		var slot: int = slots[idx % slots.size()]
 		var a: Attributes = xi[slot]
 		if (idx / slots.size()) % 2 == 1:   # sweep 0 = composure, sweep 1 = power, ...
-			a.power = maxi(1, a.power + step)
+			a.power = maxf(Attributes.SCALE, a.power + step * dir)
 		else:
-			a.composure = maxi(1, a.composure + step)
-		remaining -= 1
+			a.composure = maxf(Attributes.SCALE, a.composure + step * dir)
+		remaining -= step
 		idx += 1

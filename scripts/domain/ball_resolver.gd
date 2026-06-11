@@ -25,8 +25,8 @@ static func _sigmoid(x: float) -> float:
 # Resolve one delivery. Consumes rng in fixed order: wicket roll always; runs
 # roll only if the ball is survived. Same seed + same inputs -> same outcome.
 static func resolve_ball(
-		bat_power: int,
-		bat_composure: int,
+		bat_power: float,
+		bat_composure: float,
 		bowl_attack: float,
 		bowl_control: float,
 		intent: Intent,

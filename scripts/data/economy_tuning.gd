@@ -11,7 +11,9 @@ extends Resource
 @export var star_pay_slope: float = 5.0   # ₸ less per ★ above 3 — stronger Teams pay less (CONTEXT §Tons)
 
 # Batting components
-@export var runs_rate: float = 0.4        # ₸ per run scored
+@export var runs_rate: float = 0.45      # ₸ per run scored (0.4->0.45 at card-rescale: the
+                                          # proportional-noise env trimmed batter runs ~₸2 vs
+                                          # bowling pay — one-dial re-peg, spread back ≤₸1)
 @export var sr_par_pay: float = 125.0     # tempo baseline SR — runs above this tempo earn extra (re-pegged 110->125 at the bowling-balance rung: the new environment runs hotter SRs)
 @export var sr_rate: float = 1.3          # ₸ per run scored above par tempo (clamped ≥0)
 @export var fifty_bonus: float = 20.0     # flat milestone ₸ at 50+
@@ -33,8 +35,11 @@ extends Resource
 @export var bowl_ref_balls: float = 24.0  # a full 4-over spell
 
 # Shop / meta
-@export var attr_cost_base: float = 10.0  # +1 attribute costs attr_cost_base × current value (DE7;
-                                          # tuned 12→10: +1 attr ≈ +0.5% win and is Career-permanent —
-                                          # ~1.3–2.6× joker ₸-per-win-point on a 3-Season horizon)
+@export var attr_cost_base: float = 0.256 # +1 /100-point costs attr_cost_base × current value.
+                                          # Card-rescale DR11: = 10 / 6.25² — preserves the DE7
+                                          # calibration exactly (+1 legacy point at legacy-8 = ₸80;
+                                          # tuned 12→10 then: +1 legacy attr ≈ +0.5% win, Career-
+                                          # permanent, ~1.3–2.6× joker ₸-per-win-point over 3 Seasons).
+                                          # The shop's natural unit is a +5 block ≈ ₸64 at card 50.
 @export var sell_refund_frac: float = 0.5 # partial refund selling a joker back (DE9)
 @export var loadout_cap: int = 4          # max active joker slots (CONTEXT.md 4 slots; DE8)

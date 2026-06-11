@@ -1,6 +1,7 @@
 # Player Creation — V1 Design
 
 **Status:** Approved, ready for implementation plan
+**Units note (2026-06-11):** attributes rescaled to the **/100 card scale** — budget **125**, each attribute **5–50**, sliders step 5 (was 20 points, 1–8). The numbers below are the original design in legacy units; the mechanics are unchanged. See `2026-06-11-card-rescale-100-design.md`.
 **Brainstormed:** 2026-06-01
 **Closes:** Theme 5 deferred onboarding work
 **Owns the lifecycle decision:** Player permadeath model (Win or Manual retire). Promotes to **ADR 0012** at plan time.

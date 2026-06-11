@@ -98,12 +98,12 @@ func test_player_claim_review_is_team_wide() -> void:
 
 func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
-	t.mean = 5; t.spread = 1.5; t.noise = 1
+	t.mean = 31.25; t.spread = 9.375; t.noise = 1
 	return t
 
 func _attrs() -> Attributes:
 	var a := Attributes.new()
-	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	a.power = 31.25; a.composure = 31.25; a.attack = 31.25; a.control = 31.25
 	return a
 
 # DF2: the opponent's tools are wired through the match (both innings). A strong

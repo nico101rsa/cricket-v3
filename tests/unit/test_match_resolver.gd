@@ -37,7 +37,7 @@ func before_each() -> void:
 	tuning = BallTuning.new()
 	itun = InningsTuning.new()
 
-func _attrs(power: int, comp: int, attack: int, control: int) -> Attributes:
+func _attrs(power: float, comp: float, attack: float, control: float) -> Attributes:
 	var a := Attributes.new()
 	a.power = power
 	a.composure = comp
@@ -50,19 +50,19 @@ func _make_rng(seed_value: int) -> RandomNumberGenerator:
 	rng.seed = seed_value
 	return rng
 
-# Even contest: Player 5/5/5/5, both teams strength 5, bowling 5/5.
+# Even contest: Player 31.25 x4, both teams strength 31.25, bowling 31.25/31.25.
 func _even_match(player_bats_first: bool, seed_value: int) -> MatchResult:
 	return MatchResolver.simulate_match(
-		_attrs(5, 5, 5, 5), 5, 5, 5,   # Player's team: bat + bowling pair
-		5, 5, 5,                       # opposition: bat + bowling pair
+		_attrs(31.25, 31.25, 31.25, 31.25), 31.25, 31.25, 31.25,   # Player's team: bat + bowling pair
+		31.25, 31.25, 31.25,           # opposition: bat + bowling pair
 		player_bats_first, tuning, itun, _make_rng(seed_value))
 
 func _wins_with_itun(attrs: Attributes, it: InningsTuning, n: int) -> int:
-	# Even team strength (all 5s), Player bats first fixed, only the build / tuning varies.
+	# Even team strength (all 31.25s), Player bats first fixed, only the build / tuning varies.
 	var wins := 0
 	for seed_value in range(1, n + 1):
 		var m := MatchResolver.simulate_match(
-			attrs, 5, 5, 5, 5, 5, 5, true, tuning, it, _make_rng(seed_value))
+			attrs, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, it, _make_rng(seed_value))
 		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
 			wins += 1
 	return wins
@@ -74,15 +74,15 @@ func test_player_as_bowler_lifts_bowling_build_win_rate() -> void:
 	# than with it ON. This test FAILED before the rung (lever had no effect).
 	var off := InningsTuning.new()
 	off.bowl_max_overs = 0
-	var bowler := _attrs(2, 2, 8, 8)
+	var bowler := _attrs(12.5, 12.5, 50.0, 50.0)
 	var wins_off := _wins_with_itun(bowler, off, 120)
 	var wins_on := _wins_with_itun(bowler, itun, 120)
 	assert_gt(wins_on, wins_off, "Player-as-bowler lifts a bowling build's win-rate vs the inert baseline")
 
 func test_match_deterministic_with_player_bowler() -> void:
-	var a := _attrs(2, 2, 8, 8)
-	var m1 := MatchResolver.simulate_match(a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(31))
-	var m2 := MatchResolver.simulate_match(a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(31))
+	var a := _attrs(12.5, 12.5, 50.0, 50.0)
+	var m1 := MatchResolver.simulate_match(a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(31))
+	var m2 := MatchResolver.simulate_match(a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(31))
 	assert_eq(m1.outcome, m2.outcome, "deterministic outcome")
 	assert_eq(m1.innings1.total, m2.innings1.total, "deterministic innings1")
 	assert_eq(m1.innings2.total, m2.innings2.total, "deterministic innings2")
@@ -140,12 +140,12 @@ func test_plan_routes_to_player_innings_when_batting_first() -> void:
 	# Player bats first => innings1 is the Player's, resolved from the seed's
 	# initial RNG state, so it must match a standalone Player innings with the
 	# same plan and seed.
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var plan := IntentPlan.textbook()
 	var m := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(123), plan)
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(123), plan)
 	var standalone := InningsResolver.simulate_innings(
-		a, 5, 5, 5, tuning, itun, _make_rng(123), 0, plan)
+		a, 31.25, 31.25, 31.25, tuning, itun, _make_rng(123), 0, plan)
 	assert_eq(m.innings1.total, standalone.total, "Player innings used the supplied plan")
 	assert_eq(m.innings1.wickets, standalone.wickets, "Player innings wickets match plan run")
 
@@ -153,31 +153,31 @@ func test_opposition_stays_balanced_not_player_plan() -> void:
 	# Player bats second => innings1 is the opposition, resolved from the seed's
 	# initial RNG state. It must match a standalone opposition innings on a
 	# BALANCED (null) plan, proving the Player's plan did NOT leak to it.
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var m := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), IntentPlan.textbook())
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, false, tuning, itun, _make_rng(123), IntentPlan.textbook())
 	var opp_balanced := InningsResolver.simulate_innings(
-		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null)
+		null, 31.25, 31.25, 31.25, tuning, itun, _make_rng(123), 0, null)
 	assert_eq(m.innings1.total, opp_balanced.total, "opposition innings ignored the Player plan")
 	assert_eq(m.innings1.wickets, opp_balanced.wickets, "opposition stayed balanced")
 
 func test_match_deterministic_with_plan() -> void:
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var r1 := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
 	var r2 := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(55), IntentPlan.textbook())
 	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
 	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic with plan")
 	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic with plan")
 
 func test_null_bowling_plan_matches_rung4a_baseline() -> void:
 	# No player_bowling_plan => no rotation either side => identical to rung 4a.
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var base := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(7))
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(7))
 	var explicit := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(7), null, null)
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(7), null, null)
 	assert_eq(base.innings1.total, explicit.innings1.total, "innings1 unchanged")
 	assert_eq(base.innings2.total, explicit.innings2.total, "innings2 unchanged")
 	assert_eq(base.outcome, explicit.outcome, "outcome unchanged")
@@ -187,33 +187,33 @@ func test_player_bowling_plan_routes_to_player_team_bowling() -> void:
 	# Player's team bowling, resolved from the seed's initial RNG state. It must
 	# equal a standalone opposition innings facing the Player's team BowlingAttack
 	# + the supplied plan at the same seed.
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var plan := BowlingPlan.spin_only()
 	var m := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, false, tuning, itun, _make_rng(123), null, plan)
-	var player_team_bowl := BowlingAttack.new(5, 5)  # from player_team_attack/control
-	# The Player (5/5/5/5) bowls a 4-over quota at raw 5/5, overriding the spin plan on
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, false, tuning, itun, _make_rng(123), null, plan)
+	var player_team_bowl := BowlingAttack.new(31.25, 31.25)  # from player_team_attack/control
+	# The Player (31.25 x4) bowls a 4-over quota at raw 31.25/31.25, overriding the spin plan on
 	# those overs (Player-as-bowler; the all-rounder bowls its full quota since the
 	# 2026-06-09 overs-curve change). The baseline must mirror that.
 	var standalone := InningsResolver.simulate_innings(
-		null, 5, 5, 5, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan, 5, 5, 4)
+		null, 31.25, 31.25, 31.25, tuning, itun, _make_rng(123), 0, null, player_team_bowl, plan, 31.25, 31.25, 4)
 	assert_eq(m.innings1.total, standalone.total, "Player team bowling used the plan")
 	assert_eq(m.innings1.wickets, standalone.wickets, "opposition wickets match plan run")
 
 func test_match_deterministic_with_bowling_plan() -> void:
-	var a := _attrs(5, 5, 5, 5)
+	var a := _attrs(31.25, 31.25, 31.25, 31.25)
 	var r1 := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
 	var r2 := MatchResolver.simulate_match(
-		a, 5, 5, 5, 5, 5, 5, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
+		a, 31.25, 31.25, 31.25, 31.25, 31.25, 31.25, true, tuning, itun, _make_rng(55), null, BowlingPlan.textbook())
 	assert_eq(r1.outcome, r2.outcome, "same seed + plan -> same outcome")
 	assert_eq(r1.innings1.total, r2.innings1.total, "innings1 deterministic")
 	assert_eq(r1.innings2.total, r2.innings2.total, "innings2 deterministic")
 
 func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
-	t.mean = 5
-	t.spread = 3
+	t.mean = 31.25
+	t.spread = 18.75
 	t.noise = 1
 	return t
 
@@ -223,7 +223,7 @@ func _team(stars: float) -> Team:
 	return tm
 
 func test_teams_determinism() -> void:
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var r1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
 	var r2 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
 	assert_eq(r1.outcome, r2.outcome, "outcome deterministic")
@@ -232,7 +232,7 @@ func test_teams_determinism() -> void:
 	assert_eq(r1.margin_runs, r2.margin_runs, "margin deterministic")
 
 func test_teams_directional_strong_beats_weak() -> void:
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var tour := _tour()
 	var fav_wins := 0
 	var dog_wins := 0
@@ -250,7 +250,7 @@ func test_teams_directional_strong_beats_weak() -> void:
 	assert_lt(dog_wins, int(n * 0.2), "0.5-star team wins few (got %d/%d)" % [dog_wins, n])
 
 func test_teams_even_roughly_balanced() -> void:
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var tour := _tour()
 	var player_wins := 0
 	var decided := 0
@@ -267,7 +267,7 @@ func test_teams_even_roughly_balanced() -> void:
 # --- Slice 2: real-roster assembly through simulate_match_teams ----------------
 
 func test_teams_player_innings_uses_real_batting_card() -> void:
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var m := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
 	var inn := m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
 	var card: Array = inn.batters
@@ -280,7 +280,7 @@ func test_teams_player_innings_uses_real_batting_card() -> void:
 	assert_gt(card[6]["power"], card[10]["power"], "all-rounder above the bowler tail")
 
 func test_teams_determinism_with_roster() -> void:
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var r1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
 	var r2 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(2024))
 	assert_eq(r1.innings1.total, r2.innings1.total, "still deterministic (innings1)")
@@ -290,38 +290,38 @@ func test_teams_determinism_with_roster() -> void:
 # --- Slice 3: bowling budget conservation (D12) -------------------------------
 
 func test_conserved_bowling_no_overs_returns_scalar() -> void:
-	assert_almost_eq(MatchResolver._conserved_bowling(5, 0, 8, 20), 5.0, 0.0001, "n=0 -> unchanged team scalar")
+	assert_almost_eq(MatchResolver._conserved_bowling(31.25, 0, 50.0, 20), 31.25, 0.0001, "n=0 -> unchanged team scalar")
 
 func test_conserved_bowling_neutral_player_unchanged() -> void:
-	# All-rounder bowls at attack 5 == team scalar -> teammates unchanged.
-	assert_almost_eq(MatchResolver._conserved_bowling(5, 2, 5, 20), 5.0, 0.0001, "player at team par -> no change")
+	# All-rounder bowls at attack 31.25 == team scalar -> teammates unchanged.
+	assert_almost_eq(MatchResolver._conserved_bowling(31.25, 2, 31.25, 20), 31.25, 0.0001, "player at team par -> no change")
 
 func test_conserved_bowling_is_exact_not_rounded() -> void:
-	# Strong bowler: 4 overs at attack 8, no concentration penalty -> exact 4.25, NOT rounded to 4.
-	assert_almost_eq(MatchResolver._conserved_bowling(5, 4, 8, 20), 4.25, 0.0001, "(20*5 - 4*8)/16 = 4.25 exactly")
+	# Strong bowler: 4 overs at attack 50, no concentration penalty -> exact 26.5625, NOT rounded.
+	assert_almost_eq(MatchResolver._conserved_bowling(31.25, 4, 50.0, 20), 26.5625, 0.0001, "(20*31.25 - 4*50)/16 = 26.5625 exactly")
 
 func test_conserved_bowling_weak_player_compensated_above_scalar() -> void:
-	# Weak part-timer: 1 over at attack 3 -> teammates bowl ABOVE 5 to hold the total. This is
+	# Weak part-timer: 1 over at attack 18.75 -> teammates bowl ABOVE 31.25 to hold the total. This is
 	# the case the old integer round() under-compensated (dragging the team below par).
-	var c := MatchResolver._conserved_bowling(5, 1, 3, 20)
-	assert_gt(c, 5.0, "a weak player's overs are compensated by stronger teammates (> scalar)")
+	var c := MatchResolver._conserved_bowling(31.25, 1, 18.75, 20)
+	assert_gt(c, 31.25, "a weak player's overs are compensated by stronger teammates (> scalar)")
 
 func test_conserved_bowling_identity_holds_exactly() -> void:
 	# The whole point: total team bowling = over_limit * scalar, for any n/player_stat (k=0).
-	for case in [[5, 1, 3], [5, 4, 8], [6, 2, 4], [4, 3, 7]]:
-		var s: int = case[0]; var n: int = case[1]; var stat: int = case[2]
+	for case in [[31.25, 1, 18.75], [31.25, 4, 50.0], [37.5, 2, 25.0], [25.0, 3, 43.75]]:
+		var s: float = case[0]; var n: int = case[1]; var stat: float = case[2]
 		var c := MatchResolver._conserved_bowling(s, n, stat, 20)
-		assert_almost_eq(n * stat + (20 - n) * c, float(20 * s), 0.0001,
-			"team total bowling == over_limit*scalar for n=%d stat=%d" % [n, stat])
+		assert_almost_eq(n * stat + (20 - n) * c, 20.0 * s, 0.0001,
+			"team total bowling == over_limit*scalar for n=%d stat=%f" % [n, stat])
 
-func test_conserved_bowling_floored_at_1() -> void:
-	assert_almost_eq(MatchResolver._conserved_bowling(1, 4, 8, 20), 1.0, 0.0001, "result floored at 1.0")
+func test_conserved_bowling_floored_at_one() -> void:
+	assert_almost_eq(MatchResolver._conserved_bowling(6.25, 4, 50.0, 20), 1.0, 0.0001, "result floored at 1.0 (safety only, card-rescale DR8)")
 
 # --- Scenario-sweep rung: toss-force seam -------------------------------------
 
 func test_force_bats_first_overrides_toss() -> void:
 	# force = 1 -> Player bats first; force = 0 -> Player bats second, every seed.
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	for sv in [1, 2, 3, 7, 99]:
 		var m1 := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(sv),
 			null, null, [], null, null, null, null, null, null, null, null, 1)
@@ -333,7 +333,7 @@ func test_force_bats_first_overrides_toss() -> void:
 func test_force_default_is_byte_identical_to_toss() -> void:
 	# Omitting the param and passing -1 must produce the identical match -- the
 	# override must not perturb the RNG stream when not forcing.
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var ma := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(42))
 	var mb := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(42),
 		null, null, [], null, null, null, null, null, null, null, null, -1)
@@ -345,7 +345,7 @@ func test_force_default_is_byte_identical_to_toss() -> void:
 func test_force_bats_second_makes_player_innings_a_chase() -> void:
 	# The reason the seam exists: batting 2nd sets target > 0 (is_chase), which fires
 	# The Chase Master. Here we just assert the Player's innings is innings2 when forced.
-	var p := _attrs(5, 5, 5, 5)
+	var p := _attrs(31.25, 31.25, 31.25, 31.25)
 	var m := MatchResolver.simulate_match_teams(p, _team(3.0), _team(3.0), _tour(), tuning, itun, _make_rng(5),
 		null, null, [], null, null, null, null, null, null, null, null, 0)
 	assert_true(m.innings1.player_line().is_empty(), "opposition bats first (innings1) when Player forced to bat 2nd")

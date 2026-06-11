@@ -16,10 +16,10 @@ func _rng(s: int) -> RandomNumberGenerator:
 
 func _attrs() -> Attributes:
 	var a := Attributes.new()
-	a.power = 5
-	a.composure = 5
-	a.attack = 5
-	a.control = 5
+	a.power = 31.25
+	a.composure = 31.25
+	a.attack = 31.25
+	a.control = 31.25
 	return a
 
 

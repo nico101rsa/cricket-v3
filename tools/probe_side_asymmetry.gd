@@ -12,8 +12,8 @@ var _tour: TourDistribution
 
 func _init() -> void:
 	_tour = TourDistribution.new()
-	_tour.mean = 5
-	_tour.spread = 1.5
+	_tour.mean = 31.25
+	_tour.spread = 9.375
 	_tour.noise = 1
 
 	var arms := [
@@ -50,7 +50,6 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 	var a_bowl := pt.bowling_strength(_tour, rng)
 	var b_bat := ot.batting_strength(_tour, rng)
 	var b_bowl := ot.bowling_strength(_tour, rng)
-	var ref3 := _tour.percentile(3.0 / 5.0)
 	var m := MatchResolver.simulate_match(
 		null,
 		a_bat, a_bowl, a_bowl,
@@ -58,7 +57,7 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		a_bats_first, _tuning, _itun, rng,
 		ip_a, bp_a, [], null, null,
 		ip_b, null, drs_a, null,
-		Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
+		Team.standard_xi(), Team.standard_xi(), a_bat / MatchResolver.REF_SCALAR, b_bat / MatchResolver.REF_SCALAR,
 		null, drs_b, bp_b)
 	return {
 		"a_won": 1 if m.outcome == MatchResult.Outcome.PLAYER_WIN else 0,

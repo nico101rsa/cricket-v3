@@ -2,7 +2,7 @@ extends GutTest
 
 func _attrs() -> Attributes:
 	var a := Attributes.new()
-	a.power = 5; a.composure = 5; a.attack = 5; a.control = 5
+	a.power = 31.25; a.composure = 31.25; a.attack = 31.25; a.control = 31.25
 	return a
 
 func _strong_batting_reducer() -> Array:
@@ -14,9 +14,9 @@ func test_empty_jokers_equals_baseline() -> void:
 	var a := _attrs()
 	for i in range(20):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1)
+		var base := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1)
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		var same := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true)
+		var same := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true)
 		assert_eq(base.total, same.total)
 		assert_eq(base.wickets, same.wickets)
 		assert_eq(base.balls, same.balls)
@@ -28,9 +28,9 @@ func test_batting_wicket_reducer_lowers_wickets() -> void:
 	var base_w := 0; var buff_w := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_w += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1).wickets
+		base_w += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1).wickets
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		buff_w += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true).wickets
+		buff_w += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true).wickets
 	assert_lt(buff_w, base_w, "a batting wicket-reducer should lower total wickets")
 
 func test_determinism_with_jokers() -> void:
@@ -38,9 +38,9 @@ func test_determinism_with_jokers() -> void:
 	var a := _attrs()
 	var jk := _strong_batting_reducer()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 42
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, true)
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, true)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 42
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true)
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
@@ -56,9 +56,9 @@ func test_null_field_plan_equals_no_field() -> void:
 	for i in range(20):
 		# Owner bowling (player_is_batting=false); null field_plan -> field joker inert -> == no jokers.
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		var base := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1)
+		var base := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1)
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		var same := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null)
+		var same := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null)
 		assert_eq(base.wickets, same.wickets)
 		assert_eq(base.total, same.total)
 
@@ -68,18 +68,18 @@ func test_catching_field_joker_raises_wickets() -> void:
 	var neutral_w := 0; var catching_w := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		neutral_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.neutral()).wickets
+		neutral_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.neutral()).wickets
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		catching_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching()).wickets
+		catching_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching()).wickets
 	assert_gt(catching_w, neutral_w, "a catching-field wicket booster should raise wickets when the field is catching")
 
 func test_determinism_with_field_plan() -> void:
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
 	var jk := _catching_wicket_booster()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 9
-	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
+	var first := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
 	var r2 := RandomNumberGenerator.new(); r2.seed = 9
-	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
+	var second := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, FieldPlan.catching())
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
@@ -106,10 +106,10 @@ func test_bowl_intent_joker_raises_wickets() -> void:
 	for i in range(200):
 		# No bowl_intent plan -> joker inert.
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		off_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, null).wickets
+		off_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, null).wickets
 		# Aggressive bowl_intent plan -> joker fires.
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		on_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip).wickets
+		on_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip).wickets
 	assert_gt(on_w, off_w, "an Aggressive-bowl-intent wicket booster should raise wickets when the captain is Aggressive")
 
 func test_determinism_with_bowl_intent_plan() -> void:
@@ -117,9 +117,9 @@ func test_determinism_with_bowl_intent_plan() -> void:
 	var jk := _bowl_intent_wicket_booster()
 	var bip := _all_aggressive()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 13
-	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
+	var first := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 13
-	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
+	var second := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, false, null, bip)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
@@ -141,7 +141,7 @@ func _wicket_maiden() -> Array:
 func test_ride_the_wave_raises_player_runs() -> void:
 	# An aggressive Player who hits boundaries triggers the runs window -> more runs.
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
-	var a := _attrs(); a.power = 8; a.composure = 8  # high power -> boundaries -> Form events
+	var a := _attrs(); a.power = 50.0; a.composure = 50.0  # high power -> boundaries -> Form events
 	var agg := IntentPlan.new()
 	agg.powerplay = BallResolver.Intent.AGGRESSIVE
 	agg.middle = BallResolver.Intent.AGGRESSIVE
@@ -150,9 +150,9 @@ func test_ride_the_wave_raises_player_runs() -> void:
 	var base_r := 0; var buff_r := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, [], true).total
+		base_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, [], true).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		buff_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, agg, null, null, 0, 0, 0, jk, true).total
+		buff_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, agg, null, null, 0, 0, 0, jk, true).total
 	assert_gt(buff_r, base_r, "a boundary-triggered runs window should raise the total")
 
 func test_wicket_maiden_raises_opposition_wickets() -> void:
@@ -163,19 +163,19 @@ func test_wicket_maiden_raises_opposition_wickets() -> void:
 	for i in range(200):
 		# player_bowler_overs = 4 so the Player bowls and can take wickets.
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 8, 8, 4, [], false).wickets
+		base_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 50.0, 50.0, 4, [], false).wickets
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 8, 8, 4, jk, false).wickets
+		buff_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 50.0, 50.0, 4, jk, false).wickets
 	assert_gt(buff_w, base_w, "a wicket-triggered wicket window should raise total wickets")
 
 func test_determinism_with_trigger_jokers() -> void:
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
-	var a := _attrs(); a.power = 8
+	var a := _attrs(); a.power = 50.0
 	var jk := _ride_the_wave()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 5
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, true)
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, jk, true)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 5
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true)
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)
@@ -201,9 +201,9 @@ func test_pace_pack_raises_opposition_wickets() -> void:
 	var base_w := 0; var buff_w := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false).wickets
+		base_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false).wickets
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false).wickets
+		buff_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false).wickets
 	assert_gt(buff_w, base_w, "a pace-change wicket window should raise opposition wickets")
 
 func test_the_trap_raises_wickets_under_catching_spin() -> void:
@@ -214,9 +214,9 @@ func test_the_trap_raises_wickets_under_catching_spin() -> void:
 	var base_w := 0; var buff_w := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false, field).wickets
+		base_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, [], false, field).wickets
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		buff_w += InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
+		buff_w += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false, field).wickets
 	assert_gt(buff_w, base_w, "The Trap should raise wickets when the field is catching and the bowler is spin")
 
 # --- C2h: the final two ---
@@ -242,9 +242,9 @@ func test_field_restrictions_raises_runs_vs_catching_field() -> void:
 	var base_r := 0; var fr_r := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null, oppfield).total
+		base_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null, oppfield).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		fr_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true, null, null, null, null, oppfield).total
+		fr_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true, null, null, null, null, oppfield).total
 	assert_gt(fr_r, base_r, "Field Restrictions raises runs against a catching field")
 
 func test_chase_master_only_fires_in_a_chase() -> void:
@@ -257,10 +257,10 @@ func test_chase_master_only_fires_in_a_chase() -> void:
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
 		# target 0 -> not a chase -> Chase Master inert.
-		nochase_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, jk, true).total
+		nochase_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, agg, null, null, 0, 0, 0, jk, true).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
 		# target 9999 -> a chase (never reached) -> Chase Master fires.
-		chase_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 9999, agg, null, null, 0, 0, 0, jk, true).total
+		chase_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 9999, agg, null, null, 0, 0, 0, jk, true).total
 	assert_gt(chase_r, nochase_r, "The Chase Master fires only in a chase")
 
 func test_determinism_with_c2h_jokers() -> void:
@@ -268,9 +268,9 @@ func test_determinism_with_c2h_jokers() -> void:
 	var a := _attrs()
 	var jk := _field_restrictions() + _chase_master()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 37
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
 	var r2 := RandomNumberGenerator.new(); r2.seed = 37
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 9999, _agg_bal_agg(), null, null, 0, 0, 0, jk, true, null, null, null, null, FieldPlan.catching())
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 
@@ -299,7 +299,7 @@ func test_sheet_anchor_adds_form_events() -> void:
 	# The switch to Balanced (over 7) fires Sheet Anchor's Form event, which triggers
 	# Ride the Wave -> an extra runs window the Ride-the-Wave-only arm doesn't get.
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
-	var a := _attrs(); a.power = 8; a.composure = 8
+	var a := _attrs(); a.power = 50.0; a.composure = 50.0
 	var plan := _agg_bal_agg()
 	var rtw := _ride_the_wave()
 	var combo := _ride_the_wave() + [_sheet_anchor()]
@@ -309,32 +309,32 @@ func test_sheet_anchor_adds_form_events() -> void:
 	var rtw_r := 0; var combo_r := 0
 	for i in range(600):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		rtw_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, plan, null, null, 0, 0, 0, rtw, true).total
+		rtw_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, plan, null, null, 0, 0, 0, rtw, true).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		combo_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, plan, null, null, 0, 0, 0, combo, true).total
+		combo_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, plan, null, null, 0, 0, 0, combo, true).total
 	assert_gt(combo_r, rtw_r, "Sheet Anchor's intent-switch Form event adds a Ride-the-Wave window")
 
 func test_boundary_hunter_raises_runs() -> void:
 	# After a boundary, Boundary Hunter latches intent to Aggressive -> higher scoring.
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
-	var a := _attrs(); a.power = 8; a.composure = 8
+	var a := _attrs(); a.power = 50.0; a.composure = 50.0
 	var jk := [_boundary_hunter()]
 	var base_r := 0; var bh_r := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true).total
+		base_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		bh_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true).total
+		bh_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, jk, true).total
 	assert_gt(bh_r, base_r, "Boundary Hunter snapping to Aggressive raises total runs")
 
 func test_determinism_with_form_sources() -> void:
 	var tuning := BallTuning.new(); var itun := InningsTuning.new()
-	var a := _attrs(); a.power = 8
+	var a := _attrs(); a.power = 50.0
 	var jk := _ride_the_wave() + [_sheet_anchor(), _boundary_hunter()]
 	var r1 := RandomNumberGenerator.new(); r1.seed = 33
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 33
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, _agg_bal_agg(), null, null, 0, 0, 0, jk, true)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 
@@ -349,9 +349,9 @@ func test_drs_lowers_player_dismissals() -> void:
 	var base_out := 0; var drs_out := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_out += _player_out_count(InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null))
+		base_out += _player_out_count(InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null))
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		drs_out += _player_out_count(InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy))
+		drs_out += _player_out_count(InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy))
 	assert_lt(drs_out, base_out, "DRS review-to-survive should lower Player dismissals")
 
 func _player_out_count(res: InningsResult) -> int:
@@ -365,9 +365,9 @@ func test_determinism_with_drs_policy() -> void:
 	var a := _attrs()
 	var policy := DRSPolicy.new()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 29
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 29
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, policy)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 
@@ -377,9 +377,9 @@ func test_null_drs_policy_is_baseline() -> void:
 	var a := _attrs()
 	for i in range(20):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		var base := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1)
+		var base := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1)
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		var same := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null)
+		var same := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, null, null)
 		assert_eq(base.total, same.total)
 		assert_eq(base.wickets, same.wickets)
 
@@ -393,9 +393,9 @@ func test_boost_plan_raises_player_runs() -> void:
 	var base_r := 0; var boost_r := 0
 	for i in range(200):
 		var r1 := RandomNumberGenerator.new(); r1.seed = i
-		base_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null).total
+		base_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, null).total
 		var r2 := RandomNumberGenerator.new(); r2.seed = i
-		boost_r += InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan).total
+		boost_r += InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan).total
 	assert_gt(boost_r, base_r, "a Manager Boost press should raise the Player's runs")
 
 func test_determinism_with_boost_plan() -> void:
@@ -403,9 +403,9 @@ func test_determinism_with_boost_plan() -> void:
 	var a := _attrs()
 	var plan := BoostPlan.at([1, 10])
 	var r1 := RandomNumberGenerator.new(); r1.seed = 23
-	var first := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
+	var first := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 23
-	var second := InningsResolver.simulate_innings(a, 5, 5, 5, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
+	var second := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, null, 0, 0, 0, [], true, null, null, plan)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 
@@ -414,9 +414,9 @@ func test_determinism_with_change_jokers() -> void:
 	var plan := BowlingPlan.pace_only()
 	var jk := _pace_pack_strong()
 	var r1 := RandomNumberGenerator.new(); r1.seed = 17
-	var first := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, jk, false)
+	var first := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r1, 0, null, null, plan, 0, 0, 0, jk, false)
 	var r2 := RandomNumberGenerator.new(); r2.seed = 17
-	var second := InningsResolver.simulate_innings(null, 5, 5, 5, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false)
+	var second := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, r2, 0, null, null, plan, 0, 0, 0, jk, false)
 	assert_eq(first.total, second.total)
 	assert_eq(first.wickets, second.wickets)
 	assert_eq(first.balls, second.balls)

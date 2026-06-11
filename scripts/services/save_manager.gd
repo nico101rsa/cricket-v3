@@ -7,6 +7,26 @@ extends Node
 @export var player_save_path: String = "user://player.tres"
 @export var legends_save_path: String = "user://legends.tres"
 
+# --- Card-rescale migration (spec 2026-06-11-card-rescale-100, DR12) ---
+# Legacy saves carry 20-point 1-8 builds; /100 builds sum 125. Anything summing
+# at-or-below the ceiling is legacy and scales x SCALE once. Applied on every
+# load — idempotent by the sum guard (a migrated build sums 125 > 40).
+const _LEGACY_SUM_CEILING := 40.0
+
+func _migrate_attributes(a: Attributes) -> void:
+	if a == null or a.sum() > _LEGACY_SUM_CEILING:
+		return
+	a.power *= Attributes.SCALE
+	a.composure *= Attributes.SCALE
+	a.attack *= Attributes.SCALE
+	a.control *= Attributes.SCALE
+
+func migrate_player(p: Player) -> void:
+	if p == null:
+		return
+	_migrate_attributes(p.attributes)
+	_migrate_attributes(p.starting_attributes)
+
 # --- Player ---
 
 func has_player() -> bool:
@@ -25,7 +45,9 @@ func load_player() -> Player:
 	# part of the app might still be mutating. Without this, two load_player()
 	# calls could hand back the SAME object (aliasing bug), and a load right
 	# after a save could return the in-memory copy instead of the serialized one.
-	return ResourceLoader.load(player_save_path, "", ResourceLoader.CACHE_MODE_IGNORE) as Player
+	var p := ResourceLoader.load(player_save_path, "", ResourceLoader.CACHE_MODE_IGNORE) as Player
+	migrate_player(p)
+	return p
 
 func clear_player() -> void:
 	if has_player():
@@ -37,6 +59,8 @@ func load_legends() -> LegendsArchive:
 	if FileAccess.file_exists(legends_save_path):
 		var arc := ResourceLoader.load(legends_save_path, "", ResourceLoader.CACHE_MODE_IGNORE) as LegendsArchive
 		if arc != null:
+			for e in arc.entries:
+				migrate_player(e.player)   # card-rescale DR12 — legacy legends scale too
 			return arc
 	return LegendsArchive.new()
 

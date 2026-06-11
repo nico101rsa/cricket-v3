@@ -44,27 +44,30 @@ static func phase_bonus(kind: int, over: int, itun: InningsTuning) -> float:
 static func phased_profile(attack: BowlingAttack, kind: int, over: int, itun: InningsTuning) -> Vector2:
 	var prof := attack.profile(kind)
 	var bonus := phase_bonus(kind, over, itun)
-	return Vector2(maxf(1.0, prof.x + bonus), maxf(1.0, prof.y + bonus))
+	return Vector2(maxf(0.5, prof.x + bonus), maxf(0.5, prof.y + bonus))
 
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
 # all 11 are derived.
-static func _build_batters(player_attrs: Attributes, partner_batting: int, itun: InningsTuning,
-		roster: Array = [], team_offset: int = 0) -> Array:
+static func _build_batters(player_attrs: Attributes, partner_batting: float, itun: InningsTuning,
+		roster: Array = [], team_factor: float = 1.0) -> Array:
 	var batters: Array = []
-	# Roster path (Slice 2): each slot reads its real Attributes; the Player slot is
-	# found by reference identity. A uniform team_offset shifts power/composure
-	# (floored at 1) so star strength still moves the card; the synthetic tail curve
-	# is dropped (the archetype order already provides the tail). See spec §8.5.
+	# Roster path (Slice 2 + card-rescale DR5): each slot reads its real Attributes;
+	# the Player slot is found by reference identity. A uniform team_factor scales
+	# power/composure PROPORTIONALLY (replacing the legacy additive offset + floor-1,
+	# which floored every bad team into the same texture-dead card) so a weak league
+	# is a scaled-down version of the card shape — fractional values, no floor-out
+	# (0.5 is a safety floor only). The synthetic tail curve stays dropped (the
+	# archetype order already provides the tail). See spec §8.5 + card-rescale DR5/DR8.
 	if not roster.is_empty():
 		for order in range(1, 12):  # positions 1..11
 			var m: Attributes = roster[order - 1]
 			batters.append({
 				"position": order,
 				"is_player": player_attrs != null and m == player_attrs,
-				"power": maxi(1, m.power + team_offset),
-				"composure": maxi(1, m.composure + team_offset),
+				"power": maxf(0.5, m.power * team_factor),
+				"composure": maxf(0.5, m.composure * team_factor),
 				"runs": 0, "balls": 0, "out": false,
 			})
 		return batters
@@ -81,7 +84,7 @@ static func _build_batters(player_attrs: Attributes, partner_batting: int, itun:
 				"runs": 0, "balls": 0, "out": false,
 			})
 		else:
-			var p := maxi(1, roundi(partner_batting * partner_factor(order, itun)))
+			var p := maxf(0.5, partner_batting * partner_factor(order, itun))
 			batters.append({
 				"position": order, "is_player": false,
 				"power": p, "composure": p,
@@ -94,7 +97,7 @@ static func _build_batters(player_attrs: Attributes, partner_batting: int, itun:
 # chase stop: the innings ends the instant total >= target. target == 0 = no chase.
 static func simulate_innings(
 		player_attrs: Attributes,
-		partner_batting: int,
+		partner_batting: float,
 		opp_attack: float,
 		opp_control: float,
 		tuning: BallTuning,
@@ -104,8 +107,8 @@ static func simulate_innings(
 		intent_plan: IntentPlan = null,
 		bowling_attack: BowlingAttack = null,
 		bowling_plan: BowlingPlan = null,
-		player_bowler_attack: int = 0,
-		player_bowler_control: int = 0,
+		player_bowler_attack: float = 0.0,
+		player_bowler_control: float = 0.0,
 		player_bowler_overs: int = 0,
 		jokers: Array = [],
 		player_is_batting: bool = true,
@@ -115,11 +118,11 @@ static func simulate_innings(
 		drs_policy: DRSPolicy = null,
 		opp_field_plan: FieldPlan = null,
 		batting_roster: Array = [],
-		team_bat_offset: int = 0,
+		team_bat_factor: float = 1.0,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null
 ) -> InningsResult:
-	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_offset)
+	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_factor)
 	var max_balls := itun.over_limit * 6
 	var striker := 0
 	var nonstriker := 1
@@ -184,8 +187,8 @@ static func simulate_innings(
 			# The Player's own pace/spin identity stays deferred (D4).
 			if bowling_plan != null:
 				var pb := phase_bonus(bowler_type, over, itun)
-				bat_attack = maxf(1.0, bat_attack + pb)
-				bat_control = maxf(1.0, bat_control + pb)
+				bat_attack = maxf(0.5, bat_attack + pb)
+				bat_control = maxf(0.5, bat_control + pb)
 		var field_mode := FieldPlan.Mode.NEUTRAL
 		if field_plan != null:
 			field_mode = field_plan.for_over(over)

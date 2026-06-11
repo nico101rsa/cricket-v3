@@ -13,9 +13,15 @@ func _init() -> void:
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var tour := TourDistribution.new()
-	tour.mean = 5
-	tour.spread = 1.5
+	tour.mean = 31.25
+	tour.spread = 9.375
 	tour.noise = 1
+	# League-band probe (card-rescale DR6 / E3): override the tour mean to read
+	# the scoring environment at any league level, e.g. ENV_TOUR_MEAN=7.8125
+	# (band 1, factor 0.25) or 40.625 (band 5, factor 1.3).
+	var mean_override := OS.get_environment("ENV_TOUR_MEAN")
+	if mean_override != "":
+		tour.mean = float(mean_override)
 	var pol := PolicySearch.textbook()
 	var totals: Array = []
 	var wkts := 0.0
@@ -34,7 +40,6 @@ func _init() -> void:
 		var a_bowl := pt.bowling_strength(tour, rng)
 		var b_bat := ot.batting_strength(tour, rng)
 		var b_bowl := ot.bowling_strength(tour, rng)
-		var ref3 := tour.percentile(3.0 / 5.0)
 		var m := MatchResolver.simulate_match(
 			null,
 			a_bat, a_bowl, a_bowl,
@@ -43,7 +48,7 @@ func _init() -> void:
 			PolicySearch.intent_plan_of(pol), PolicySearch.bowling_plan_of(pol),
 			[], null, null,
 			PolicySearch.intent_plan_of(pol), null, null, null,
-			Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
+			Team.standard_xi(), Team.standard_xi(), a_bat / MatchResolver.REF_SCALAR, b_bat / MatchResolver.REF_SCALAR,
 			null, null,
 			PolicySearch.bowling_plan_of(pol))
 		var inn: InningsResult = m.innings1

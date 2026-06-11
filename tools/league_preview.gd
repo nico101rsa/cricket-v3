@@ -15,14 +15,14 @@ func _init() -> void:
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var tour := TourDistribution.new()
-	tour.mean = 5
-	tour.spread = 1.5
+	tour.mean = 31.25
+	tour.spread = 9.375
 	tour.noise = 1
 	var player := Attributes.new()
-	player.power = 5
-	player.composure = 5
-	player.attack = 5
-	player.control = 5
+	player.power = 31.25
+	player.composure = 31.25
+	player.attack = 31.25
+	player.control = 31.25
 
 	var n := 150
 	print("player_stars,seasons,made_playoffs_rate,avg_finish")
