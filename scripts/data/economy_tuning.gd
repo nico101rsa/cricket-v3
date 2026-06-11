@@ -12,13 +12,13 @@ extends Resource
 
 # Batting components
 @export var runs_rate: float = 0.4        # ₸ per run scored
-@export var sr_par_pay: float = 110.0     # tempo baseline SR — runs above this tempo earn extra
+@export var sr_par_pay: float = 125.0     # tempo baseline SR — runs above this tempo earn extra (re-pegged 110->125 at the bowling-balance rung: the new environment runs hotter SRs)
 @export var sr_rate: float = 1.3          # ₸ per run scored above par tempo (clamped ≥0)
 @export var fifty_bonus: float = 20.0     # flat milestone ₸ at 50+
 @export var ton_bonus: float = 100.0      # flat milestone ₸ on top at 100+ — a Ton pays a ₸100 (ADR 0008)
 
 # Bowling components
-@export var wicket_rate: float = 8.0      # ₸ per wicket taken
+@export var wicket_rate: float = 10.0     # ₸ per wicket taken (8->10 at the bowling-balance rung: wickets cost more, so taking them pays more)
 @export var rr_par_pay: float = 12.0      # economy baseline RR ("club par" = measured going rate ~9 + 3);
                                           # pay accrues per run kept below this over the spell
 @export var econ_rate: float = 1.3        # ₸ per run saved vs club par, scaled by balls bowled (clamped ≥0)
