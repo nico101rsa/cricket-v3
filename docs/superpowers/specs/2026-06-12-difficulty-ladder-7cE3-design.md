@@ -168,6 +168,12 @@ Premium, recorded (eyeball, not gated). Viz `docs/mockups/difficulty-ladder-v1.h
   tours (overlap honored); the brain-isolation arm shows the brain alone is worth meaningful
   points at fixed strength. Exact feel targets (e.g. "Premium should beat me 6 tries in 10")
   are playtest calls on these dials, not this rung's gate.
+- **DL11 — League/Season fidelity stays scalar this rung.** `LeagueResolver`/`SeasonResolver`
+  predate the discrete-roster world (PR #29): their matches run the scalar clone path (no real
+  XIs, no `team_bat_factor`). The difficulty dynamic still holds there — every team's scalar is
+  drawn from the Tour distribution while the Player's card is absolute — so the ladder measures
+  honestly at that fidelity. Upgrading Season play to the roster+factor path is the Career
+  rung's call (it owns "a real XI across a Season"), recorded as a seed there.
 
 ## 5. Out of scope (recorded so they don't creep)
 
