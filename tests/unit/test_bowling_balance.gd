@@ -56,7 +56,7 @@ func test_matchup_zero_entries_do_not_shift() -> void:
 		assert_eq(a.wicket, b.wicket, "BAL-vs-spin default 0.0 -> identical (seed %d)" % seed_value)
 		assert_eq(a.runs, b.runs, "runs identical (seed %d)" % seed_value)
 
-# Helper-level: the phase bonus lands on both stats, floored at SCALE.
+# Helper-level: the phase bonus lands on both stats, 0.5 safety floor (DR8).
 func test_phased_profile_applies_kind_phase_bonus() -> void:
 	var atk := BowlingAttack.new(31.25, 31.25)  # pace (43.75,18.75) / spin (18.75,43.75)
 	var it := InningsTuning.new()
@@ -71,7 +71,7 @@ func test_phased_profile_applies_kind_phase_bonus() -> void:
 	assert_almost_eq(mid_spin.y, 48.125, 0.001, "spin middle control 43.75 + 4.375")
 	it.spin_phase_bonus = [-56.25, 0.0, 0.0]
 	var floored := InningsResolver.phased_profile(atk, BowlingPlan.Kind.SPIN, 1, it)
-	assert_almost_eq(floored.x, 6.25, 0.001, "floored at one legacy point (SCALE)")
+	assert_almost_eq(floored.x, 0.5, 0.001, "0.5 safety floor only (card-rescale DR8)")
 
 # BB4 (reversed): the hero bowls WITHIN the rotation — their overs inherit the
 # plan kind's phase bonus, else bowling-capable builds pay a hidden tax.

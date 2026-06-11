@@ -225,7 +225,6 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 		var a_bowl := pt2.bowling_strength(_tour, rng)
 		var b_bat := ot2.batting_strength(_tour, rng)
 		var b_bowl := ot2.bowling_strength(_tour, rng)
-		var ref3 := _tour.percentile(3.0 / 5.0)
 		m = MatchResolver.simulate_match(
 			null,
 			a_bat, a_bowl, a_bowl,
@@ -234,7 +233,7 @@ func _scenario(config, rng: RandomNumberGenerator) -> Dictionary:
 			PolicySearch.intent_plan_of(pol_a), PolicySearch.bowling_plan_of(pol_a),
 			[], null, null,
 			PolicySearch.intent_plan_of(pol_b), null, null, null,
-			Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
+			Team.standard_xi(), Team.standard_xi(), a_bat / MatchResolver.REF_SCALAR, b_bat / MatchResolver.REF_SCALAR,
 			null, null,
 			PolicySearch.bowling_plan_of(pol_b))
 

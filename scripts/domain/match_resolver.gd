@@ -4,6 +4,13 @@ extends RefCounted
 # Pure resolution of one T20 match: two innings + a chase + a result.
 # See spec 2026-06-07-full-match-design.md and ADR 0004. No member state.
 
+# The global card anchor (card-rescale DR5): the strength at which a roster card
+# plays at face value (= the mid tour mean; a ★3 mid-tour team sits exactly here
+# under the ★3-centred star map). GLOBAL, not per-tour — that's what makes a low
+# league genuinely weak: its scalar divided by this reference scales every card
+# proportionally (see InningsResolver._build_batters team_factor).
+const REF_SCALAR := 31.25
+
 # Decide the match result from the two innings. innings1 = first-batting side,
 # innings2 = chasing side. player_bats_first maps the winning side to the Player's
 # perspective. max_balls = the innings length (itun.over_limit * 6). Spec §5.
@@ -61,7 +68,7 @@ static func _conserved_bowling(team_scalar: float, n: int, player_stat: float, o
 	if n <= 0 or n >= overs:
 		return team_scalar
 	var penalty := concentration_k * n * maxf(0.0, player_stat - team_scalar)
-	return maxf(Attributes.SCALE, (overs * team_scalar - n * player_stat - penalty) / float(overs - n))
+	return maxf(1.0, (overs * team_scalar - n * player_stat - penalty) / float(overs - n))
 
 # Team-bundled match: derive six strength ints from the two Teams + Tour, flip
 # the toss, then delegate to simulate_match(). Fixed RNG draw order (toss, then
@@ -101,11 +108,12 @@ static func simulate_match_teams(
 	var opp_bat := opp_team.batting_strength(tour, rng)
 	var opp_bowl := opp_team.bowling_strength(tour, rng)
 
-	# Slice 2: real rosters. The Player replaces the archetype at their build-driven
-	# batting position; the opponent is the fixed standard XI. Star strength is applied
-	# as a uniform batting offset (~0 at even ★3) so directionality survives. No new
-	# RNG draws -> determinism preserved. See spec §8.5 (D6-D9).
-	var ref3 := tour.percentile(3.0 / 5.0)
+	# Slice 2 + card-rescale DR5: real rosters. The Player replaces the archetype at
+	# their build-driven batting position; the opponent is the fixed standard XI.
+	# Star strength is applied as a uniform PROPORTIONAL batting factor
+	# (strength / REF_SCALAR, = 1.0 ± noise at even ★3 mid-tour) so directionality
+	# survives and low leagues keep card texture. No new RNG draws -> determinism
+	# preserved. See spec §8.5 (D6-D9) + card-rescale DR5.
 	var ppos := InningsResolver.player_position(player_attrs, itun)
 	var player_roster := Team.build_xi(player_attrs, ppos)
 	var opp_roster := Team.standard_xi()
@@ -125,7 +133,7 @@ static func simulate_match_teams(
 		player_bats_first, tuning, itun, rng,
 		player_intent_plan, player_bowling_plan, jokers, field_plan,
 		player_bowl_intent_plan, opp_intent_plan, boost_plan, drs_policy, opp_field_plan,
-		player_roster, opp_roster, player_bat - ref3, opp_bat - ref3,
+		player_roster, opp_roster, player_bat / REF_SCALAR, opp_bat / REF_SCALAR,
 		opp_boost_plan, opp_drs_policy, opp_bowling_plan)
 
 # Simulate a full T20 match: first innings, then a chase to target = total1 + 1,
@@ -155,8 +163,8 @@ static func simulate_match(
 		opp_field_plan: FieldPlan = null,
 		player_roster: Array = [],
 		opp_roster: Array = [],
-		player_bat_offset: float = 0.0,
-		opp_bat_offset: float = 0.0,
+		player_bat_factor: float = 1.0,
+		opp_bat_factor: float = 1.0,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null,
 		opp_bowling_plan: BowlingPlan = null
@@ -181,12 +189,11 @@ static func simulate_match(
 	var ai_plan: BowlingPlan = null
 	var p_plan: BowlingPlan = null
 	if rotate:
-		# STAGE A: profiles snapped to the legacy grid (old roundi(x) ≡ snap for scalars
-		# ×6.25) — Stage B passes the raw floats (card-rescale DR8). Rotation is opt-in and
-		# not used in the balance sweep, so exact conservation lives in the constant-scalar
-		# path below, not here.
-		opp_bowl = BowlingAttack.new(roundi(opp_attack / Attributes.SCALE) * Attributes.SCALE, roundi(opp_control / Attributes.SCALE) * Attributes.SCALE)
-		player_bowl = BowlingAttack.new(roundi(player_team_attack / Attributes.SCALE) * Attributes.SCALE, roundi(player_team_control / Attributes.SCALE) * Attributes.SCALE)
+		# Raw float profiles (card-rescale DR8 — the legacy rounding is gone). Rotation
+		# is opt-in and not used in the balance sweep, so exact conservation lives in the
+		# constant-scalar path below, not here.
+		opp_bowl = BowlingAttack.new(opp_attack, opp_control)
+		player_bowl = BowlingAttack.new(player_team_attack, player_team_control)
 		ai_plan = opp_bowling_plan if opp_bowling_plan != null else BowlingPlan.textbook()
 		p_plan = player_bowling_plan if player_bowling_plan != null else BowlingPlan.textbook()
 
@@ -196,23 +203,23 @@ static func simulate_match(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan,
 			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
-			player_roster, player_bat_offset, opp_boost_plan, opp_drs_policy)
+			player_roster, player_bat_factor, opp_boost_plan, opp_drs_policy)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, innings1.total + 1, opp_intent_plan, player_bowl, p_plan,
 			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
-			opp_roster, opp_bat_offset, opp_boost_plan, opp_drs_policy)
+			opp_roster, opp_bat_factor, opp_boost_plan, opp_drs_policy)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, 0, opp_intent_plan, player_bowl, p_plan,
 			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
-			opp_roster, opp_bat_offset, opp_boost_plan, opp_drs_policy)
+			opp_roster, opp_bat_factor, opp_boost_plan, opp_drs_policy)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan,
 			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
-			player_roster, player_bat_offset, opp_boost_plan, opp_drs_policy)
+			player_roster, player_bat_factor, opp_boost_plan, opp_drs_policy)
 
 	return _decide_result(innings1, innings2, player_bats_first, max_balls)

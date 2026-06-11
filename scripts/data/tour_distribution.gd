@@ -14,10 +14,9 @@ extends Resource
                                      # unchanged by the rescale, just scaled — continuous
                                      # noise is a separate tuning question)
 
-# frac 0.0 -> mean - spread, 0.5 -> mean, 1.0 -> mean + spread.
-# STAGE A: snapped to the legacy 6.25 grid (roundi-equivalent) so the rescale is
-# byte-identical — Stage B (card-rescale DR5) removes the snap.
+# frac 0.0 -> mean - spread, 0.5 -> mean, 1.0 -> mean + spread. Continuous
+# (card-rescale DR5: the legacy integer-grid snap is gone — league strength is
+# a real number on the /100 card axis).
 func percentile(frac: float) -> float:
 	var f := clampf(frac, 0.0, 1.0)
-	var raw := mean + (f - 0.5) * 2.0 * spread
-	return roundi(raw / Attributes.SCALE) * Attributes.SCALE
+	return mean + (f - 0.5) * 2.0 * spread

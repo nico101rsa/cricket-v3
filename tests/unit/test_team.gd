@@ -31,20 +31,20 @@ func test_stronger_stars_higher_mean_strength() -> void:
 
 func test_noise_bounded_and_floored() -> void:
 	var tour := _tour(31.25, 18.75, 1)
-	var tm := _team(5.0)            # percentile(1.0) == 50.0
+	var tm := _team(5.0)            # strength_frac 0.9 -> percentile == 46.25
 	for s in range(50):
 		var v := tm.bowling_strength(tour, _rng(s))
-		assert_true(v >= 43.75 and v <= 56.25, "5.0-star strength within mean+spread +- noise (got %f)" % v)
+		assert_true(v >= 40.0 and v <= 52.5, "5.0-star strength within percentile(0.9) +- noise (got %f)" % v)
 	# Floor: a tiny band + lowest star can push below one legacy point; must clamp to SCALE.
-	var tiny := _tour(6.25, 6.25, 5)     # percentile(0.1) snaps to 0.0
+	var tiny := _tour(6.25, 6.25, 5)     # strength_frac(0.5*) = 0.0 -> percentile = 0.0
 	var cellar := _team(0.5)
 	for s in range(50):
 		assert_true(cellar.batting_strength(tiny, _rng(s)) >= Attributes.SCALE, "strength floored at one legacy point")
 
 func test_zero_noise_matches_percentile() -> void:
 	var tour := _tour(31.25, 18.75, 0)
-	assert_eq(_team(5.0).batting_strength(tour, _rng(1)), tour.percentile(1.0), "5.0 stars, no noise -> percentile(1.0)")
-	assert_eq(_team(0.5).bowling_strength(tour, _rng(1)), tour.percentile(0.1), "0.5 stars, no noise -> percentile(0.1)")
+	assert_eq(_team(5.0).batting_strength(tour, _rng(1)), tour.percentile(0.9), "5.0 stars, no noise -> percentile(strength_frac=0.9)")
+	assert_eq(_team(0.5).bowling_strength(tour, _rng(1)), tour.percentile(0.0), "0.5 stars, no noise -> percentile(strength_frac=0.0)")
 
 func test_mutate_stars_distribution() -> void:
 	var unchanged := 0
@@ -154,3 +154,20 @@ func test_build_xi_leaves_player_attrs_untouched() -> void:
 	assert_eq(p.power, 12.5, "Player power untouched by gap-fill")
 	assert_eq(p.composure, 12.5, "Player composure untouched by gap-fill")
 	assert_true(xi[ppos - 1] == p, "Player still at their slot, by reference")
+
+# --- Card-rescale Stage B: the *3-centred star map (DR5) ----------------------
+
+func test_strength_frac_is_star3_centred():
+	var t := _team(3.0)
+	assert_almost_eq(t.strength_frac(), 0.5, 1e-9, "*3 = the tour centre (the balance anchor)")
+	t.stars = 0.5
+	assert_almost_eq(t.strength_frac(), 0.0, 1e-9, "*0.5 = band floor")
+	t.stars = 5.0
+	assert_almost_eq(t.strength_frac(), 0.9, 1e-9, "*5 sits inside the band top")
+
+func test_star3_zero_noise_strength_is_ref_scalar():
+	var t := _team(3.0)
+	var tour := TourDistribution.new()
+	tour.noise = 0
+	assert_almost_eq(t.batting_strength(tour, _rng(1)), MatchResolver.REF_SCALAR, 1e-9,
+		"a *3 mid-tour team plays its cards at face value")

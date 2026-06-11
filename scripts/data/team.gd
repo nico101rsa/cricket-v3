@@ -16,11 +16,19 @@ const MUTATE_SWING := 0.35          # cumulative: P(+-0.5) = 0.30; else no chang
 @export var stars: float = 2.5                # on the 0.5..5.0 half-step set
 @export var last_season_event: String = ""    # ADR 0009 flavour; unused this rung
 
+# The star -> band-fraction map, centred on ★3 (card-rescale DR5): ★3 is the
+# even-contest balance baseline, so it sits exactly ON the tour mean — a ★3
+# mid-tour team plays its cards at face value (factor 1.0). ★0.5 -> 0.0,
+# ★5 -> 0.9 (the top half-star band sits inside the spread). The legacy
+# stars/5 map centred on ★2.75 and the old integer snap blurred it.
+func strength_frac() -> float:
+	return clampf((stars - 3.0) / 5.0 + 0.5, 0.0, 1.0)
+
 func batting_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
-	return maxf(Attributes.SCALE, tour.percentile(stars / STARS_MAX) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
 
 func bowling_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
-	return maxf(Attributes.SCALE, tour.percentile(stars / STARS_MAX) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
 
 # Mutate stars Markov-style at a Season rollover (ADR 0009). Two RNG draws
 # (magnitude, then direction), clamped to [0.5, 5.0]. Catastrophic flavour string

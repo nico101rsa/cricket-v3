@@ -34,7 +34,6 @@ func _init() -> void:
 		var a_bowl := pt.bowling_strength(tour, rng)
 		var b_bat := ot.batting_strength(tour, rng)
 		var b_bowl := ot.bowling_strength(tour, rng)
-		var ref3 := tour.percentile(3.0 / 5.0)
 		var m := MatchResolver.simulate_match(
 			null,
 			a_bat, a_bowl, a_bowl,
@@ -43,7 +42,7 @@ func _init() -> void:
 			PolicySearch.intent_plan_of(pol), PolicySearch.bowling_plan_of(pol),
 			[], null, null,
 			PolicySearch.intent_plan_of(pol), null, null, null,
-			Team.standard_xi(), Team.standard_xi(), a_bat - ref3, b_bat - ref3,
+			Team.standard_xi(), Team.standard_xi(), a_bat / MatchResolver.REF_SCALAR, b_bat / MatchResolver.REF_SCALAR,
 			null, null,
 			PolicySearch.bowling_plan_of(pol))
 		var inn: InningsResult = m.innings1

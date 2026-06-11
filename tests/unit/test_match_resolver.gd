@@ -314,8 +314,8 @@ func test_conserved_bowling_identity_holds_exactly() -> void:
 		assert_almost_eq(n * stat + (20 - n) * c, 20.0 * s, 0.0001,
 			"team total bowling == over_limit*scalar for n=%d stat=%f" % [n, stat])
 
-func test_conserved_bowling_floored_at_scale() -> void:
-	assert_almost_eq(MatchResolver._conserved_bowling(6.25, 4, 50.0, 20), 6.25, 0.0001, "result floored at one legacy point (SCALE)")
+func test_conserved_bowling_floored_at_one() -> void:
+	assert_almost_eq(MatchResolver._conserved_bowling(6.25, 4, 50.0, 20), 1.0, 0.0001, "result floored at 1.0 (safety only, card-rescale DR8)")
 
 # --- Scenario-sweep rung: toss-force seam -------------------------------------
 

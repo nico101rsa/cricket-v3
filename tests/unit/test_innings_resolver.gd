@@ -354,7 +354,7 @@ func test_build_batters_clone_path_unchanged_when_no_roster() -> void:
 
 func test_build_batters_uses_real_roster_individuals() -> void:
 	var roster := Team.standard_xi()
-	var batters := InningsResolver._build_batters(null, 31.25, itun, roster, 0.0)
+	var batters := InningsResolver._build_batters(null, 31.25, itun, roster, 1.0)
 	assert_eq(batters.size(), 11, "11 batters")
 	assert_eq(batters[0]["power"], 50.0, "top order is a real BATTER (power 50, no tail-scaling)")
 	assert_eq(batters[0]["composure"], 50.0, "composure also from the archetype")
@@ -362,19 +362,20 @@ func test_build_batters_uses_real_roster_individuals() -> void:
 	for b in batters:
 		assert_false(b["is_player"], "opposition roster has no Player slot")
 
-func test_build_batters_offset_applied_and_floored() -> void:
+func test_build_batters_factor_applied_and_safety_floored() -> void:
 	var roster := Team.standard_xi()
-	var up := InningsResolver._build_batters(null, 31.25, itun, roster, 12.5)
-	assert_eq(up[0]["power"], 62.5, "offset lifts the top order (50+12.5)")
-	assert_eq(up[10]["power"], 18.75, "offset lifts the tail (6.25+12.5)")
-	var down := InningsResolver._build_batters(null, 31.25, itun, roster, -31.25)
-	assert_eq(down[10]["power"], 6.25, "power floored at SCALE (6.25-31.25 clamped)")
+	var up := InningsResolver._build_batters(null, 31.25, itun, roster, 1.25)
+	assert_eq(up[0]["power"], 62.5, "factor lifts the top order (50 x 1.25)")
+	assert_eq(up[10]["power"], 7.8125, "factor lifts the tail (6.25 x 1.25)")
+	var down := InningsResolver._build_batters(null, 31.25, itun, roster, 0.05)
+	assert_eq(down[0]["power"], 2.5, "deep scaling is real (50 x 0.05), no legacy floor-out")
+	assert_eq(down[10]["power"], 0.5, "0.5 safety floor only (6.25 x 0.05 clamped)")
 
 func test_build_batters_flags_player_by_identity() -> void:
 	var player := _attrs(50.0, 50.0, 12.5, 12.5)            # pure batter -> position 3
 	var ppos := InningsResolver.player_position(player, itun)
 	var roster := Team.build_xi(player, ppos)
-	var batters := InningsResolver._build_batters(player, 5, itun, roster, 0)
+	var batters := InningsResolver._build_batters(player, 31.25, itun, roster, 1.0)
 	assert_true(batters[ppos - 1]["is_player"], "the Player slot is flagged at ppos")
 	var player_flags := 0
 	for b in batters:
@@ -390,7 +391,7 @@ func test_simulate_innings_roster_default_unchanged() -> void:
 	var rng2 := RandomNumberGenerator.new(); rng2.seed = 99
 	var base := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, rng1)
 	var same := InningsResolver.simulate_innings(a, 31.25, 31.25, 31.25, tuning, itun, rng2, 0,
-		null, null, null, 0, 0, 0, [], true, null, null, null, null, null, [], 0)
+		null, null, null, 0, 0, 0, [], true, null, null, null, null, null, [], 1.0)
 	assert_eq(base.total, same.total, "empty roster == old behaviour (total)")
 	assert_eq(base.wickets, same.wickets, "empty roster == old behaviour (wickets)")
 
@@ -399,9 +400,9 @@ func test_simulate_innings_roster_is_deterministic() -> void:
 	var rng1 := RandomNumberGenerator.new(); rng1.seed = 7
 	var rng2 := RandomNumberGenerator.new(); rng2.seed = 7
 	var r1 := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, rng1, 0,
-		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 1.0)
 	var r2 := InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, tuning, itun, rng2, 0,
-		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0)
+		null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 1.0)
 	assert_eq(r1.total, r2.total, "roster innings deterministic")
 
 func test_simulate_innings_real_roster_outscores_weak_clone() -> void:
@@ -411,7 +412,7 @@ func test_simulate_innings_real_roster_outscores_weak_clone() -> void:
 	for s in range(40):
 		var rr := RandomNumberGenerator.new(); rr.seed = s
 		roster_runs += InningsResolver.simulate_innings(null, 12.5, 31.25, 31.25, tuning, itun, rr, 0,
-			null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 0).total
+			null, null, null, 0, 0, 0, [], false, null, null, null, null, null, roster, 1.0).total
 		var cr := RandomNumberGenerator.new(); cr.seed = s
 		clone_runs += InningsResolver.simulate_innings(null, 12.5, 31.25, 31.25, tuning, itun, cr).total
 	assert_gt(roster_runs, clone_runs, "real top-order roster outscores a weak flat clone")
@@ -470,3 +471,34 @@ func test_chase_up_converts_more_big_chases() -> void:
 		if _e2_innings(up, 9000 + s, 170).total >= 170:
 			won_up += 1
 	assert_gt(won_up, won_static, "chase escalation must convert more 170-chases (up %d vs static %d)" % [won_up, won_static])
+
+# --- Card-rescale Stage B: proportional league scaling (DR5) ------------------
+
+func test_roster_scales_proportionally_with_team_factor() -> void:
+	var roster := Team.standard_xi()
+	var batters := InningsResolver._build_batters(null, 31.25, itun, roster, 0.25)
+	assert_almost_eq(batters[0]["power"], 12.5, 1e-9, "top batter 50 x 0.25")
+	assert_almost_eq(batters[10]["power"], 1.5625, 1e-9, "tail 6.25 x 0.25 - fractional, no floor-out")
+
+func test_factor_one_is_face_value() -> void:
+	var roster := Team.standard_xi()
+	var batters := InningsResolver._build_batters(null, 31.25, itun, roster, 1.0)
+	assert_almost_eq(batters[0]["power"], 50.0, 1e-9, "factor 1.0 = the card as authored")
+
+func test_weaker_factor_scores_fewer_runs() -> void:
+	var t := BallTuning.new()
+	var it := InningsTuning.new()
+	var strong := 0
+	var weak := 0
+	for i in range(40):
+		var rng1 := RandomNumberGenerator.new()
+		rng1.seed = 9000 + i
+		var rng2 := RandomNumberGenerator.new()
+		rng2.seed = 9000 + i
+		strong += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, t, it, rng1,
+			0, null, null, null, 0.0, 0.0, 0, [], true, null, null, null, null, null,
+			Team.standard_xi(), 1.0).total
+		weak += InningsResolver.simulate_innings(null, 31.25, 31.25, 31.25, t, it, rng2,
+			0, null, null, null, 0.0, 0.0, 0, [], true, null, null, null, null, null,
+			Team.standard_xi(), 0.5).total
+	assert_gt(strong, weak, "a half-strength league scales the whole card down")

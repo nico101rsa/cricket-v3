@@ -44,27 +44,30 @@ static func phase_bonus(kind: int, over: int, itun: InningsTuning) -> float:
 static func phased_profile(attack: BowlingAttack, kind: int, over: int, itun: InningsTuning) -> Vector2:
 	var prof := attack.profile(kind)
 	var bonus := phase_bonus(kind, over, itun)
-	return Vector2(maxf(Attributes.SCALE, prof.x + bonus), maxf(Attributes.SCALE, prof.y + bonus))
+	return Vector2(maxf(0.5, prof.x + bonus), maxf(0.5, prof.y + bonus))
 
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
 # partner scaled by the tail curve. With player_attrs == null (opposition innings),
 # all 11 are derived.
 static func _build_batters(player_attrs: Attributes, partner_batting: float, itun: InningsTuning,
-		roster: Array = [], team_offset: float = 0.0) -> Array:
+		roster: Array = [], team_factor: float = 1.0) -> Array:
 	var batters: Array = []
-	# Roster path (Slice 2): each slot reads its real Attributes; the Player slot is
-	# found by reference identity. A uniform team_offset shifts power/composure
-	# (floored at 1) so star strength still moves the card; the synthetic tail curve
-	# is dropped (the archetype order already provides the tail). See spec §8.5.
+	# Roster path (Slice 2 + card-rescale DR5): each slot reads its real Attributes;
+	# the Player slot is found by reference identity. A uniform team_factor scales
+	# power/composure PROPORTIONALLY (replacing the legacy additive offset + floor-1,
+	# which floored every bad team into the same texture-dead card) so a weak league
+	# is a scaled-down version of the card shape — fractional values, no floor-out
+	# (0.5 is a safety floor only). The synthetic tail curve stays dropped (the
+	# archetype order already provides the tail). See spec §8.5 + card-rescale DR5/DR8.
 	if not roster.is_empty():
 		for order in range(1, 12):  # positions 1..11
 			var m: Attributes = roster[order - 1]
 			batters.append({
 				"position": order,
 				"is_player": player_attrs != null and m == player_attrs,
-				"power": maxf(Attributes.SCALE, m.power + team_offset),
-				"composure": maxf(Attributes.SCALE, m.composure + team_offset),
+				"power": maxf(0.5, m.power * team_factor),
+				"composure": maxf(0.5, m.composure * team_factor),
 				"runs": 0, "balls": 0, "out": false,
 			})
 		return batters
@@ -81,9 +84,7 @@ static func _build_batters(player_attrs: Attributes, partner_batting: float, itu
 				"runs": 0, "balls": 0, "out": false,
 			})
 		else:
-			# STAGE A: snapped to the legacy grid (old maxi(1, roundi(x)) ≡ maxf(SCALE, snap(x))
-			# for inputs ×6.25) — Stage B relaxes this to a raw float (card-rescale DR8).
-			var p := maxf(Attributes.SCALE, roundi(partner_batting * partner_factor(order, itun) / Attributes.SCALE) * Attributes.SCALE)
+			var p := maxf(0.5, partner_batting * partner_factor(order, itun))
 			batters.append({
 				"position": order, "is_player": false,
 				"power": p, "composure": p,
@@ -117,11 +118,11 @@ static func simulate_innings(
 		drs_policy: DRSPolicy = null,
 		opp_field_plan: FieldPlan = null,
 		batting_roster: Array = [],
-		team_bat_offset: float = 0.0,
+		team_bat_factor: float = 1.0,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null
 ) -> InningsResult:
-	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_offset)
+	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_factor)
 	var max_balls := itun.over_limit * 6
 	var striker := 0
 	var nonstriker := 1
@@ -186,8 +187,8 @@ static func simulate_innings(
 			# The Player's own pace/spin identity stays deferred (D4).
 			if bowling_plan != null:
 				var pb := phase_bonus(bowler_type, over, itun)
-				bat_attack = maxf(Attributes.SCALE, bat_attack + pb)
-				bat_control = maxf(Attributes.SCALE, bat_control + pb)
+				bat_attack = maxf(0.5, bat_attack + pb)
+				bat_control = maxf(0.5, bat_control + pb)
 		var field_mode := FieldPlan.Mode.NEUTRAL
 		if field_plan != null:
 			field_mode = field_plan.for_over(over)
