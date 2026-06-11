@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>E3 difficulty ladder — beat-rate over the Career grid</title>
+<style>
+	body { font-family: -apple-system, sans-serif; background: #14161a; color: #e8e8e8; margin: 24px; }
+	h1 { font-size: 20px; } h2 { font-size: 15px; margin-top: 28px; color: #9ad; }
+	.note { color: #999; font-size: 12px; max-width: 720px; }
+	table { border-collapse: collapse; margin-top: 10px; }
+	td, th { padding: 6px 10px; font-size: 12px; text-align: center; border: 1px solid #2a2d33; }
+	th { color: #9ad; font-weight: 600; }
+	.cellname { text-align: left; color: #bbb; }
+	svg { background: #1a1d22; border-radius: 8px; margin-top: 10px; }
+	.bar-label { font-size: 11px; fill: #ccc; }
+</style>
+</head>
+<body>
+<h1>E3 difficulty ladder — the Career grid, measured</h1>
+<p class="note">Reference creation build (35/30/30/30 cards, Team ★3, textbook plans) plays N
+Seasons per cell. <b>Beat</b> = top-3 finish. Each cell's colour is its beat-rate — green easy,
+red hard. The brain ladder (naive → textbook → static-eq → adaptive-eq) + blend per cell comes
+from <code>DifficultyLadder</code>; league card strength from <code>TourSpec.mean_frac(d)</code>.
+Swap the DATA block for any fresh run of <code>tools/sweep_difficulty_ladder.gd</code>.</p>
+
+<h2>Beat-rate heatmap (3 Levels × 8 Tours)</h2>
+<div id="heat"></div>
+
+<h2>Beat-rate vs difficulty number d (one line per Level)</h2>
+<svg id="lines" width="720" height="300"></svg>
+
+<h2>Brain isolation — same league strength, dumb vs smart opponent</h2>
+<div id="iso"></div>
+
+<script>
+// DATA from tools/sweep_difficulty_ladder.gd (paste the full-run line here).
+const DATA = {"n":0,"cells":[],"iso":[]};
+
+const TIERS = ["naive", "textbook", "static-eq", "adaptive"];
+const LEVELS = ["Club", "City", "Province"];
+const TOURS = ["Practise","Home su","Home wi","Home ev","Away su","Away wi","Away ev","Premium"];
+
+function pct(x) { return (100 * x).toFixed(1) + "%"; }
+function heatColor(b) { // 0 hard red -> 1 easy green
+	const h = Math.round(b * 120);
+	return `hsl(${h},62%,38%)`;
+}
+
+// Heatmap table
+(function () {
+	if (!DATA.cells.length) { document.getElementById("heat").innerHTML = "<p class='note'>paste DATA</p>"; return; }
+	let html = "<table><tr><th></th>" + TOURS.map(t => `<th>${t}</th>`).join("") + "</tr>";
+	for (let lvl = 0; lvl < 3; lvl++) {
+		html += `<tr><th class="cellname">${LEVELS[lvl]}</th>`;
+		for (let t = 0; t < 8; t++) {
+			const c = DATA.cells.find(c => c.level === lvl && c.tour === t);
+			html += `<td style="background:${heatColor(c.beat)}" title="${c.cell} · d=${c.d} · ${TIERS[c.tier]}@${c.blend}">` +
+				`${pct(c.beat)}<br><span style="font-size:10px;color:#ddd">${TIERS[c.tier]}${c.blend < 1 ? " ½" : ""}</span></td>`;
+		}
+		html += "</tr>";
+	}
+	html += "</table>";
+	document.getElementById("heat").innerHTML = html;
+})();
+
+// Lines: beat vs d per level
+(function () {
+	const svg = document.getElementById("lines");
+	if (!DATA.cells.length) return;
+	const W = 720, H = 300, m = { l: 46, r: 14, t: 14, b: 30 };
+	const x = d => m.l + (d - 1) / 11 * (W - m.l - m.r);
+	const y = b => H - m.b - b * (H - m.t - m.b);
+	let s = "";
+	for (let g = 0; g <= 10; g += 2)
+		s += `<line x1="${m.l}" y1="${y(g / 10)}" x2="${W - m.r}" y2="${y(g / 10)}" stroke="#2a2d33"/>` +
+			`<text x="6" y="${y(g / 10) + 4}" class="bar-label">${g * 10}%</text>`;
+	const colors = ["#6c6", "#fb5", "#f66"];
+	for (let lvl = 0; lvl < 3; lvl++) {
+		const pts = DATA.cells.filter(c => c.level === lvl).sort((a, b) => a.tour - b.tour);
+		s += `<polyline fill="none" stroke="${colors[lvl]}" stroke-width="2" points="` +
+			pts.map(c => `${x(c.d)},${y(c.beat)}`).join(" ") + `"/>`;
+		pts.forEach(c => { s += `<circle cx="${x(c.d)}" cy="${y(c.beat)}" r="3.5" fill="${colors[lvl]}"><title>${c.cell}: ${pct(c.beat)}</title></circle>`; });
+		s += `<text x="${x(pts[7].d) - 24}" y="${y(pts[7].beat) - 8}" fill="${colors[lvl]}" class="bar-label">${LEVELS[lvl]}</text>`;
+	}
+	s += `<text x="${W / 2}" y="${H - 8}" class="bar-label">difficulty number d (canon sheet)</text>`;
+	svg.innerHTML = s;
+})();
+
+// Iso bars
+(function () {
+	if (!DATA.iso.length) { document.getElementById("iso").innerHTML = "<p class='note'>paste DATA</p>"; return; }
+	let html = "<table><tr><th>opponent brain</th><th>beat-rate</th><th>player-game win</th></tr>";
+	for (const r of DATA.iso)
+		html += `<tr><td class="cellname">${TIERS[r.tier]}</td><td>${pct(r.beat)}</td><td>${pct(r.game_win)}</td></tr>`;
+	html += "</table><p class='note'>Same tour strength (City Home winter) — the gap is the brain's own contribution.</p>";
+	document.getElementById("iso").innerHTML = html;
+})();
+</script>
+</body>
+</html>
