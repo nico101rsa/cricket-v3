@@ -118,12 +118,14 @@ func test_archetypes_remain_20_point_builds() -> void:
 	for a in [Team.archetype_batter(), Team.archetype_bowler(), Team.archetype_allrounder()]:
 		assert_eq(a.power + a.composure + a.attack + a.control, 20, "every archetype is exactly 20 points")
 
-func test_sharpened_tail_is_steeper() -> void:
+# Tail-only steepening (BB5 final form): BOWLER bats 1/1, BATTER unchanged 8/8 —
+# the fully-sharpened 9/9 top order blew the build-equality spread (spec §10).
+func test_steep_tail_final_form() -> void:
 	var bat := Team.archetype_batter()
 	var bowl := Team.archetype_bowler()
-	assert_eq(bat.power, 9, "sharpened batter power 9")
-	assert_eq(bowl.power, 1, "sharpened bowler power 1")
-	assert_eq(bowl.attack, 9, "sharpened bowler attack 9")
+	assert_eq(bat.power, 8, "batter power stays 8 (no top sharpening)")
+	assert_eq(bowl.power, 1, "bowler bats 1 (steep tail)")
+	assert_eq(bowl.attack, 9, "bowler bowls 9 (20-pt budget kept)")
 
 # BB11 — per-phase runs on InningsResult (scoring-environment probe + future
 # score worm). The three buckets must always sum to the innings total.

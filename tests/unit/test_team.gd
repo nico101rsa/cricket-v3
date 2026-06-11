@@ -79,13 +79,13 @@ func test_mutate_stars_clamped() -> void:
 func test_archetypes_are_valid_20pt_builds() -> void:
 	# NPC archetypes keep the 20-point budget but are exempt from the
 	# Player-creation per-attribute cap [1,8] (bowling-balance BB5: the
-	# sharpened 9/1 split steepens the tail so wickets cost more).
+	# BOWLER's 1/1/9/9 split steepens the tail so wickets cost more).
 	for a in [Team.archetype_batter(), Team.archetype_bowler(), Team.archetype_allrounder()]:
 		assert_eq(a.sum(), 20, "archetype is a 20-point build")
 	var bat := Team.archetype_batter()
-	assert_eq([bat.power, bat.composure, bat.attack, bat.control], [9, 9, 1, 1], "BATTER 9/9/1/1")
+	assert_eq([bat.power, bat.composure, bat.attack, bat.control], [8, 8, 2, 2], "BATTER 8/8/2/2")
 	var bwl := Team.archetype_bowler()
-	assert_eq([bwl.power, bwl.composure, bwl.attack, bwl.control], [1, 1, 9, 9], "BOWLER 1/1/9/9")
+	assert_eq([bwl.power, bwl.composure, bwl.attack, bwl.control], [1, 1, 9, 9], "BOWLER 1/1/9/9 (steep tail, BB5)")
 	var ar := Team.archetype_allrounder()
 	assert_eq([ar.power, ar.composure, ar.attack, ar.control], [5, 5, 5, 5], "ALLROUNDER 5/5/5/5")
 
@@ -93,17 +93,17 @@ func test_standard_xi_shape_and_point_split() -> void:
 	var xi := Team.standard_xi()
 	assert_eq(xi.size(), 11, "a full XI of 11 players")
 	for i in range(6):
-		assert_eq(xi[i].power, 9, "slots 1..6 are top-order batters (power 9)")
+		assert_eq(xi[i].power, 8, "slots 1..6 are top-order batters (power 8)")
 	assert_eq(xi[6].power, 5, "slot 7 is the all-rounder")
 	for i in range(7, 11):
-		assert_eq(xi[i].power, 1, "slots 8..11 are bowlers (power 1)")
+		assert_eq(xi[i].power, 1, "slots 8..11 are bowlers (power 1, steep tail BB5)")
 	var bat_pts := 0
 	var bowl_pts := 0
 	for p in xi:
 		bat_pts += p.power + p.composure
 		bowl_pts += p.attack + p.control
-	assert_eq(bat_pts, 126, "team batting points = 126 (sharpened split, BB5)")
-	assert_eq(bowl_pts, 94, "team bowling points = 94 (sharpened split, BB5)")
+	assert_eq(bat_pts, 114, "team batting points = 114 (steep-tail split, BB5)")
+	assert_eq(bowl_pts, 106, "team bowling points = 106 (steep-tail split, BB5)")
 
 func test_build_xi_places_player_at_position() -> void:
 	var player := Attributes.new()
@@ -132,7 +132,7 @@ func test_build_xi_conserves_team_batting_total() -> void:
 		p.power = cfg[0]; p.composure = cfg[1]; p.attack = cfg[2]; p.control = cfg[3]
 		var ppos := InningsResolver.player_position(p, itun)
 		var xi := Team.build_xi(p, ppos)
-		assert_eq(_bat_pts(xi), 126, "team batting conserved to 126 for build %s (sharpened split, BB5)" % str(cfg))
+		assert_eq(_bat_pts(xi), 114, "team batting conserved to 114 for build %s (steep-tail split, BB5)" % str(cfg))
 
 func test_build_xi_leaves_player_attrs_untouched() -> void:
 	var p := Attributes.new()
