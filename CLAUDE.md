@@ -39,6 +39,7 @@ Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: 
   ```
   Then re-run `--import` once. `git ls-files | grep " 2"` should always be empty — if it's not, something real was misnamed; investigate instead of deleting.
 - **Only ever run ONE Godot process at a time.** Firing overlapping headless runs (e.g. several backgrounded test commands) corrupts the `.godot` import cache the same way. Chain `--import && <test>` in a single command and wait for it.
+- **Oracle/sweep runs longer than ~10 min must be detached with `nohup … > /tmp/log 2>&1 &`** — Claude Code's background Bash tasks are killed at a 10-minute cap (hit 2026-06-11 on the 25-min E2 oracle). Then arm a separate watcher task that greps the log for the final `DATA` line *or* Godot exiting (silence ≠ success).
 - Test framework is **GUT 9.6**, vendored at `addons/gut/`. The editor's GUT panel reads `.gutconfig.json` (points it at `res://tests/unit`). The in-editor runner opens a small 390×844 window; the reliable pass/fail signal is the editor's bottom-right "0 errors" counter or the terminal summary.
 
 ## Shell
