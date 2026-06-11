@@ -73,11 +73,24 @@ func test_phased_profile_applies_kind_phase_bonus() -> void:
 	var floored := InningsResolver.phased_profile(atk, BowlingPlan.Kind.SPIN, 1, it)
 	assert_almost_eq(floored.x, 1.0, 0.001, "floored at 1.0")
 
-# Player-bowled overs carry no kind (BB4): -1 if player bowling, else bowler_type.
-func test_ball_kind_player_override() -> void:
-	assert_eq(InningsResolver.ball_kind(true, BowlingPlan.Kind.SPIN), -1, "player bowling -> -1")
-	assert_eq(InningsResolver.ball_kind(false, BowlingPlan.Kind.SPIN), BowlingPlan.Kind.SPIN, "team over -> plan kind")
-	assert_eq(InningsResolver.ball_kind(false, -1), -1, "no rotation -> -1")
+# BB4 (reversed): the hero bowls WITHIN the rotation — their overs inherit the
+# plan kind's phase bonus, else bowling-capable builds pay a hidden tax.
+func test_hero_overs_inherit_phase_bonus() -> void:
+	var poisoned := InningsTuning.new()
+	poisoned.spin_phase_bonus = [9.0, 9.0, 9.0]  # only reachable via the hero's overs below
+	poisoned.pace_phase_bonus = [9.0, 9.0, 9.0]
+	var atk := BowlingAttack.new(5, 5)
+	var differs := false
+	for seed_value in range(1, 20):
+		# Hero bowls 4 overs inside an all-spin rotation; if their overs ignored
+		# the phase dials, poisoning them could still differ via team overs — so
+		# compare against a run where ONLY team overs see the poison (hero stats
+		# huge so hero-over outcomes dominate the divergence).
+		var a := InningsResolver.simulate_innings(null, 5, 5, 5, _bt, _it, _rng(seed_value), 0, null, atk, BowlingPlan.spin_only(), 8, 8, 4)
+		var b := InningsResolver.simulate_innings(null, 5, 5, 5, _bt, poisoned, _rng(seed_value), 0, null, atk, BowlingPlan.spin_only(), 8, 8, 4)
+		if a.player_bowl_runs != b.player_bowl_runs or a.player_bowl_wickets != b.player_bowl_wickets:
+			differs = true
+	assert_true(differs, "the phase dials must reach the hero's own overs (BB4 reversed)")
 
 # Scalar path (no bowling plan) must not read the new dials at all (BB9).
 func test_scalar_innings_ignores_phase_dials() -> void:

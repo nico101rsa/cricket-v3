@@ -34,18 +34,17 @@ static func player_bowling_overs(n: int, total_overs: int) -> Array[int]:
 		overs.append(clampi(roundi((i + 0.5) * float(total_overs) / float(n)), 1, total_overs))
 	return overs
 
+# A kind's phase effectiveness bonus for a 1-based over (BB1). Pure.
+static func phase_bonus(kind: int, over: int, itun: InningsTuning) -> float:
+	var ph := IntentPlan.phase_of(over)
+	return itun.pace_phase_bonus[ph] if kind == BowlingPlan.Kind.PACE else itun.spin_phase_bonus[ph]
+
 # The over's effective bowling profile: kind profile + that kind's phase bonus
 # on both stats (BB1), floored at 1.0. Pure; unit-tested directly.
 static func phased_profile(attack: BowlingAttack, kind: int, over: int, itun: InningsTuning) -> Vector2:
 	var prof := attack.profile(kind)
-	var ph := IntentPlan.phase_of(over)
-	var bonus: float = itun.pace_phase_bonus[ph] if kind == BowlingPlan.Kind.PACE else itun.spin_phase_bonus[ph]
+	var bonus := phase_bonus(kind, over, itun)
 	return Vector2(maxf(1.0, prof.x + bonus), maxf(1.0, prof.y + bonus))
-
-# The bowler kind resolve_ball sees: the Player's bowling kind is deferred
-# (player-as-bowler D4), so Player-bowled overs carry no kind (BB4).
-static func ball_kind(player_bowling: bool, bowler_type: int) -> int:
-	return -1 if player_bowling else bowler_type
 
 # Build the 11-strong batting order. With a statted Player (player_attrs != null),
 # the Player bats at their build-driven position; every other slot is a derived
@@ -177,6 +176,14 @@ static func simulate_innings(
 		if player_bowling:
 			bat_attack = player_bowler_attack
 			bat_control = player_bowler_control
+			# BB4 (reversed 2026-06-11): the hero bowls WITHIN the rotation — their
+			# overs inherit the plan kind's phase bonus, or the team pays a hidden
+			# ~3.5-run/match tax on bowling-capable builds (measured, spec §10).
+			# The Player's own pace/spin identity stays deferred (D4).
+			if bowling_plan != null:
+				var pb := phase_bonus(bowler_type, over, itun)
+				bat_attack = maxf(1.0, bat_attack + pb)
+				bat_control = maxf(1.0, bat_control + pb)
 		var field_mode := FieldPlan.Mode.NEUTRAL
 		if field_plan != null:
 			field_mode = field_plan.for_over(over)
@@ -204,7 +211,7 @@ static func simulate_innings(
 		var o := BallResolver.resolve_ball(
 			s["power"], s["composure"], bat_attack, bat_control,
 			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y,
-			ball_kind(player_bowling, bowler_type))
+			bowler_type)
 		# C2f — DRS: a review can overturn a close decision (see below).
 		# A review mutates o, then the existing wicket/runs handling takes over.
 		# RNG is consumed only when a review is actually attempted (a policy +
