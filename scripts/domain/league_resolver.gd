@@ -29,7 +29,8 @@ static func simulate_league(
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
 		player_intent_plan: IntentPlan = null,
-		player_bowling_plan: BowlingPlan = null
+		player_bowling_plan: BowlingPlan = null,
+		opp_spec: TourSpec = null
 ) -> LeagueResult:
 	var teams: Array = [player_team]
 	teams.append_array(opponents)
@@ -57,11 +58,20 @@ static func simulate_league(
 		var p_attrs: Attributes = player_attrs if i == 0 else null
 		var ip: IntentPlan = player_intent_plan if i == 0 else null
 		var bp: BowlingPlan = player_bowling_plan if i == 0 else null
+		# E3: the cell's opponent brain fires on Player-facing fixtures only
+		# (DL5). round_robin has i < j, so the Player (index 0) is always i.
+		var oip: IntentPlan = null
+		var obp: BowlingPlan = null
+		if opp_spec != null and i == 0:
+			var plans := OpponentBrain.draw_plans(opp_spec.brain_tier, opp_spec.blend, rng)
+			oip = plans[0]
+			obp = plans[1]
 		var m := MatchResolver.simulate_match(
 			p_attrs,
 			bat[i], bowl[i], bowl[i],
 			bat[j], bowl[j], bowl[j],
-			i_bats_first, tuning, itun, rng, ip, bp)
+			i_bats_first, tuning, itun, rng, ip, bp,
+			[], null, null, oip, null, null, null, [], [], 1.0, 1.0, null, null, obp)
 
 		# Attribute innings (innings1 = first-batting side).
 		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2

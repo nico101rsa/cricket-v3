@@ -96,3 +96,16 @@ func test_season_directional_strong_player_wins_more() -> void:
 			weak_won += 1
 	assert_gt(strong_beat, weak_beat, "5.0-star beats the Season more often than 0.5-star")
 	assert_gte(strong_won, weak_won, "5.0-star wins the Final at least as often as 0.5-star")
+
+
+# --- E3 (spec 2026-06-12-difficulty-ladder-7cE3-design.md): opponent brain ---
+
+func test_season_with_brain_is_deterministic() -> void:
+	var results: Array = []
+	for rep in range(2):
+		var spec := DifficultyLadder.spec_for(2, 7)
+		results.append(SeasonResolver.simulate_season(
+			_attrs(), _team(3.0), _field(), spec.make_tour(), tuning, itun, _rng(91),
+			IntentPlan.textbook(), BowlingPlan.textbook(), spec))
+	assert_eq(results[0].player_final_position, results[1].player_final_position)
+	assert_eq(results[0].final_order, results[1].final_order)
