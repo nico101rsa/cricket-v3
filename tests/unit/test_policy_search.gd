@@ -61,3 +61,44 @@ func test_random_policy_in_range_and_seeded() -> void:
 	var b := PolicySearch.random_policy(ps, r2)
 	assert_eq(PolicySearch.label_of(a), PolicySearch.label_of(b), "same seed -> same draw")
 	assert_true(ps.has(a))
+
+
+# --- E2 adaptive space (spec 2026-06-11-stateaware-policy-7cE2-design.md §5 DS4) ---
+
+func test_enumerate_adaptive_320_unique() -> void:
+	var ps := PolicySearch.enumerate_adaptive()
+	assert_eq(ps.size(), 320, "4 bases x 5 up x 4 down x 4 collapse")
+	var seen := {}
+	for p in ps:
+		seen[PolicySearch.label_of(p)] = true
+	assert_eq(seen.size(), 320, "labels unique")
+
+
+func test_adaptive_plan_carries_rules() -> void:
+	var p := PolicySearch.static_equilibrium()
+	p["up"] = 9.0
+	p["down"] = 6.0
+	p["collapse"] = 4
+	var ip := PolicySearch.intent_plan_of(p)
+	assert_eq(ip.chase_up_rr, 9.0)
+	assert_eq(ip.chase_down_rr, 6.0)
+	assert_eq(ip.collapse_wkts, 4)
+
+
+func test_static_policy_builds_disabled_rules() -> void:
+	var ip := PolicySearch.intent_plan_of(PolicySearch.textbook())
+	assert_eq(ip.chase_up_rr, -1.0)
+	assert_eq(ip.collapse_wkts, -1)
+
+
+func test_static_equilibrium_literal() -> void:
+	# bowling-balance fixed point: B/A/B·P/S/P
+	assert_eq(PolicySearch.label_of(PolicySearch.static_equilibrium()), "B/A/B·P/S/P")
+
+
+func test_adaptive_label_appends_rules() -> void:
+	var p := PolicySearch.static_equilibrium()
+	p["up"] = 9.0
+	p["down"] = -1.0
+	p["collapse"] = 4
+	assert_eq(PolicySearch.label_of(p), "B/A/B·P/S/P+u9d-c4")

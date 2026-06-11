@@ -13,6 +13,13 @@ var powerplay: int = BallResolver.Intent.BALANCED  # overs 1..6
 var middle: int = BallResolver.Intent.BALANCED     # overs 7..15
 var death: int = BallResolver.Intent.BALANCED      # overs 16..20
 
+# E2 state rules (spec 2026-06-11-stateaware-policy-7cE2-design.md §3). All
+# disabled by default; for_state() == for_over() when off, so static plans and
+# every pre-E2 caller are byte-identical. req RR = runs still needed per over.
+var chase_up_rr: float = -1.0    # chasing & req RR >= this -> escalate one band
+var chase_down_rr: float = -1.0  # chasing & req RR <= this -> de-escalate one band
+var collapse_wkts: int = -1      # wickets fallen >= this -> de-escalate one band
+
 # Phase index for a 1-based over: 0 = Powerplay, 1 = middle, 2 = death.
 # Single source of truth for phase boundaries (BB2, bowling-balance spec).
 static func phase_of(over: int) -> int:
@@ -31,6 +38,23 @@ func for_over(over: int) -> int:
 			return middle
 		_:
 			return death
+
+# State-aware band for the ball about to be bowled. balls = balls bowled so far
+# this innings; target/max_balls as in simulate_innings. No RNG draws. DS2a:
+# collapse protection never overrides a chase escalation (a side chasing
+# 11-an-over keeps attacking even 5 down).
+func for_state(over: int, total: int, wickets: int, balls: int, target: int, max_balls: int) -> int:
+	var band := for_over(over)
+	var delta := 0
+	if target > 0 and balls < max_balls:
+		var req_rr := float(target - total) * 6.0 / float(max_balls - balls)
+		if chase_up_rr >= 0.0 and req_rr >= chase_up_rr:
+			delta = 1
+		elif chase_down_rr >= 0.0 and req_rr <= chase_down_rr:
+			delta = -1
+	if collapse_wkts >= 0 and wickets >= collapse_wkts and delta <= 0:
+		delta -= 1
+	return clampi(band + delta, BallResolver.Intent.DEFENSIVE, BallResolver.Intent.AGGRESSIVE)
 
 # Neutral baseline: BALANCED in every phase (== the pre-rung-4a hardcode).
 static func balanced() -> IntentPlan:

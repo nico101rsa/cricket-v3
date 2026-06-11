@@ -152,7 +152,9 @@ static func simulate_innings(
 		var over := balls / 6 + 1  # 1-based over of the ball about to be bowled
 		var intent := BallResolver.Intent.BALANCED
 		if intent_plan != null:
-			intent = intent_plan.for_over(over)
+			# E2: batting intent reads the match state (req-RR chase pressure +
+			# collapse protection). Static plans (rules off) are byte-identical.
+			intent = intent_plan.for_state(over, total, wickets, balls, target, max_balls)
 		if intent_override != -1:
 			intent = intent_override  # C2g — Boundary Hunter latch
 		# C2g — intent-switch Form source at over start (Player batting only).

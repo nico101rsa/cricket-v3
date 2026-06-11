@@ -415,3 +415,58 @@ func test_simulate_innings_real_roster_outscores_weak_clone() -> void:
 		var cr := RandomNumberGenerator.new(); cr.seed = s
 		clone_runs += InningsResolver.simulate_innings(null, 2, 5, 5, tuning, itun, cr).total
 	assert_gt(roster_runs, clone_runs, "real top-order roster outscores a weak flat clone")
+
+# --- E2 state-aware intent threading (spec 2026-06-11-stateaware-policy-7cE2-design.md §4) ---
+
+func _e2_innings(plan: IntentPlan, seed_v: int, target: int) -> InningsResult:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	return InningsResolver.simulate_innings(null, 5, 5.0, 5.0, tuning, itun, rng, target, plan)
+
+func test_adaptive_rules_off_byte_identical_to_static() -> void:
+	var static_plan := IntentPlan.textbook()
+	var off_plan := IntentPlan.textbook()  # rule fields untouched = disabled
+	for s in range(5):
+		var a := _e2_innings(static_plan, 4200 + s, 150)
+		var b := _e2_innings(off_plan, 4200 + s, 150)
+		assert_eq(b.total, a.total, "rules-off total identical (seed %d)" % s)
+		assert_eq(b.wickets, a.wickets, "rules-off wickets identical (seed %d)" % s)
+		assert_eq(b.balls, a.balls, "rules-off balls identical (seed %d)" % s)
+
+func test_adaptive_escalation_changes_a_chase() -> void:
+	var static_plan := IntentPlan.balanced()
+	var up := IntentPlan.balanced()
+	up.chase_up_rr = 0.0  # always escalates while chasing
+	var differs := false
+	for s in range(10):
+		var a := _e2_innings(static_plan, 4300 + s, 220)
+		var b := _e2_innings(up, 4300 + s, 220)
+		if a.total != b.total or a.wickets != b.wickets or a.balls != b.balls:
+			differs = true
+			break
+	assert_true(differs, "an always-escalating chase plan must change outcomes")
+
+func test_adaptive_innings_deterministic() -> void:
+	var up := IntentPlan.balanced()
+	up.chase_up_rr = 9.0
+	up.collapse_wkts = 4
+	var a := _e2_innings(up, 777, 170)
+	var b := _e2_innings(up, 777, 170)
+	assert_eq(a.total, b.total)
+	assert_eq(a.wickets, b.wickets)
+	assert_eq(a.balls, b.balls)
+
+func test_chase_up_converts_more_big_chases() -> void:
+	# A2 directional: chasing 170 at even strength, escalate-when-behind converts
+	# more often than the same static base. Seed-summed, N=300 per arm.
+	var static_plan := IntentPlan.balanced()
+	var up := IntentPlan.balanced()
+	up.chase_up_rr = 8.0
+	var won_static := 0
+	var won_up := 0
+	for s in range(300):
+		if _e2_innings(static_plan, 9000 + s, 170).total >= 170:
+			won_static += 1
+		if _e2_innings(up, 9000 + s, 170).total >= 170:
+			won_up += 1
+	assert_gt(won_up, won_static, "chase escalation must convert more 170-chases (up %d vs static %d)" % [won_up, won_static])
