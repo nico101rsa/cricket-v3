@@ -53,7 +53,7 @@ static func match_pay(result: MatchResult, team_stars: float, tuning: EconomyTun
 	return {"base": base, "perf": perf, "total": base + perf}
 
 
-static func attr_upgrade_cost(current_value: int, tuning: EconomyTuning) -> int:
+static func attr_upgrade_cost(current_value: float, tuning: EconomyTuning) -> int:
 	return int(round(tuning.attr_cost_base * current_value))
 
 

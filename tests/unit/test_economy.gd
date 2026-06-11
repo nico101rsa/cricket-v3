@@ -141,10 +141,15 @@ func test_no_versatility_for_a_single_discipline() -> void:
 
 
 func test_attr_upgrade_cost_scales_with_current_value() -> void:
-	var low := Economy.attr_upgrade_cost(2, _etun)
-	var high := Economy.attr_upgrade_cost(7, _etun)
+	var low := Economy.attr_upgrade_cost(12.5, _etun)
+	var high := Economy.attr_upgrade_cost(43.75, _etun)
 	assert_gt(high, low)
-	assert_eq(low, int(round(_etun.attr_cost_base * 2)))
+	assert_eq(low, int(round(_etun.attr_cost_base * 12.5)))
+
+func test_attr_upgrade_cost_on_100_scale_preserves_legacy_roi() -> void:
+	# Card-rescale DR11: +1 legacy point (= 6.25 /100 points) at a card of 50
+	# (legacy 8) cost T80; the /100 per-point price keeps that within rounding.
+	assert_almost_eq(Economy.attr_upgrade_cost(50.0, _etun) * 6.25, 80.0, 2.0)
 
 
 func test_sell_refund_is_floored_fraction() -> void:

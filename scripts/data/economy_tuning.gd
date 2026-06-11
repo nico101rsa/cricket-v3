@@ -33,8 +33,11 @@ extends Resource
 @export var bowl_ref_balls: float = 24.0  # a full 4-over spell
 
 # Shop / meta
-@export var attr_cost_base: float = 10.0  # +1 attribute costs attr_cost_base × current value (DE7;
-                                          # tuned 12→10: +1 attr ≈ +0.5% win and is Career-permanent —
-                                          # ~1.3–2.6× joker ₸-per-win-point on a 3-Season horizon)
+@export var attr_cost_base: float = 0.256 # +1 /100-point costs attr_cost_base × current value.
+                                          # Card-rescale DR11: = 10 / 6.25² — preserves the DE7
+                                          # calibration exactly (+1 legacy point at legacy-8 = ₸80;
+                                          # tuned 12→10 then: +1 legacy attr ≈ +0.5% win, Career-
+                                          # permanent, ~1.3–2.6× joker ₸-per-win-point over 3 Seasons).
+                                          # The shop's natural unit is a +5 block ≈ ₸64 at card 50.
 @export var sell_refund_frac: float = 0.5 # partial refund selling a joker back (DE9)
 @export var loadout_cap: int = 4          # max active joker slots (CONTEXT.md 4 slots; DE8)
