@@ -106,3 +106,50 @@ func test_league_exposes_held_strengths() -> void:
 		assert_gte(v, 1, "batting strength floored at 1")
 	for v in r.team_bowl:
 		assert_gte(v, 1, "bowling strength floored at 1")
+
+
+# --- E3 (spec 2026-06-12-difficulty-ladder-7cE3-design.md): opponent brain ---
+
+func _ladder_league(seed_v: int, spec: TourSpec) -> LeagueResult:
+	var tour := spec.make_tour() if spec != null else _tour()
+	return LeagueResolver.simulate_league(
+		_attrs(), _team(3.0), _field(), tour, tuning, itun, _rng(seed_v),
+		IntentPlan.textbook(), BowlingPlan.textbook(), spec)
+
+func test_league_with_brain_is_deterministic() -> void:
+	var a := _ladder_league(31, DifficultyLadder.spec_for(2, 7))
+	var b := _ladder_league(31, DifficultyLadder.spec_for(2, 7))
+	assert_eq(a.player_position, b.player_position)
+	for k in range(8):
+		assert_eq(a.standings[k].points, b.standings[k].points)
+		assert_eq(a.standings[k].team_index, b.standings[k].team_index)
+
+func test_league_null_spec_matches_omitted_param() -> void:
+	var a := _ladder_league(47, null)
+	var b := LeagueResolver.simulate_league(
+		_attrs(), _team(3.0), _field(), _tour(), tuning, itun, _rng(47),
+		IntentPlan.textbook(), BowlingPlan.textbook())
+	assert_eq(a.player_position, b.player_position)
+	for k in range(8):
+		assert_eq(a.standings[k].points, b.standings[k].points)
+
+func test_smarter_brain_wins_more_player_games() -> void:
+	# Same tour strength, only the brain differs: an adaptive-eq opponent should
+	# take more games off the Player than a naive one (seed-summed, 20 leagues
+	# x 7 player games per arm; the measured ladder gap is ~24 pts).
+	var naive_spec := DifficultyLadder.spec_for(1, 2)
+	naive_spec.brain_tier = TourSpec.Tier.NAIVE
+	naive_spec.blend = 1.0
+	var smart_spec := DifficultyLadder.spec_for(1, 2)
+	smart_spec.brain_tier = TourSpec.Tier.ADAPTIVE
+	smart_spec.blend = 1.0
+	var naive_wins := 0
+	var smart_wins := 0
+	for s in range(20):
+		for m in _ladder_league(100 + s, naive_spec).player_matches:
+			if m.player_won():
+				naive_wins += 1
+		for m in _ladder_league(100 + s, smart_spec).player_matches:
+			if m.player_won():
+				smart_wins += 1
+	assert_lt(smart_wins, naive_wins, "adaptive opponent must beat the Player more often than naive")

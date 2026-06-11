@@ -13,7 +13,8 @@ static func _knockout(
 		a_idx: int, a_seed: int, b_idx: int, b_seed: int,
 		team_bat: Array, team_bowl: Array,
 		player_attrs: Attributes, tuning: BallTuning, itun: InningsTuning,
-		rng: RandomNumberGenerator, ip: IntentPlan, bp: BowlingPlan
+		rng: RandomNumberGenerator, ip: IntentPlan, bp: BowlingPlan,
+		opp_spec: TourSpec = null
 ) -> Dictionary:
 	var s1 := a_idx
 	var s2 := b_idx
@@ -24,10 +25,19 @@ static func _knockout(
 	var ipp: IntentPlan = ip if s1 == 0 else null
 	var bpp: BowlingPlan = bp if s1 == 0 else null
 	var toss := MatchResolver._resolve_toss(rng)
+	# E3 (DL5): the cell's brain fires only when the Player is in the knockout.
+	# Fixed RNG order: toss -> brain draws -> match.
+	var oip: IntentPlan = null
+	var obp: BowlingPlan = null
+	if opp_spec != null and s1 == 0:
+		var plans := OpponentBrain.draw_plans(opp_spec.brain_tier, opp_spec.blend, rng)
+		oip = plans[0]
+		obp = plans[1]
 	var m := MatchResolver.simulate_match(
 		pa, team_bat[s1], team_bowl[s1], team_bowl[s1],
 		team_bat[s2], team_bowl[s2], team_bowl[s2],
-		toss, tuning, itun, rng, ipp, bpp)
+		toss, tuning, itun, rng, ipp, bpp,
+		[], null, null, oip, null, null, null, [], [], 1.0, 1.0, null, null, obp)
 	var s1_won: bool
 	if m.outcome == MatchResult.Outcome.TIE:
 		var s1_seed := a_seed if s1 == a_idx else b_seed
@@ -50,11 +60,12 @@ static func simulate_season(
 		itun: InningsTuning,
 		rng: RandomNumberGenerator,
 		player_intent_plan: IntentPlan = null,
-		player_bowling_plan: BowlingPlan = null
+		player_bowling_plan: BowlingPlan = null,
+		opp_spec: TourSpec = null
 ) -> SeasonResult:
 	var league := LeagueResolver.simulate_league(
 		player_attrs, player_team, opponents, tour, tuning, itun, rng,
-		player_intent_plan, player_bowling_plan)
+		player_intent_plan, player_bowling_plan, opp_spec)
 	var bat: Array = league.team_bat
 	var bowl: Array = league.team_bowl
 
@@ -65,8 +76,8 @@ static func simulate_season(
 	var s4i: int = league.standings[3].team_index
 
 	# Semi-finals: 1v4, 2v3.
-	var sf1 := _knockout(s1i, 1, s4i, 4, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
-	var sf2 := _knockout(s2i, 2, s3i, 3, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
+	var sf1 := _knockout(s1i, 1, s4i, 4, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
+	var sf2 := _knockout(s2i, 2, s3i, 3, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
 
 	# Seed lookup for the bracket (team_index -> league position 1..4).
 	var seed_of := {s1i: 1, s2i: 2, s3i: 3, s4i: 4}
@@ -76,17 +87,17 @@ static func simulate_season(
 	var fw_b: int = sf2["winner"]
 	var final_kn: Dictionary
 	if seed_of[fw_a] <= seed_of[fw_b]:
-		final_kn = _knockout(fw_a, seed_of[fw_a], fw_b, seed_of[fw_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
+		final_kn = _knockout(fw_a, seed_of[fw_a], fw_b, seed_of[fw_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
 	else:
-		final_kn = _knockout(fw_b, seed_of[fw_b], fw_a, seed_of[fw_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
+		final_kn = _knockout(fw_b, seed_of[fw_b], fw_a, seed_of[fw_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
 
 	var tl_a: int = sf1["loser"]
 	var tl_b: int = sf2["loser"]
 	var third_kn: Dictionary
 	if seed_of[tl_a] <= seed_of[tl_b]:
-		third_kn = _knockout(tl_a, seed_of[tl_a], tl_b, seed_of[tl_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
+		third_kn = _knockout(tl_a, seed_of[tl_a], tl_b, seed_of[tl_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
 	else:
-		third_kn = _knockout(tl_b, seed_of[tl_b], tl_a, seed_of[tl_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan)
+		third_kn = _knockout(tl_b, seed_of[tl_b], tl_a, seed_of[tl_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec)
 
 	var result := SeasonResult.new()
 	result.league = league
