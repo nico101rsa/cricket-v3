@@ -16,6 +16,12 @@ func _init() -> void:
 	tour.mean = 31.25
 	tour.spread = 9.375
 	tour.noise = 1
+	# League-band probe (card-rescale DR6 / E3): override the tour mean to read
+	# the scoring environment at any league level, e.g. ENV_TOUR_MEAN=7.8125
+	# (band 1, factor 0.25) or 40.625 (band 5, factor 1.3).
+	var mean_override := OS.get_environment("ENV_TOUR_MEAN")
+	if mean_override != "":
+		tour.mean = float(mean_override)
 	var pol := PolicySearch.textbook()
 	var totals: Array = []
 	var wkts := 0.0

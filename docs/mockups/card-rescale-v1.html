@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card rescale to /100 — anchors & league texture</title>
+<style>
+	body { background:#101418; color:#e8e4d8; font-family:-apple-system,'Segoe UI',sans-serif; margin:0; padding:24px; }
+	h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:15px; color:#9ad17b; margin:28px 0 8px; text-transform:uppercase; letter-spacing:1px; }
+	.sub { color:#8a94a0; font-size:13px; margin-bottom:20px; }
+	.row { display:flex; gap:14px; flex-wrap:wrap; }
+	.card { background:#1a2129; border:1px solid #2a3441; border-radius:12px; padding:14px 16px; min-width:150px; }
+	.card .name { font-size:12px; color:#8a94a0; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+	.stat { display:flex; justify-content:space-between; font-size:14px; padding:2px 0; }
+	.stat b { font-variant-numeric:tabular-nums; }
+	.hi { color:#ffd166; } .lo { color:#5c6770; }
+	.arrow { color:#9ad17b; font-weight:600; }
+	table { border-collapse:collapse; font-size:13.5px; margin-top:6px; }
+	th, td { padding:6px 12px; text-align:right; border-bottom:1px solid #2a3441; font-variant-numeric:tabular-nums; }
+	th { color:#8a94a0; font-weight:600; } td:first-child, th:first-child { text-align:left; }
+	.note { color:#8a94a0; font-size:12.5px; max-width:760px; line-height:1.5; }
+	.ok { color:#9ad17b; font-weight:600; }
+</style>
+</head>
+<body>
+<h1>Card rescale to /100</h1>
+<div class="sub">F = 6.25 (= 50/8) · mid-league top batter anchors at <b>50</b> · proportional league scaling replaces offset+floor · 2026-06-11</div>
+
+<h2>The same card, old units → new units</h2>
+<div class="row">
+	<div class="card"><div class="name">Top batter (old)</div>
+		<div class="stat"><span>Power</span><b>8</b></div><div class="stat"><span>Composure</span><b>8</b></div>
+		<div class="stat"><span>Attack</span><b class="lo">2</b></div><div class="stat"><span>Control</span><b class="lo">2</b></div></div>
+	<div style="align-self:center" class="arrow">→ ×6.25 →</div>
+	<div class="card"><div class="name">Top batter (/100)</div>
+		<div class="stat"><span>Power</span><b class="hi">50</b></div><div class="stat"><span>Composure</span><b class="hi">50</b></div>
+		<div class="stat"><span>Attack</span><b class="lo">12.5</b></div><div class="stat"><span>Control</span><b class="lo">12.5</b></div></div>
+	<div class="card"><div class="name">Specialist bowler (/100)</div>
+		<div class="stat"><span>Power</span><b class="lo">6.25</b></div><div class="stat"><span>Composure</span><b class="lo">6.25</b></div>
+		<div class="stat"><span>Attack</span><b class="hi">56.25</b></div><div class="stat"><span>Control</span><b class="hi">56.25</b></div></div>
+	<div class="card"><div class="name">All-rounder (/100)</div>
+		<div class="stat"><span>Power</span><b>31.25</b></div><div class="stat"><span>Composure</span><b>31.25</b></div>
+		<div class="stat"><span>Attack</span><b>31.25</b></div><div class="stat"><span>Control</span><b>31.25</b></div></div>
+</div>
+<p class="note">Every card is a 125-point build (= old 20 × 6.25). The bowler reads 56, not 50 — that's the shipped
+tail-steepening lever (BB5), not an accident. Player creation: budget <b>125</b>, sliders 5–50 in steps of 5.</p>
+
+<h2>League texture — the point of proportional scaling</h2>
+<table>
+<tr><th>Band</th><th>Flavour</th><th>Top batter card</th><th>Tail card</th><th>Avg 1st-inns</th><th>Run rate</th><th>Wickets</th><th>All-out %</th></tr>
+<tr><td>1 (worst)</td><td>club / scrapheap</td><td>12.5</td><td>1.6</td><td>112.8</td><td>6.51</td><td>8.7</td><td>60.5</td></tr>
+<tr><td>3 (anchor)</td><td>mid league</td><td><b class="hi">50</b></td><td>6.25</td><td>153.4</td><td>8.22</td><td>6.2</td><td>32.0</td></tr>
+<tr><td>5 (best)</td><td>elite</td><td>65</td><td>8.1</td><td>167.2</td><td>8.76</td><td>5.3</td><td>24.1</td></tr>
+</table>
+<p class="note">Measured by <code>probe_scoring_env.gd</code> (N=2000, <code>ENV_TOUR_MEAN</code> override). The old
+additive offset floored every bad team to the same card; now a worst-league side is a scaled-down <i>shape</i> —
+fractional values, the tail really can't bat, and the death overs are slower than the powerplay (club cricket!).
+Bands 1/5 are strawman tour means for E3 to tune; only band 3 is load-bearing.</p>
+
+<h2>Mid-league re-verification (the rescale changed nothing that matters)</h2>
+<table>
+<tr><th>Check</th><th>Before (peg)</th><th>After</th><th>Gate</th></tr>
+<tr><td>Stage A probe (snapped grid)</td><td>154.7 / 8.20 / 6.27</td><td class="ok">byte-identical</td><td class="ok">✓ exact</td></tr>
+<tr><td>Scoring env (Stage B, mid league)</td><td>154.7 / 8.20 / 6.27</td><td>153.4 / 8.22 / 6.24</td><td class="ok">✓ in band 150–167 / 8–9 / 5–7</td></tr>
+<tr><td>Build win% spread (7 builds)</td><td>2.0 pts</td><td>1.9 pts (46.6–48.5)</td><td class="ok">✓ ≤ 2.5</td></tr>
+<tr><td>Pay spread (batter/balanced/bowler)</td><td>₸0.6</td><td>₸0.3 (66.7/67.0/67.0)</td><td class="ok">✓ ≤ ₸1 (runs_rate 0.4→0.45 re-peg)</td></tr>
+<tr><td>Side symmetry (5 arms)</td><td>mirrors 49–50.5</td><td>48.5–50.7</td><td class="ok">✓ clean</td></tr>
+<tr><td>No-joker floor</td><td>45.9%</td><td id="floor">(sweep)</td><td>≈ ±1</td></tr>
+</table>
+<p class="note">Why it holds: the sim's maths only ever uses attribute <i>differences</i> inside logistics and
+<i>ratios</i> for positions/overs — multiplying the world by 6.25 and dividing the two gains by 6.25 is the same
+game in bigger numbers. Stage A proved it byte-for-byte before any real change shipped.</p>
+</body>
+</html>

@@ -11,7 +11,9 @@ extends Resource
 @export var star_pay_slope: float = 5.0   # ₸ less per ★ above 3 — stronger Teams pay less (CONTEXT §Tons)
 
 # Batting components
-@export var runs_rate: float = 0.4        # ₸ per run scored
+@export var runs_rate: float = 0.45      # ₸ per run scored (0.4->0.45 at card-rescale: the
+                                          # proportional-noise env trimmed batter runs ~₸2 vs
+                                          # bowling pay — one-dial re-peg, spread back ≤₸1)
 @export var sr_par_pay: float = 125.0     # tempo baseline SR — runs above this tempo earn extra (re-pegged 110->125 at the bowling-balance rung: the new environment runs hotter SRs)
 @export var sr_rate: float = 1.3          # ₸ per run scored above par tempo (clamped ≥0)
 @export var fifty_bonus: float = 20.0     # flat milestone ₸ at 50+
