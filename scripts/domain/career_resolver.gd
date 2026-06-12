@@ -102,3 +102,61 @@ static func accept_offer(state: CareerState, player: Player, offer: Offer) -> vo
 
 static func stay(_state: CareerState, player: Player) -> void:
 	player.affinity += 1
+
+
+# --- The Season turn (DC5/DC8/DC9/DC13) ----------------------------------------
+
+# Play one Season at (current Level, tour_index): simulate via SeasonResolver
+# with the cell's DifficultyLadder spec (tour distribution + opponent brain,
+# DC13), bank ₸ (DC9 + DC10), update the grid, tick Seasons-played, mutate all
+# 24 Teams (DC8), then generate Offers. Returns
+# {season, pay, wins, offers}; {} if the cell is locked.
+static func play_season(
+		state: CareerState, player: Player, tour_index: int,
+		tuning: BallTuning, itun: InningsTuning, etun: EconomyTuning,
+		rng: RandomNumberGenerator,
+		intent_plan: IntentPlan = null, bowling_plan: BowlingPlan = null
+) -> Dictionary:
+	var level := state.current_level()
+	if not state.is_unlocked(level, tour_index):
+		push_warning("play_season: cell (%d,%d) is locked" % [level, tour_index])
+		return {}
+	var spec := DifficultyLadder.spec_for(level, tour_index)
+	var team: Team = state.teams[state.current_team_index]
+	var stars_at_play := team.stars   # pay uses the stars the Season was played at (DC8)
+	var season := SeasonResolver.simulate_season(
+		player.attributes, team, state.opponents_of_current(), spec.make_tour(),
+		tuning, itun, rng, intent_plan, bowling_plan, spec)
+
+	var pay := 0
+	var wins := 0
+	for m in _player_matches(season):
+		pay += Economy.match_pay(m, stars_at_play, etun)["total"]
+		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+			wins += 1
+			pay += Economy.win_bonus(level, etun)
+	player.tons_balance += pay
+
+	state.record_outcome(level, tour_index, season.beat, season.won_final)
+	state.seasons_played += 1
+
+	for t in state.teams:
+		t.mutate_stars(rng)
+
+	return {
+		"season": season,
+		"pay": pay,
+		"wins": wins,
+		"offers": generate_offers(state, season.beat, rng),
+	}
+
+
+# Every match the Player actually played: the 7 league fixtures + any knockout
+# whose scorecard carries the Player (statted matches only — derived knockouts
+# between other teams have no player_line).
+static func _player_matches(season: SeasonResult) -> Array:
+	var out: Array = season.league.player_matches.duplicate()
+	for m in [season.semi1, season.semi2, season.final_match, season.third_place]:
+		if not m.innings1.player_line().is_empty() or not m.innings2.player_line().is_empty():
+			out.append(m)
+	return out

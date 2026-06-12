@@ -130,3 +130,98 @@ func test_stay_increments_affinity() -> void:
 	CareerResolver.stay(s, p)
 	CareerResolver.stay(s, p)
 	assert_eq(p.affinity, 2)
+
+
+# --- play_season (DC5/DC8/DC9/DC13) ---
+
+func _play(s: CareerState, p: Player, tour: int, seed_value: int) -> Dictionary:
+	return CareerResolver.play_season(
+		s, p, tour, BallTuning.new(), InningsTuning.new(), EconomyTuning.new(),
+		_rng(seed_value))
+
+
+func test_play_season_deterministic() -> void:
+	var s1 := CareerResolver.start_career(0)
+	var s2 := CareerResolver.start_career(0)
+	var p1 := _player()
+	var p2 := _player()
+	var o1 := _play(s1, p1, 0, 99)
+	var o2 := _play(s2, p2, 0, 99)
+	assert_eq(o1["pay"], o2["pay"], "pay deterministic")
+	assert_eq(o1["wins"], o2["wins"], "wins deterministic")
+	assert_eq(o1["season"].player_final_position, o2["season"].player_final_position)
+	assert_eq(o1["offers"].size(), o2["offers"].size())
+	for k in range(o1["offers"].size()):
+		assert_eq(o1["offers"][k].team_index, o2["offers"][k].team_index, "offer %d same" % k)
+
+
+func test_play_season_ticks_counter_and_banks_pay() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	var out := _play(s, p, 0, 7)
+	assert_eq(s.seasons_played, 1, "Seasons played ticks win or lose")
+	assert_eq(p.tons_balance, out["pay"], "pay banked")
+	assert_gt(out["pay"], 0, "a Season always pays something (game fees)")
+
+
+func test_play_season_pay_reconciles_with_match_pay() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	var etun := EconomyTuning.new()
+	var stars_at_play: float = s.teams[s.current_team_index].stars
+	var out := _play(s, p, 0, 13)
+	var season: SeasonResult = out["season"]
+	var expected := 0
+	var wins := 0
+	var played: Array = season.league.player_matches.duplicate()
+	for m in [season.semi1, season.semi2, season.final_match, season.third_place]:
+		if not m.innings1.player_line().is_empty() or not m.innings2.player_line().is_empty():
+			played.append(m)
+	for m in played:
+		expected += Economy.match_pay(m, stars_at_play, etun)["total"]
+		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+			wins += 1
+			expected += Economy.win_bonus(0, etun)
+	assert_eq(out["pay"], expected, "pay = sum match_pay + win bonuses (stars at play time)")
+	assert_eq(out["wins"], wins, "wins reported")
+
+
+func test_play_season_mutates_stars_at_rollover() -> void:
+	var s := CareerResolver.start_career(0)
+	var before: Array = []
+	for t in s.teams:
+		before.append(t.stars)
+	var _out := _play(s, _player(), 0, 21)
+	var changed := 0
+	for k in range(24):
+		assert_between(s.teams[k].stars, 0.5, 5.0, "stars clamped")
+		if not is_equal_approx(s.teams[k].stars, before[k]):
+			changed += 1
+	assert_gt(changed, 0, "ADR 0009 mutation fired across the rosters")
+
+
+func test_play_season_beat_updates_grid() -> void:
+	# A strong player on the 2.5-star pick at Club Practise (d=1.0) beats the
+	# Season often; find a seed that beats and assert the grid moved.
+	var found := false
+	for seed_value in range(50):
+		var s := CareerResolver.start_career(2)
+		var p := _player()
+		p.attributes.power = 50.0
+		p.attributes.composure = 50.0
+		var out := _play(s, p, 0, seed_value)
+		if out["season"].beat:
+			assert_eq(s.status_of(0, 0), CareerState.CellStatus.BEATEN)
+			assert_true(s.is_unlocked(0, 1), "up cell open")
+			assert_true(s.is_unlocked(1, 0), "across cell open")
+			found = true
+			break
+	assert_true(found, "a beating seed exists within 50 at Club Practise")
+
+
+func test_play_season_locked_cell_is_rejected() -> void:
+	var s := CareerResolver.start_career(0)
+	var out := CareerResolver.play_season(
+		s, _player(), 5, BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), _rng(1))
+	assert_true(out.is_empty(), "locked cell returns empty")
+	assert_eq(s.seasons_played, 0, "nothing ticked")
