@@ -7,7 +7,7 @@
  .note{color:#8a97a5;font-size:12.5px;max-width:72em}
  table{border-collapse:collapse;margin-top:8px} td,th{padding:4px 8px;font-size:12.5px;text-align:center}
  th{color:#9fb3c8;font-weight:600}
- .bar{fill:#4fc3f7}.axis{stroke:#39434e}.lbl{fill:#8a97a5;font-size:11px}
+ .bar{fill:#4fc3f7}.axis{stroke:#39434e}.lbl{fill:#8a97a5;font-size:11px}.cnt{fill:#dde3ea;font-size:11px;font-weight:600}
 </style></head><body>
 <h1>Career loop v1 — naive-policy eyeball</h1>
 <p class="note" id="head"></p>
@@ -18,8 +18,8 @@
  60/attribute); textbook batting/bowling plans; <b>no jokers, no Shop</b> (Season-scoped
  systems are not in the headless loop — see spec §4). Optimal play is E4's job; this page
  only shows the loop is traversable and the numbers move in the right directions.</p>
-<h2>Seasons to complete the Career (completed careers only)</h2>
-<svg id="hist" width="960" height="220"></svg>
+<h2 id="histhead">Seasons to complete the Career — all N careers (blue = finished, red = cut off at the harness cap, a tool guard not a game rule)</h2>
+<svg id="hist" width="960" height="240"></svg>
 <h2>Mean ₸ bank by Season index (denominator shrinks as careers finish)</h2>
 <svg id="bank" width="960" height="200"></svg>
 <h2>Grid: beat-rate per cell, with beats/visits underneath (naive line, all careers pooled)</h2>
@@ -30,16 +30,28 @@ const LEVELS=["Club","City","Province"];
 const TOURS=["Practise","Home sum","Home win","Home eve","Away sum","Away win","Away eve","Premium"];
 document.getElementById("head").textContent =
  `N=${DATA.n} careers, season cap ${DATA.season_cap}. Completed: ${DATA.completed}/${DATA.n}; capped: ${DATA.capped}.`;
-// histogram
+// histogram: 5-Season bins, count on every bar, capped careers shown in red
 (()=>{const s=DATA.seasons_to_complete; if(!s.length) return;
- const svg=document.getElementById("hist"),W=960,H=220,P=30;
- const max=Math.max(...s),min=Math.min(...s),bins={};
- s.forEach(v=>bins[v]=(bins[v]||0)+1);
- const bw=(W-2*P)/(max-min+1),peak=Math.max(...Object.values(bins));
+ const svg=document.getElementById("hist"),W=960,H=240,P=36,BIN=5;
+ const lo=Math.floor(Math.min(...s)/BIN)*BIN, hi=Math.floor(Math.max(...s)/BIN)*BIN;
+ const bins={};
+ s.forEach(v=>{const b=Math.floor(v/BIN)*BIN; bins[b]=(bins[b]||0)+1;});
+ const labels=[]; for(let b=lo;b<=hi;b+=BIN) labels.push(b);
+ const cols=labels.length+1;                       // +1 column for the capped bar
+ const bw=(W-2*P)/cols;
+ const peak=Math.max(...Object.values(bins), DATA.capped);
  let h=`<line class="axis" x1="${P}" y1="${H-P}" x2="${W-P}" y2="${H-P}"/>`;
- for(let v=min;v<=max;v++){const c=bins[v]||0,bh=c/peak*(H-2*P);
-  h+=`<rect class="bar" x="${P+(v-min)*bw+1}" y="${H-P-bh}" width="${Math.max(bw-2,1)}" height="${bh}"/>`;
-  if((v-min)%Math.ceil((max-min)/20||1)===0)h+=`<text class="lbl" x="${P+(v-min)*bw+bw/2}" y="${H-P+14}" text-anchor="middle">${v}</text>`;}
+ labels.forEach((b,i)=>{const c=bins[b]||0, bh=c/peak*(H-2*P-16);
+  h+=`<rect class="bar" x="${P+i*bw+2}" y="${H-P-bh}" width="${bw-4}" height="${bh}"/>`;
+  if(c)h+=`<text class="cnt" x="${P+i*bw+bw/2}" y="${H-P-bh-4}" text-anchor="middle">${c}</text>`;
+  h+=`<text class="lbl" x="${P+i*bw+bw/2}" y="${H-P+14}" text-anchor="middle">${b}–${b+BIN-1}</text>`;});
+ const ci=labels.length, cc=DATA.capped, cbh=cc/peak*(H-2*P-16);
+ h+=`<rect x="${P+ci*bw+2}" y="${H-P-cbh}" width="${bw-4}" height="${cbh}" fill="#ef9a9a"/>`;
+ h+=`<text class="cnt" x="${P+ci*bw+bw/2}" y="${H-P-cbh-4}" text-anchor="middle">${cc}</text>`;
+ h+=`<text class="lbl" x="${P+ci*bw+bw/2}" y="${H-P+14}" text-anchor="middle">didn't</text>`;
+ h+=`<text class="lbl" x="${P+ci*bw+bw/2}" y="${H-P+27}" text-anchor="middle">finish @${DATA.season_cap}</text>`;
+ const sorted=[...s].sort((a,b)=>a-b), med=sorted[Math.floor(sorted.length/2)];
+ h+=`<text class="lbl" x="${W-P}" y="${P-16}" text-anchor="end">median of the ${s.length} finished: ${med} Seasons · bars sum to ${s.length}+${cc}=${s.length+cc}</text>`;
  svg.innerHTML=h;})();
 // bank curve
 (()=>{const b=DATA.bank_curve;if(!b.length)return;
