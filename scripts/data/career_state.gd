@@ -34,14 +34,11 @@ func status_of(level: int, tour: int) -> int:
 	return cell_status[cell_index(level, tour)]
 
 
-# Unlocked-and-playable. Encapsulates the ordered endgame gate (DC4):
-# Province Premium needs both lower Premium tours WON, not just adjacency.
+# Unlocked-and-playable. No Level-win gate (Nico's ruling 2026-06-12,
+# career-pacing spec DP1): Province Premium is playable on adjacency alone;
+# lower Premium wins are an optional trophy chase (incentives deferred).
 func is_unlocked(level: int, tour: int) -> bool:
-	if status_of(level, tour) == CellStatus.LOCKED:
-		return false
-	if level == 2 and tour == PREMIUM_TOUR:
-		return level_won[0] and level_won[1]
-	return true
+	return status_of(level, tour) != CellStatus.LOCKED
 
 
 func playable_cells() -> Array:

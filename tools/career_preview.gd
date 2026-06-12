@@ -52,6 +52,8 @@ func _init() -> void:
 	var etun := EconomyTuning.new()
 
 	var seasons_to_complete: Array = []
+	var maxed_seasons: Array = []
+	var matches_to_complete: Array = []   # exact Player matches per completed career
 	var capped := 0
 	var visits: Array = []
 	var beats: Array = []
@@ -75,6 +77,8 @@ func _init() -> void:
 		a.control = 30.0
 		player.attributes = a
 		var state := CareerResolver.start_career(0)
+		var maxed_season := 0   # first Season-index when all 4 attrs hit ATTR_CAP
+		var matches := 0        # 7 league + 2 playoff matches when top-4
 		var plans := OpponentBrain.draw_plans(TourSpec.Tier.TEXTBOOK, 1.0, rng)
 		while not state.complete and state.seasons_played < SEASON_CAP:
 			var lvl := state.current_level()
@@ -82,11 +86,17 @@ func _init() -> void:
 			var out := CareerResolver.play_season(
 				state, player, tour, tuning, itun, etun, rng, plans[0], plans[1])
 			visits[lvl * 8 + tour] += 1
+			matches += 7 + (2 if out["season"].league.made_playoffs else 0)
 			if out["season"].beat:
 				beats[lvl * 8 + tour] += 1
 			bank_sum[state.seasons_played - 1] += player.tons_balance
 			bank_n[state.seasons_played - 1] += 1
 			_spend(player, etun)
+			if maxed_season == 0 and player.attributes.power >= ATTR_CAP \
+					and player.attributes.composure >= ATTR_CAP \
+					and player.attributes.attack >= ATTR_CAP \
+					and player.attributes.control >= ATTR_CAP:
+				maxed_season = state.seasons_played
 			if state.complete:
 				break
 			var up: Offer = null
@@ -100,10 +110,12 @@ func _init() -> void:
 				CareerResolver.stay(state, player)
 		if state.complete:
 			seasons_to_complete.append(state.seasons_played)
+			matches_to_complete.append(matches)
 		else:
 			capped += 1
-		print("career %d/%d: %s in %d seasons" % [c + 1, n,
-			"COMPLETE" if state.complete else "capped", state.seasons_played])
+		maxed_seasons.append(maxed_season)   # 0 = never maxed within the run
+		print("career %d/%d: %s in %d seasons (maxed at %d)" % [c + 1, n,
+			"COMPLETE" if state.complete else "capped", state.seasons_played, maxed_season])
 
 	var bank_curve: Array = []
 	for i in range(SEASON_CAP):
@@ -115,6 +127,8 @@ func _init() -> void:
 		"completed": seasons_to_complete.size(),
 		"capped": capped,
 		"seasons_to_complete": seasons_to_complete,
+		"maxed_seasons": maxed_seasons,
+		"matches_to_complete": matches_to_complete,
 		"cell_visits": visits,
 		"cell_beats": beats,
 		"bank_curve": bank_curve,

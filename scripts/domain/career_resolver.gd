@@ -64,8 +64,9 @@ static func generate_offers(state: CareerState, just_beat: bool, rng: RandomNumb
 		if just_beat or rng.randf() < CROSS_OFFER_P:
 			_append_offer(state, up, taken, offers, rng)
 
-	# Down: ALWAYS one Team from the highest unwon lower Level (DC16 —
-	# anti-softlock: the endgame gate needs every Level's Premium won).
+	# Down: ALWAYS one Team from the highest unwon lower Level (DC16, rationale
+	# updated by career-pacing DP2: with the endgame gate removed this is the
+	# path back down for the optional Premium-trophy chase / future lifeline).
 	for down in range(level - 1, -1, -1):
 		if not state.level_won[down]:
 			_append_offer(state, down, taken, offers, rng)

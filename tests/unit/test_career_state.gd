@@ -45,14 +45,12 @@ func test_beat_at_edges_clamps() -> void:
 	assert_eq(s.status_of(2, 7), CareerState.CellStatus.BEATEN)
 
 
-func test_province_premium_gate_needs_both_lower_premium_wins() -> void:
+func test_province_premium_has_no_level_win_gate() -> void:
+	# Nico's ruling 2026-06-12 (career-pacing spec DP1): adjacency unlock is the
+	# only requirement — lower Premium wins are an optional trophy chase.
 	var s := _state()
 	s.cell_status[s.cell_index(2, 7)] = CareerState.CellStatus.UNLOCKED
-	assert_false(s.is_unlocked(2, 7), "gated while no Premium won")
-	s.level_won[0] = true
-	assert_false(s.is_unlocked(2, 7), "gated while City Premium unwon")
-	s.level_won[1] = true
-	assert_true(s.is_unlocked(2, 7), "open once Club + City won")
+	assert_true(s.is_unlocked(2, 7), "playable with zero Premium wins")
 
 
 func test_record_outcome_beat_and_level_win() -> void:

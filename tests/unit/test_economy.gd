@@ -146,10 +146,14 @@ func test_attr_upgrade_cost_scales_with_current_value() -> void:
 	assert_gt(high, low)
 	assert_eq(low, int(round(_etun.attr_cost_base * 12.5)))
 
-func test_attr_upgrade_cost_on_100_scale_preserves_legacy_roi() -> void:
-	# Card-rescale DR11: +1 legacy point (= 6.25 /100 points) at a card of 50
-	# (legacy 8) cost T80; the /100 per-point price keeps that within rounding.
-	assert_almost_eq(Economy.attr_upgrade_cost(50.0, _etun) * 6.25, 80.0, 2.0)
+func test_attr_upgrade_cost_is_a_career_horizon_sink() -> void:
+	# Career-pacing DP3 (Nico's ruling 2026-06-12, supersedes the DR11/DE7
+	# legacy-ROI pin): attributes are the Career-long ₸ sink. Pin the dial so a
+	# +1 at a mid card (40) costs hundreds of ₸ (vs ~₸10 pre-ruling) — a Season's
+	# income (~₸1.5k) buys a few points, not the whole tree.
+	assert_eq(Economy.attr_upgrade_cost(40.0, _etun), int(round(_etun.attr_cost_base * 40.0)))
+	assert_between(Economy.attr_upgrade_cost(40.0, _etun), 300, 900,
+		"mid-card +1 costs a meaningful slice of a Season's pay")
 
 
 func test_sell_refund_is_floored_fraction() -> void:
