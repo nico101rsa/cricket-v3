@@ -227,3 +227,10 @@ func test_season_prizes_champion_and_premier_super() -> void:
 	var expected := int(round(25 * 1.6)) + int(round(15 * 1.6)) \
 		+ int(round(60 * 1.6)) + 250
 	assert_eq(Economy.season_prizes(1, true, 0, 7, _etun), expected)
+
+func test_joker_price_scales_with_level_and_tour() -> void:
+	var etun := EconomyTuning.new()
+	var base := JokerCatalog.price("dead_bat")            # 30
+	assert_eq(Economy.joker_price("dead_bat", 0, 0, etun), base)
+	assert_eq(Economy.joker_price("dead_bat", 1, 0, etun), int(round(base * 1.5)))
+	assert_eq(Economy.joker_price("dead_bat", 2, 7, etun), int(round(base * 2.0 * 1.6)))

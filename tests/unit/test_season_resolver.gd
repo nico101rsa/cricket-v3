@@ -100,6 +100,52 @@ func test_season_directional_strong_player_wins_more() -> void:
 
 # --- E3 (spec 2026-06-12-difficulty-ladder-7cE3-design.md): opponent brain ---
 
+func _pin_season(seed_v: int) -> SeasonResult:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_v
+	var attrs := Attributes.new()
+	var team := _team(3.0)
+	var opps: Array = []
+	for k in range(7):
+		opps.append(_team(3.0))
+	return SeasonResolver.simulate_season(attrs, team, opps,
+		_tour(), tuning, itun, rng)
+
+func test_shop_seams_default_off_byte_identical() -> void:
+	# Pinned BEFORE the shop seams landed (Task 3 step 1); the literals below
+	# are the pre-seam values. The seam adds zero RNG draws when off (DK3),
+	# so these must reproduce forever on the default path.
+	var a := _pin_season(4242)
+	assert_eq(a.player_final_position, 1)
+	assert_eq(a.league.standings[0].points, 12)
+	assert_eq(a.final_match.innings1.total, 139)
+
+
+func test_shop_hook_fires_at_canon_points() -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var attrs := Attributes.new()
+	attrs.power = 50.0
+	attrs.composure = 50.0   # strong build -> near-certain top-4 at this seed
+	var team := _team(5.0)
+	var opps: Array = []
+	for k in range(7):
+		opps.append(_team(0.5))
+	var calls: Array = []
+	var hook := func(pms: Array) -> Array:
+		calls.append(pms.size())
+		return []
+	var season := SeasonResolver.simulate_season(attrs, team, opps,
+		_tour(), tuning, itun, rng, null, null, null, [], hook)
+	assert_eq(calls.slice(0, 2), [3, 5], "V1 after P3, V2 after P5")
+	if season.player_final_position <= 4:
+		assert_eq(calls.size(), 4, "V3 pre-semi + V4 pre-championship")
+		assert_eq(calls[2], 7, "V3 sees the 7 league matches")
+		assert_eq(calls[3], 8, "V4 sees league + semi")
+	else:
+		assert_eq(calls.size(), 2, "no playoff visits when the Player missed top-4")
+
+
 func test_season_with_brain_is_deterministic() -> void:
 	var results: Array = []
 	for rep in range(2):

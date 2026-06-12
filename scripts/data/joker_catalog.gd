@@ -340,3 +340,22 @@ static func implemented() -> Array:
 
 static func _g(id: String, jname: String, rarity: String, effects: Array) -> Dictionary:
 	return {"id": id, "jname": jname, "rarity": rarity, "effects": effects}
+
+
+# Sorted ids of one rarity — the Shop's draw pools (shop rung DK5/DK7).
+static func ids_of_rarity(rarity: String) -> Array:
+	var out: Array = []
+	for g in implemented_groups():
+		if g["rarity"] == rarity:
+			out.append(g["id"])
+	out.sort()
+	return out
+
+
+# Flattened effect rows for a set of owned ids — the loadout the sim consumes.
+static func effects_of_ids(ids: Array) -> Array:
+	var out: Array = []
+	for g in implemented_groups():
+		if g["id"] in ids:
+			out.append_array(g["effects"])
+	return out

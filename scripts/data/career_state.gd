@@ -21,6 +21,8 @@ const LEAGUE_GATE_TOUR := 3   # Day Mixed — beating it unlocks the next League
 @export var level_won: Array[bool] = [false, false, false]
 @export var seasons_played: int = 0
 @export var complete: bool = false
+# The one joker elected to survive Season reset (shop rung DK6; "" = none).
+@export var carryover_joker_id: String = ""
 
 
 func current_level() -> int:
