@@ -89,9 +89,9 @@ function heatColor(b) { // 0 hard red -> 1 easy green
 // Iso bars
 (function () {
 	if (!DATA.iso.length) { document.getElementById("iso").innerHTML = "<p class='note'>paste DATA</p>"; return; }
-	let html = "<table><tr><th>opponent brain</th><th>beat-rate</th><th>player-game win</th></tr>";
+	let html = "<table><tr><th>opponent brain</th><th>finished top 3 of the table<br>(= beat the Season)</th><th>% of all games won</th><th>won The Final<br>(champions)</th></tr>";
 	for (const r of DATA.iso)
-		html += `<tr><td class="cellname">${TIERS[r.tier]}</td><td>${pct(r.beat)}</td><td>${pct(r.game_win)}</td></tr>`;
+		html += `<tr><td class="cellname">${TIERS[r.tier]}</td><td>${pct(r.beat)}</td><td>${pct(r.game_win)}</td><td>${pct(r.won)}</td></tr>`;
 	html += "</table><p class='note'>Same tour strength (City Home winter) — the gap is the brain's own contribution.</p>";
 	document.getElementById("iso").innerHTML = html;
 })();
