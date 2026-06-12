@@ -79,8 +79,7 @@ the Career-scoped currency; **Affinity** = tenure with the current Team.
     current Team. "Offer quality scales with Player strength / recent finishes" is
     **deferred** (a tuning pass once E4 can measure what offer-following does).
   - An `Offer` = {team_index, level, stars snapshot}. **Accept** → `current_team_index`
-    moves, **Affinity resets to 0**. **Stay** → Affinity +1. Moving down a Level is out
-    of scope (the dropped-player lifeline is deferred, see §5).
+    moves, **Affinity resets to 0**. **Stay** → Affinity +1.
 - **DC12 — Affinity = counter only this rung.** `Player.affinity` (field exists) counts
   consecutive Seasons with the current Team; reset on accept, +1 on stay. The canon
   **performance bonus is deferred to a balance rung** — it's a sim buff that must be
@@ -97,11 +96,24 @@ the Career-scoped currency; **Affinity** = tenure with the current Team.
   CareerState (replacing `_PLACEHOLDER_SEASONS`) and clears the career save alongside
   the player save. Career completion routes through the existing `win_out()`.
 - **DC15 — Eyeball oracle.** `tools/career_preview.gd`: N full Careers under a fixed
-  naive policy (play the cheapest unbeaten unlocked Tour at the current Level, ascending;
-  accept the first cross-Level Offer; textbook player plans). Outputs seasons-played
-  distribution to completion, per-cell visit/beat counts, ₸ bank trajectory →
-  `docs/mockups/career-loop-v1.html`. This is an *eyeball*, not a policy search — optimal
-  career play is **E4's** job.
+  naive policy — play the lowest unbeaten unlocked Tour at the current Level (else the
+  Premium tour again, chasing the Level win); accept a cross-Level Offer **up** only once
+  the current Level is won, and a down-Level Offer never (the naive line never needs one);
+  textbook player plans (the `OpponentBrain` TEXTBOOK literals); and **naive ₸ spending**
+  (round-robin +1 attribute upgrades at `Economy.attr_upgrade_cost` while affordable,
+  capped at 60/attribute) so growth — the thing that closes the E3 "fresh build reads 15%
+  at Province Premium" gap — actually happens and completion is measurable. Outputs
+  seasons-played distribution to completion, per-cell visit/beat counts, ₸ bank trajectory
+  → `docs/mockups/career-loop-v1.html`. This is an *eyeball*, not a policy search —
+  optimal career play is **E4's** job.
+- **DC16 — Down-Level offers (anti-softlock).** Canon lets the Player climb to Level N+1
+  before *winning* Level N (beating any cell is enough for the cross-Level Offer) — but
+  the ordered endgame gate (DC4) requires winning every Level's Premium Final. With
+  up-only Offers a fast climber could strand above an unwon Level forever. So:
+  **whenever the Player's current Level sits above any unwon Level, the offer set always
+  contains one Team from the highest unwon lower Level** (deterministic, not a dice
+  roll — it doubles as readable UX: "Club still wants you back until you've won it").
+  The deferred dropped-player lifeline will ride this same machinery.
 
 ## 3. Data shapes
 
@@ -127,13 +139,20 @@ the current Level, `roster_of(level)`, `lowest_star_club_indices()` (the 3 start
 ### 3.3 `CareerResolver` (`scripts/domain/career_resolver.gd`, static, no member state)
 
 ```
-start_career(picked_club_slot, rng) -> CareerState          # builds 24 teams, unlocks (0,0)
+start_career(picked_club_slot) -> CareerState               # builds 24 teams, unlocks (0,0);
+                                                            # deterministic, no rng needed
 play_season(state, player, tour_index, tuning, itun, etun, rng,
             intent_plan := null, bowling_plan := null) -> Dictionary
     # {season: SeasonResult, pay: int, wins: int, offers: Array[Offer]}
+generate_offers(state, just_beat, rng) -> Array[Offer]      # public for tests + the UI rung
 accept_offer(state, player, offer) -> void                  # move team, affinity = 0
 stay(state, player) -> void                                 # affinity += 1
 ```
+
+Grid transitions on the Player's own data live on `CareerState` itself
+(`mark_beaten`, `record_outcome(level, tour, beat, won_final)` — the latter owns the
+Level-win + completion flags so the transition is unit-testable without forcing a sim
+outcome).
 
 `play_season` sequence (one rng, fixed draw order for determinism):
 1. Validate `tour_index` is unlocked at the current Level.
@@ -156,8 +175,8 @@ for pay (step 4) is the ★ the Season was *played* at — mutation (step 7) lan
 - **Season roster+factor fidelity** — its own rung (DC3, the DL11 seed).
 - **Affinity performance bonus** — balance rung; magnitude must be harness-measured (DC12).
 - **Offer playing-time % variant + dropped-player lifeline** (ideas cluster 2) — both hang
-  on open design question #1 (participation model, leaning "fixed"); decide there. Moving
-  *down* a Level rides the lifeline design.
+  on open design question #1 (participation model, leaning "fixed"); decide there. The
+  lifeline's forced down-move reuses the DC16 down-offer machinery.
 - **Offer quality scaling with Player strength / recent finishes** — tune once E4 measures.
 - **Shop / Jokers / Form inside the Career loop** — the headless loop banks ₸; spending it
   is the Shop (UI rung) and E4 (policy) surface. Jokers are Season-scoped and the
@@ -177,7 +196,8 @@ for pay (step 4) is the ★ the Season was *played* at — mutation (step 7) lan
 4. **Stars**: rollover mutates via the ADR 0009 distribution (seeded — some teams move,
    clamped 0.5–5.0); Offers show post-mutation stars.
 5. **Offers**: ≤3 + stay; distinct; never the current Team; cross-Level guarantee fires on
-   a fresh beat with the higher cell unlocked; none once complete.
+   a fresh beat with the higher cell unlocked; down-Level offer always present while a
+   lower Level is unwon (DC16); none once complete.
 6. **Accept/stay**: accept moves Team/Level + Affinity 0; stay increments Affinity.
 7. **Economy**: `win_bonus` arithmetic per Level; `match_pay` itself untouched
    (existing tests stand — no dial changes).
