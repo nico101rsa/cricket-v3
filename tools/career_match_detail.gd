@@ -112,6 +112,9 @@ func _init() -> void:
 		var my_team: Team = state.teams[state.current_team_index]
 		var my_label: String = my_team.team_name
 		recording[0] = (state.seasons_played + 1) == target_season
+		var attrs_before: Attributes = player.attributes.duplicate_typed()
+		var bank_before: int = player.tons_balance
+		var stars_at_play: float = my_team.stars
 		var out := CareerResolver.play_season(
 			state, player, tour, tuning, itun, etun, rng, plans[0], plans[1], policy)
 		var s_no := state.seasons_played
@@ -124,6 +127,16 @@ func _init() -> void:
 			lines.append("Same career as career-narrative-v1.md (seed %d, '%s' spending). Team: **%s** (%.1f★), %s %s." % [
 				seed_v, policy_kind, my_label, my_team.stars,
 				DifficultyLadder.LEVEL_NAMES[lvl], DifficultyLadder.TOUR_NAMES[tour]])
+			lines.append("")
+			lines.append("## Your Player going into this Season")
+			lines.append("")
+			lines.append("The harness build (real careers start from the Player Creation screen; the bot has no name): created at Power 35 / Composure 30 / Attack 30 / Control 30 on the /100 card scale (creation budget 125, sliders 5-50).")
+			lines.append("- Attributes now (after %d Season(s) of Kit Room training): **Power %.0f / Composure %.0f / Attack %.0f / Control %.0f** (cap 60 each)" % [
+				s_no - 1, attrs_before.power, attrs_before.composure, attrs_before.attack, attrs_before.control])
+			lines.append("- The build bats at **No.%d** (higher batting share bats higher up) and bowls a **%d-over quota**" % [
+				InningsResolver.player_position(attrs_before, itun),
+				InningsResolver.player_overs(attrs_before, itun)])
+			lines.append("- Bank coming in: ₸%d · Affinity %d" % [bank_before, player.affinity])
 			lines.append("")
 			lines.append("## Season start — the Kit Room (visit 0, before any cricket)")
 			lines.append("")
@@ -161,7 +174,17 @@ func _init() -> void:
 							lines.append("- Also trained **%s** +1." % dec["upgrade"])
 			# Match 1 detail.
 			var m: MatchResult = season.league.player_matches[0]
-			var opp_name: String = state.opponents_of_current()[0].team_name
+			var opp_team: Team = state.opponents_of_current()[0]
+			var opp_name: String = opp_team.team_name
+			lines.append("")
+			lines.append("## The two teams (this Season's drawn strengths)")
+			lines.append("")
+			lines.append("Each team's batting/bowling strength is drawn once per Season from the tour's distribution at its ★ percentile (tour mean card %.2f on the /100 scale). The XI around you is derived from these numbers; only YOU have a personal card." % (TourSpec.mean_frac(DifficultyLadder.spec_for(lvl, tour).d) * TourSpec.MID_MEAN))
+			lines.append("- **%s (us, %.1f★)** — batting strength %.2f · bowling strength %.2f" % [
+				my_label, stars_at_play, season.league.team_bat[0], season.league.team_bowl[0]])
+			lines.append("- **%s (them, %.1f★)** — batting strength %.2f · bowling strength %.2f" % [
+				opp_name, opp_team.stars, season.league.team_bat[1], season.league.team_bowl[1]])
+			lines.append("- Opponent brain at this cell: tier %s (how smart their captain's plans are)" % str(DifficultyLadder.spec_for(lvl, tour).brain_tier))
 			lines.append("")
 			lines.append("## Match 1 vs %s — ball-for-ball summary" % opp_name)
 			lines.append("")
@@ -179,6 +202,37 @@ func _init() -> void:
 				verdict = ("lost by %d runs" % m.margin_runs) if m.margin_runs > 0 else ("lost by %d wickets with %d balls left" % [m.margin_wickets, m.balls_remaining])
 			lines.append("**Result: we %s.** Jokers active in this match: %s." % [verdict,
 				", ".join(out["shop_owned"].map(_jname)) if not out["shop_owned"].is_empty() else "from the season log"])
+			# The money, term by term (mirrors Economy.match_pay + match_win_prize).
+			var bat_inn2: InningsResult = m.innings1 if not m.innings1.player_line().is_empty() else m.innings2
+			var bowl_inn2: InningsResult = m.innings2 if bat_inn2 == m.innings1 else m.innings1
+			var pline: Dictionary = bat_inn2.player_line()
+			var p_runs := int(pline.get("runs", 0))
+			var p_balls := int(pline.get("balls", 0))
+			var pay_dict := Economy.match_pay(m, stars_at_play, etun)
+			lines.append("")
+			lines.append("## What this match paid, term by term")
+			lines.append("")
+			lines.append("- Game fee: ₸%d — base ₸%.0f minus ₸%.0f per ★ above 3.0 (you are on a %.1f★ side; weaker teams pay MORE)" % [
+				pay_dict["base"], etun.base_pay, etun.star_pay_slope, stars_at_play])
+			lines.append("- Runs: %d × ₸%.2f = ₸%.1f" % [p_runs, etun.runs_rate, etun.runs_rate * p_runs])
+			var tempo := maxf(0.0, p_runs - etun.sr_par_pay / 100.0 * p_balls)
+			lines.append("- Tempo: runs above a strike-rate-%d baseline off %d balls = %.1f extra runs × ₸%.1f = ₸%.1f" % [
+				int(etun.sr_par_pay), p_balls, tempo, etun.sr_rate, etun.sr_rate * tempo])
+			if p_runs >= 50:
+				lines.append("- Milestone: fifty bonus ₸%.0f%s" % [etun.fifty_bonus,
+					(" + Ton bonus ₸%.0f" % etun.ton_bonus) if p_runs >= 100 else ""])
+			lines.append("- Wickets: %d × ₸%.0f = ₸%.0f" % [bowl_inn2.player_bowl_wickets,
+				etun.wicket_rate, etun.wicket_rate * bowl_inn2.player_bowl_wickets])
+			var econ_saved := maxf(0.0, etun.rr_par_pay / 6.0 * bowl_inn2.player_bowl_balls - bowl_inn2.player_bowl_runs)
+			lines.append("- Economy: runs kept below club-par RR %.0f over %.1f overs = %.1f × ₸%.1f = ₸%.1f" % [
+				etun.rr_par_pay, bowl_inn2.player_bowl_balls / 6.0, econ_saved, etun.econ_rate, etun.econ_rate * econ_saved])
+			var vers := etun.versatility_rate * minf(minf(1.0, p_balls / etun.bat_ref_balls), minf(1.0, bowl_inn2.player_bowl_balls / etun.bowl_ref_balls))
+			lines.append("- Versatility (both jobs done, scaled by the smaller one): ₸%.1f" % vers)
+			lines.append("- **Match pay total: ₸%d** (fee %d + performance %d)" % [pay_dict["total"], pay_dict["base"], pay_dict["perf"]])
+			if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+				lines.append("- **Team-win prize: ₸%d** — (₸%.0f base + ₸%.0f × Level %d) × tour escalation ×%.1f" % [
+					Economy.match_win_prize(lvl, tour, etun), etun.win_bonus_base, etun.win_bonus_level_step, lvl,
+					etun.prize_escalation[tour]])
 			lines.append("")
 			lines.append("## Joker reference (everything encountered above)")
 			lines.append("")
