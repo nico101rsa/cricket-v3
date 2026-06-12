@@ -30,7 +30,9 @@ static func simulate_league(
 		rng: RandomNumberGenerator,
 		player_intent_plan: IntentPlan = null,
 		player_bowling_plan: BowlingPlan = null,
-		opp_spec: TourSpec = null
+		opp_spec: TourSpec = null,
+		jokers: Array = [],
+		shop_hook: Callable = Callable()
 ) -> LeagueResult:
 	var teams: Array = [player_team]
 	teams.append_array(opponents)
@@ -71,7 +73,7 @@ static func simulate_league(
 			bat[i], bowl[i], bowl[i],
 			bat[j], bowl[j], bowl[j],
 			i_bats_first, tuning, itun, rng, ip, bp,
-			[], null, null, oip, null, null, null, [], [], 1.0, 1.0, null, null, obp)
+			jokers if i == 0 else [], null, null, oip, null, null, null, [], [], 1.0, 1.0, null, null, obp)
 
 		# Attribute innings (innings1 = first-batting side).
 		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2
@@ -100,6 +102,9 @@ static func simulate_league(
 
 		if i == 0:
 			player_matches.append(m)
+			# Shop visits V1/V2 (shop rung DK2): after Player matches 3 and 5.
+			if shop_hook.is_valid() and (player_matches.size() == 3 or player_matches.size() == 5):
+				jokers = shop_hook.call(player_matches.duplicate())
 
 	# Rank: points desc, then NRR desc, then team_index asc.
 	var cmp := func(a: StandingsRow, b: StandingsRow) -> bool:
