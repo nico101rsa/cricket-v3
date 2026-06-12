@@ -1,40 +1,42 @@
 class_name DifficultyLadder
 extends RefCounted
 
-# The Career grid's difficulty table (E3, spec
-# 2026-06-12-difficulty-ladder-7cE3-design.md). Codifies the canon difficulty
-# sheet (CONTEXT.md: overlapping bands Club 1-8 / City 2-10 / Province 3-12,
-# jumps at Home->Away and ->Premium) and assigns each cell a brain + blend.
+# The Career grid's difficulty table — v2 (spec
+# 2026-06-12-difficulty-sheet-v2-design.md DV1-DV3, superseding the E3 v1
+# sheet): Nico's condition-named tours, linear 1-step ramp inside a Level,
+# jump into Premier, bands Club 1-10 / City 5-15 / Province 9-20.
 
 const LEVEL_NAMES := ["Club", "City", "Province"]
 const TOUR_NAMES := [
-	"Practise", "Home summer", "Home winter", "Home evening",
-	"Away summer", "Away winter", "Away evening", "Premium",
+	"Flat & Warm", "Spin", "Green Mamba", "Day Mixed",
+	"Evening Spin", "Evening Mamba", "Evening Mixed", "Premier",
 ]
 
-# d per [level][tour_index] — the tunable artifact (DL1).
+# d per [level][tour_index] — Nico's sheet verbatim (DV1).
 const D_SHEET := [
-	[1.0, 2.0, 2.5, 3.0, 5.0, 5.5, 6.0, 8.0],
-	[2.0, 3.0, 3.5, 4.0, 6.5, 7.0, 7.5, 10.0],
-	[3.0, 4.5, 5.0, 5.5, 8.0, 8.5, 9.0, 12.0],
+	[1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 10.0],
+	[5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 15.0],
+	[9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 20.0],
 ]
 
 # Neutral 7-opponent ★ field, all cells this rung (DL2): mean 3.0.
 const OPP_STARS := [2.0, 2.5, 3.0, 3.0, 3.0, 3.5, 4.0]
 
-# d -> [tier, blend] (spec §3.2 strawman).
+# d -> [tier, blend] — v1 thresholds scaled 19/11 onto the d 1-20 axis (DV3).
+# The ADAPTIVE 0.5 band (d 16-18) is currently unoccupied; kept for ramp
+# continuity under future sheet edits.
 static func brain_for(d: float) -> Array:
-	if d <= 2.0:
+	if d <= 3.0:
 		return [TourSpec.Tier.NAIVE, 1.0]
-	if d <= 4.0:
-		return [TourSpec.Tier.TEXTBOOK, 0.5]
 	if d <= 6.0:
+		return [TourSpec.Tier.TEXTBOOK, 0.5]
+	if d <= 10.0:
 		return [TourSpec.Tier.TEXTBOOK, 1.0]
-	if d <= 8.0:
+	if d <= 13.0:
 		return [TourSpec.Tier.STATIC_EQ, 0.5]
-	if d <= 9.0:
+	if d <= 15.0:
 		return [TourSpec.Tier.STATIC_EQ, 1.0]
-	if d <= 11.0:
+	if d <= 18.0:
 		return [TourSpec.Tier.ADAPTIVE, 0.5]
 	return [TourSpec.Tier.ADAPTIVE, 1.0]
 

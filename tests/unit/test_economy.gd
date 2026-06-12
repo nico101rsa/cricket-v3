@@ -178,3 +178,52 @@ func test_win_bonus_follows_dials() -> void:
 	t.win_bonus_base = 8.0
 	t.win_bonus_level_step = 2.0
 	assert_eq(Economy.win_bonus(2, t), 12, "8 + 2x2")
+
+
+# --- prize escalation + prize objects (difficulty-sheet v2, DV7-DV9) ---
+
+func test_prize_escalation_defaults() -> void:
+	# Per-tour absolute multipliers vs the T1 base (Nico 2026-06-12: T8 = 1.6x).
+	assert_eq(_etun.prize_escalation.size(), 8)
+	assert_almost_eq(_etun.prize_escalation[0], 1.0, 0.0001)
+	assert_almost_eq(_etun.prize_escalation[3], 1.1, 0.0001)
+	assert_almost_eq(_etun.prize_escalation[7], 1.6, 0.0001)
+
+
+func test_match_win_prize_escalates_with_tour() -> void:
+	assert_eq(Economy.match_win_prize(0, 0, _etun), 5, "Club T1 = win_bonus base")
+	assert_eq(Economy.match_win_prize(0, 7, _etun), 8, "Club Premier 5 x 1.6")
+	assert_eq(Economy.match_win_prize(2, 7, _etun), 24, "Province Premier 15 x 1.6")
+
+
+func test_playoff_and_final_bonuses_escalate() -> void:
+	assert_eq(Economy.playoff_win_bonus(0, 0, _etun), 15, "base 15")
+	assert_eq(Economy.playoff_win_bonus(1, 4, _etun), 33, "(15+10) x 1.3 = 32.5 -> 33")
+	assert_eq(Economy.final_appearance_bonus(0, 0, _etun), 25)
+	assert_eq(Economy.grand_final_prize(2, 7, _etun), 224, "(60+80) x 1.6")
+
+
+func test_premier_super_prize_flat_by_level() -> void:
+	# Not escalated (spec DV8): the T8-only trophy payout.
+	assert_eq(Economy.premier_super_prize(0, _etun), 250)
+	assert_eq(Economy.premier_super_prize(1, _etun), 500)
+	assert_eq(Economy.premier_super_prize(2, _etun), 750)
+
+
+func test_season_prizes_by_finish_position() -> void:
+	# Runner-up: reached The Final (semi won) but no grand-final prize.
+	assert_eq(Economy.season_prizes(2, false, 0, 0, _etun), 25 + 15)
+	# 3rd: won the 3rd-place playoff only.
+	assert_eq(Economy.season_prizes(3, false, 0, 0, _etun), 15)
+	# 4th or below the playoffs: nothing.
+	assert_eq(Economy.season_prizes(4, false, 0, 0, _etun), 0)
+	assert_eq(Economy.season_prizes(7, false, 0, 0, _etun), 0)
+
+
+func test_season_prizes_champion_and_premier_super() -> void:
+	# Champion off-Premier: appearance + playoff win + grand final.
+	assert_eq(Economy.season_prizes(1, true, 0, 0, _etun), 25 + 15 + 60)
+	# Champion at Club Premier: all of it x1.6 (rounded each) + the super prize.
+	var expected := int(round(25 * 1.6)) + int(round(15 * 1.6)) \
+		+ int(round(60 * 1.6)) + 250
+	assert_eq(Economy.season_prizes(1, true, 0, 7, _etun), expected)

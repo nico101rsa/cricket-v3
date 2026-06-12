@@ -12,7 +12,8 @@ enum CellStatus { LOCKED, UNLOCKED, BEATEN }
 const LEVELS := 3
 const TOURS := 8
 const TEAMS_PER_LEVEL := 8
-const PREMIUM_TOUR := 7
+const PREMIER_TOUR := 7
+const LEAGUE_GATE_TOUR := 3   # Day Mixed — beating it unlocks the next League (v2 DV5)
 
 @export var teams: Array[Team] = []
 @export var current_team_index: int = 0
@@ -35,8 +36,9 @@ func status_of(level: int, tour: int) -> int:
 
 
 # Unlocked-and-playable. No Level-win gate (Nico's ruling 2026-06-12,
-# career-pacing spec DP1): Province Premium is playable on adjacency alone;
-# lower Premium wins are an optional trophy chase (incentives deferred).
+# career-pacing spec DP1): Province Premier is playable on adjacency alone;
+# lower Premier wins are an optional trophy chase (paid via the v2 prize
+# objects — grand-final prize + Premier super prize).
 func is_unlocked(level: int, tour: int) -> bool:
 	return status_of(level, tour) != CellStatus.LOCKED
 
@@ -85,11 +87,14 @@ func any_unlocked_at(level: int) -> bool:
 	return false
 
 
-# Beating (L,T) unlocks (L,T+1) and (L+1,T) — CONTEXT.md "above and across".
+# Beating (L,T) unlocks (L,T+1); beating the League-gate Tour (Day Mixed,
+# index 3) also unlocks the next League at its first tour (L+1, 0) —
+# difficulty-sheet v2 (spec DV5), replacing v1's "any beat unlocks across".
 func mark_beaten(level: int, tour: int) -> void:
 	cell_status[cell_index(level, tour)] = CellStatus.BEATEN
 	_unlock(level, tour + 1)
-	_unlock(level + 1, tour)
+	if tour == LEAGUE_GATE_TOUR:
+		_unlock(level + 1, 0)
 
 
 func _unlock(level: int, tour: int) -> void:
@@ -101,12 +106,12 @@ func _unlock(level: int, tour: int) -> void:
 
 
 # The full end-of-Season grid transition (unit-testable without forcing a sim
-# outcome): beat -> mark+unlock; Premium-Final win -> Level won; Province
-# Premium win -> Career complete.
+# outcome): beat -> mark+unlock; Premier-Final win -> Level won; Province
+# Premier win -> Career complete.
 func record_outcome(level: int, tour: int, beat: bool, won_final: bool) -> void:
 	if beat:
 		mark_beaten(level, tour)
-	if tour == PREMIUM_TOUR and won_final:
+	if tour == PREMIER_TOUR and won_final:
 		level_won[level] = true
 		if level == LEVELS - 1:
 			complete = true

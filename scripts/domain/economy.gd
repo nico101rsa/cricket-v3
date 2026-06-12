@@ -64,3 +64,50 @@ static func sell_refund(price: int, tuning: EconomyTuning) -> int:
 # career-loop rung DC10. match_pay is deliberately untouched.
 static func win_bonus(level: int, tuning: EconomyTuning) -> int:
 	return int(round(tuning.win_bonus_base + tuning.win_bonus_level_step * level))
+
+
+# --- Prize escalation + prize objects (difficulty-sheet v2, spec DV7-DV9) ----
+# Escalation scales the match-prize objects only (Nico's ruling) — never the
+# game fee or performance pay. All are team outcomes: build-independent.
+
+static func match_win_prize(level: int, tour: int, tuning: EconomyTuning) -> int:
+	return int(round(win_bonus(level, tuning) * tuning.prize_escalation[tour]))
+
+
+static func playoff_win_bonus(level: int, tour: int, tuning: EconomyTuning) -> int:
+	return int(round((tuning.playoff_win_base + tuning.playoff_win_level_step * level)
+		* tuning.prize_escalation[tour]))
+
+
+static func final_appearance_bonus(level: int, tour: int, tuning: EconomyTuning) -> int:
+	return int(round((tuning.final_appearance_base + tuning.final_appearance_level_step * level)
+		* tuning.prize_escalation[tour]))
+
+
+static func grand_final_prize(level: int, tour: int, tuning: EconomyTuning) -> int:
+	return int(round((tuning.grand_final_base + tuning.grand_final_level_step * level)
+		* tuning.prize_escalation[tour]))
+
+
+# Flat by Level, not escalated (DV8): only payable at T8, so escalation would
+# just fold into the dial.
+static func premier_super_prize(level: int, tuning: EconomyTuning) -> int:
+	return int(round(tuning.premier_super_base + tuning.premier_super_level_step * level))
+
+
+# The Season-level payout from a final table position (DV9). final_pos is
+# 1..8 (0 = unknown -> nothing). Positions 1-2 played The Final (a semi win);
+# position 3 won the 3rd-place playoff.
+static func season_prizes(final_pos: int, won_final: bool, level: int, tour: int,
+		tuning: EconomyTuning) -> int:
+	var total := 0
+	if final_pos >= 1 and final_pos <= 2:
+		total += final_appearance_bonus(level, tour, tuning)
+		total += playoff_win_bonus(level, tour, tuning)
+	elif final_pos == 3:
+		total += playoff_win_bonus(level, tour, tuning)
+	if won_final:
+		total += grand_final_prize(level, tour, tuning)
+		if tour == CareerState.PREMIER_TOUR:
+			total += premier_super_prize(level, tuning)
+	return total
