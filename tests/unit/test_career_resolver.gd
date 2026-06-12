@@ -181,8 +181,10 @@ func test_play_season_pay_reconciles_with_match_pay() -> void:
 		expected += Economy.match_pay(m, stars_at_play, etun)["total"]
 		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
 			wins += 1
-			expected += Economy.win_bonus(0, etun)
-	assert_eq(out["pay"], expected, "pay = sum match_pay + win bonuses (stars at play time)")
+			expected += Economy.match_win_prize(0, 0, etun)
+	expected += Economy.season_prizes(
+		season.player_final_position, season.won_final, 0, 0, etun)
+	assert_eq(out["pay"], expected, "pay = match pay + win prizes + season prizes")
 	assert_eq(out["wins"], wins, "wins reported")
 
 

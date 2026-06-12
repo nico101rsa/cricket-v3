@@ -109,8 +109,8 @@ static func stay(_state: CareerState, player: Player) -> void:
 
 # Play one Season at (current Level, tour_index): simulate via SeasonResolver
 # with the cell's DifficultyLadder spec (tour distribution + opponent brain,
-# DC13), bank ₸ (DC9 + DC10), update the grid, tick Seasons-played, mutate all
-# 24 Teams (DC8), then generate Offers. Returns
+# DC13), bank ₸ (DC9 + DC10 + v2 prizes DV7-DV9), update the grid, tick
+# Seasons-played, mutate all 24 Teams (DC8), then generate Offers. Returns
 # {season, pay, wins, offers}; {} if the cell is locked.
 static func play_season(
 		state: CareerState, player: Player, tour_index: int,
@@ -135,7 +135,11 @@ static func play_season(
 		pay += Economy.match_pay(m, stars_at_play, etun)["total"]
 		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
 			wins += 1
-			pay += Economy.win_bonus(level, etun)
+			pay += Economy.match_win_prize(level, tour_index, etun)
+	# Season-level prizes (difficulty-sheet v2 DV9): reached/won The Final,
+	# 3rd-place playoff, Premier super prize.
+	pay += Economy.season_prizes(
+		season.player_final_position, season.won_final, level, tour_index, etun)
 	player.tons_balance += pay
 
 	state.record_outcome(level, tour_index, season.beat, season.won_final)
