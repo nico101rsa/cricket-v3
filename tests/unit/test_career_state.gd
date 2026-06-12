@@ -29,13 +29,31 @@ func test_fresh_state_only_club_practise_unlocked() -> void:
 	assert_eq(s.playable_cells(), [0], "one playable cell")
 
 
-func test_beat_unlocks_up_and_across() -> void:
+func test_beat_unlocks_next_tour_only_off_gate() -> void:
+	# v2 (spec DV5): a non-gate beat unlocks the next Tour, NOT the next League.
 	var s := _state()
 	s.mark_beaten(0, 0)
 	assert_eq(s.status_of(0, 0), CareerState.CellStatus.BEATEN, "cell beaten")
-	assert_true(s.is_unlocked(0, 1), "up unlocked")
-	assert_true(s.is_unlocked(1, 0), "across unlocked")
+	assert_true(s.is_unlocked(0, 1), "next Tour unlocked")
+	assert_false(s.is_unlocked(1, 0), "next League stays locked")
 	assert_true(s.is_unlocked(0, 0), "beaten cell stays replayable")
+
+
+func test_beating_tour4_unlocks_next_league_at_tour1() -> void:
+	# v2 (spec DV5): Day Mixed (index 3) is the League gate -> (L+1, 0).
+	var s := _state()
+	s.cell_status[s.cell_index(0, 3)] = CareerState.CellStatus.UNLOCKED
+	s.mark_beaten(0, 3)
+	assert_true(s.is_unlocked(0, 4), "next Tour unlocked")
+	assert_true(s.is_unlocked(1, 0), "City Flat & Warm unlocked")
+	assert_false(s.is_unlocked(1, 3), "City's own gate cell NOT directly unlocked")
+
+
+func test_province_gate_beat_has_no_level_above() -> void:
+	var s := _state()
+	s.cell_status[s.cell_index(2, 3)] = CareerState.CellStatus.UNLOCKED
+	s.mark_beaten(2, 3)   # no level 3 — must not crash
+	assert_true(s.is_unlocked(2, 4))
 
 
 func test_beat_at_edges_clamps() -> void:

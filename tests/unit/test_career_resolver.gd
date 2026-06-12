@@ -65,7 +65,7 @@ func test_offers_are_distinct_and_exclude_current_team() -> void:
 
 func test_cross_level_guarantee_on_fresh_beat() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 0)   # unlocks (1,0)
+	s.mark_beaten(0, 3)   # gate beat unlocks (1,0) — v2 DV5
 	for seed_value in [1, 2, 3, 4, 5]:
 		var offers := CareerResolver.generate_offers(s, true, _rng(seed_value))
 		var has_city := false
@@ -84,7 +84,7 @@ func test_no_cross_level_offer_while_higher_level_locked() -> void:
 
 func test_down_level_offer_always_present_while_lower_level_unwon() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 0)
+	s.mark_beaten(0, 3)
 	s.current_team_index = 9   # moved to City; Club unwon
 	for seed_value in [1, 2, 3, 4, 5]:
 		var offers := CareerResolver.generate_offers(s, false, _rng(seed_value))
@@ -97,7 +97,7 @@ func test_down_level_offer_always_present_while_lower_level_unwon() -> void:
 
 func test_no_down_level_offer_once_lower_level_won() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 0)
+	s.mark_beaten(0, 3)
 	s.current_team_index = 9
 	s.level_won[0] = true
 	var offers := CareerResolver.generate_offers(s, false, _rng(2))
@@ -213,7 +213,7 @@ func test_play_season_beat_updates_grid() -> void:
 		if out["season"].beat:
 			assert_eq(s.status_of(0, 0), CareerState.CellStatus.BEATEN)
 			assert_true(s.is_unlocked(0, 1), "up cell open")
-			assert_true(s.is_unlocked(1, 0), "across cell open")
+			assert_false(s.is_unlocked(1, 0), "League gate holds — Flat & Warm is not the gate cell")
 			found = true
 			break
 	assert_true(found, "a beating seed exists within 50 at Club Practise")

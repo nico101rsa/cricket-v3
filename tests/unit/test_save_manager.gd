@@ -141,13 +141,13 @@ func test_load_career_returns_null_when_no_save_exists():
 func test_career_save_then_load_roundtrips():
 	var c := CareerResolver.start_career(0)
 	c.seasons_played = 5
-	c.mark_beaten(0, 0)
+	c.mark_beaten(0, 3)   # the League-gate cell (v2 DV5) — unlocks (1,0)
 	c.teams[3].stars = 4.0
 	sm.save_career(c)
 	var loaded = sm.load_career()
 	assert_eq(loaded.seasons_played, 5)
 	assert_eq(loaded.current_team_index, 0)
-	assert_eq(loaded.status_of(0, 0), CareerState.CellStatus.BEATEN)
+	assert_eq(loaded.status_of(0, 3), CareerState.CellStatus.BEATEN)
 	assert_true(loaded.is_unlocked(1, 0), "unlock state survives")
 	assert_eq(loaded.teams.size(), 24)
 	assert_eq(loaded.teams[3].stars, 4.0)
