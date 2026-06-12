@@ -25,6 +25,15 @@ Nico's ruling (2026-06-12, reacting to Season-1 scorecards like 35 all out): *th
 
 Reference: the tuned environment peg (`probe_scoring_env`, even-★3 textbook mirror) reads **153.4 / RR 8.22** at mid-league and **~167 / RR 8.76 / 5.3 wkts** at the d=20 card level (E3 measurement).
 
+**The clinching A/B (2026-06-13, same code, same card strengths):**
+
+| Instrument (sim path) | Cards | Mean | RR | wkts |
+|---|---|---|---|---|
+| `probe_scoring_env` (**ROSTER** path) | 40.625 (top) | **167.2** | 8.76 | 5.3 |
+| `probe_felt_env` (**SCALAR** path, textbook brains, ★3 team) | 31.25 (mid) | **90.1** | 6.00 | 9.4 |
+
+The scalar path sits ~60 runs below the tuned peg *even at mid-league cards* — career matches have always played in a bowling-dominant low-scoring world, and the gap widens with difficulty (112 at d=1 → 85 at d=20: the career grid's environment texture is currently INVERTED — easier leagues score higher).
+
 ## 4. Findings
 
 **F1 — The bottom of the grid is fine.** Felt Club T1 = 112 (median 109) — at/above Nico's ~100 target already. The Season-1 horror table (mean ~59) was a cold-tail sample: felt p10 is 64, so scrappy seasons genuinely occur, and seed 9001 drew one.
