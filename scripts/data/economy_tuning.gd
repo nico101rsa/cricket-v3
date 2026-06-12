@@ -52,3 +52,18 @@ extends Resource
 # build-pay equality is untouched (team wins are build-independent).
 @export var win_bonus_base: float = 5.0
 @export var win_bonus_level_step: float = 5.0
+
+# Prize escalation + prize objects (difficulty-sheet v2, spec DV7/DV8 — the
+# incentive replacing the removed endgame gate). Escalation = per-tour ABSOLUTE
+# multipliers vs the Tour-1 base (Nico 2026-06-12: not compounding, T8 = 1.6x);
+# scales the four match-prize objects only — game fee + performance pay are
+# untouched, so build-pay equality is untouched.
+@export var prize_escalation: Array[float] = [1.0, 1.1, 1.1, 1.1, 1.3, 1.4, 1.5, 1.6]
+@export var playoff_win_base: float = 15.0        # winning a semi / the 3rd-place playoff
+@export var playoff_win_level_step: float = 10.0
+@export var final_appearance_base: float = 25.0   # playing The Final
+@export var final_appearance_level_step: float = 15.0
+@export var grand_final_base: float = 60.0        # winning The Final
+@export var grand_final_level_step: float = 40.0
+@export var premier_super_base: float = 250.0     # Premier (T8) Grand Final trophy payout,
+@export var premier_super_level_step: float = 250.0   # NOT escalated (DV8)
