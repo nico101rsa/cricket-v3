@@ -13,12 +13,15 @@ func before_each() -> void:
 	sm = SaveManagerScript.new()
 	sm.player_save_path = "user://_test_player.tres"
 	sm.legends_save_path = "user://_test_legends.tres"
+	sm.career_save_path = "user://_test_career.tres"
 	sm.clear_player()
 	sm.clear_legends()
+	sm.clear_career()
 
 func after_each() -> void:
 	sm.clear_player()
 	sm.clear_legends()
+	sm.clear_career()
 	# sm is a bare Node (never added to the tree), so free() it directly to avoid
 	# leaking one orphaned instance per test. queue_free() is only for tree nodes.
 	sm.free()
@@ -128,3 +131,31 @@ func test_legacy_legend_archive_loads_migrated():
 	sm.archive_to_legends(_legacy_player(), LegendEntry.END_REASON_RETIRED, 3)
 	var arc = sm.load_legends()
 	assert_eq(arc.entries[0].player.attributes.power, 50.0, "load_legends migrates legacy entries")
+
+
+# --- Career round-trip (career-loop DC14) ---
+
+func test_load_career_returns_null_when_no_save_exists():
+	assert_null(sm.load_career())
+
+func test_career_save_then_load_roundtrips():
+	var c := CareerResolver.start_career(0)
+	c.seasons_played = 5
+	c.mark_beaten(0, 0)
+	c.teams[3].stars = 4.0
+	sm.save_career(c)
+	var loaded = sm.load_career()
+	assert_eq(loaded.seasons_played, 5)
+	assert_eq(loaded.current_team_index, 0)
+	assert_eq(loaded.status_of(0, 0), CareerState.CellStatus.BEATEN)
+	assert_true(loaded.is_unlocked(1, 0), "unlock state survives")
+	assert_eq(loaded.teams.size(), 24)
+	assert_eq(loaded.teams[3].stars, 4.0)
+	assert_eq(loaded.teams[0].team_name, c.teams[0].team_name)
+
+func test_clear_career_removes_save():
+	sm.save_career(CareerResolver.start_career(0))
+	assert_true(sm.has_career())
+	sm.clear_career()
+	assert_false(sm.has_career())
+	assert_null(sm.load_career())
