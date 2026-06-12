@@ -41,6 +41,8 @@ static func _priciest_owned(shop: ShopState) -> String:
 	return best
 
 
+# Catalog price, deliberately NOT paid price: a free carried-over Legendary
+# (paid 0) must rank as a Legendary, not as the first eviction target.
 static func _cheapest_owned(shop: ShopState) -> String:
 	var worst := ""
 	for id in shop.owned_ids:
@@ -78,9 +80,12 @@ static func _visit(kind: String, ctx: Dictionary) -> Dictionary:
 			for r in ["legendary", "rare", "common"]:
 				var id: String = offer[r]
 				if not id in shop.owned_ids and player.tons_balance >= int(offer["prices"][id]):
-					act["buy"] = id
 					if shop.owned_ids.size() >= etun.loadout_cap:
-						act["replace"] = _cheapest_owned(shop)
+						var out_id := _cheapest_owned(shop)
+						if JokerCatalog.price(id) <= JokerCatalog.price(out_id):
+							continue   # full slots: never swap a joker down
+						act["replace"] = out_id
+					act["buy"] = id
 					break
 			if not act.has("buy") and not offer["legendary"] in shop.owned_ids:
 				act["hold"] = offer["legendary"]
@@ -97,9 +102,12 @@ static func _visit(kind: String, ctx: Dictionary) -> Dictionary:
 			for r in ["legendary", "rare", "common"]:
 				var id: String = offer[r]
 				if not id in shop.owned_ids and budget >= int(offer["prices"][id]):
-					act["buy"] = id
 					if shop.owned_ids.size() >= etun.loadout_cap:
-						act["replace"] = _cheapest_owned(shop)
+						var out_id := _cheapest_owned(shop)
+						if JokerCatalog.price(id) <= JokerCatalog.price(out_id):
+							continue   # full slots: never swap a joker down
+						act["replace"] = out_id
+					act["buy"] = id
 					break
 			if not act.has("buy") and not offer["legendary"] in shop.owned_ids and player.tons_balance >= int(offer["prices"][offer["legendary"]] * 0.6):
 				act["hold"] = offer["legendary"]
