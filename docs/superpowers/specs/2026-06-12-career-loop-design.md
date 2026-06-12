@@ -214,3 +214,33 @@ topology is traversable); seasons-played distribution is plausibly roguelite (te
 Seasons, not 3 and not 500 — CONTEXT cites "beat the game in 34" as the flavour target);
 ₸ bank rises across a Career; Province cells visited only after City offers accepted.
 Numbers land in the spec §10 findings + the viz, with denominators.
+
+## 10. Findings (post-build, 2026-06-12)
+
+All numbers from `tools/career_preview.gd` full run (**N=100 naive-policy Careers**, season
+cap 120, seeds 9000–9099, textbook plans, round-robin spending capped 60/attribute, **no
+jokers / no Shop** — Season-scoped systems are outside the headless loop, §4). Visible on
+`docs/mockups/career-loop-v1.html`.
+
+- **The loop is traversable end-to-end: 85 of 100 naive Careers completed** (won Province's
+  Premium Final) within the 120-Season cap; 15 capped. Seasons-to-complete over the 85:
+  **min 27 / median 49 / max 113**. The canon flavour target "beat the game in 34" sits at
+  roughly the naive line's 15th percentile — good shape: a *skilled* line (jokers, smarter
+  Offer/tour choices — E4) should land near it, the naive line shouldn't.
+- **Winning a Level is the choke point, by design.** Premium cells dominate visits (pooled
+  over all 100 Careers: Club Premium beaten 365/771 visits = 47%, City 364/1007 = 36%,
+  Province 492/1996 = 25%) because the policy farms Premium until it *wins The Final*, and
+  `won_final` is much rarer than `beat`. Non-Premium cells beat at 55–100% for the grown
+  build (vs 15–96% for a fresh build in the E3 grid sweep — growth works).
+- **₸ scarcity is absent at Career horizon (expected, recorded as the Shop-rung seed):**
+  mean bank reaches ≈₸15.5k by Season 10 and ≈₸165k at the cap, because maxing all four
+  attributes to the cap-60 costs only ~₸1.5–2k total while income runs ~₸1.5k/Season. The
+  real sinks are Season-scoped jokers (not in this loop) and prices scaling with Tour
+  difficulty (CONTEXT §Tons, not yet built). The Career loop deliberately doesn't invent a
+  new sink; the Shop/UI rung owns that surface.
+- **DC16 (down-Level offers) never fired on the naive line** (it only climbs after winning
+  a Level) — its tests pin the behaviour; a speedrun-style line is what exercises it (E4).
+- **Zero ripple (DC3 held):** no sim-math files touched; the joker floor (45.5%), env peg,
+  build spread, and pay numbers are untouched by construction — no oracle re-runs needed.
+- Suite: **499 tests green** (was 464; +35 across grid/start/offers/play_season/economy/
+  persistence/lifecycle).
