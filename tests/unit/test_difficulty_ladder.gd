@@ -6,16 +6,17 @@ extends GutTest
 
 
 func test_tour_spec_mean_frac_endpoints() -> void:
-	# v2 (spec DV2): same 0.40-1.30 span stretched over d 1-20.
+	# Career-fidelity CF4 (2026-06-13): span 0.40-1.20, solved on the roster-path
+	# felt env (Club T1 ~128, Province Premier ~155 — Nico's top anchor).
 	assert_almost_eq(TourSpec.mean_frac(1.0), 0.4, 0.0001)
-	assert_almost_eq(TourSpec.mean_frac(20.0), 1.3, 0.0001)
+	assert_almost_eq(TourSpec.mean_frac(20.0), 1.2, 0.0001)
 
 
 func test_tour_spec_make_tour_arithmetic() -> void:
 	var spec := TourSpec.new()
 	spec.d = 20.0
 	var tour := spec.make_tour()
-	assert_almost_eq(tour.mean, 1.3 * 31.25, 0.001)
+	assert_almost_eq(tour.mean, 1.2 * 31.25, 0.001)
 	assert_almost_eq(tour.spread, 0.3 * tour.mean, 0.001)
 
 

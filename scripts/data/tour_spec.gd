@@ -18,10 +18,13 @@ var brain_tier: int = Tier.NAIVE
 var blend: float = 1.0          # P(tier); else one tier lower (DL4)
 var opp_stars: Array = []       # the 7-opponent ★ field
 
-# mean_frac spans 0.40 (d=1) .. 1.30 (d=20), linear (v2 spec DV2 — same span
-# as v1, stretched over the d 1-20 sheet; d=20 = the measured-hard anchor).
+# mean_frac spans 0.40 (d=1) .. 1.20 (d=20), linear. Career-fidelity rung CF4
+# (2026-06-13, Nico's env-span ruling): solved against probe_felt_env on the
+# roster-path career sim — felt first-innings env reads ~128 at Club T1 and
+# ~155 at Province Premier (his real-T20 top anchor). The bottom is dial-
+# insensitive (both sides scale together; floors bind), so frac_lo stays 0.40.
 static func mean_frac(p_d: float) -> float:
-	return 0.4 + (p_d - 1.0) * 0.9 / 19.0
+	return 0.4 + (p_d - 1.0) * 0.8 / 19.0
 
 func make_tour() -> TourDistribution:
 	var tour := TourDistribution.new()
