@@ -213,6 +213,27 @@ After build, in order:
 - Joker-vs-attribute ROI re-solve — Shop rung (career-pacing DP3 stands).
 - E4 player-AI career runs — next rung, anchors on this one's measurements.
 
-## 10. Findings (filled at close-out)
+## 10. Findings (close-out)
 
-*(measured grid, career metrics, prize-economy readout — appended after the re-anchor runs)*
+### 10.1 The measured v2 grid (oracle `tools/sweep_difficulty_ladder.gd`, N=200 Seasons/cell, fresh 35/30/30/30 build at Team ★3, textbook plans; full table on `docs/mockups/difficulty-ladder-v1.html`)
+
+- **Beat-rate ramp:** Club Flat & Warm **96%** → Club Premier **50.5%** → City Premier **30.5%** → **Province Premier 15.0%** (win-Final **1.0%**) — the wall reads exactly like v1's (15%), as designed by anchoring d=20 to the same 1.30 strength fraction.
+- **Overlap canon holds exactly:** same d ⇒ same sim, so City's row T1–T7 is byte-identical to Club T5–T7 / City's own ramp (e.g. City T1 = Club T5 = 81.5%; Province T1 = City T5 = 56.5%). The Level rows are one continuous difficulty line that each Level windows.
+- **Premier jumps:** City 46.0% → 30.5% and Province 30.5% → 15.0% are unmistakable walls (+4/+5 d). **Club's jump is the softest (56.0% → 50.5%, +3 d)** because its brain stays TEXTBOOK across d7→10 — a per-d brain table can't special-case Premier without breaking the same-d ⇒ same-sim canon. Accepted: Club is the gentle league; its trophy pull is the prize money, not the wall.
+- **Brain isolation** (City Green Mamba strength d7, naive vs adaptive, N=200): beat 86.0% vs 43.0% — **the brain alone is worth ~43 beat-points at fixed card strength** (v1 read ~41.5); difficulty stays genuinely two-axis.
+- The v2 brain map leaves ADAPTIVE 0.5 (d16–18) unoccupied; ADAPTIVE 1.0 fires only at Province Premier d20.
+
+### 10.2 Career metrics with the Tour-4 gate + prizes (oracle `tools/career_preview.gd`, N=100 naive careers, cap 120 — numbers on `docs/mockups/career-loop-v1.html`)
+
+- **One ripple found and fixed in-rung: prize income accelerated attribute growth.** First preview run (attr_cost_base 11): max-out median **Season 41** — 8 Seasons earlier than Nico's pacing target (~49, DP3). One-dial re-peg `attr_cost_base` **11 → 13** (same move as the pacing rung; the attr-cost tests are symbolic so nothing re-pinned) restores **max-out median Season 50** (89/100 careers maxed, range 44–57).
+- **Final numbers (attr_cost_base 13):** completion **79/100** (21 hit the 120-Season cap), median **62 Seasons** (min 34, max 119); **time-to-beat median 529 Player matches ≈ 24.2 h of match play** at 2:45 (range 13.8–43.8 h, 79 completed careers) — essentially the career-pacing baseline (24 h) preserved under the new sheet.
+- **Premier farming stays the by-design choke:** beat-rates while farming Club Premier 420/1294 = 32%, City 343/776 = 44%, Province 574/2440 = 24% (the naive line farms each Premier until winning The Final; visits dominated by Province).
+- **Bank trajectory:** flat ~₸1.4–1.7k through the growth phase (Seasons 5–40 — the sink is binding), then climbing to ~₸97k by the cap once maxed — the uncapped bank remains the Shop-rung seed (joker sink still missing by design).
+- **No softlock:** the naive line (sequential tours, cross up only after a Level win) completes 79/100 under the Tour-4 gate; DC16 down-offers unused by this policy, retained as the trophy-chase path.
+
+### 10.3 Ripple ledger
+
+- **Sim math untouched** — joker floor / env peg / build & pay spreads unaffected by construction (no oracle re-runs needed; the only ₸ change is additive prize income, team-outcome-keyed, build-independent).
+- `attr_cost_base` 11 → 13 (above) — supersedes the career-pacing value, same ruling honoured.
+- E3 ladder anchors: superseded by §10.1's v2 grid; brain literals unchanged (no policy re-search needed).
+- E4 unblocked: anchors = §10.1 grid + §10.2 career metrics.

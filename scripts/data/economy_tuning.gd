@@ -35,15 +35,17 @@ extends Resource
 @export var bowl_ref_balls: float = 24.0  # a full 4-over spell
 
 # Shop / meta
-@export var attr_cost_base: float = 11.0  # +1 /100-point costs attr_cost_base × current value.
+@export var attr_cost_base: float = 13.0  # +1 /100-point costs attr_cost_base × current value.
                                           # Career-pacing DP3 (Nico's ruling 2026-06-12): attributes
                                           # are the CAREER-horizon ₸ sink — a no-joker player should
                                           # max out around the naive line's median completion (~49
                                           # Seasons), not by Season 2. Supersedes the 7c-D DE7
                                           # legacy-ROI calibration (was 0.256 = 10/6.25²); the
                                           # joker-vs-attribute ROI gets re-solved at the Shop rung
-                                          # when both sinks coexist. Measured at career_preview
-                                          # full N=100 (spec §10).
+                                          # when both sinks coexist. Re-pegged 11→13 at the
+                                          # difficulty-sheet-v2 rung: prize escalation added income
+                                          # and pulled max-out to S41 — 13 restores ~S46 (spec §10.2),
+                                          # measured at career_preview full N=100.
 @export var sell_refund_frac: float = 0.5 # partial refund selling a joker back (DE9)
 @export var loadout_cap: int = 4          # max active joker slots (CONTEXT.md 4 slots; DE8)
 

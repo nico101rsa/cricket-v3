@@ -2,9 +2,10 @@
 
 Source: Nico's spreadsheet, pasted as a screenshot in chat 2026-06-12 ~18:26 and
 transcribed here verbatim. **This supersedes the v1 d-sheet** codified at E3
-(`DifficultyLadder.D_SHEET`, bands Club 1–8 / City 2–10 / Province 3–12) and is the
-input to the next rung. Not yet built — the next session's brainstorm→spec settles the
-open questions below.
+(`DifficultyLadder.D_SHEET`, bands Club 1–8 / City 2–10 / Province 3–12).
+**BUILT 2026-06-12** by the difficulty-sheet-v2 rung — spec
+`docs/superpowers/specs/2026-06-12-difficulty-sheet-v2-design.md` (DV1–DV12) settles the
+open questions below; this doc stays as the verbatim source transcription.
 
 ## The new d-sheet
 
