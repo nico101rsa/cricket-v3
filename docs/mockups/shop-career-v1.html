@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shop rung — three spending styles, 100 careers each</title>
+<style>
+body { font-family: -apple-system, sans-serif; background: #14171c; color: #e8e6e1; margin: 0; padding: 24px; max-width: 1100px; margin-inline: auto; }
+h1 { font-size: 22px; } h2 { font-size: 17px; margin-top: 36px; border-bottom: 1px solid #333; padding-bottom: 6px;}
+.note { color: #9aa0a8; font-size: 13px; line-height: 1.5; }
+table { border-collapse: collapse; margin: 14px 0; font-size: 14px; }
+th, td { border: 1px solid #333; padding: 6px 12px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+thead th { background: #1d2127; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
+.bar-label { width: 240px; text-align: right; color: #c8c5bf; }
+.bar { height: 22px; display: flex; align-items: center; padding-left: 8px; font-size: 12px; color: #14171c; font-weight: 600; border-radius: 2px; }
+.attr { background: #7fb3d5; } .joker { background: #f0b27a; } .bal { background: #82c99a; } .cap { background: #5d6470; color: #e8e6e1; }
+canvas { background: #1a1e24; border: 1px solid #333; border-radius: 4px; margin: 8px 0; }
+.legend { font-size: 13px; color: #c8c5bf; } .legend span { display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin: 0 4px 0 14px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<h1>The Kit Room opens: three spending styles, 100 careers each</h1>
+<p class="note">Every career: a fresh creation build (Power 35 / Composure 30 / Attack 30 / Control 30 on the /100 card scale),
+naive tour & offer choices (lowest unbeaten tour; move up once the League is won), textbook opponents plus each cell's
+difficulty-ladder brain, career cap 120 Seasons, seeds 9000–9099. The only difference between the three groups is what
+they do at the Shop: <b>train only</b> (+1 attribute per visit, never buys a joker), <b>jokers only</b> (buys the best
+joker it can afford every visit, never trains), <b>balanced</b> (sets aside the next training fee, buys a joker with what is left).
+All three take the free starter joker each Season — that is part of the game's rules, not a choice.
+Source: tools/career_preview.gd, one run per CAREER_POLICY arm, 2026-06-12.</p>
+
+<h2>Did the career get finished? (win Province Premier within 120 Seasons)</h2>
+<div id="completion"></div>
+<p class="note">The pre-Shop baseline (same bot, no Shop at all, PR #50) finished 79 of 100 with a median of 62 Seasons.
+Training through the Shop's visit cadence plus the free starter joker beats that baseline on its own; balancing jokers
+and training on top of it finishes nearly every career.</p>
+
+<h2>How long a finished career took (Seasons to the trophy)</h2>
+<canvas id="hist" width="1040" height="300"></canvas>
+<div class="legend">Seasons to complete, binned by 10. <span class="attr"></span>train only <span class="joker"></span>jokers only <span class="bal"></span>balanced. Unfinished careers (capped at 120) are NOT in these bars — they are the grey counts above.</div>
+
+<h2>Summary (medians over completed careers only)</h2>
+<table id="summary"></table>
+
+<h2>The bank over a career (mean ₸ balance per Season, careers still running)</h2>
+<canvas id="bank" width="1040" height="300"></canvas>
+<p class="note">Log scale. The train-only line hoards (₸98k by Season 120 — after attributes max out there is nothing left
+to buy by policy). The jokers-only line floats ₸4–6k (it can only spend at 5 visits a Season). The balanced line stays
+lean — almost everything earned gets spent. The hoard the Career-loop rung flagged is solved by any joker-buying style.</p>
+
+<script>
+const ARMS = {"attr_only": {"n": 100, "season_cap": 120, "policy": "attr_only", "completed": 86, "capped": 14, "seasons_to_complete": [111, 90, 57, 91, 70, 50, 69, 68, 61, 64, 47, 41, 53, 76, 116, 38, 85, 59, 33, 40, 42, 80, 42, 43, 48, 28, 71, 54, 69, 44, 47, 34, 50, 70, 41, 75, 45, 47, 48, 45, 61, 51, 58, 68, 42, 63, 66, 87, 70, 58, 49, 35, 56, 69, 95, 56, 82, 56, 50, 39, 71, 47, 36, 64, 44, 89, 100, 35, 45, 57, 88, 42, 78, 37, 40, 34, 54, 38, 31, 69, 62, 37, 60, 40, 58, 73], "matches_to_complete": [883, 718, 489, 733, 590, 422, 597, 562, 521, 544, 405, 353, 449, 616, 960, 336, 719, 493, 295, 346, 352, 664, 358, 371, 408, 252, 593, 456, 569, 386, 415, 304, 424, 586, 357, 615, 383, 405, 428, 393, 513, 435, 494, 566, 362, 539, 562, 711, 584, 496, 427, 303, 478, 583, 789, 482, 676, 470, 422, 335, 589, 403, 318, 556, 368, 727, 844, 307, 387, 495, 730, 368, 664, 323, 338, 296, 458, 332, 271, 571, 524, 323, 522, 352, 490, 623], "maxed_seasons": [48, 46, 45, 46, 47, 47, 44, 47, 45, 47, 43, 0, 45, 49, 49, 0, 48, 50, 45, 0, 0, 0, 47, 49, 48, 47, 0, 0, 48, 49, 0, 47, 48, 48, 0, 0, 0, 45, 44, 0, 48, 49, 47, 0, 0, 46, 46, 46, 0, 46, 45, 44, 44, 0, 45, 48, 46, 51, 49, 47, 49, 0, 47, 45, 48, 47, 49, 46, 49, 0, 54, 45, 0, 44, 48, 47, 0, 48, 47, 44, 0, 0, 44, 44, 46, 0, 44, 0, 0, 0, 46, 0, 0, 45, 47, 0, 42, 0, 47, 48], "bank_curve": [454.5, 550.3, 616.5, 600.5, 570.0, 582.2, 548.8, 562.5, 620.8, 562.6, 548.7, 552.6, 555.3, 573.7, 543.8, 560.4, 576.5, 614.8, 615.1, 632.1, 586.7, 636.8, 612.4, 608.1, 662.1, 635.1, 576.6, 642.0, 655.5, 659.1, 634.0, 666.6, 665.4, 714.3, 687.4, 685.0, 654.0, 703.4, 710.7, 704.7, 640.4, 755.6, 740.1, 870.9, 1220.8, 1756.7, 2699.2, 3646.5, 5008.6, 6588.6, 8137.8, 9692.7, 11164.0, 12669.6, 14187.1, 15619.5, 17015.7, 18365.6, 19756.6, 21225.8, 22493.8, 23745.1, 25189.0, 26600.7, 27779.0, 29234.9, 30661.2, 32289.8, 33667.5, 34490.7, 35863.2, 37485.6, 38924.1, 40366.0, 41772.2, 43119.8, 44405.2, 45739.4, 46538.5, 47995.2, 48998.8, 50430.8, 51689.2, 52889.3, 54256.6, 55423.5, 56802.2, 58310.6, 59339.6, 60779.4, 62059.2, 63170.3, 64594.2, 65836.1, 67157.4, 68608.4, 69823.6, 71251.4, 72538.6, 73860.6, 74288.9, 75487.4, 76751.6, 78012.8, 79355.9, 80678.9, 81927.9, 83142.4, 84422.7, 85790.1, 87172.3, 88438.0, 89726.8, 91051.6, 92394.8, 93887.5, 94462.1, 95776.7, 97089.3, 98427.1], "end_reasons": ["complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "season_cap", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "season_cap", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "complete", "season_cap", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete"], "jokers_bought": 0}, "joker_only": {"n": 100, "season_cap": 120, "policy": "joker_only", "completed": 60, "capped": 40, "seasons_to_complete": [81, 51, 87, 34, 68, 66, 46, 71, 49, 104, 47, 109, 76, 36, 75, 65, 91, 86, 111, 91, 45, 53, 48, 110, 101, 44, 99, 47, 33, 102, 87, 114, 33, 115, 56, 57, 93, 57, 44, 84, 68, 86, 107, 54, 51, 102, 41, 64, 60, 116, 90, 49, 80, 100, 113, 93, 42, 58, 85, 101], "matches_to_complete": [679, 427, 687, 296, 574, 546, 394, 593, 403, 834, 397, 867, 614, 308, 605, 517, 729, 706, 877, 727, 383, 459, 406, 850, 813, 376, 797, 393, 293, 806, 687, 876, 289, 911, 478, 481, 755, 477, 376, 648, 576, 690, 833, 464, 425, 842, 353, 530, 506, 924, 706, 411, 648, 794, 925, 725, 352, 478, 657, 795], "maxed_seasons": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "bank_curve": [797.7, 1627.6, 2397.3, 3119.2, 3678.3, 4210.5, 4628.5, 4989.9, 5299.9, 5540.1, 5800.2, 6036.7, 6243.8, 6382.0, 6536.0, 6675.4, 6760.9, 6825.6, 6803.9, 6853.4, 6862.9, 6858.7, 6848.1, 6837.4, 6802.2, 6718.9, 6621.6, 6555.7, 6479.8, 6329.6, 6157.4, 6011.4, 5873.7, 5843.2, 5776.4, 5662.4, 5591.4, 5470.8, 5326.3, 5155.8, 5026.1, 4949.7, 4878.7, 4768.5, 4718.5, 4634.3, 4548.4, 4499.0, 4442.7, 4353.4, 4256.5, 4248.1, 4199.3, 4156.0, 4139.3, 4140.2, 4114.1, 4119.7, 4068.1, 4051.0, 4065.2, 3949.9, 3853.7, 3757.7, 3675.0, 3604.5, 3471.0, 3366.2, 3313.1, 3184.4, 3135.9, 3083.8, 2980.4, 2864.8, 2807.1, 2773.8, 2725.3, 2715.3, 2629.2, 2580.1, 2598.5, 2520.8, 2417.6, 2380.0, 2337.5, 2353.6, 2351.3, 2361.8, 2331.4, 2287.1, 2327.4, 2284.5, 2289.9, 2232.8, 2222.8, 2146.3, 2089.3, 2049.6, 2005.1, 1961.7, 1976.9, 1969.4, 1936.8, 1864.7, 1788.7, 1729.0, 1690.4, 1647.7, 1652.5, 1608.8, 1523.9, 1538.0, 1505.0, 1531.8, 1541.5, 1502.9, 1496.8, 1441.0, 1437.2, 1412.7], "end_reasons": ["season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "season_cap", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "season_cap", "complete", "season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "complete", "complete", "season_cap", "season_cap", "complete", "season_cap", "season_cap", "season_cap", "complete", "season_cap", "season_cap", "season_cap", "complete", "complete", "season_cap", "complete"], "jokers_bought": 24155}, "balanced": {"n": 100, "season_cap": 120, "policy": "balanced", "completed": 95, "capped": 5, "seasons_to_complete": [51, 35, 73, 67, 87, 48, 79, 85, 47, 71, 50, 42, 59, 88, 29, 37, 83, 92, 29, 52, 29, 41, 74, 61, 72, 46, 30, 95, 61, 91, 61, 32, 96, 59, 57, 98, 41, 63, 68, 74, 54, 39, 34, 53, 102, 69, 74, 57, 66, 68, 104, 52, 69, 41, 44, 55, 31, 46, 68, 32, 52, 81, 74, 29, 53, 58, 53, 43, 31, 53, 93, 53, 39, 66, 91, 100, 61, 87, 69, 43, 73, 54, 44, 45, 63, 45, 76, 67, 44, 31, 55, 53, 55, 55, 61], "matches_to_complete": [443, 309, 617, 569, 687, 412, 637, 667, 403, 603, 426, 364, 481, 722, 261, 321, 693, 732, 257, 446, 261, 351, 630, 513, 628, 410, 262, 773, 519, 741, 497, 284, 770, 507, 473, 796, 351, 517, 568, 620, 464, 339, 298, 453, 840, 559, 606, 493, 540, 564, 832, 432, 567, 341, 374, 471, 277, 402, 560, 286, 454, 653, 632, 257, 451, 484, 449, 375, 277, 437, 761, 445, 333, 536, 747, 834, 519, 723, 563, 367, 615, 462, 376, 387, 521, 395, 640, 561, 380, 275, 461, 455, 457, 463, 523], "maxed_seasons": [0, 0, 65, 64, 69, 64, 0, 70, 76, 0, 64, 0, 0, 0, 65, 0, 0, 66, 67, 0, 0, 0, 0, 63, 0, 63, 0, 0, 65, 60, 63, 0, 0, 64, 0, 63, 0, 61, 0, 0, 64, 64, 0, 0, 0, 0, 65, 69, 71, 0, 0, 63, 67, 0, 65, 0, 0, 0, 0, 0, 64, 0, 0, 68, 64, 61, 66, 0, 0, 0, 0, 61, 0, 0, 0, 62, 0, 0, 61, 64, 62, 0, 64, 65, 0, 60, 0, 0, 0, 0, 0, 62, 64, 0, 0, 0, 0, 0, 0, 60], "bank_curve": [420.1, 443.5, 437.3, 391.4, 415.8, 422.2, 462.0, 459.2, 424.8, 481.8, 485.6, 505.8, 469.3, 495.8, 494.6, 507.2, 509.8, 489.6, 504.1, 504.8, 501.1, 555.2, 518.3, 534.4, 536.8, 542.7, 558.0, 534.9, 615.7, 577.8, 563.6, 591.2, 544.2, 593.5, 613.1, 594.0, 609.8, 563.7, 558.7, 608.5, 595.3, 573.2, 636.1, 636.7, 637.3, 621.9, 630.9, 634.6, 626.7, 626.6, 626.3, 701.3, 746.6, 655.0, 663.3, 670.4, 688.8, 690.2, 666.4, 595.1, 690.0, 595.7, 607.8, 599.2, 734.0, 783.5, 877.3, 979.5, 1049.7, 1019.5, 1048.9, 1084.6, 1163.4, 1195.0, 1107.8, 1117.7, 1048.9, 1017.0, 1012.5, 887.6, 879.8, 869.5, 903.9, 793.3, 837.3, 825.8, 802.6, 675.3, 452.1, 559.9, 718.1, 599.1, 685.8, 590.9, 570.3, 635.1, 639.1, 729.0, 535.0, 705.5, 530.4, 650.4, 609.3, 655.8, 453.8, 580.0, 494.2, 534.4, 528.0, 511.8, 634.4, 596.0, 491.8, 578.8, 485.0, 539.6, 524.8, 450.4, 556.6, 568.8], "end_reasons": ["complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "season_cap", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete", "complete"], "jokers_bought": 10617}};
+const ORDER = ["attr_only", "joker_only", "balanced"];
+const LABEL = {attr_only: "Train only (attributes)", joker_only: "Jokers only", balanced: "Balanced (jokers + training)"};
+const CLS = {attr_only: "attr", joker_only: "joker", balanced: "bal"};
+const COLOR = {attr_only: "#7fb3d5", joker_only: "#f0b27a", balanced: "#82c99a"};
+
+// Completion bars
+const comp = document.getElementById("completion");
+for (const a of ORDER) {
+  const d = ARMS[a];
+  const row = document.createElement("div");
+  row.className = "bar-row";
+  row.innerHTML = `<div class="bar-label">${LABEL[a]}</div>` +
+    `<div class="bar ${CLS[a]}" style="width:${d.completed * 6}px">${d.completed} finished</div>` +
+    `<div class="bar cap" style="width:${Math.max(d.capped * 6, 30)}px">${d.capped} capped</div>`;
+  comp.appendChild(row);
+}
+
+function median(arr) { const s = [...arr].sort((x, y) => x - y); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; }
+
+// Histogram of seasons_to_complete
+(() => {
+  const c = document.getElementById("hist").getContext("2d");
+  const bins = {}; const BIN = 10; let maxCount = 0;
+  for (const a of ORDER) {
+    bins[a] = new Array(12).fill(0);
+    for (const s of ARMS[a].seasons_to_complete) bins[a][Math.min(Math.floor(s / BIN), 11)]++;
+    maxCount = Math.max(maxCount, ...bins[a]);
+  }
+  const W = 1040, H = 300, mL = 40, mB = 30, bw = (W - mL - 20) / 12;
+  c.fillStyle = "#9aa0a8"; c.font = "11px sans-serif";
+  for (let b = 0; b < 12; b++) {
+    c.fillText(`${b*10}–${b*10+9}`, mL + b * bw + 4, H - 12);
+    for (let i = 0; i < ORDER.length; i++) {
+      const a = ORDER[i], v = bins[a][b];
+      const h = v / maxCount * (H - mB - 30);
+      c.fillStyle = COLOR[a];
+      c.fillRect(mL + b * bw + 2 + i * (bw/3 - 3), H - mB - h, bw/3 - 5, h);
+      if (v > 0) { c.fillStyle = "#e8e6e1"; c.font = "10px sans-serif"; c.fillText(v, mL + b * bw + 2 + i * (bw/3 - 3), H - mB - h - 3); }
+    }
+    c.fillStyle = "#9aa0a8";
+  }
+})();
+
+// Summary table
+(() => {
+  const t = document.getElementById("summary");
+  let html = "<thead><tr><th>Spending style</th><th>Finished (of 100)</th><th>Median Seasons</th><th>Median matches</th><th>≈ hours of match play</th><th>Attributes maxed (of 100)</th><th>Median max-out Season</th><th>Jokers bought (all 100 careers)</th></tr></thead><tbody>";
+  for (const a of ORDER) {
+    const d = ARMS[a];
+    const stc = d.seasons_to_complete, mtc = d.matches_to_complete;
+    const maxed = d.maxed_seasons.filter(m => m > 0);
+    html += `<tr><td>${LABEL[a]}</td><td>${d.completed}</td>` +
+      `<td>${stc.length ? median(stc) : "—"}</td><td>${mtc.length ? median(mtc) : "—"}</td>` +
+      `<td>${mtc.length ? (median(mtc) * 2.75 / 60).toFixed(1) : "—"}</td>` +
+      `<td>${maxed.length}</td><td>${maxed.length ? median(maxed) : "never"}</td>` +
+      `<td>${d.jokers_bought}</td></tr>`;
+  }
+  html += `<tr><td>Pre-Shop baseline (PR #50, no Shop)</td><td>79</td><td>62</td><td>529</td><td>24.2</td><td colspan="2">maxed median S50 (unlimited spend)</td><td>0</td></tr>`;
+  t.innerHTML = html + "</tbody>";
+})();
+
+// Bank curves (log scale)
+(() => {
+  const c = document.getElementById("bank").getContext("2d");
+  const W = 1040, H = 300, mL = 50, mB = 24;
+  const maxV = Math.max(...ORDER.flatMap(a => ARMS[a].bank_curve));
+  const logMax = Math.log10(maxV + 1);
+  c.fillStyle = "#9aa0a8"; c.font = "11px sans-serif";
+  for (const g of [100, 1000, 10000, 100000]) {
+    if (g > maxV) break;
+    const y = H - mB - Math.log10(g + 1) / logMax * (H - mB - 16);
+    c.fillRect(mL, y, W - mL - 10, 1); c.fillText("₸" + g.toLocaleString(), 2, y + 4);
+  }
+  for (let s = 0; s <= 120; s += 20) c.fillText("S" + s, mL + s / 120 * (W - mL - 20), H - 8);
+  for (const a of ORDER) {
+    c.strokeStyle = COLOR[a]; c.lineWidth = 2; c.beginPath();
+    ARMS[a].bank_curve.forEach((v, i) => {
+      const x = mL + i / 120 * (W - mL - 20);
+      const y = H - mB - Math.log10(v + 1) / logMax * (H - mB - 16);
+      i === 0 ? c.moveTo(x, y) : c.lineTo(x, y);
+    });
+    c.stroke();
+  }
+})();
+</script>
+</body>
+</html>

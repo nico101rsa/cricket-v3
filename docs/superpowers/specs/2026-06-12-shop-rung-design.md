@@ -130,3 +130,25 @@ Viz: `docs/mockups/shop-career-v1.html` (arms compared, counts on bars, censored
 - Forced-retirement *mechanic* (Theme 9); only the tracking slot lands (DK11).
 - Affinity performance bonus (DC12, still unmeasured).
 - Benching/loadout-vs-ownership split — only if a future rung raises ownership above 4.
+
+## 10. Findings (close-out, 2026-06-12 evening)
+
+All numbers: `tools/career_preview.gd`, N=100 careers per arm (seeds 9000–9099), fresh creation build 35/30/30/30, naive tour/offer lines, cap 120 Seasons, one arm per `CAREER_POLICY`. Viz: `docs/mockups/shop-career-v1.html`. Pre-Shop baseline for comparison: PR #50's run (79/100 complete · median 62 Seasons · 529 matches ≈ 24.2 h · max-out median S50 under unlimited between-Season spending).
+
+| Arm | Complete | Median Seasons | Median matches (≈h) | Maxed attrs | Median max-out S | Jokers bought (Σ all careers) | Bank at cap |
+|---|---|---|---|---|---|---|---|
+| ATTR_ONLY | 86/100 | 56 | 474 (≈21.7 h) | 70/100 | **47** | 0 | ₸98.4k |
+| JOKER_ONLY | 60/100 | 73 | 599 (≈27.5 h) | 0/100 | never | 24,155 | ₸1.4k |
+| BALANCED | **95/100** | 57 | 473 (≈21.7 h) | 42/100 | 64 | 10,617 | ₸0.6k |
+
+**10.1 The canon Shop is a net buff even for a non-joker player.** ATTR_ONLY (the new floor: ≤5 upgrades/Season through visits, plus the rules-mandated free starter Common + carry-over) beats the pre-Shop baseline on every headline (86>79 complete, 56<62 median, 21.7<24.2 h). The visit cadence costs less than the free starter joker earns.
+
+**10.2 DK10 re-peg check: PASS, no dial move.** ATTR_ONLY max-out median lands S47 vs Nico's ~49-Season target (DP3; pre-Shop S50 at `attr_cost_base` 13). Within the target band — `attr_cost_base` stays 13.
+
+**10.3 Nico's joker-only playstyle is viable but hard mode.** 60/100 complete at median 73 Seasons: jokers alone (Season-scoped, 4 slots) never push the win-rate enough at Province Premier d20 without permanent growth; 40% of careers stall to the cap. It plays — and it should stay a challenge run, not the meta.
+
+**10.4 "Jokers buy back the grind" — confirmed, via completion rate not median.** BALANCED completes 95/100 (vs 86) at the same median (~57) and lean bank: the joker layer rescues the careers that would otherwise stall, rather than speeding up the ones that were already finishing. The ₸97k hoard flagged at the Career-loop rung is solved by any joker-buying line (BALANCED ends at ₸0.6k).
+
+**10.5 Zero sim ripple held (DK3).** Seeded byte-identity pin (`test_shop_seams_default_off_byte_identical`) passed unchanged through every seam commit; no ball-math, joker-magnitude, env, or pay dial moved (the only candidate, `attr_cost_base`, stayed put per 10.2). Joker floor 45.5% / env peg / build & pay spreads untouched by construction.
+
+**10.6 Seeds for E4.** The career AI inherits a real decision space: tour choice (farm vs climb), offer accept/stay, and now joker-vs-attribute spend with measured fixed-line anchors (ATTR_ONLY 56 / BALANCED 57 / JOKER_ONLY 73 median). End-reason tracking (`end_reasons` in DATA; "retired_forced" reserved for Theme 9) ships per Nico's requirement.
