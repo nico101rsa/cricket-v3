@@ -59,3 +59,8 @@ static func attr_upgrade_cost(current_value: float, tuning: EconomyTuning) -> in
 
 static func sell_refund(price: int, tuning: EconomyTuning) -> int:
 	return int(floor(price * tuning.sell_refund_frac))
+
+# ₸ bonus per Player-team WIN (league or playoff), scaling with Level —
+# career-loop rung DC10. match_pay is deliberately untouched.
+static func win_bonus(level: int, tuning: EconomyTuning) -> int:
+	return int(round(tuning.win_bonus_base + tuning.win_bonus_level_step * level))

@@ -159,3 +159,18 @@ func test_sell_refund_is_floored_fraction() -> void:
 
 func test_loadout_cap_dial_is_four() -> void:
 	assert_eq(_etun.loadout_cap, 4)
+
+
+# --- win_bonus (career-loop rung, DC10) ---
+
+func test_win_bonus_scales_with_level() -> void:
+	assert_eq(Economy.win_bonus(0, _etun), 5, "Club win bonus")
+	assert_eq(Economy.win_bonus(1, _etun), 10, "City win bonus")
+	assert_eq(Economy.win_bonus(2, _etun), 15, "Province win bonus")
+
+
+func test_win_bonus_follows_dials() -> void:
+	var t := EconomyTuning.new()
+	t.win_bonus_base = 8.0
+	t.win_bonus_level_step = 2.0
+	assert_eq(Economy.win_bonus(2, t), 12, "8 + 2x2")
