@@ -12,6 +12,8 @@ extends SceneTree
 # Env: CELL_LEVEL (0-2, default 0) · CELL_TOUR (0-7, default 0)
 #      FRAC (override mean_frac; "" = use the live dial) · N_SEASONS (default 100)
 #      JOKERS (comma-separated catalog ids for the Player loadout; "" = none)
+#      ATTRS ("p,c,a,c" build override, default 35,30,30,30) · PLAYER_SLOT (STAR_LADDER slot 0-7, default 0)
+#      SPREAD_ABS (force tour spread to an absolute value) · BRAIN (TEXTBOOK forces textbook opp brains)
 
 func _init() -> void:
 	var level := int(OS.get_environment("CELL_LEVEL")) if OS.get_environment("CELL_LEVEL") != "" else 0
@@ -22,10 +24,19 @@ func _init() -> void:
 	var jokers_env := OS.get_environment("JOKERS")
 	if jokers_env != "":
 		jokers = JokerCatalog.effects_of_ids(Array(jokers_env.split(",")))
+	var attrs_env := OS.get_environment("ATTRS")
+	var build := [35.0, 30.0, 30.0, 30.0]
+	if attrs_env != "":
+		var parts := attrs_env.split(",")
+		build = [float(parts[0]), float(parts[1]), float(parts[2]), float(parts[3])]
+	var player_slot := int(OS.get_environment("PLAYER_SLOT")) if OS.get_environment("PLAYER_SLOT") != "" else 0
 
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var spec := DifficultyLadder.spec_for(level, tour_i)
+	if OS.get_environment("BRAIN") == "TEXTBOOK":
+		spec.brain_tier = TourSpec.Tier.TEXTBOOK
+		spec.blend = 1.0
 	var pol_ip := OpponentBrain.draw_plans(TourSpec.Tier.TEXTBOOK, 1.0, RandomNumberGenerator.new())
 
 	var totals: Array = []
@@ -41,17 +52,20 @@ func _init() -> void:
 			var t := Team.new()
 			t.stars = CareerResolver.STAR_LADDER[k]
 			teams.append(t)
-		var player_team: Team = teams[0]
-		var opponents := teams.slice(1)
+		var player_team: Team = teams[player_slot]
+		var opponents: Array = teams.duplicate()
+		opponents.remove_at(player_slot)
 		var attrs := Attributes.new()
-		attrs.power = 35.0
-		attrs.composure = 30.0
-		attrs.attack = 30.0
-		attrs.control = 30.0
+		attrs.power = build[0]
+		attrs.composure = build[1]
+		attrs.attack = build[2]
+		attrs.control = build[3]
 		var tour := spec.make_tour()
 		if frac_env != "":
 			tour.mean = float(frac_env) * TourSpec.MID_MEAN
 			tour.spread = TourSpec.SPREAD_RATIO * tour.mean
+		if OS.get_environment("SPREAD_ABS") != "":
+			tour.spread = float(OS.get_environment("SPREAD_ABS"))
 		var league := LeagueResolver.simulate_league(
 			attrs, player_team, opponents, tour, tuning, itun, rng,
 			pol_ip[0], pol_ip[1], spec, jokers)
@@ -69,7 +83,7 @@ func _init() -> void:
 	var med: float = totals[totals.size() / 2]
 	var p10: float = totals[int(totals.size() * 0.1)]
 	var p90: float = totals[int(totals.size() * 0.9)]
-	print("FELT cell=(%d,%d) d=%.0f frac=%s jokers=%d n_inns=%d | first-inns mean %.1f median %.0f p10 %.0f p90 %.0f | RR %.2f | wkts %.2f" % [
-		level, tour_i, spec.d, frac_env if frac_env != "" else "live(%.3f)" % TourSpec.mean_frac(spec.d),
+	print("FELT cell=(%d,%d) slot=%d d=%.0f frac=%s jokers=%d n_inns=%d | first-inns mean %.1f median %.0f p10 %.0f p90 %.0f | RR %.2f | wkts %.2f" % [
+		level, tour_i, player_slot, spec.d, frac_env if frac_env != "" else "live(%.3f)" % TourSpec.mean_frac(spec.d),
 		jokers.size(), n_inns, mean, med, p10, p90, mean / (balls / n_inns / 6.0), wkts / n_inns])
 	quit()
