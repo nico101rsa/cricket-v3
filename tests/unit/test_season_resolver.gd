@@ -112,13 +112,16 @@ func _pin_season(seed_v: int) -> SeasonResult:
 		_tour(), tuning, itun, rng)
 
 func test_shop_seams_default_off_byte_identical() -> void:
-	# Pinned BEFORE the shop seams landed (Task 3 step 1); the literals below
-	# are the pre-seam values. The seam adds zero RNG draws when off (DK3),
-	# so these must reproduce forever on the default path.
+	# Shop-rung pin (DK3): the shop seams add zero RNG draws when off.
+	# RE-CAPTURED at the career-fidelity rung (CF5, 2026-06-13): careers moved
+	# to the tuned roster path + base DRS — an INTENTIONAL behaviour change.
+	# The final-innings total moved 139 -> 224 (roster-path scoring runs hot);
+	# position/points held, itself evidence the fidelity change added no RNG
+	# draws (same stream, different card maths).
 	var a := _pin_season(4242)
 	assert_eq(a.player_final_position, 1)
 	assert_eq(a.league.standings[0].points, 12)
-	assert_eq(a.final_match.innings1.total, 139)
+	assert_eq(a.final_match.innings1.total, 224)
 
 
 func test_shop_hook_fires_at_canon_points() -> void:

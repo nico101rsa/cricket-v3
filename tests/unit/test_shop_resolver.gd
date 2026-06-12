@@ -115,3 +115,21 @@ func test_loadout_effects_flatten_owned() -> void:
 	var st := _state()
 	st.owned_ids.append("the_chase_master")
 	assert_gt(ShopResolver.loadout_effects(st).size(), 1)
+
+func test_plans_for_field_from_gated_jokers() -> void:
+	var fx := JokerCatalog.effects_of_ids(["tight_lines"])
+	var plans := ShopResolver.plans_for(fx)
+	assert_not_null(plans["field"], "field-gated joker sets the field")
+	var fp: FieldPlan = plans["field"]
+	assert_eq(fp.powerplay, fp.death, "uniform mode across phases")
+	assert_null(plans["boost"])
+
+func test_plans_for_boost_jokers() -> void:
+	var fx := JokerCatalog.effects_of_ids(["power_up"])
+	var plans := ShopResolver.plans_for(fx)
+	assert_not_null(plans["boost"], "boost-channel joker arms the boost plan")
+
+func test_plans_for_empty_loadout() -> void:
+	var plans := ShopResolver.plans_for([])
+	assert_null(plans["field"])
+	assert_null(plans["boost"])

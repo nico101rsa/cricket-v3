@@ -53,6 +53,10 @@ static func simulate_league(
 
 	var player_matches: Array = []
 
+	# Career-fidelity CF1: every fixture runs the tuned ROSTER path (real XIs +
+	# proportional bat factors), the same sim the balance ledger was tuned on.
+	var rosters := build_rosters(player_attrs, itun, n)
+
 	for fx in round_robin(n):
 		var i: int = fx.x
 		var j: int = fx.y
@@ -68,12 +72,26 @@ static func simulate_league(
 			var plans := OpponentBrain.draw_plans(opp_spec.brain_tier, opp_spec.blend, rng)
 			oip = plans[0]
 			obp = plans[1]
+		# Career-fidelity CF3: Player-facing fixtures play under base two-sided
+		# DRS (the fair-fight rule) + the field/Boost plans the loadout wants.
+		var fp: FieldPlan = null
+		var bplan: BoostPlan = null
+		var dp: DRSPolicy = null
+		var odp: DRSPolicy = null
+		if i == 0:
+			var jplans := ShopResolver.plans_for(jokers)
+			fp = jplans["field"]
+			bplan = jplans["boost"]
+			dp = DRSPolicy.new()
+			odp = DRSPolicy.new()
 		var m := MatchResolver.simulate_match(
 			p_attrs,
 			bat[i], bowl[i], bowl[i],
 			bat[j], bowl[j], bowl[j],
 			i_bats_first, tuning, itun, rng, ip, bp,
-			jokers if i == 0 else [], null, null, oip, null, null, null, [], [], 1.0, 1.0, null, null, obp)
+			jokers if i == 0 else [], fp, null, oip, bplan, dp, null,
+			rosters[i], rosters[j], bat[i] / MatchResolver.REF_SCALAR, bat[j] / MatchResolver.REF_SCALAR,
+			null, odp, obp)
 
 		# Attribute innings (innings1 = first-batting side).
 		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2
@@ -128,3 +146,15 @@ static func simulate_league(
 			break
 	result.made_playoffs = result.player_position <= PLAYOFF_CUTOFF
 	return result
+
+
+# Career-fidelity CF1: the rosters every fixture plays with — standard XIs for
+# all teams, the Player's team built around their card at their build-driven
+# batting position. Index-aligned with the league's team order (Player = 0).
+static func build_rosters(player_attrs: Attributes, itun: InningsTuning, n: int) -> Array:
+	var out: Array = []
+	for k in range(n):
+		out.append(Team.standard_xi())
+	if player_attrs != null:
+		out[0] = Team.build_xi(player_attrs, InningsResolver.player_position(player_attrs, itun))
+	return out

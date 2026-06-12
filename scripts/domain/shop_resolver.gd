@@ -142,3 +142,33 @@ static func apply_visit(act: Dictionary, state: ShopState, player: Player,
 # The sim-facing loadout: flattened effect rows of everything owned (DK8).
 static func loadout_effects(state: ShopState) -> Array:
 	return JokerCatalog.effects_of_ids(state.owned_ids)
+
+
+# Career-fidelity CF3: the plans a sensible owner would set for this loadout —
+# the field mode its gated jokers want (modal across effect rows, all phases)
+# and the sweep-standard Boost presses when a boost-channel joker is owned.
+# The playable game hands these controls to the human; headless career play
+# derives them so gated jokers fire as priced. {"field": FieldPlan or null,
+# "boost": BoostPlan or null}.
+static func plans_for(effects: Array) -> Dictionary:
+	var counts := {}
+	var has_boost := false
+	for e in effects:
+		if e.field_req >= 0:
+			counts[e.field_req] = counts.get(e.field_req, 0) + 1
+		if e.boost_role != JokerEffect.BoostRole.NONE:
+			has_boost = true
+	var field: FieldPlan = null
+	if not counts.is_empty():
+		var best := -1
+		for mode in counts:
+			if best == -1 or counts[mode] > counts[best]:
+				best = mode
+		field = FieldPlan.new()
+		field.powerplay = best
+		field.middle = best
+		field.death = best
+	var boost: BoostPlan = null
+	if has_boost:
+		boost = BoostPlan.at([1, 10, 16])
+	return {"field": field, "boost": boost}
