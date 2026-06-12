@@ -271,3 +271,20 @@ func test_price_bands_match_pool_doc() -> void:
 	assert_eq(JokerCatalog.price_band("Common"), Vector2i(30, 50))
 	assert_eq(JokerCatalog.price_band("Rare"), Vector2i(90, 120))
 	assert_eq(JokerCatalog.price_band("Legendary"), Vector2i(220, 250))
+
+func test_ids_of_rarity_counts_and_sorted() -> void:
+	var commons := JokerCatalog.ids_of_rarity("Common")
+	var rares := JokerCatalog.ids_of_rarity("Rare")
+	var legs := JokerCatalog.ids_of_rarity("Legendary")
+	assert_eq(commons.size() + rares.size() + legs.size(), 45)
+	assert_eq(legs.size(), 6)
+	var sorted_check := commons.duplicate()
+	sorted_check.sort()
+	assert_eq(commons, sorted_check, "deterministic order")
+	assert_true(commons.has("dead_bat"))
+
+func test_effects_of_ids_flattens_groups() -> void:
+	var fx := JokerCatalog.effects_of_ids(["dead_bat", "the_chase_master"])
+	assert_gt(fx.size(), 1, "chase master is multi-row")
+	for e in fx:
+		assert_true(e.id == "dead_bat" or e.id == "the_chase_master")

@@ -69,3 +69,9 @@ extends Resource
 @export var grand_final_level_step: float = 40.0
 @export var premier_super_base: float = 250.0     # Premier (T8) Grand Final trophy payout,
 @export var premier_super_level_step: float = 250.0   # NOT escalated (DV8)
+
+# Shop pricing (shop rung DK5): catalog price x level mult x tour mult.
+# Tour mult initialised to the prize-escalation shape so cost tracks income;
+# a SEPARATE dial so they can diverge when measured (E4).
+@export var joker_price_level_mult: Array[float] = [1.0, 1.5, 2.0]
+@export var joker_price_tour_mult: Array[float] = [1.0, 1.1, 1.1, 1.1, 1.3, 1.4, 1.5, 1.6]

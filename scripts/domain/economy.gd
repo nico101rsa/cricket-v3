@@ -111,3 +111,11 @@ static func season_prizes(final_pos: int, won_final: bool, level: int, tour: int
 		if tour == CareerState.PREMIER_TOUR:
 			total += premier_super_prize(level, tuning)
 	return total
+
+
+# Shelf price of a joker at (level, tour) — shop rung DK5. Catalog prices are
+# the measured mid-league anchors; the whole sheet scales with where you are.
+static func joker_price(id: String, level: int, tour: int, tuning: EconomyTuning) -> int:
+	return int(round(JokerCatalog.price(id)
+		* tuning.joker_price_level_mult[level]
+		* tuning.joker_price_tour_mult[tour]))
