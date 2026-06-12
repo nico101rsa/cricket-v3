@@ -6,6 +6,7 @@ extends Node
 
 @export var player_save_path: String = "user://player.tres"
 @export var legends_save_path: String = "user://legends.tres"
+@export var career_save_path: String = "user://career.tres"
 
 # --- Card-rescale migration (spec 2026-06-11-card-rescale-100, DR12) ---
 # Legacy saves carry 20-point 1-8 builds; /100 builds sum 125. Anything summing
@@ -52,6 +53,26 @@ func load_player() -> Player:
 func clear_player() -> void:
 	if has_player():
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(player_save_path))
+
+# --- Career (career-loop rung DC14) ---
+
+func has_career() -> bool:
+	return FileAccess.file_exists(career_save_path)
+
+func save_career(c: CareerState) -> void:
+	var err := ResourceSaver.save(c, career_save_path)
+	if err != OK:
+		push_error("SaveManager: failed to save career (err=%d)" % err)
+
+func load_career() -> CareerState:
+	if not has_career():
+		return null
+	# CACHE_MODE_IGNORE for the same fresh-read reason as load_player above.
+	return ResourceLoader.load(career_save_path, "", ResourceLoader.CACHE_MODE_IGNORE) as CareerState
+
+func clear_career() -> void:
+	if has_career():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(career_save_path))
 
 # --- Legends ---
 

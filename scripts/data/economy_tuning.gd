@@ -43,3 +43,9 @@ extends Resource
                                           # The shop's natural unit is a +5 block ≈ ₸64 at card 50.
 @export var sell_refund_frac: float = 0.5 # partial refund selling a joker back (DE9)
 @export var loadout_cap: int = 4          # max active joker slots (CONTEXT.md 4 slots; DE8)
+
+# Team winning bonus (career-loop rung DC10, ideas cluster 2): ₸ per Player-team
+# win, scaling with Level. Deliberately small next to ~₸66 match pay so
+# build-pay equality is untouched (team wins are build-independent).
+@export var win_bonus_base: float = 5.0
+@export var win_bonus_level_step: float = 5.0

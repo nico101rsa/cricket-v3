@@ -7,10 +7,6 @@ extends Node
 
 signal career_ended(end_reason: String)
 
-# Seasons-played counter. Real Career-state code will own this; for V1 we
-# just hand 1 to archive_to_legends as a placeholder.
-const _PLACEHOLDER_SEASONS := 1
-
 func manual_retire() -> void:
 	end_career(LegendEntry.END_REASON_RETIRED)
 
@@ -22,6 +18,13 @@ func end_career(reason: String) -> void:
 	if p == null:
 		push_warning("LifecycleManager.end_career called with no Player loaded")
 		return
-	SaveManager.archive_to_legends(p, reason, _PLACEHOLDER_SEASONS)
+	# Real Seasons-played from the Career save (career-loop DC14); a Career-less
+	# save (pre-rung or test fixture) archives the old placeholder 1.
+	var seasons := 1
+	var c := SaveManager.load_career()
+	if c != null:
+		seasons = c.seasons_played
+	SaveManager.archive_to_legends(p, reason, seasons)
 	SaveManager.clear_player()
+	SaveManager.clear_career()
 	career_ended.emit(reason)
