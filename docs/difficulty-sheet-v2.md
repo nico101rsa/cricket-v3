@@ -50,15 +50,19 @@ jumping Levels early; the Premier Grand Final super-prize is the trophy payout.
 
 ## Open questions for the spec (settle with Nico or record AFK defaults)
 
-1. **Escalation base**: +X% of what — the match-win prize only, or all Season ₸ (match
-   pay incl. fee)? Are the %s per-tour absolute multipliers (T8 = 1.6×base) — assumed —
-   or cumulative?
+1. **Escalation base — ANSWERED (Nico, 2026-06-12 18:30): match prizes only.** The
+   per-tour % scales the match-prize objects (win prize, Final/playoff/grand-final
+   bonuses), NOT the game fee / other pay. Treat as per-tour absolute multipliers
+   (T8 = 1.6×) unless measurement argues otherwise.
 2. **New prize objects**: match-win prize / reached-The-Final bonus / playoff-win bonus /
    grand-final big prize / Premier-Grand-Final super prize — sizes? (Economy rung; the
    existing `Economy.win_bonus` ₸5+₸5/Level is the seed for the match-win prize.)
-3. **`mean_frac` re-map**: v1 spans 0.40 (d=1) → 1.30 (d=12). With d up to 20: same slope
-   extended (→ ~1.96 at d20 — brutally hard) or re-anchored 0.40→1.30 over 1–20 (Premier
-   Province ≈ today's Province Premium)? Affects every cell's card strength.
+3. **`mean_frac` re-map — ANSWERED (Nico, 2026-06-12 18:30): the sheet is proportional;
+   scale it as needed.** The two structural requirements to preserve: **City Tour-1 = Club
+   Tour-5** (the overlap anchor — same d, same strength) and **a big jump into Premier
+   from Tour 7** so Premier *feels* notably harder. Free to re-anchor the absolute span
+   (e.g. d=20 ≈ today's hardest card strength) so long as those relative shapes hold;
+   the oracle measures the resulting beat-rates either way.
 4. **Conditions: names-only this rung, or mechanical?** Mechanical pace/spin tilt per
    tour = ideas cluster 1 (rides the bowling-balance matchup machinery) — naming can ship
    first, mechanics as their own rung.
