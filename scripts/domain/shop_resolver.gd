@@ -91,6 +91,9 @@ static func sell(state: ShopState, player: Player, id: String, etun: EconomyTuni
 
 # Hold one OFFERED id for the next visit (DK15). Free; expires at Season end.
 static func hold(state: ShopState, offer: Dictionary, id: String) -> bool:
+	if id in state.owned_ids:
+		push_warning("shop hold refused (already owned): %s" % id)
+		return false
 	if id != offer["common"] and id != offer["rare"] and id != offer["legendary"]:
 		push_warning("shop hold refused (not in offer): %s" % id)
 		return false

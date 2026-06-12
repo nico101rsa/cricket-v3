@@ -26,6 +26,7 @@ func test_roll_offer_one_of_each_rarity_excludes_owned() -> void:
 	for s in range(20):
 		var offer := ShopResolver.roll_offer(_rng(s), st, 0, 0, _etun())
 		assert_ne(offer["common"], "dead_bat", "owned never offered")
+		assert_true(JokerCatalog.ids_of_rarity("Common").has(offer["common"]))
 		assert_true(JokerCatalog.ids_of_rarity("Rare").has(offer["rare"]))
 		assert_true(JokerCatalog.ids_of_rarity("Legendary").has(offer["legendary"]))
 		assert_eq(offer["prices"].size(), 3)
@@ -80,12 +81,21 @@ func test_hold_reappears_in_its_rarity_slot() -> void:
 	var next_offer := ShopResolver.roll_offer(_rng(8), st, 0, 0, _etun())
 	assert_eq(next_offer["legendary"], held, "held occupies its rarity slot")
 
+func test_hold_refuses_owned_id() -> void:
+	var st := _state()
+	var p := _player(100)
+	ShopResolver.buy(st, p, "dead_bat", 30, _etun())
+	var offer := {"common": "dead_bat", "rare": "snicko", "legendary": "choke_hold",
+		"prices": {"dead_bat": 30, "snicko": 90, "choke_hold": 225}}
+	assert_false(ShopResolver.hold(st, offer, "dead_bat"))
+	assert_eq(st.held_id, "")
+
 func test_upgrade_attribute_plus_one_and_caps() -> void:
 	var p := _player(10000)
 	p.attributes.power = 31.0
 	assert_true(ShopResolver.upgrade_attribute(p, "power", _etun()))
 	assert_eq(p.attributes.power, 32.0)
-	assert_eq(p.tons_balance, 10000 - int(round(13.0 * 31.0)))
+	assert_eq(p.tons_balance, 10000 - Economy.attr_upgrade_cost(31.0, _etun()))
 	p.attributes.power = 60.0
 	assert_false(ShopResolver.upgrade_attribute(p, "power", _etun()), "cap 60")
 
