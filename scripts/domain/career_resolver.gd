@@ -108,15 +108,18 @@ static func stay(_state: CareerState, player: Player) -> void:
 # --- The Season turn (DC5/DC8/DC9/DC13) ----------------------------------------
 
 # Play one Season at (current Level, tour_index): simulate via SeasonResolver
-# with the cell's DifficultyLadder spec (tour distribution + opponent brain,
-# DC13), bank ₸ (DC9 + DC10 + v2 prizes DV7-DV9), update the grid, tick
-# Seasons-played, mutate all 24 Teams (DC8), then generate Offers. Returns
-# {season, pay, wins, offers}; {} if the cell is locked.
+# with the cell's DifficultyLadder spec (DC13), bank Tons (DC9/DC10 + v2 prizes
+# DV7-DV9 — accrued match-by-match so mid-Season Shop budgets are real, shop
+# rung DK4), update the grid, tick Seasons-played, mutate all 24 Teams (DC8),
+# then generate Offers. shop_policy (DK9): a Callable deciding Shop actions —
+# invalid Callable = no Shop, byte-identical to the pre-Shop path (DK3).
+# Returns {season, pay, wins, offers, shop_log, shop_owned}; {} if locked.
 static func play_season(
 		state: CareerState, player: Player, tour_index: int,
 		tuning: BallTuning, itun: InningsTuning, etun: EconomyTuning,
 		rng: RandomNumberGenerator,
-		intent_plan: IntentPlan = null, bowling_plan: BowlingPlan = null
+		intent_plan: IntentPlan = null, bowling_plan: BowlingPlan = null,
+		shop_policy: Callable = Callable()
 ) -> Dictionary:
 	var level := state.current_level()
 	if not state.is_unlocked(level, tour_index):
@@ -125,22 +128,53 @@ static func play_season(
 	var spec := DifficultyLadder.spec_for(level, tour_index)
 	var team: Team = state.teams[state.current_team_index]
 	var stars_at_play := team.stars   # pay uses the stars the Season was played at (DC8)
+
+	var shop := ShopState.new()
+	var shop_log: Array = []
+	# Closure tally: matches settled so far + running pay/wins (DK4).
+	var tally := {"count": 0, "pay": 0, "wins": 0}
+	var hook := Callable()
+	if shop_policy.is_valid():
+		# V0 (DK2): carry-over enters free, then the free starter Common.
+		if state.carryover_joker_id != "":
+			shop.owned_ids.append(state.carryover_joker_id)
+			shop.paid_prices[state.carryover_joker_id] = 0
+			shop_log.append({"action": "carryover_in", "id": state.carryover_joker_id})
+		var starter := ShopResolver.starter_offer(rng, shop)
+		var pick: Dictionary = shop_policy.call({"kind": "starter", "offer": starter,
+			"shop": shop, "player": player, "level": level, "tour": tour_index, "etun": etun})
+		var pick_id: String = pick.get("pick", starter[0])
+		if pick_id in starter:
+			shop.owned_ids.append(pick_id)
+			shop.paid_prices[pick_id] = 0
+			shop_log.append({"action": "starter", "id": pick_id})
+		hook = func(pms: Array) -> Array:
+			_settle_matches(pms, tally, stars_at_play, level, tour_index, etun, player)
+			var offer := ShopResolver.roll_offer(rng, shop, level, tour_index, etun)
+			var act: Dictionary = shop_policy.call({"kind": "visit", "offer": offer,
+				"shop": shop, "player": player, "level": level, "tour": tour_index, "etun": etun})
+			ShopResolver.apply_visit(act, shop, player, offer, etun, shop_log)
+			return ShopResolver.loadout_effects(shop)
+
 	var season := SeasonResolver.simulate_season(
 		player.attributes, team, state.opponents_of_current(), spec.make_tour(),
-		tuning, itun, rng, intent_plan, bowling_plan, spec)
+		tuning, itun, rng, intent_plan, bowling_plan, spec,
+		ShopResolver.loadout_effects(shop), hook)
 
-	var pay := 0
-	var wins := 0
-	for m in _player_matches(season):
-		pay += Economy.match_pay(m, stars_at_play, etun)["total"]
-		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
-			wins += 1
-			pay += Economy.match_win_prize(level, tour_index, etun)
-	# Season-level prizes (difficulty-sheet v2 DV9): reached/won The Final,
-	# 3rd-place playoff, Premier super prize.
-	pay += Economy.season_prizes(
+	# Settle whatever the hooks did not (shop off: everything; shop on: the
+	# championship match), then the Season-level prizes (DV9).
+	_settle_matches(_player_matches(season), tally, stars_at_play, level, tour_index, etun, player)
+	var season_prize := Economy.season_prizes(
 		season.player_final_position, season.won_final, level, tour_index, etun)
-	player.tons_balance += pay
+	player.tons_balance += season_prize
+	tally["pay"] += season_prize
+
+	# Season end: elect the carry-over (DK6), Shop state dies with the Season.
+	if shop_policy.is_valid():
+		var keep: Dictionary = shop_policy.call({"kind": "carryover",
+			"shop": shop, "player": player, "level": level, "tour": tour_index, "etun": etun})
+		var keep_id: String = keep.get("keep", "")
+		state.carryover_joker_id = keep_id if keep_id in shop.owned_ids else ""
 
 	state.record_outcome(level, tour_index, season.beat, season.won_final)
 	state.seasons_played += 1
@@ -150,10 +184,27 @@ static func play_season(
 
 	return {
 		"season": season,
-		"pay": pay,
-		"wins": wins,
+		"pay": tally["pay"],
+		"wins": tally["wins"],
 		"offers": generate_offers(state, season.beat, rng),
+		"shop_log": shop_log,
+		"shop_owned": shop.owned_ids.duplicate(),
 	}
+
+
+# Bank pay + win prizes for every not-yet-settled Player match (DK4). The
+# slice from tally.count keeps settlement idempotent across hook calls.
+static func _settle_matches(pms: Array, tally: Dictionary, stars_at_play: float,
+		level: int, tour_index: int, etun: EconomyTuning, player: Player) -> void:
+	for k in range(tally["count"], pms.size()):
+		var m: MatchResult = pms[k]
+		var p: int = Economy.match_pay(m, stars_at_play, etun)["total"]
+		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+			tally["wins"] += 1
+			p += Economy.match_win_prize(level, tour_index, etun)
+		tally["pay"] += p
+		player.tons_balance += p
+	tally["count"] = pms.size()
 
 
 # Every match the Player actually played: the 7 league fixtures + any knockout

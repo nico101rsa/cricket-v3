@@ -227,3 +227,83 @@ func test_play_season_locked_cell_is_rejected() -> void:
 		s, _player(), 5, BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), _rng(1))
 	assert_true(out.is_empty(), "locked cell returns empty")
 	assert_eq(s.seasons_played, 0, "nothing ticked")
+
+
+# --- play_season Shop orchestration (DK4/DK6) ---
+
+func _seeded_career_setup() -> Dictionary:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5150
+	var player := Player.new()
+	player.attributes = Attributes.new()
+	var state := CareerResolver.start_career(0)
+	return {"rng": rng, "player": player, "state": state}
+
+
+func test_play_season_pay_equals_recomputed_total() -> void:
+	# Incremental settlement (DK4) must equal the old batch formula exactly.
+	var s := _seeded_career_setup()
+	var etun := EconomyTuning.new()
+	var team_stars: float = s["state"].teams[s["state"].current_team_index].stars
+	var out := CareerResolver.play_season(s["state"], s["player"], 0,
+		BallTuning.new(), InningsTuning.new(), etun, s["rng"])
+	var season: SeasonResult = out["season"]
+	var expected := 0
+	for m in CareerResolver._player_matches(season):
+		expected += Economy.match_pay(m, team_stars, etun)["total"]
+		if m.outcome == MatchResult.Outcome.PLAYER_WIN:
+			expected += Economy.match_win_prize(0, 0, etun)
+	expected += Economy.season_prizes(season.player_final_position,
+		season.won_final, 0, 0, etun)
+	assert_eq(out["pay"], expected)
+	assert_eq(s["player"].tons_balance, expected)
+
+
+func test_play_season_shop_off_has_no_shop_artifacts() -> void:
+	var s := _seeded_career_setup()
+	var out := CareerResolver.play_season(s["state"], s["player"], 0,
+		BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), s["rng"])
+	assert_eq(out["shop_log"], [])
+	assert_eq(out["shop_owned"], [])
+	assert_eq(s["state"].carryover_joker_id, "")
+
+
+func test_play_season_with_greedy_policy_buys_and_carries_over() -> void:
+	var s := _seeded_career_setup()
+	s["player"].tons_balance = 5000   # rich: the policy can always buy
+	var policy := func(ctx: Dictionary) -> Dictionary:
+		match ctx["kind"]:
+			"starter":
+				return {"pick": ctx["offer"][0]}
+			"visit":
+				var offer: Dictionary = ctx["offer"]
+				if ctx["shop"].owned_ids.size() < ctx["etun"].loadout_cap:
+					return {"buy": offer["common"]}
+				return {}
+			"carryover":
+				return {"keep": ctx["shop"].owned_ids[0]}
+		return {}
+	var out := CareerResolver.play_season(s["state"], s["player"], 0,
+		BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), s["rng"],
+		null, null, policy)
+	var bought := 0
+	for e in out["shop_log"]:
+		if e["action"] == "buy":
+			bought += 1
+	assert_gt(bought, 0, "the greedy policy bought at V1/V2 at least")
+	assert_ne(s["state"].carryover_joker_id, "", "carry-over recorded")
+	assert_true(out["shop_owned"].size() >= 1)
+
+
+func test_carryover_enters_next_season_free() -> void:
+	var s := _seeded_career_setup()
+	s["state"].carryover_joker_id = "dead_bat"
+	var seen_v0: Array = []
+	var policy := func(ctx: Dictionary) -> Dictionary:
+		if ctx["kind"] == "starter":
+			seen_v0.append_array(ctx["shop"].owned_ids)
+		return {}
+	CareerResolver.play_season(s["state"], s["player"], 0,
+		BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), s["rng"],
+		null, null, policy)
+	assert_true(seen_v0.has("dead_bat"), "carried joker present at V0")
