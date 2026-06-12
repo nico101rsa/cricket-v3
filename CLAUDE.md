@@ -7,6 +7,7 @@ Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: 
 - **Tell him what to look at.** Every wrap-up should point at the one or two things that matter — "look at this", "you don't need to read the rest", "nothing for you to do here". He's said he doesn't always know where to focus; don't make him guess.
 - **Define jargon on first use** (file names, function names, cricket-sim terms). Don't assume he tracks the internal vocabulary.
 - **Be concise, not terse-to-the-point-of-cryptic.** Short is good; an unreadable wall of technical bullets is not. Cut verbosity, keep clarity. (Applies to chat replies, not spec/ADR/doc prose.)
+- **Every stat carries its setup (added 2026-06-12).** A quoted number states % of what / N / who-vs-whom / at what strength+brain, and must be findable on an artefact Nico can open (viz, spec §, log — name it). Tables and viz use plain descriptive labels ("finished top 3 of the table"), not internal shorthand. If two numbers look like they should agree but measure different conditions, reconcile them proactively — he cross-checks.
 
 ## Current build
 - Everything ships on **`main`** now (Player Creation V1 + real Hall of Fame both merged). Live status, next step, and decisions log are in **`PROJECT_ROADMAP.md`** — read it at session start, not this section.
