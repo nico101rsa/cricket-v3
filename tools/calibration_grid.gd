@@ -15,7 +15,7 @@ extends SceneTree
 # Run: /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/calibration_grid.gd
 # Env: N_SEASONS (default 40) · ATTRS ("p,c,a,c" fresh build, default 35,30,30,30)
 
-const FRESH := [35.0, 30.0, 30.0, 30.0]
+const FRESH := [11.0, 11.0, 11.0, 11.0]   # world-scale v2 WS3: fresh ≈ a weak Club player
 const MAXED := 60.0
 
 
@@ -66,12 +66,17 @@ func _cell(level: int, tour_i: int, n: int, build: Array) -> Dictionary:
 
 	var hero_bat: float = (build[0] + build[1]) / 2.0
 	var hero_bowl: float = (build[2] + build[3]) / 2.0
+	var lg_bat: float = bat_sum / team_n
+	var lg_bowl: float = bowl_sum / team_n
+	# Card columns are shown on the /100 display scale (world-scale v2 WS6); the
+	# hero/world ratio is the true internal ratio. Scores stay raw runs.
 	return {
 		"level": level, "tour": tour_i, "d": spec.d,
 		"name": "%s · %s" % [DifficultyLadder.LEVEL_NAMES[level], DifficultyLadder.TOUR_NAMES[tour_i]],
-		"world_lo": world_lo, "world_avg": world_avg, "world_hi": world_hi,
-		"hero_bat": hero_bat, "hero_bowl": hero_bowl, "maxed": MAXED,
-		"league_bat": bat_sum / team_n, "league_bowl": bowl_sum / team_n,
+		"world_lo": Display.to_card(world_lo), "world_avg": Display.to_card(world_avg), "world_hi": Display.to_card(world_hi),
+		"hero_bat": Display.to_card(hero_bat), "hero_bowl": Display.to_card(hero_bowl), "maxed": Display.to_card(MAXED),
+		"ratio": hero_bat / world_avg,
+		"league_bat": Display.to_card(lg_bat), "league_bowl": Display.to_card(lg_bowl),
 		"typical": league_totals / league_inns, "typ_wkts": league_wkts / league_inns,
 		"weak": weak_totals / weak_inns, "weak_allout": 100.0 * weak_allout / weak_inns,
 	}
@@ -91,7 +96,7 @@ func _init() -> void:
 			var c: Dictionary = cells.back()
 			print("cell %-22s d=%2.0f | world %4.1f/%4.1f/%4.1f | you bat %.0f (%.1fx) bowl %.0f | league bat %.1f bowl %.1f | typ %.0f (%.1f wkts) | weak %.0f (%.0f%% a.o.)" % [
 				c["name"], c["d"], c["world_lo"], c["world_avg"], c["world_hi"],
-				c["hero_bat"], c["hero_bat"] / c["world_avg"], c["hero_bowl"],
+				c["hero_bat"], c["ratio"], c["hero_bowl"],
 				c["league_bat"], c["league_bowl"], c["typical"], c["typ_wkts"],
 				c["weak"], c["weak_allout"]])
 
@@ -135,7 +140,7 @@ let html = `<table><thead>
 let lastLv = -1;
 cells.forEach(c => {
   if (c.level !== lastLv){ html += `<tr class="lvl"><td colspan="12">${LV[c.level]}</td></tr>`; lastLv = c.level; }
-  const r = c.hero_bat / c.world_avg;
+  const r = c.ratio;
   const gap = c.league_bowl - c.league_bat;
   const balCls = gap >= 3 ? "red" : gap >= 1.5 ? "amber" : "green";
   const typCls = c.typical < 90 ? "red" : c.typical < 110 ? "amber" : "";
@@ -155,7 +160,7 @@ document.getElementById("t").innerHTML = html;
 const club1 = cells[0];
 document.getElementById("note").innerHTML =
   `Read a row: who you face (world), how big you are among them (you now × avg — red = too big), whether bat & bowl are balanced, and what the world (and your weak side) actually scores. ` +
-  `At ${club1.name}, a fresh hero's bat card ${f0(club1.hero_bat)} is ${f1(club1.hero_bat/club1.world_avg)}× the average player (${f1(club1.world_avg)}) — the scale gap. Red "all out" = the collapses.`;
+  `At ${club1.name}, a fresh hero's bat card ${f0(club1.hero_bat)} is ${f1(club1.ratio)}× the average player (${f1(club1.world_avg)}) — fixed (was 2.6×). Maxed reaches ${f0(cells[cells.length-1].maxed)} at the top. Red "all out" = the star-gap collapses.`;
 </script></body></html>"""
 	html = html.replace("@@N@@", str(n)).replace("@@BUILD@@", str(build)).replace("@@CELLS@@", data)
 	var f := FileAccess.open("res://docs/mockups/calibration-v1.html", FileAccess.WRITE)

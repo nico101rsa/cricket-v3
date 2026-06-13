@@ -8,17 +8,17 @@ extends Resource
 @export var city: String = ""          # "" if unset
 @export var appearance: int = -1       # Appearance.Bucket or -1 if unset
 @export var name: NamePair             # null until first name-roll
-@export var attributes: Attributes     # always present; defaults to 35/30/30/30
+@export var attributes: Attributes     # always present; defaults to 11/11/11/11
 
 func _init() -> void:
 	attributes = Attributes.new()
-	# Creation default (card-rescale DR10): a valid 125-point all-rounder ON the
-	# Build screen's 5-point slider grid (the raw Attributes default 31.25 x4 is
-	# valid but off-grid — moving any slider would strand the budget).
-	attributes.power = 35.0
-	attributes.composure = 30.0
-	attributes.attack = 30.0
-	attributes.control = 30.0
+	# Creation default (world-scale v2, WS3): a fresh hero ≈ a weak Club player —
+	# a valid 44-point balanced all-rounder, internal ~11/attr (shows ~11 on the
+	# /100 card via Display). You GROW from here toward the cap over a career.
+	attributes.power = 11.0
+	attributes.composure = 11.0
+	attributes.attack = 11.0
+	attributes.control = 11.0
 
 func identity_complete() -> bool:
 	return country >= 0 \

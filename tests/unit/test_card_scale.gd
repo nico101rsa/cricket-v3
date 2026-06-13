@@ -31,6 +31,7 @@ func test_phase_bonus_scales():
 	assert_eq(itun.spin_phase_bonus, [-9.375, 9.375, -9.375] as Array[float])
 
 func test_creation_constants():
-	assert_eq(Attributes.CREATION_TOTAL, 125.0)
-	assert_eq(Attributes.CREATION_MAX, 50.0)
-	assert_eq(Attributes.CREATION_MIN, 5.0)
+	# World-scale v2 WS3: fresh-hero budget shrank to 44, range [3, 25].
+	assert_eq(Attributes.CREATION_TOTAL, 44.0)
+	assert_eq(Attributes.CREATION_MAX, 25.0)
+	assert_eq(Attributes.CREATION_MIN, 3.0)

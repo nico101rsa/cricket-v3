@@ -102,10 +102,10 @@ func _row(tag: String, opp: String, opp_stars: String, my_stars: float,
 		"<td class='c'>%.0f</td>" % overs,
 		"<td class='c'>%d</td>" % (pos + 1),
 		"<td class='st'>%s</td>" % style,
-		"<td class='c at'>%.0f</td>" % a.power,
-		"<td class='c at'>%.0f</td>" % a.composure,
-		"<td class='c ab'>%.0f</td>" % a.attack,
-		"<td class='c ab'>%.0f</td>" % a.control,
+		"<td class='c at'>%d</td>" % Display.to_card_round(a.power),
+		"<td class='c at'>%d</td>" % Display.to_card_round(a.composure),
+		"<td class='c ab'>%d</td>" % Display.to_card_round(a.attack),
+		"<td class='c ab'>%d</td>" % Display.to_card_round(a.control),
 		jcells,
 		"<td class='jk hold'>%s</td>" % held,
 		"<td class='c bank'>₸%d</td>" % int(snap["bank"]),
@@ -128,10 +128,10 @@ func _init() -> void:
 	var etun := EconomyTuning.new()
 	var player := Player.new()
 	var a := Attributes.new()
-	a.power = 35.0
-	a.composure = 30.0
-	a.attack = 30.0
-	a.control = 30.0
+	a.power = 11.0       # world-scale v2 WS3: fresh hero starts ≈ a weak Club player
+	a.composure = 11.0
+	a.attack = 11.0
+	a.control = 11.0
 	player.attributes = a
 	var state := CareerResolver.start_career(0)
 	var policy := ShopPolicy.preset(policy_kind)

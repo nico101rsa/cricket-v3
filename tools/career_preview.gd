@@ -63,10 +63,10 @@ func _init() -> void:
 		rng.seed = 9000 + c
 		var player := Player.new()
 		var a := Attributes.new()
-		a.power = 35.0
-		a.composure = 30.0
-		a.attack = 30.0
-		a.control = 30.0
+		a.power = 11.0       # world-scale v2 WS3: fresh hero starts ≈ a weak Club player
+		a.composure = 11.0
+		a.attack = 11.0
+		a.control = 11.0
 		player.attributes = a
 		var state := CareerResolver.start_career(0)
 		var maxed_season := 0   # first Season-index when all 4 attrs hit ATTR_CAP

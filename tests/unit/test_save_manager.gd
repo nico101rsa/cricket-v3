@@ -117,9 +117,9 @@ func test_legacy_player_attributes_migrate_to_100_scale():
 	assert_eq(p.starting_attributes.power, 50.0, "starting snapshot migrates too")
 
 func test_current_scale_player_is_not_double_migrated():
-	var p := _make_player()   # already /100 (sum 125)
+	var p := _make_player()   # already /100 (fresh build sum 44 > legacy ceiling 40)
 	sm.migrate_player(p)
-	assert_eq(p.attributes.power, 35.0, "a /100 build passes through untouched")
+	assert_eq(p.attributes.power, 11.0, "a /100 build passes through untouched")
 
 func test_legacy_save_on_disk_loads_migrated():
 	var p := _legacy_player()
