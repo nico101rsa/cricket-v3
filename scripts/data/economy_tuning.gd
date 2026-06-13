@@ -75,3 +75,8 @@ extends Resource
 # a SEPARATE dial so they can diverge when measured (E4).
 @export var joker_price_level_mult: Array[float] = [1.0, 1.5, 2.0]
 @export var joker_price_tour_mult: Array[float] = [1.0, 1.1, 1.1, 1.1, 1.3, 1.4, 1.5, 1.6]
+
+# Kit Room offer rarity odds (Nico 2026-06-13): Common always on the shelf;
+# Rare a coin-flip; Legendary ~15% (≈ one every 1.5 seasons over 4 paid visits).
+@export var shop_rare_chance: float = 0.5
+@export var shop_legendary_chance: float = 0.15

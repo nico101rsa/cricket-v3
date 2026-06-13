@@ -18,13 +18,21 @@ static func roll_offer(rng: RandomNumberGenerator, state: ShopState,
 	var held_rarity := ""
 	if state.held_id != "":
 		held_rarity = _rarity_of(state.held_id).to_lower()
-	var offer := {"prices": {}}
+	# Rarity odds (Nico 2026-06-13): a Common is always on the shelf; a Rare
+	# appears shop_rare_chance of visits, a Legendary shop_legendary_chance —
+	# higher tiers genuinely scarce. A HELD joker always reclaims its slot.
+	# Absent slots are "" with no price entry; callers must skip them.
+	var offer := {"common": "", "rare": "", "legendary": "", "prices": {}}
 	for r in RARITIES:
-		var id: String
-		if r == held_rarity:
-			id = state.held_id
-		else:
-			id = _draw(rng, r.capitalize(), state)
+		var present: bool = r == "common" or r == held_rarity
+		if not present:
+			if r == "rare":
+				present = rng.randf() < etun.shop_rare_chance
+			elif r == "legendary":
+				present = rng.randf() < etun.shop_legendary_chance
+		if not present:
+			continue
+		var id: String = state.held_id if r == held_rarity else _draw(rng, r.capitalize(), state)
 		offer[r] = id
 		offer["prices"][id] = Economy.joker_price(id, level, tour, etun)
 	return offer
