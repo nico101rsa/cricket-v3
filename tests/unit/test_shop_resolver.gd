@@ -135,6 +135,20 @@ func test_apply_visit_sell_first_frees_budget_for_buy() -> void:
 	assert_true(st.owned_ids.has("powerplay_punch"), "sell (refund 10) funded the buy")
 	assert_eq(log.size(), 2)
 
+func test_apply_visit_buy_preempts_upgrade_one_action() -> void:
+	# One action per visit (Nico 2026-06-13): if a visit both buys and upgrades,
+	# the buy wins and the attribute is left untouched.
+	var st := _state()
+	var p := _player(1000)
+	var before: float = p.attributes.power
+	var offer := {"common": "powerplay_punch", "rare": "snicko",
+		"legendary": "choke_hold", "prices": {"powerplay_punch": 30, "snicko": 90, "choke_hold": 225}}
+	var log: Array = []
+	ShopResolver.apply_visit({"buy": "snicko", "upgrade": "power"}, st, p, offer, _etun(), log)
+	assert_true(st.owned_ids.has("snicko"), "the buy went through")
+	assert_eq(p.attributes.power, before, "the upgrade was skipped — one action per visit")
+	assert_eq(log.size(), 1, "only the buy is logged")
+
 func test_loadout_effects_flatten_owned() -> void:
 	var st := _state()
 	st.owned_ids.append("the_chase_master")

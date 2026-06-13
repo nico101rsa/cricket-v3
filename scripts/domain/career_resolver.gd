@@ -114,12 +114,17 @@ static func stay(_state: CareerState, player: Player) -> void:
 # then generate Offers. shop_policy (DK9): a Callable deciding Shop actions —
 # invalid Callable = no Shop, byte-identical to the pre-Shop path (DK3).
 # Returns {season, pay, wins, offers, shop_log, shop_owned}; {} if locked.
+# match_snaps (optional, deliverable-only): when an Array is passed, one snapshot
+# per settled Player match is appended in play order — {bank, power, composure,
+# attack, control, jokers, held} captured as that match was played (state steps
+# only at Kit Room visits). Off by default → byte-identical, no RNG touched.
 static func play_season(
 		state: CareerState, player: Player, tour_index: int,
 		tuning: BallTuning, itun: InningsTuning, etun: EconomyTuning,
 		rng: RandomNumberGenerator,
 		intent_plan: IntentPlan = null, bowling_plan: BowlingPlan = null,
-		shop_policy: Callable = Callable()
+		shop_policy: Callable = Callable(),
+		match_snaps = null
 ) -> Dictionary:
 	var level := state.current_level()
 	if not state.is_unlocked(level, tour_index):
@@ -149,7 +154,7 @@ static func play_season(
 			shop.paid_prices[pick_id] = 0
 			shop_log.append({"action": "starter", "id": pick_id})
 		hook = func(pms: Array) -> Array:
-			_settle_matches(pms, tally, stars_at_play, level, tour_index, etun, player)
+			_settle_matches(pms, tally, stars_at_play, level, tour_index, etun, player, match_snaps, shop)
 			var offer := ShopResolver.roll_offer(rng, shop, level, tour_index, etun)
 			var act: Dictionary = shop_policy.call({"kind": "visit", "offer": offer,
 				"shop": shop, "player": player, "level": level, "tour": tour_index, "etun": etun})
@@ -163,7 +168,7 @@ static func play_season(
 
 	# Settle whatever the hooks did not (shop off: everything; shop on: the
 	# championship match), then the Season-level prizes (DV9).
-	_settle_matches(_player_matches(season), tally, stars_at_play, level, tour_index, etun, player)
+	_settle_matches(_player_matches(season), tally, stars_at_play, level, tour_index, etun, player, match_snaps, shop)
 	var season_prize := Economy.season_prizes(
 		season.player_final_position, season.won_final, level, tour_index, etun)
 	player.tons_balance += season_prize
@@ -195,7 +200,8 @@ static func play_season(
 # Bank pay + win prizes for every not-yet-settled Player match (DK4). The
 # slice from tally.count keeps settlement idempotent across hook calls.
 static func _settle_matches(pms: Array, tally: Dictionary, stars_at_play: float,
-		level: int, tour_index: int, etun: EconomyTuning, player: Player) -> void:
+		level: int, tour_index: int, etun: EconomyTuning, player: Player,
+		match_snaps = null, shop: ShopState = null) -> void:
 	for k in range(tally["count"], pms.size()):
 		var m: MatchResult = pms[k]
 		var p: int = Economy.match_pay(m, stars_at_play, etun)["total"]
@@ -204,6 +210,18 @@ static func _settle_matches(pms: Array, tally: Dictionary, stars_at_play: float,
 			p += Economy.match_win_prize(level, tour_index, etun)
 		tally["pay"] += p
 		player.tons_balance += p
+		# Deliverable snapshot: state as this match was played (attrs/jokers step
+		# only at Kit Room visits, which run after this settle in the hook).
+		if match_snaps != null:
+			match_snaps.append({
+				"bank": player.tons_balance,
+				"power": player.attributes.power,
+				"composure": player.attributes.composure,
+				"attack": player.attributes.attack,
+				"control": player.attributes.control,
+				"jokers": shop.owned_ids.duplicate() if shop != null else [],
+				"held": shop.held_id if shop != null else "",
+			})
 	tally["count"] = pms.size()
 
 

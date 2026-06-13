@@ -28,12 +28,17 @@ func test_joker_only_never_upgrades_buys_best_affordable() -> void:
 	assert_false(broke.has("buy"))
 	assert_eq(broke.get("hold", ""), "choke_hold", "holds the Legendary it cannot afford")
 
-func test_balanced_reserves_upgrade_budget() -> void:
-	var ctx := _ctx_visit(450)
-	ctx["player"].attributes.power = 31.0
-	var act: Dictionary = ShopPolicy.preset("balanced").call(ctx)
+func test_balanced_buys_scarce_joker_never_both() -> void:
+	# One action per visit: a Legendary is affordable -> buy it, no upgrade.
+	var act: Dictionary = ShopPolicy.preset("balanced").call(_ctx_visit(450))
+	assert_eq(act.get("buy", ""), "choke_hold")
+	assert_false(act.has("upgrade"), "one action per visit — never buy AND train")
+
+func test_balanced_trains_when_no_scarce_joker_affordable() -> void:
+	# Only the Common is affordable -> train instead (a Common loses to a point).
+	var act: Dictionary = ShopPolicy.preset("balanced").call(_ctx_visit(50))
 	assert_true(act.has("upgrade"))
-	assert_eq(act.get("buy", ""), "dead_bat", "only the Common fits after the reserve")
+	assert_false(act.has("buy"))
 
 func test_starter_pick_is_priciest_common() -> void:
 	var act: Dictionary = ShopPolicy.preset("joker_only").call(
