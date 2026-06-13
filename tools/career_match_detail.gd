@@ -20,6 +20,9 @@ func _choose_tour(state: CareerState) -> int:
 	return state.playable_cells().back()
 
 
+var _desc_by_name := {}
+
+
 func _group_of(id: String) -> Dictionary:
 	for g in JokerCatalog.implemented_groups():
 		if g["id"] == id:
@@ -32,18 +35,30 @@ func _jname(id: String) -> String:
 	return g.get("jname", id)
 
 
-# Mechanical one-liner for a joker from its effect rows.
+# Plain-English joker descriptions, parsed from the canonical pool doc
+# (docs/joker-pool-v1.md) — its 5th table column, the *italic* effect line.
+# Source of truth so the narration never drifts from the authored intent.
+func _load_descriptions() -> void:
+	var f := FileAccess.open("res://docs/joker-pool-v1.md", FileAccess.READ)
+	if f == null:
+		return
+	while not f.eof_reached():
+		var line := f.get_line()
+		if not line.begins_with("|"):
+			continue
+		var cols := line.split("|")
+		if cols.size() < 7:
+			continue
+		var name := cols[2].strip_edges()
+		var desc := cols[5].strip_edges()
+		if desc.begins_with("*") and desc.ends_with("*"):
+			desc = desc.substr(1, desc.length() - 2).strip_edges()
+			_desc_by_name[name] = desc
+	f.close()
+
+
 func _mechanics(id: String) -> String:
-	var g := _group_of(id)
-	var bits: Array = []
-	for e in g.get("effects", []):
-		var side := "batting" if e.side == JokerEffect.Side.BATTING else "bowling"
-		var target := "runs" if e.target == JokerEffect.Target.RUNS else "wicket chance"
-		var dir := "+" if e.mult > 1.0 else "-"
-		bits.append("%s: %s %s%d%%" % [side, target, dir, absi(int(round((e.mult - 1.0) * 100)))])
-	if bits.is_empty():
-		return "special/stateful effect (see pool doc)"
-	return " · ".join(bits)
+	return _desc_by_name.get(_jname(id), "(see joker pool doc)")
 
 
 func _scorecard(inn: InningsResult, label: String) -> Array:
@@ -69,6 +84,7 @@ func _scorecard(inn: InningsResult, label: String) -> Array:
 
 
 func _init() -> void:
+	_load_descriptions()
 	var seed_env := OS.get_environment("NARRATE_SEED")
 	var seed_v := int(seed_env) if seed_env != "" else 9001
 	var policy_kind := OS.get_environment("NARRATE_POLICY")
