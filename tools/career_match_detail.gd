@@ -254,6 +254,9 @@ func _init() -> void:
 					ctx["bank"], ", ".join(ctx["owned"].map(_jname))])
 				for r in ["common", "rare", "legendary"]:
 					var id2: String = offer[r]
+					if id2 == "":
+						lines.append("- %s — (none on the shelf this visit)" % r.capitalize())
+						continue
 					var tagbits: Array = []
 					if dec.get("buy", "") == id2:
 						tagbits.append("BOUGHT")

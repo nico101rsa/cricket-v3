@@ -20,16 +20,33 @@ func _etun() -> EconomyTuning:
 	return EconomyTuning.new()
 
 
-func test_roll_offer_one_of_each_rarity_excludes_owned() -> void:
+func test_roll_offer_common_always_present_excludes_owned() -> void:
 	var st := _state()
 	st.owned_ids.append("dead_bat")
 	for s in range(20):
 		var offer := ShopResolver.roll_offer(_rng(s), st, 0, 0, _etun())
+		assert_true(JokerCatalog.ids_of_rarity("Common").has(offer["common"]), "Common always on the shelf")
 		assert_ne(offer["common"], "dead_bat", "owned never offered")
-		assert_true(JokerCatalog.ids_of_rarity("Common").has(offer["common"]))
-		assert_true(JokerCatalog.ids_of_rarity("Rare").has(offer["rare"]))
-		assert_true(JokerCatalog.ids_of_rarity("Legendary").has(offer["legendary"]))
-		assert_eq(offer["prices"].size(), 3)
+		if offer["rare"] != "":
+			assert_true(JokerCatalog.ids_of_rarity("Rare").has(offer["rare"]))
+		if offer["legendary"] != "":
+			assert_true(JokerCatalog.ids_of_rarity("Legendary").has(offer["legendary"]))
+		var present := 1 + (1 if offer["rare"] != "" else 0) + (1 if offer["legendary"] != "" else 0)
+		assert_eq(offer["prices"].size(), present, "one price per present slot")
+
+func test_roll_offer_rarity_frequencies() -> void:
+	var st := _state()
+	var rares := 0
+	var legs := 0
+	var n := 600
+	for s in range(n):
+		var offer := ShopResolver.roll_offer(_rng(1000 + s), st, 0, 0, _etun())
+		if offer["rare"] != "":
+			rares += 1
+		if offer["legendary"] != "":
+			legs += 1
+	assert_between(float(rares) / n, 0.42, 0.58, "Rare ~50%")
+	assert_between(float(legs) / n, 0.09, 0.22, "Legendary ~15%")
 
 func test_starter_offer_three_distinct_commons() -> void:
 	var ids := ShopResolver.starter_offer(_rng(), _state())
@@ -75,11 +92,18 @@ func test_sell_refunds_half_of_paid_and_zero_for_free() -> void:
 
 func test_hold_reappears_in_its_rarity_slot() -> void:
 	var st := _state()
-	var offer := ShopResolver.roll_offer(_rng(7), st, 0, 0, _etun())
+	# Find a seed whose offer actually has a Legendary (now only ~15% of visits).
+	var offer := {}
+	var seed_i := 0
+	while true:
+		offer = ShopResolver.roll_offer(_rng(seed_i), st, 0, 0, _etun())
+		if offer["legendary"] != "":
+			break
+		seed_i += 1
 	var held: String = offer["legendary"]
 	assert_true(ShopResolver.hold(st, offer, held))
-	var next_offer := ShopResolver.roll_offer(_rng(8), st, 0, 0, _etun())
-	assert_eq(next_offer["legendary"], held, "held occupies its rarity slot")
+	var next_offer := ShopResolver.roll_offer(_rng(seed_i + 100), st, 0, 0, _etun())
+	assert_eq(next_offer["legendary"], held, "a held joker always reclaims its slot")
 
 func test_hold_refuses_owned_id() -> void:
 	var st := _state()
