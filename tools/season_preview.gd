@@ -19,7 +19,6 @@ func _init() -> void:
 	var tour := TourDistribution.new()
 	tour.mean = 31.25
 	tour.spread = 9.375   # matches the tuned default (flatter underdog drop-off)
-	tour.noise = 1
 	var player := Attributes.new()
 	player.power = 31.25
 	player.composure = 31.25

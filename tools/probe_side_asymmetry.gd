@@ -14,7 +14,6 @@ func _init() -> void:
 	_tour = TourDistribution.new()
 	_tour.mean = 31.25
 	_tour.spread = 9.375
-	_tour.noise = 1
 
 	var arms := [
 		{"name": "all null (scalar, no DRS)", "config": {"intent": false, "rot": false, "drs": false}},

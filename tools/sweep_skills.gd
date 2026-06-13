@@ -15,7 +15,6 @@ func _init() -> void:
 	_tour = TourDistribution.new()
 	_tour.mean = 31.25
 	_tour.spread = 9.375
-	_tour.noise = 1
 
 	var arms := [
 		{"name": "Batting build (50/50/12.5/12.5)", "config": {"power": 50.0, "composure": 50.0, "attack": 12.5, "control": 12.5}},

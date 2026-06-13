@@ -20,11 +20,11 @@ func test_default_attributes_confirm_enabled_label_all_rounder():
 	build.set_draft(_draft())
 	add_child_autofree(build)
 	await get_tree().process_frame
-	assert_eq(build._draft.attributes.sum(), 125.0)
+	assert_eq(build._draft.attributes.sum(), 44.0)
 	assert_false(build._confirm_btn.disabled)
 	assert_string_contains(build._classifier_label.text, "ALL-ROUNDER")
 
-func test_dragging_sliders_above_20_disables_confirm():
+func test_unbalanced_sliders_disable_confirm():
 	var build = BuildScene.instantiate()
 	build.set_draft(_draft())
 	add_child_autofree(build)
@@ -32,7 +32,7 @@ func test_dragging_sliders_above_20_disables_confirm():
 	build._power_slider.value = 8
 	# Simulate the signal manually (gut may not fire it synchronously)
 	build._on_slider_changed(8.0)
-	assert_ne(build._draft.attributes.sum(), 125.0)
+	assert_ne(build._draft.attributes.sum(), 44.0)
 	assert_true(build._confirm_btn.disabled)
 	assert_string_contains(build._points_label.text, "REMAINING")
 

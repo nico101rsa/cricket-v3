@@ -35,8 +35,8 @@ func _ready() -> void:
 	for s in [_power_slider, _composure_slider, _attack_slider, _control_slider]:
 		s.min_value = Attributes.CREATION_MIN
 		s.max_value = Attributes.CREATION_MAX
-		s.step = 5    # card-rescale DR10: the /100 budget is spent in 5-point blocks
-		s.value = 30
+		s.step = 1    # world-scale v2: the 44-point fresh budget is spent point-by-point
+		s.value = 11
 		s.value_changed.connect(_on_slider_changed)
 	_back_btn.pressed.connect(func(): back_pressed.emit(_draft))
 	_confirm_btn.pressed.connect(_on_confirm_pressed)
@@ -74,10 +74,12 @@ func _refresh_recap() -> void:
 	_recap_label.text = "%s · %s · %s" % [name_text, _draft.city, country_key]
 
 func _refresh_readouts() -> void:
-	_power_readout.text     = str(int(round(_draft.attributes.power)))
-	_composure_readout.text = str(int(round(_draft.attributes.composure)))
-	_attack_readout.text    = str(int(round(_draft.attributes.attack)))
-	_control_readout.text   = str(int(round(_draft.attributes.control)))
+	# Readouts show the /100 card the player understands (Display), not the raw
+	# internal points the budget is spent in (world-scale v2 WS6).
+	_power_readout.text     = str(Display.to_card_round(_draft.attributes.power))
+	_composure_readout.text = str(Display.to_card_round(_draft.attributes.composure))
+	_attack_readout.text    = str(Display.to_card_round(_draft.attributes.attack))
+	_control_readout.text   = str(Display.to_card_round(_draft.attributes.control))
 
 	var remaining := Attributes.CREATION_TOTAL - _draft.attributes.sum()
 	_points_label.text = "POINTS REMAINING: %d / %d" % [int(round(remaining)), int(round(Attributes.CREATION_TOTAL))]

@@ -1,10 +1,10 @@
 extends GutTest
 
-func _tour(mean: float, spread: float, noise: int) -> TourDistribution:
+func _tour(mean: float, spread: float, noise_frac: float) -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = mean
 	t.spread = spread
-	t.noise = noise
+	t.noise_frac = noise_frac
 	return t
 
 func _team(stars: float) -> Team:
@@ -34,7 +34,7 @@ func test_noise_bounded_and_floored() -> void:
 	var tm := _team(5.0)            # strength_frac 0.9 -> percentile == 46.25
 	for s in range(50):
 		var v := tm.bowling_strength(tour, _rng(s))
-		assert_true(v >= 40.0 and v <= 52.5, "5.0-star strength within percentile(0.9) +- noise (got %f)" % v)
+		assert_true(v >= 27.0 and v <= 66.0, "5.0-star strength within percentile(0.9)=46.25 +- noise_frac*spread (got %f)" % v)
 	# Floor: a tiny band + lowest star can push below one legacy point; must clamp to SCALE.
 	var tiny := _tour(6.25, 6.25, 5)     # strength_frac(0.5*) = 0.0 -> percentile = 0.0
 	var cellar := _team(0.5)
@@ -168,6 +168,6 @@ func test_strength_frac_is_star3_centred():
 func test_star3_zero_noise_strength_is_ref_scalar():
 	var t := _team(3.0)
 	var tour := TourDistribution.new()
-	tour.noise = 0
+	tour.noise_frac = 0.0
 	assert_almost_eq(t.batting_strength(tour, _rng(1)), MatchResolver.REF_SCALAR, 1e-9,
 		"a *3 mid-tour team plays its cards at face value")

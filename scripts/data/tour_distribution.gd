@@ -9,10 +9,13 @@ extends Resource
 @export var tour_name: String = ""   # flavour only, not load-bearing
 @export var mean: float = 31.25      # mid-Tour even-contest centre (5 legacy × SCALE)
 @export var spread: float = 9.375    # half-width of the strength band (1.5 legacy × SCALE)
-@export var noise: int = 1           # +- per-derivation jitter, in noise_step units
-@export var noise_step: float = 6.25 # one legacy attribute point (DR7: noise model
-                                     # unchanged by the rescale, just scaled — continuous
-                                     # noise is a separate tuning question)
+# World-scale v2 (2026-06-14, Nico's ruling): per-Season strength jitter is now
+# PROPORTIONAL — continuous ± (noise_frac × spread). The old fixed ±6.25 swamped
+# the small star spread at weak tours (Club Flat&Warm star→finish r was 0.07,
+# the underdog won 22%); scaling with spread keeps the noise/spread ratio — and
+# so the star→finish correlation — consistent across the whole grid. (Supersedes
+# the card-rescale DR7 fixed `noise`/`noise_step`.)
+@export var noise_frac: float = 0.7  # jitter amplitude as a fraction of spread (≈ the star half-range, so stars correlate with finish but the odd upset still happens)
 
 # frac 0.0 -> mean - spread, 0.5 -> mean, 1.0 -> mean + spread. Continuous
 # (card-rescale DR5: the legacy integer-grid snap is gone — league strength is

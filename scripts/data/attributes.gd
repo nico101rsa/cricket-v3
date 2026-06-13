@@ -4,13 +4,15 @@ extends Resource
 # 4-attribute distribution used at Creation and during Career, on the /100 card
 # scale (card-rescale spec 2026-06-11, DR1/DR3). SCALE converts one classic
 # 1-8-era attribute point to /100 units; the save migration uses it too.
-# Creation constraints: sum == 125, each in [5, 50]. NPC archetypes are exempt
-# from the per-attribute cap (prior ruling; the bowler card carries 56.25).
+# Creation constraints: sum == 44, each in [3, 25] (world-scale v2, WS3 — a fresh
+# hero starts ≈ a weak Club player, internal ~11/attr, and GROWS to the cap over
+# a career). NPC archetypes are exempt from the per-attribute cap (the bowler
+# card carries 56.25) and live on the same internal scale.
 
 const SCALE := 6.25            # /100 units per legacy attribute point (= 50/8)
-const CREATION_TOTAL := 125.0
-const CREATION_MIN := 5.0
-const CREATION_MAX := 50.0
+const CREATION_TOTAL := 44.0   # fresh-hero budget (world-scale v2 WS3; was 125)
+const CREATION_MIN := 3.0
+const CREATION_MAX := 25.0
 
 @export var power: float = 31.25
 @export var composure: float = 31.25

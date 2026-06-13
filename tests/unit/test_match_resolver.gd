@@ -214,7 +214,6 @@ func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = 31.25
 	t.spread = 18.75
-	t.noise = 1
 	return t
 
 func _team(stars: float) -> Team:

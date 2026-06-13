@@ -22,7 +22,7 @@ func test_tour_and_tilt_dials_scale():
 	var tour := TourDistribution.new()
 	assert_eq(tour.mean, 31.25)
 	assert_eq(tour.spread, 9.375)
-	assert_eq(tour.noise_step, 6.25)
+	assert_eq(tour.noise_frac, 0.7)   # world-scale v2: proportional noise (was noise_step 6.25)
 	assert_eq(BowlingAttack.DEFAULT_TILT, 12.5)
 
 func test_phase_bonus_scales():
@@ -31,6 +31,7 @@ func test_phase_bonus_scales():
 	assert_eq(itun.spin_phase_bonus, [-9.375, 9.375, -9.375] as Array[float])
 
 func test_creation_constants():
-	assert_eq(Attributes.CREATION_TOTAL, 125.0)
-	assert_eq(Attributes.CREATION_MAX, 50.0)
-	assert_eq(Attributes.CREATION_MIN, 5.0)
+	# World-scale v2 WS3: fresh-hero budget shrank to 44, range [3, 25].
+	assert_eq(Attributes.CREATION_TOTAL, 44.0)
+	assert_eq(Attributes.CREATION_MAX, 25.0)
+	assert_eq(Attributes.CREATION_MIN, 3.0)

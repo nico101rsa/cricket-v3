@@ -17,16 +17,22 @@ func _init() -> void:
 	_tour = TourDistribution.new()
 	_tour.mean = 31.25
 	_tour.spread = 9.375
-	_tour.noise = 1
 	_rtun = RatingTuning.new()
 
+	# SUM env (world-scale v2 WS5): walk builds at a chosen total to check build
+	# equality across the player's range — fresh 44, mid 125, near-cap 200.
+	# Default 125 reproduces the original card-rescale sweep.
+	var total := float(OS.get_environment("SUM")) if OS.get_environment("SUM") != "" else 125.0
+	var halfsum := total / 2.0           # power==composure==bs, attack==control==ws, bs+ws=halfsum
+	var lo := maxf(3.0, halfsum * 0.2)   # keep each attr in a sane range
+	var hi := halfsum - lo
 	var arms: Array = []
-	for b in range(8, 1, -1):  # legacy 8,7,...,2 -> full-batting ... full-bowling
-		var w := 10 - b
-		var bs := b * Attributes.SCALE   # card-rescale: builds live on /100
-		var ws := w * Attributes.SCALE
+	var steps := 7
+	for i in range(steps):
+		var bs: float = hi - (hi - lo) * i / (steps - 1)
+		var ws := halfsum - bs
 		arms.append({
-			"name": "%2d/%2d" % [int(bs), int(ws)],
+			"name": "%2d/%2d" % [int(round(bs)), int(round(ws))],
 			"config": {"power": bs, "composure": bs, "attack": ws, "control": ws},
 		})
 

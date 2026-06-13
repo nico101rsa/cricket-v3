@@ -98,7 +98,7 @@ func test_player_claim_review_is_team_wide() -> void:
 
 func _tour() -> TourDistribution:
 	var t := TourDistribution.new()
-	t.mean = 31.25; t.spread = 9.375; t.noise = 1
+	t.mean = 31.25; t.spread = 9.375
 	return t
 
 func _attrs() -> Attributes:

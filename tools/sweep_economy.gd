@@ -18,7 +18,6 @@ func _init() -> void:
 	_tour = TourDistribution.new()
 	_tour.mean = 31.25
 	_tour.spread = 9.375
-	_tour.noise = 1
 	_etun = EconomyTuning.new()
 
 	var arms: Array = [

@@ -15,7 +15,6 @@ func _init() -> void:
 	var tour := TourDistribution.new()
 	tour.mean = 31.25
 	tour.spread = 9.375
-	tour.noise = 1
 	# League-band probe (card-rescale DR6 / E3): override the tour mean to read
 	# the scoring environment at any league level, e.g. ENV_TOUR_MEAN=7.8125
 	# (band 1, factor 0.25) or 40.625 (band 5, factor 1.3).

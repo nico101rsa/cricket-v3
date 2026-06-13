@@ -1,10 +1,10 @@
 extends GutTest
 
-func _tour(mean: float, spread: float, noise: int = 1) -> TourDistribution:
+func _tour(mean: float, spread: float, noise_frac: float = 1.0) -> TourDistribution:
 	var t := TourDistribution.new()
 	t.mean = mean
 	t.spread = spread
-	t.noise = noise
+	t.noise_frac = noise_frac
 	return t
 
 func test_endpoints_and_midpoint() -> void:

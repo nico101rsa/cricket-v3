@@ -26,12 +26,12 @@ func test_identity_complete_requires_all_three_picks_and_a_name():
 	d.name = np
 	assert_true(d.identity_complete())
 
-func test_attributes_default_to_balanced_all_rounder():
-	# Card-rescale DR10: the draft default is a valid 125-point build ON the
-	# creation UI's 5-point grid (35/30/30/30), classifying ALL_ROUNDER.
+func test_attributes_default_to_fresh_all_rounder():
+	# World-scale v2 WS3: the draft default is a fresh weak-Club all-rounder,
+	# 11/11/11/11 (sum 44, valid, classifies ALL_ROUNDER).
 	var d := PlayerCreationDraft.new()
-	assert_eq(d.attributes.sum(), 125.0)
+	assert_eq(d.attributes.sum(), 44.0)
 	assert_true(d.attributes.is_valid_creation_distribution())
 	assert_eq(Classifier.classify(d.attributes), ClassifierLabel.Kind.ALL_ROUNDER)
 	for v in [d.attributes.power, d.attributes.composure, d.attributes.attack, d.attributes.control]:
-		assert_eq(fmod(v, 5.0), 0.0, "every attribute on the 5-point UI grid (got %f)" % v)
+		assert_eq(fmod(v, 1.0), 0.0, "every attribute on the integer UI grid (got %f)" % v)
