@@ -114,7 +114,7 @@ func _row(tag: String, opp: String, opp_stars: String, my_stars: float,
 
 func _init() -> void:
 	var seed_env := OS.get_environment("NARRATE_SEED")
-	var seed_v := int(seed_env) if seed_env != "" else 9001
+	var seed_v := int(seed_env) if seed_env != "" else 1   # a representative competitive season (6-3, made playoffs)
 	var policy_kind := OS.get_environment("NARRATE_POLICY")
 	if policy_kind == "":
 		policy_kind = "balanced"
