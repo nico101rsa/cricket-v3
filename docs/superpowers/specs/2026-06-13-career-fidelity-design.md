@@ -26,8 +26,6 @@ Career League/Season matches currently run the untuned SCALAR (clone) sim path a
 
 Conserved bowling in league fixtures (CF1 note) · opponent jokers · per-bowler husbanding · the Kit Room screen · E4 (next rung, inherits all of this).
 
-## §10 Findings — filled at close-out.
-
 ## §10 Findings (close-out, 2026-06-13)
 
 **The fix landed: career matches now play the tuned sim, and the felt environment is real-T20-shaped and rises with difficulty** (was inverted).
