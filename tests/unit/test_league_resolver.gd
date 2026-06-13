@@ -153,3 +153,26 @@ func test_smarter_brain_wins_more_player_games() -> void:
 			if m.player_won():
 				smart_wins += 1
 	assert_lt(smart_wins, naive_wins, "adaptive opponent must beat the Player more often than naive")
+
+func test_league_fixtures_run_roster_path() -> void:
+	# Career-fidelity CF1: the standard XI's archetype plateau (6 equal BATTER
+	# cards, the all-rounder, then 4 equal BOWLER cards) must show in a league
+	# match's batting cards — the old clone path decayed every position instead.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var team := Team.new()
+	team.stars = 3.0
+	var opps: Array = []
+	for k in range(7):
+		var t := Team.new()
+		t.stars = 3.0
+		opps.append(t)
+	var league := LeagueResolver.simulate_league(null, team, opps,
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), rng)
+	var m: MatchResult = league.player_matches[0]
+	var our_inn: InningsResult = m.innings1 if m.player_bats_first else m.innings2
+	var b: Array = our_inn.batters
+	assert_eq(b.size(), 11)
+	assert_almost_eq(float(b[0]["power"]), float(b[5]["power"]), 0.0001, "top-6 BATTER plateau")
+	assert_almost_eq(float(b[7]["power"]), float(b[10]["power"]), 0.0001, "BOWLER tail plateau")
+	assert_gt(float(b[0]["power"]), float(b[7]["power"]), "openers above tail")
