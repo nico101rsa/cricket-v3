@@ -120,7 +120,8 @@ static func simulate_innings(
 		batting_roster: Array = [],
 		team_bat_factor: float = 1.0,
 		opp_boost_plan: BoostPlan = null,
-		opp_drs_policy: DRSPolicy = null
+		opp_drs_policy: DRSPolicy = null,
+		ball_log = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_factor)
 	var max_balls := itun.over_limit * 6
@@ -205,8 +206,10 @@ static func simulate_innings(
 		if bowling_plan != null and not player_is_batting and balls == (over - 1) * 6 and (over == 1 or over == 7 or over == 16):
 			runtime.on_bowling_change(jokers, bowler_type, field_mode)
 		# C2e — a Manager Boost press at this over's start fires a side-aware buff.
+		var boost_pressed_now := false
 		if boost_plan != null and balls == (over - 1) * 6 and boost_plan.presses_on(over):
 			runtime.on_boost_press(jokers, player_is_batting, intent, boost_plan.base_mult, boost_plan.base_n, balls + 1)
+			boost_pressed_now = true
 		# DF4 — the opponent presses its own Boost (base buff, no jokers), side-aware.
 		if opp_boost_plan != null and balls == (over - 1) * 6 and opp_boost_plan.presses_on(over):
 			opp_runtime.on_boost_press([], opp_is_batting, intent, opp_boost_plan.base_mult, opp_boost_plan.base_n, balls + 1)
@@ -291,6 +294,18 @@ static func simulate_innings(
 				var tmp := striker
 				striker = nonstriker
 				nonstriker = tmp
+		# Opt-in ball-by-ball log (default off → zero overhead, no behaviour change).
+		# Records what a viewer would see this delivery: who faced it, the intent,
+		# whether a Boost was pressed at the over start, and the outcome.
+		if ball_log != null:
+			ball_log.append({
+				"over": over, "ball_in_over": ((balls - 1) % 6) + 1,
+				"striker_pos": s["position"], "is_player": s["is_player"],
+				"player_batting": player_is_batting, "player_bowling": player_bowling,
+				"intent": intent, "boost_pressed": boost_pressed_now,
+				"wicket": o.wicket, "runs": (0 if o.wicket else o.runs),
+				"total": total, "wickets": wickets,
+			})
 		# end of over: swap strike (skip if the innings just ended)
 		if balls % 6 == 0 and wickets < 10:
 			var tmp2 := striker

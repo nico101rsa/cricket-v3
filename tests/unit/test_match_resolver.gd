@@ -350,3 +350,41 @@ func test_force_bats_second_makes_player_innings_a_chase() -> void:
 		null, null, [], null, null, null, null, null, null, null, null, 0)
 	assert_true(m.innings1.player_line().is_empty(), "opposition bats first (innings1) when Player forced to bat 2nd")
 	assert_false(m.innings2.player_line().is_empty(), "Player chases in innings2 when forced to bat 2nd")
+
+func test_ball_log_opt_in_records_every_delivery() -> void:
+	# Single-match ball-by-ball log (2026-06-13): opt-in, default off.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 314
+	var attrs := Attributes.new()
+	var pt := Team.new(); pt.stars = 3.0
+	var ot := Team.new(); ot.stars = 3.0
+	var log1: Array = []
+	var log2: Array = []
+	var m := MatchResolver.simulate_match_teams(attrs, pt, ot,
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), rng,
+		null, null, [], null, null, null, BoostPlan.at([1, 10, 16]), DRSPolicy.new(),
+		null, null, DRSPolicy.new(), -1, null, log1, log2)
+	# Innings 1 log length == its balls; same for innings 2.
+	assert_eq(log1.size(), m.innings1.balls, "log1 covers every innings-1 ball")
+	assert_eq(log2.size(), m.innings2.balls, "log2 covers every innings-2 ball")
+	# Final running total matches the scorecard.
+	assert_eq(int(log1[-1]["total"]), m.innings1.total)
+	# At least one Boost press recorded (presses at overs 1/10/16).
+	var presses := 0
+	for b in log1:
+		if b["boost_pressed"]:
+			presses += 1
+	assert_gt(presses, 0, "boost presses are recorded")
+
+func test_ball_log_default_off_is_byte_identical() -> void:
+	var r1 := RandomNumberGenerator.new(); r1.seed = 99
+	var r2 := RandomNumberGenerator.new(); r2.seed = 99
+	var a := Attributes.new()
+	var pt := Team.new(); pt.stars = 3.0
+	var ot := Team.new(); ot.stars = 3.0
+	var m1 := MatchResolver.simulate_match_teams(a, pt, ot, TourDistribution.new(), BallTuning.new(), InningsTuning.new(), r1)
+	var log: Array = []
+	var m2 := MatchResolver.simulate_match_teams(a, pt, ot, TourDistribution.new(), BallTuning.new(), InningsTuning.new(), r2,
+		null, null, [], null, null, null, null, null, null, null, null, -1, null, log, [])
+	assert_eq(m1.innings1.total, m2.innings1.total, "logging changes nothing")
+	assert_eq(m1.innings2.total, m2.innings2.total)
