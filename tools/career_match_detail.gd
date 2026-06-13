@@ -153,41 +153,30 @@ func _init() -> void:
 				InningsResolver.player_position(attrs_before, itun),
 				InningsResolver.player_overs(attrs_before, itun)])
 			lines.append("- Bank coming in: ₸%d · Affinity %d" % [bank_before, player.affinity])
+			# Split the season's Kit Room events: ONLY the free starter happens
+			# before any cricket; the buy/train visits are spread through the
+			# season (after Player matches 3 & 5, before the semi, before the
+			# championship). They are printed in their real slots, not lumped here.
+			var visit_recs: Array = []
 			lines.append("")
-			lines.append("## Season start — the Kit Room (visit 0, before any cricket)")
+			lines.append("## Season start — the free starter pick (before any cricket)")
 			lines.append("")
+			lines.append("The ONLY Kit Room moment before the season begins: pick one free Common. The paid visits come later, between matches.")
 			for rec in seen:
+				if rec["ctx"]["kind"] != "starter":
+					if rec["ctx"]["kind"] == "visit":
+						visit_recs.append(rec)
+					continue
 				var ctx: Dictionary = rec["ctx"]
 				var dec: Dictionary = rec["decision"]
-				match ctx["kind"]:
-					"starter":
-						lines.append("Owned coming in: %s. Bank ₸%d." % [
-							("none" if ctx["owned"].is_empty() else ", ".join(ctx["owned"].map(_jname))), ctx["bank"]])
-						lines.append("")
-						lines.append("**Free starter — pick one of three Commons:**")
-						for id in ctx["offer"]:
-							lines.append("- %s%s — %s" % [_jname(id),
-								" ← PICKED" if dec.get("pick", "") == id else "", _mechanics(id)])
-							jokers_seen.append(id)
-					"visit":
-						var offer: Dictionary = ctx["offer"]
-						lines.append("")
-						lines.append("**Kit Room visit** (bank ₸%d, owned: %s):" % [
-							ctx["bank"], ", ".join(ctx["owned"].map(_jname))])
-						for r in ["common", "rare", "legendary"]:
-							var id2: String = offer[r]
-							var tagbits: Array = []
-							if dec.get("buy", "") == id2:
-								tagbits.append("BOUGHT")
-							if dec.get("hold", "") == id2:
-								tagbits.append("HELD")
-							lines.append("- %s %s — ₸%d%s — %s" % [r.capitalize(), _jname(id2),
-								offer["prices"][id2],
-								(" ← " + " + ".join(tagbits)) if not tagbits.is_empty() else "",
-								_mechanics(id2)])
-							jokers_seen.append(id2)
-						if dec.get("upgrade", "") != "":
-							lines.append("- Also trained **%s** +1." % dec["upgrade"])
+				lines.append("")
+				lines.append("Owned coming in: %s. Bank ₸%d." % [
+					("none" if ctx["owned"].is_empty() else ", ".join(ctx["owned"].map(_jname))), ctx["bank"]])
+				lines.append("**Free starter — pick one of three Commons:**")
+				for id in ctx["offer"]:
+					lines.append("- %s%s — %s" % [_jname(id),
+						" ← PICKED" if dec.get("pick", "") == id else "", _mechanics(id)])
+					jokers_seen.append(id)
 			# Match 1 detail.
 			var m: MatchResult = season.league.player_matches[0]
 			var opp_team: Team = state.opponents_of_current()[0]
@@ -249,6 +238,34 @@ func _init() -> void:
 				lines.append("- **Team-win prize: ₸%d** — (₸%.0f base + ₸%.0f × Level %d) × tour escalation ×%.1f" % [
 					Economy.match_win_prize(lvl, tour, etun), etun.win_bonus_base, etun.win_bonus_level_step, lvl,
 					etun.prize_escalation[tour]])
+			# The paid Kit Room visits, in their real season slots (not pre-game).
+			lines.append("")
+			lines.append("## The Kit Room through the rest of the Season (%d visits)" % visit_recs.size())
+			lines.append("")
+			lines.append("These happen BETWEEN matches, not before Match 1: after Player match 3, after match 5, before the semi-final (if top 4), before the championship match (if you made the semi).")
+			var visit_when := ["After Match 3", "After Match 5", "Before the semi-final", "Before the championship match"]
+			for vi in range(visit_recs.size()):
+				var ctx: Dictionary = visit_recs[vi]["ctx"]
+				var dec: Dictionary = visit_recs[vi]["decision"]
+				var offer: Dictionary = ctx["offer"]
+				lines.append("")
+				lines.append("**%s** (bank ₸%d, owned: %s):" % [
+					visit_when[vi] if vi < visit_when.size() else "Visit %d" % (vi + 1),
+					ctx["bank"], ", ".join(ctx["owned"].map(_jname))])
+				for r in ["common", "rare", "legendary"]:
+					var id2: String = offer[r]
+					var tagbits: Array = []
+					if dec.get("buy", "") == id2:
+						tagbits.append("BOUGHT")
+					if dec.get("hold", "") == id2:
+						tagbits.append("HELD")
+					lines.append("- %s %s — ₸%d%s — %s" % [r.capitalize(), _jname(id2),
+						offer["prices"][id2],
+						(" ← " + " + ".join(tagbits)) if not tagbits.is_empty() else "",
+						_mechanics(id2)])
+					jokers_seen.append(id2)
+				if dec.get("upgrade", "") != "":
+					lines.append("- Also trained **%s** +1." % dec["upgrade"])
 			lines.append("")
 			lines.append("## Joker reference (everything encountered above)")
 			lines.append("")

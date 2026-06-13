@@ -9,38 +9,15 @@ The harness build (real careers start from the Player Creation screen; the bot h
 - The build bats at **No.5** (higher batting share bats higher up) and bowls a **4-over quota**
 - Bank coming in: ₸0 · Affinity 0
 
-## Season start — the Kit Room (visit 0, before any cricket)
+## Season start — the free starter pick (before any cricket)
+
+The ONLY Kit Room moment before the season begins: pick one free Common. The paid visits come later, between matches.
 
 Owned coming in: none. Bank ₸0.
-
 **Free starter — pick one of three Commons:**
 - Boost Battery — Manager Boost gets a side-aware kicker: +10% to runs (batting) or wicket chance (bowling) for the boost window.
 - Pressure Cooker — Bowling against a Defensive opposition: wicket chance +10%.
 - Tight Lines ← PICKED — While bowling with a defensive field: runs conceded −7%.
-
-**Kit Room visit** (bank ₸362, owned: Tight Lines):
-- Common Dead Bat — ₸30 — While Defensive: wicket chance −8% every ball.
-- Rare The Captain's Call — ₸90 — +1 DRS review per innings.
-- Legendary The Comeback Press — ₸220 ← HELD — Every Manager Boost: Player Form +2. Your 3rd Boost of the Match: multiplier ×1.5, window +6 balls.
-- Also trained **composure** +1.
-
-**Kit Room visit** (bank ₸638, owned: Tight Lines):
-- Common Pedal to the Metal — ₸30 — Manager Boost → Intent snaps to Aggressive.
-- Rare Power Surge — ₸115 — Manager Boost: multiplier amplified by +40%, window +3 balls.
-- Legendary The Comeback Press — ₸220 ← BOUGHT — Every Manager Boost: Player Form +2. Your 3rd Boost of the Match: multiplier ×1.5, window +6 balls.
-- Also trained **composure** +1.
-
-**Kit Room visit** (bank ₸305, owned: Tight Lines, The Comeback Press):
-- Common Hot Spot — ₸30 — Successful DRS → Player Form +1.
-- Rare Bowler's Backing — ₸90 — Successful DRS while bowling → wicket chance +20% for 6 balls.
-- Legendary The Review Master — ₸225 ← HELD — DRS reviews: success +6%, +1 review per innings. Successful review → Player Form +2.
-- Also trained **attack** +1.
-
-**Kit Room visit** (bank ₸413, owned: Tight Lines, The Comeback Press):
-- Common Spinner's Web — ₸30 — Bowling change to spin → wicket chance +15% for 6 balls.
-- Rare Boundary Hunter — ₸90 — Player Form rises while batting → snap to Aggressive, runs roll +10%.
-- Legendary The Review Master — ₸225 ← HELD — DRS reviews: success +6%, +1 review per innings. Successful review → Player Form +2.
-- Also trained **attack** +1.
 
 ## The two teams (this Season's drawn strengths)
 
@@ -87,6 +64,34 @@ Toss: we bat first.
 - Economy: runs kept below club-par RR 12 over 2.0 overs = 16.0 × ₸1.3 = ₸20.8
 - Versatility (both jobs done, scaled by the smaller one): ₸50.0
 - **Match pay total: ₸131** (fee 41 + performance 90)
+
+## The Kit Room through the rest of the Season (4 visits)
+
+These happen BETWEEN matches, not before Match 1: after Player match 3, after match 5, before the semi-final (if top 4), before the championship match (if you made the semi).
+
+**After Match 3** (bank ₸362, owned: Tight Lines):
+- Common Dead Bat — ₸30 — While Defensive: wicket chance −8% every ball.
+- Rare The Captain's Call — ₸90 — +1 DRS review per innings.
+- Legendary The Comeback Press — ₸220 ← HELD — Every Manager Boost: Player Form +2. Your 3rd Boost of the Match: multiplier ×1.5, window +6 balls.
+- Also trained **composure** +1.
+
+**After Match 5** (bank ₸638, owned: Tight Lines):
+- Common Pedal to the Metal — ₸30 — Manager Boost → Intent snaps to Aggressive.
+- Rare Power Surge — ₸115 — Manager Boost: multiplier amplified by +40%, window +3 balls.
+- Legendary The Comeback Press — ₸220 ← BOUGHT — Every Manager Boost: Player Form +2. Your 3rd Boost of the Match: multiplier ×1.5, window +6 balls.
+- Also trained **composure** +1.
+
+**Before the semi-final** (bank ₸305, owned: Tight Lines, The Comeback Press):
+- Common Hot Spot — ₸30 — Successful DRS → Player Form +1.
+- Rare Bowler's Backing — ₸90 — Successful DRS while bowling → wicket chance +20% for 6 balls.
+- Legendary The Review Master — ₸225 ← HELD — DRS reviews: success +6%, +1 review per innings. Successful review → Player Form +2.
+- Also trained **attack** +1.
+
+**Before the championship match** (bank ₸413, owned: Tight Lines, The Comeback Press):
+- Common Spinner's Web — ₸30 — Bowling change to spin → wicket chance +15% for 6 balls.
+- Rare Boundary Hunter — ₸90 — Player Form rises while batting → snap to Aggressive, runs roll +10%.
+- Legendary The Review Master — ₸225 ← HELD — DRS reviews: success +6%, +1 review per innings. Successful review → Player Form +2.
+- Also trained **attack** +1.
 
 ## Joker reference (everything encountered above)
 
