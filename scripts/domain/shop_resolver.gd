@@ -126,12 +126,16 @@ static func upgrade_attribute(player: Player, attr_name: String, etun: EconomyTu
 # Apply one visit's decided actions in a fixed order: sell -> buy -> upgrade
 # -> hold (selling first frees a slot + cash for the buy). `act` keys are all
 # optional: {"sell": id, "buy": id, "replace": id, "upgrade": attr, "hold": id}.
-# Appends plain-English entries to log (narrative, DK12).
+# ONE ACTION PER VISIT (Nico 2026-06-13): a visit buys a joker OR trains an
+# attribute, never both — a successful buy pre-empts an upgrade. Sell (frees a
+# slot/cash) and hold (reserve an offered joker) are free meta-actions and may
+# still accompany the chosen action. Appends plain-English entries to log (DK12).
 static func apply_visit(act: Dictionary, state: ShopState, player: Player,
 		offer: Dictionary, etun: EconomyTuning, log: Array) -> void:
 	if act.get("sell", "") != "":
 		if sell(state, player, act["sell"], etun):
 			log.append({"action": "sell", "id": act["sell"]})
+	var bought := false
 	if act.get("buy", "") != "":
 		var id: String = act["buy"]
 		var price: int = offer["prices"].get(id, -1)
@@ -139,7 +143,8 @@ static func apply_visit(act: Dictionary, state: ShopState, player: Player,
 			push_warning("shop buy refused (not in offer): %s" % id)
 		elif buy(state, player, id, price, etun, act.get("replace", "")):
 			log.append({"action": "buy", "id": id, "tons": price})
-	if act.get("upgrade", "") != "":
+			bought = true
+	if not bought and act.get("upgrade", "") != "":
 		if upgrade_attribute(player, act["upgrade"], etun):
 			log.append({"action": "upgrade", "id": act["upgrade"]})
 	if act.get("hold", "") != "":

@@ -64,6 +64,32 @@ static func _lowest_attr(player: Player) -> String:
 	return best
 
 
+# The best affordable, not-owned joker across `rarities` (high to low), honouring
+# the slot cap: when slots are full, never swap a joker DOWN in catalog price.
+# Returns "" if none qualifies. Pure — mutates nothing.
+static func _best_affordable(rarities: Array, offer: Dictionary, shop: ShopState,
+		player: Player, etun: EconomyTuning) -> String:
+	for r in rarities:
+		var id: String = offer.get(r, "")
+		if id == "" or id in shop.owned_ids:
+			continue
+		if player.tons_balance < int(offer["prices"][id]):
+			continue
+		if shop.owned_ids.size() >= etun.loadout_cap:
+			if JokerCatalog.price(id) <= JokerCatalog.price(_cheapest_owned(shop)):
+				continue   # full slots: never swap down
+		return id
+	return ""
+
+
+# Wrap a buy id into an action dict, adding the slot-replacement when full.
+static func _buy_act(id: String, shop: ShopState, etun: EconomyTuning) -> Dictionary:
+	var act: Dictionary = {"buy": id}
+	if shop.owned_ids.size() >= etun.loadout_cap:
+		act["replace"] = _cheapest_owned(shop)
+	return act
+
+
 static func _visit(kind: String, ctx: Dictionary) -> Dictionary:
 	var offer: Dictionary = ctx["offer"]
 	var shop: ShopState = ctx["shop"]
@@ -76,44 +102,28 @@ static func _visit(kind: String, ctx: Dictionary) -> Dictionary:
 		"joker_only":
 			# Nico's playstyle: best affordable joker every visit, never
 			# attributes; hold the Legendary it cannot yet afford.
-			var act: Dictionary = {}
-			for r in ["legendary", "rare", "common"]:
-				var id: String = offer[r]
-				if id == "":
-					continue   # rarity not on the shelf this visit
-				if not id in shop.owned_ids and player.tons_balance >= int(offer["prices"][id]):
-					if shop.owned_ids.size() >= etun.loadout_cap:
-						var out_id := _cheapest_owned(shop)
-						if JokerCatalog.price(id) <= JokerCatalog.price(out_id):
-							continue   # full slots: never swap a joker down
-						act["replace"] = out_id
-					act["buy"] = id
-					break
-			if not act.has("buy") and offer["legendary"] != "" and not offer["legendary"] in shop.owned_ids:
-				act["hold"] = offer["legendary"]
-			return act
+			var id := _best_affordable(["legendary", "rare", "common"], offer, shop, player, etun)
+			if id != "":
+				return _buy_act(id, shop, etun)
+			if offer["legendary"] != "" and not offer["legendary"] in shop.owned_ids:
+				return {"hold": offer["legendary"]}
+			return {}
 		"balanced":
-			# Reserve the next attribute upgrade, buy with the remainder.
-			var act: Dictionary = {}
+			# One action per visit (Nico 2026-06-13): buy a SCARCE joker (Rare or
+			# Legendary) when one is affordably on the shelf, otherwise train the
+			# lowest attribute — a Common joker loses to a permanent attribute
+			# point. Once every attribute is maxed, spend on the best affordable
+			# joker (Commons included), else hold an unaffordable Legendary.
+			var scarce := _best_affordable(["legendary", "rare"], offer, shop, player, etun)
+			if scarce != "":
+				return _buy_act(scarce, shop, etun)
 			var a := _lowest_attr(player)
-			var reserve := 0
 			if a != "":
-				reserve = Economy.attr_upgrade_cost(player.attributes.get(a), etun)
-				act["upgrade"] = a
-			var budget: int = player.tons_balance - reserve
-			for r in ["legendary", "rare", "common"]:
-				var id: String = offer[r]
-				if id == "":
-					continue   # rarity not on the shelf this visit
-				if not id in shop.owned_ids and budget >= int(offer["prices"][id]):
-					if shop.owned_ids.size() >= etun.loadout_cap:
-						var out_id := _cheapest_owned(shop)
-						if JokerCatalog.price(id) <= JokerCatalog.price(out_id):
-							continue   # full slots: never swap a joker down
-						act["replace"] = out_id
-					act["buy"] = id
-					break
-			if not act.has("buy") and offer["legendary"] != "" and not offer["legendary"] in shop.owned_ids and player.tons_balance >= int(offer["prices"][offer["legendary"]] * 0.6):
-				act["hold"] = offer["legendary"]
-			return act
+				return {"upgrade": a}
+			var any_id := _best_affordable(["legendary", "rare", "common"], offer, shop, player, etun)
+			if any_id != "":
+				return _buy_act(any_id, shop, etun)
+			if offer["legendary"] != "" and not offer["legendary"] in shop.owned_ids:
+				return {"hold": offer["legendary"]}
+			return {}
 	return {}
