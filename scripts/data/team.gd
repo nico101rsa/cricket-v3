@@ -25,10 +25,10 @@ func strength_frac() -> float:
 	return clampf((stars - 3.0) / 5.0 + 0.5, 0.0, 1.0)
 
 func batting_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
-	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randf_range(-1.0, 1.0) * tour.noise_frac * tour.spread)
 
 func bowling_strength(tour: TourDistribution, rng: RandomNumberGenerator) -> float:
-	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randi_range(-tour.noise, tour.noise) * tour.noise_step)
+	return maxf(Attributes.SCALE, tour.percentile(strength_frac()) + rng.randf_range(-1.0, 1.0) * tour.noise_frac * tour.spread)
 
 # Mutate stars Markov-style at a Season rollover (ADR 0009). Two RNG draws
 # (magnitude, then direction), clamped to [0.5, 5.0]. Catastrophic flavour string

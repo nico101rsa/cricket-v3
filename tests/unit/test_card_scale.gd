@@ -22,7 +22,7 @@ func test_tour_and_tilt_dials_scale():
 	var tour := TourDistribution.new()
 	assert_eq(tour.mean, 31.25)
 	assert_eq(tour.spread, 9.375)
-	assert_eq(tour.noise_step, 6.25)
+	assert_eq(tour.noise_frac, 0.7)   # world-scale v2: proportional noise (was noise_step 6.25)
 	assert_eq(BowlingAttack.DEFAULT_TILT, 12.5)
 
 func test_phase_bonus_scales():
