@@ -13,9 +13,9 @@ const LEVELS := 3
 const TOURS := 8
 const TEAMS_PER_LEVEL := 8
 const PREMIER_TOUR := 7
-const READINESS_TOUR := 5   # Evening Mamba — the soft readiness gate (career-line
+const READINESS_TOUR := 6   # Evening Mixed — the soft readiness gate (career-line
                             # balancing). Beating it unlocks the next League at Tour 1.
-                            # Raised from tour 3 (Day Mixed) so the rusher must clear 6
+                            # Raised from tour 3 (Day Mixed) so the rusher must clear 7
                             # of 8 tours per League before crossing; Premier (7) stays
                             # optional (DP1). Tunable — swept by career_search.gd.
 
