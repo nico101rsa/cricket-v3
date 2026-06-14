@@ -17,6 +17,12 @@ func _one_cell(level: int, tour_i: int, n: int) -> void:
 	var tuning := BallTuning.new()
 	var itun := InningsTuning.new()
 	var spec := DifficultyLadder.spec_for(level, tour_i)
+	# Probe (player-leverage rung): override the cell brain to sweep the entry-tour
+	# blend, e.g. BRAIN_TIER=1 BRAIN_BLEND=0.5 = TEXTBOOK with p=0.5 else NAIVE.
+	if OS.get_environment("BRAIN_TIER") != "":
+		spec.brain_tier = int(OS.get_environment("BRAIN_TIER"))
+	if OS.get_environment("BRAIN_BLEND") != "":
+		spec.blend = float(OS.get_environment("BRAIN_BLEND"))
 	var pol := OpponentBrain.draw_plans(TourSpec.Tier.TEXTBOOK, 1.0, RandomNumberGenerator.new())
 	var build := FRESH.duplicate()
 	if OS.get_environment("ATTRS") != "":
@@ -42,8 +48,15 @@ func _one_cell(level: int, tour_i: int, n: int) -> void:
 		var tour := spec.make_tour()
 		if OS.get_environment("NOISE_FRAC") != "":
 			tour.noise_frac = float(OS.get_environment("NOISE_FRAC"))
+		# Probe toggles (player-leverage rung, throwaway): NO_BRAIN=1 makes the
+		# Player's opponent play engine-default (null opp_spec) like the rest of the
+		# league instead of the cell brain; NO_PLAYER_PLAN=1 strips the Player's own
+		# textbook plans so they too play default — isolating the kit/captaincy edge.
+		var opp := spec if OS.get_environment("NO_BRAIN") != "1" else null
+		var pip: IntentPlan = pol[0] if OS.get_environment("NO_PLAYER_PLAN") != "1" else null
+		var pbp: BowlingPlan = pol[1] if OS.get_environment("NO_PLAYER_PLAN") != "1" else null
 		var league := LeagueResolver.simulate_league(
-			attrs, teams[0], opponents, tour, tuning, itun, rng, pol[0], pol[1], spec, [])
+			attrs, teams[0], opponents, tour, tuning, itun, rng, pip, pbp, opp, [])
 		# standings are ranked best->worst; map team_index -> finishing position (1..8).
 		for pos in range(league.standings.size()):
 			var ti: int = league.standings[pos].team_index
