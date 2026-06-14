@@ -18,6 +18,9 @@ func _init() -> void:
 	_tour.mean = 31.25
 	_tour.spread = 9.375
 	_rtun = RatingTuning.new()
+	# POS_REF env (fresh-build-equality): tune the competence-gate dial inline.
+	if OS.get_environment("POS_REF") != "":
+		_itun.pos_ref_batting = float(OS.get_environment("POS_REF"))
 
 	# SUM env (world-scale v2 WS5): walk builds at a chosen total to check build
 	# equality across the player's range — fresh 44, mid 125, near-cap 200.

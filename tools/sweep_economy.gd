@@ -15,6 +15,10 @@ var _etun: EconomyTuning
 func _init() -> void:
 	_tuning = BallTuning.new()
 	_itun = InningsTuning.new()
+	# POS_REF env (fresh-build-equality): isolate the competence-gate's pay effect;
+	# a tiny value recovers the old share-only position formula (competence==1).
+	if OS.get_environment("POS_REF") != "":
+		_itun.pos_ref_batting = float(OS.get_environment("POS_REF"))
 	_tour = TourDistribution.new()
 	_tour.mean = 31.25
 	_tour.spread = 9.375

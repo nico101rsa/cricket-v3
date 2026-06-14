@@ -9,7 +9,11 @@ static func player_position(attrs: Attributes, itun: InningsTuning) -> int:
 	var batting := attrs.power + attrs.composure
 	var bowling := attrs.attack + attrs.control
 	var share := float(batting) / float(batting + bowling)
-	var pos := roundi(itun.pos_base - itun.pos_span * share)
+	# Competence-gate (fresh-build-equality): weak fresh players don't get promoted
+	# into high-leverage slots they can't yet handle; they climb the order as the
+	# build levels up. At/above pos_ref_batting this is the original share formula.
+	var competence := clampf(float(batting) / itun.pos_ref_batting, 0.0, 1.0)
+	var pos := roundi(itun.pos_base - itun.pos_span * share * competence)
 	return clampi(pos, 1, 9)
 
 # Weakening-tail scale for a partner at 1-based order position `pos`.

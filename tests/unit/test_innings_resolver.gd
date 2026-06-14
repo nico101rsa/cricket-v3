@@ -502,3 +502,32 @@ func test_weaker_factor_scores_fewer_runs() -> void:
 			0, null, null, null, 0.0, 0.0, 0, [], true, null, null, null, null, null,
 			Team.standard_xi(), 0.5).total
 	assert_gt(strong, weak, "a half-strength league scales the whole card down")
+
+# --- fresh-build-equality (2026-06-15): competence-gated batting position ---
+
+func test_full_competence_reproduces_old_position() -> void:
+	# batting 100 >= pos_ref -> competence 1.0 -> pos = round(9 - 8*0.8) = 3 (unchanged)
+	var pos := InningsResolver.player_position(_attrs(50.0, 50.0, 12.5, 12.5), itun)
+	assert_eq(pos, 3, "full-competence batting-lean keeps the old #3")
+
+func test_fresh_batting_lean_bats_lower_than_maxed_same_share() -> void:
+	# Same share 0.8, different absolute batting. Fresh (weak) must bat lower.
+	var fresh := InningsResolver.player_position(_attrs(17.6, 17.6, 4.4, 4.4), itun)
+	var maxed := InningsResolver.player_position(_attrs(50.0, 50.0, 12.5, 12.5), itun)
+	assert_gt(fresh, maxed, "a fresh weak batting build bats lower than a maxed one of the same shape")
+
+func test_position_monotonic_in_batting_at_fixed_share() -> void:
+	# Share fixed at 0.8 (power==composure==4x attack==control); rising batting -> up the order.
+	var weak := InningsResolver.player_position(_attrs(8.8, 8.8, 2.2, 2.2), itun)
+	var mid := InningsResolver.player_position(_attrs(17.6, 17.6, 4.4, 4.4), itun)
+	var strong := InningsResolver.player_position(_attrs(50.0, 50.0, 12.5, 12.5), itun)
+	assert_gte(weak, mid, "weaker bats no higher than mid")
+	assert_gte(mid, strong, "mid bats no higher than strong")
+
+func test_pos_ref_batting_dial_deepens_sub_ref_build() -> void:
+	# Doubling the reference halves competence for a sub-ref build -> bats deeper.
+	var low_ref := InningsResolver.player_position(_attrs(17.6, 17.6, 4.4, 4.4), itun)
+	var hi_itun := InningsTuning.new()
+	hi_itun.pos_ref_batting = itun.pos_ref_batting * 2.0
+	var hi_ref := InningsResolver.player_position(_attrs(17.6, 17.6, 4.4, 4.4), hi_itun)
+	assert_gt(hi_ref, low_ref, "a higher pos_ref_batting pushes a sub-ref build deeper")
