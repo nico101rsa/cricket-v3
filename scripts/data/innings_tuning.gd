@@ -7,9 +7,16 @@ extends Resource
 
 @export var over_limit: int = 20      # -> over_limit * 6 = 120 balls
 
-# build -> batting position map: pos = clamp(round(pos_base - pos_span*share), 1, 9)
+# build -> batting position map: pos = clamp(round(pos_base - pos_span*share*competence), 1, 9)
 @export var pos_base: float = 9.0
 @export var pos_span: float = 8.0
+
+# Position promotion is gated by absolute batting competence (fresh-build-equality
+# 2026-06-15): competence = clamp((power+composure) / pos_ref_batting, 0, 1). At/above
+# pos_ref the formula is the original share-only promotion (strong builds unchanged);
+# below it a weak fresh player bats lower and climbs the order as it levels up.
+# Tuned by tools/build_spectrum_sweep.gd to flatten fresh-end build win-equality.
+@export var pos_ref_batting: float = 60.0
 
 # weakening-tail curve: factor(p) = max(tail_floor, 1 - (p-1)*tail_slope)
 @export var tail_floor: float = 0.45
