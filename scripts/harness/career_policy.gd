@@ -26,3 +26,36 @@ static func choose_tour(kind: String, state: CareerState) -> int:
 		if state.status_of(lvl, t) != CareerState.CellStatus.BEATEN:
 			return t
 	return CareerState.PREMIER_TOUR
+
+
+# Accept one end-of-Season cross-up Offer, or stay (null). Never moves DOWN:
+# the three poles only ever cross up or stay (the DC16 down-Offer exists for
+# softlock recovery the naive line never triggers — E4-5).
+static func choose_offer(kind: String, state: CareerState, offers: Array, player: Player) -> Offer:
+	if not _wants_to_cross(kind, state, player):
+		return null
+	var lvl := state.current_level()
+	for o in offers:
+		if o.level > lvl:
+			return o
+	return null
+
+
+# Whether this pole wants to leave the current Level now.
+static func _wants_to_cross(kind: String, state: CareerState, player: Player) -> bool:
+	match kind:
+		"rush":
+			return true                                # cross the instant offered
+		"farm":
+			return _card_maxed(player)                 # build the full card first
+		"trophy":
+			return state.level_won[state.current_level()]  # win the trophy first
+	return false
+
+
+static func _card_maxed(player: Player) -> bool:
+	var a := player.attributes
+	return a.power >= ShopResolver.ATTR_CAP \
+		and a.composure >= ShopResolver.ATTR_CAP \
+		and a.attack >= ShopResolver.ATTR_CAP \
+		and a.control >= ShopResolver.ATTR_CAP
