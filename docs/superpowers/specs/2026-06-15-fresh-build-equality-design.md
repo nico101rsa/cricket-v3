@@ -160,7 +160,49 @@ count climbing past **562** and `All tests passed`.
 
 ---
 
-## 10. Findings (filled during build)
+## 10. Findings
 
-_TBD — tuned `pos_ref_batting`, before/after win% spreads at SUM 44/125/200, ledger
-re-peg deltas (env / joker floor+bands / build spread / pay), fresh pay-equality check._
+**Tuned dial: `pos_ref_batting = 70.0`** — the highest value that keeps the
+all-rounder archetype (batting 62.5) at full competence (#5), so the existing
+position test and the priced archetypes are undisturbed (only a *pure* bowler
+shifts #8→#9). Tuned by `build_spectrum_sweep` (N=2000/build, even ★3 vs ★3,
+`POS_REF` env added for inline tuning).
+
+**A1 — build-equality win% spread (max−min across the 7-build axis):**
+
+| total | before (share-only) | after (`pos_ref=70`) |
+|---|---|---|
+| SUM=44 (fresh) | **19.0** (43.0→62.0) | **2.0** (50.8→52.8) |
+| SUM=125 (mid) | 2.0 | **2.0** |
+| SUM=200 reachable* | 2.2 | **2.2** |
+
+\* The sweep's SUM=200 batting-lean rows (80/20, 70/30) need per-attribute values
+above the 60 cap → unreachable; among reachable builds (bs 40–60) the spread is
+2.2 both before and after. The headline: **fresh-end spread 19 → 2 pts; mid/near-cap
+untouched.** The bug — a weak fresh batting-lean build over-promoted to #3 and
+squandering high-leverage balls — is gone: it now bats ≈#5–6 and the team total
+no longer collapses (team-score range at SUM=44 closed from 174–183 to ~177–180).
+
+**A2 — ledger (this rung's ripple):**
+- **env probe:** 155.0 / RR 8.22 / 6.24 wkts — byte-identical (null-player env). ✓
+- **build spread @ SUM=125:** 2.0 (≤2 target). ✓
+- **joker floor + bands:** no-joker floor 45.5 → 46.25 (+0.75, within the ~1.1% sweep
+  noise — the priced reference build is the all-rounder at the unchanged #5); every
+  single-joker win-delta essentially unchanged (Chase Master +8.8, Choke Hold +7.9),
+  no joker out of its rarity band, **no re-pricing.** ✓
+- **economy pay:** **pay-neutral by this rung.** Old vs new (POS_REF=1 vs 70):
+  batter ₸66.3 / balanced ₸68.4 byte-identical, bowler ₸67.5 → ₸67.8 (its only
+  shift). Archetype pay spread is **₸2.1 in both** → not caused by the competence-gate.
+
+**A3 — fresh pay equality:** fresh builds bat lower across the board (everyone weak)
+so per-build perf is small and pay is dominated by the flat game fee (~₸33) → fresh
+pay is build-equal by construction. Precise per-SUM pay would need a `SUM` hook on
+`sweep_economy` (not added; out of scope).
+
+**FLAG (provenance reconciliation, not this rung):** the carried roadmap figure
+"pay spread ₸0.3" is **stale** — the live `main` archetype pay spread is **₸2.1**
+(measured here under the old formula too). A rung after the PR #46 economy peg
+(world-scale v2 / bowling / career-fidelity) drifted it without re-pegging. No build
+is *disadvantaged* (the all-rounder is the best-paid, satisfying the build-equality
+principle), so it is not urgent, but it warrants a small economy-reconciliation
+check on its own. Recorded so the next session doesn't read ₸0.3 as current.
