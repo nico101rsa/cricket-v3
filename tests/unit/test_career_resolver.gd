@@ -65,7 +65,7 @@ func test_offers_are_distinct_and_exclude_current_team() -> void:
 
 func test_cross_level_guarantee_on_fresh_beat() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 3)   # gate beat unlocks (1,0) — v2 DV5
+	s.mark_beaten(0, CareerState.READINESS_TOUR)   # readiness beat unlocks (1,0)
 	for seed_value in [1, 2, 3, 4, 5]:
 		var offers := CareerResolver.generate_offers(s, true, _rng(seed_value))
 		var has_city := false
@@ -84,7 +84,7 @@ func test_no_cross_level_offer_while_higher_level_locked() -> void:
 
 func test_down_level_offer_always_present_while_lower_level_unwon() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 3)
+	s.mark_beaten(0, CareerState.READINESS_TOUR)
 	s.current_team_index = 9   # moved to City; Club unwon
 	for seed_value in [1, 2, 3, 4, 5]:
 		var offers := CareerResolver.generate_offers(s, false, _rng(seed_value))
@@ -97,7 +97,7 @@ func test_down_level_offer_always_present_while_lower_level_unwon() -> void:
 
 func test_no_down_level_offer_once_lower_level_won() -> void:
 	var s := CareerResolver.start_career(0)
-	s.mark_beaten(0, 3)
+	s.mark_beaten(0, CareerState.READINESS_TOUR)
 	s.current_team_index = 9
 	s.level_won[0] = true
 	var offers := CareerResolver.generate_offers(s, false, _rng(2))
@@ -115,6 +115,7 @@ func test_accept_offer_moves_team_and_resets_affinity() -> void:
 	var s := CareerResolver.start_career(0)
 	var p := _player()
 	p.affinity = 4
+	s.seasons_at_level = 6
 	var o := Offer.new()
 	o.team_index = 9
 	o.level = 1
@@ -122,6 +123,7 @@ func test_accept_offer_moves_team_and_resets_affinity() -> void:
 	assert_eq(s.current_team_index, 9)
 	assert_eq(s.current_level(), 1, "Level follows the Team")
 	assert_eq(p.affinity, 0, "Affinity resets on accept")
+	assert_eq(s.seasons_at_level, 0, "seasons_at_level resets on a cross-up")
 
 
 func test_stay_increments_affinity() -> void:
@@ -162,6 +164,15 @@ func test_play_season_ticks_counter_and_banks_pay() -> void:
 	assert_eq(s.seasons_played, 1, "Seasons played ticks win or lose")
 	assert_eq(p.tons_balance, out["pay"], "pay banked")
 	assert_gt(out["pay"], 0, "a Season always pays something (game fees)")
+
+
+func test_play_season_increments_seasons_at_level() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	_play(s, p, 0, 7)
+	assert_eq(s.seasons_at_level, 1, "one Season played at this Level")
+	_play(s, p, 0, 8)
+	assert_eq(s.seasons_at_level, 2, "ticks each Season until a cross-up")
 
 
 func test_play_season_pay_reconciles_with_match_pay() -> void:

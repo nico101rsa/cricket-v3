@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Career-line balancing — before / after the readiness gate</title>
+<style>
+ body{background:#101418;color:#dde3ea;font:14px/1.45 -apple-system,sans-serif;margin:24px;max-width:1040px}
+ h1{font-size:20px} h2{font-size:15px;margin-top:30px;color:#9fb3c8}
+ .note{color:#8a97a5;font-size:12.5px;max-width:74em}
+ .banner{padding:10px 14px;border-radius:6px;margin:14px 0;font-size:14px;font-weight:600}
+ .ok{background:#16301f;color:#9ae6b4;border:1px solid #2f6f46}
+ table.grid{border-collapse:separate;border-spacing:6px;margin-top:8px}
+ table.grid th{color:#9fb3c8;font-weight:600;font-size:12.5px;padding:2px 6px}
+ table.grid td{background:#19212a;border:1px solid #2a333d;border-radius:6px;padding:9px 12px;text-align:center;min-width:128px;vertical-align:top}
+ .pct{font-size:19px;font-weight:700;color:#dde3ea}
+ .cnt{font-size:11px;color:#8a97a5}
+ .ttb{font-size:13px;color:#4fc3f7;margin-top:4px}
+ .sub{font-size:11px;color:#8a97a5;margin-top:2px}
+ .dead{color:#ef9a9a}
+ .band{color:#9ae6b4}
+ code{color:#bcd}
+ .legend{font-size:11.5px;color:#8a97a5;margin-top:6px}
+</style></head><body>
+<h1>Career-line balancing — the readiness gate <span style="color:#8a97a5;font-size:14px">(post-E4)</span></h1>
+<p class="note">The E4 search found the 9 career lines (3 ways to <b>climb</b> × 3 ways to <b>spend</b>) wildly unequal: <code>rush</code> beat the game ~2× faster than anything else and two lines never finished at all. This rung raised the <b>League-readiness gate</b> — you now must clear 7 of 8 tours (everything but the Premier) before you can climb to the next League — and fixed the <code>farm</code> climb so it never softlocks. Below: the same 9 lines, before and after.</p>
+
+<div class="banner ok" id="headline"></div>
+
+<h2>Before — E4 (gate at Tour 4, no farm fix)</h2>
+<table class="grid" id="before"></table>
+
+<h2>After — readiness gate at Tour 7 (Evening Mixed), farm crosses after ≥8 seasons</h2>
+<table class="grid" id="after"></table>
+<p class="legend">Big number = % of N=60 careers that beat Province Premier. <span style="color:#4fc3f7">Blue</span> = median time-to-beat (hours of match play); <span class="band">green</span> = inside the 27–33h target band. Fresh 1.5★ Club underdog (card 11/11/11/11), season cap 120.</p>
+
+<h2>What changed, and the honest limit</h2>
+<p class="note">
+ <b>Fixed (the real E4 bug):</b> <code>rush</code> went from a 93% / 15.8h no-brainer to ~85% / 22–26h — line-ball with <code>farm</code>. No line now beats the game ~2× faster than another (time spread 2.25×+∞ → <b>1.57×</b>), and all 9 lines complete (the two 0% <code>farm</code> softlocks are gone).<br>
+ <b>The wall we hit:</b> completion is driven by how many <i>attempts</i> you get at the Province Premier <b>final</b> (1st of 8 — luck-heavy), not by card strength — a <i>fresh</i>-card rush (80%) out-finishes a <i>maxed</i>-card trophy (57%) because it reaches the final far more often. To give <code>trophy</code> equal completion the final would have to reward card strength — but that locks out <code>joker_only</code> (it never trains; jokers reset every season). So strict 9-way equality is impossible without flattening genuine roguelite trade-offs.<br>
+ <b>Ruling (2026-06-15):</b> ship the gate; keep the residual spread as healthy texture — <code>joker_only</code> = fast/risky "hard mode", <code>attr_only</code> = slow/reliable, <code>trophy</code> = the long way round.
+</p>
+<p class="note">Source: <code>tools/career_search.gd</code>, N=60. Spec <code>docs/superpowers/specs/2026-06-14-career-line-balancing-design.md</code> §10. No sim math changed this rung — the balance ledger (joker floor, build/pay spreads, scoring env) is untouched by construction.</p>
+
+<script>
+const BEFORE={"arms":[{"climb":"rush","completion_pct":86.7,"completed":52,"median_hours":20.3,"median_seasons":55.0,"spend":"attr_only"},{"climb":"rush","completion_pct":86.7,"completed":52,"median_hours":14.9,"median_seasons":40.0,"spend":"joker_only"},{"climb":"rush","completion_pct":93.3,"completed":56,"median_hours":15.8,"median_seasons":42.5,"spend":"balanced"},{"climb":"farm","completion_pct":71.7,"completed":43,"median_hours":33.5,"median_seasons":90.0,"spend":"attr_only"},{"climb":"farm","completion_pct":0.0,"completed":0,"median_hours":0.0,"median_seasons":0.0,"spend":"joker_only"},{"climb":"farm","completion_pct":0.0,"completed":0,"median_hours":0.0,"median_seasons":0.0,"spend":"balanced"},{"climb":"trophy","completion_pct":60.0,"completed":36,"median_hours":29.4,"median_seasons":78.0,"spend":"attr_only"},{"climb":"trophy","completion_pct":43.3,"completed":26,"median_hours":27.9,"median_seasons":75.0,"spend":"joker_only"},{"climb":"trophy","completion_pct":61.7,"completed":37,"median_hours":27.6,"median_seasons":76.0,"spend":"balanced"}],"n":60,"season_cap":120};
+const AFTER={"arms":[{"climb":"rush","completion_pct":86.7,"completed":52,"median_hours":26.0,"median_seasons":71.5,"spend":"attr_only"},{"climb":"rush","completion_pct":80.0,"completed":48,"median_hours":21.6,"median_seasons":58.5,"spend":"joker_only"},{"climb":"rush","completion_pct":85.0,"completed":51,"median_hours":21.8,"median_seasons":58.0,"spend":"balanced"},{"climb":"farm","completion_pct":85.0,"completed":51,"median_hours":26.0,"median_seasons":72.0,"spend":"attr_only"},{"climb":"farm","completion_pct":78.3,"completed":47,"median_hours":23.4,"median_seasons":64.0,"spend":"joker_only"},{"climb":"farm","completion_pct":83.3,"completed":50,"median_hours":21.8,"median_seasons":58.0,"spend":"balanced"},{"climb":"trophy","completion_pct":56.7,"completed":34,"median_hours":33.9,"median_seasons":92.5,"spend":"attr_only"},{"climb":"trophy","completion_pct":56.7,"completed":34,"median_hours":25.6,"median_seasons":69.5,"spend":"joker_only"},{"climb":"trophy","completion_pct":68.3,"completed":41,"median_hours":27.7,"median_seasons":77.0,"spend":"balanced"}],"n":60,"season_cap":120};
+const SPENDS=["attr_only","joker_only","balanced"],CLIMBS=["rush","farm","trophy"];
+const arm=(D,c,s)=>D.arms.find(a=>a.climb===c&&a.spend===s);
+function render(D,id){let h="<tr><th></th>"+SPENDS.map(s=>`<th>${s}</th>`).join("")+"</tr>";
+ CLIMBS.forEach(c=>{h+=`<tr><th style="text-align:right">${c}</th>`;
+  SPENDS.forEach(s=>{const a=arm(D,c,s);
+   const inband=a.completed&&a.median_hours>=27&&a.median_hours<=33;
+   const ttb=a.completed?`<div class="ttb ${inband?'band':''}">~${a.median_hours}h${inband?' ✓':''}</div><div class="sub">${a.median_seasons} seasons</div>`
+                        :`<div class="sub dead">never finished (cap ${D.season_cap})</div>`;
+   h+=`<td><div class="pct">${a.completion_pct}%</div><div class="cnt">${a.completed}/${D.n} finished</div>${ttb}</td>`;});
+  h+="</tr>";});
+ document.getElementById(id).innerHTML=h;}
+render(BEFORE,"before");render(AFTER,"after");
+(function(){const pc=AFTER.arms.map(a=>a.completion_pct),hr=AFTER.arms.filter(a=>a.completed).map(a=>a.median_hours);
+ const spread=(Math.max(...pc)-Math.min(...pc)).toFixed(0),rat=(Math.max(...hr)/Math.min(...hr)).toFixed(2);
+ document.getElementById("headline").textContent=
+  `Rush no longer dominates: it went from 93% / 15.8h (≈2× faster than the field) to ~85% / 22–26h, line-ball with farm. All 9 lines now finish (was two at 0%). Time spread 2.25×+∞ → ${rat}×; completion spread ${spread}pts — kept as deliberate fast-risky vs slow-reliable trade-offs.`;})();
+</script>
+</body></html>
