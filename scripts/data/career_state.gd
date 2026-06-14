@@ -13,7 +13,11 @@ const LEVELS := 3
 const TOURS := 8
 const TEAMS_PER_LEVEL := 8
 const PREMIER_TOUR := 7
-const LEAGUE_GATE_TOUR := 3   # Day Mixed — beating it unlocks the next League (v2 DV5)
+const READINESS_TOUR := 5   # Evening Mamba — the soft readiness gate (career-line
+                            # balancing). Beating it unlocks the next League at Tour 1.
+                            # Raised from tour 3 (Day Mixed) so the rusher must clear 6
+                            # of 8 tours per League before crossing; Premier (7) stays
+                            # optional (DP1). Tunable — swept by career_search.gd.
 
 @export var teams: Array[Team] = []
 @export var current_team_index: int = 0
@@ -92,13 +96,13 @@ func any_unlocked_at(level: int) -> bool:
 	return false
 
 
-# Beating (L,T) unlocks (L,T+1); beating the League-gate Tour (Day Mixed,
-# index 3) also unlocks the next League at its first tour (L+1, 0) —
-# difficulty-sheet v2 (spec DV5), replacing v1's "any beat unlocks across".
+# Beating (L,T) unlocks (L,T+1); beating the READINESS_TOUR (Evening Mamba,
+# index 5) also unlocks the next League at its first tour (L+1, 0) —
+# career-line balancing (raised from tour 3 to slow the rush climb).
 func mark_beaten(level: int, tour: int) -> void:
 	cell_status[cell_index(level, tour)] = CellStatus.BEATEN
 	_unlock(level, tour + 1)
-	if tour == LEAGUE_GATE_TOUR:
+	if tour == READINESS_TOUR:
 		_unlock(level + 1, 0)
 
 

@@ -44,7 +44,7 @@ func test_choose_tour_all_beaten_replays_premier() -> void:
 # A Club state with the gate (T3) beaten so a City cross-up Offer is legal.
 func _club_with_cross_offer() -> Array:
 	var state := CareerResolver.start_career(0)
-	state.record_outcome(0, CareerState.LEAGUE_GATE_TOUR, true, false)
+	state.record_outcome(0, CareerState.READINESS_TOUR, true, false)
 	var up := Offer.new()
 	up.team_index = CareerState.TEAMS_PER_LEVEL   # first City slot
 	up.level = 1

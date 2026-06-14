@@ -44,21 +44,31 @@ func test_beat_unlocks_next_tour_only_off_gate() -> void:
 	assert_true(s.is_unlocked(0, 0), "beaten cell stays replayable")
 
 
-func test_beating_tour4_unlocks_next_league_at_tour1() -> void:
-	# v2 (spec DV5): Day Mixed (index 3) is the League gate -> (L+1, 0).
+func test_beating_readiness_tour_unlocks_next_league_at_tour1() -> void:
+	# Career-line balancing: the next League opens off READINESS_TOUR (Evening
+	# Mamba, index 5), NOT the old gate tour 3 — so the rusher climbs most of
+	# the league before crossing.
+	var s := _state()
+	s.cell_status[s.cell_index(0, CareerState.READINESS_TOUR)] = CareerState.CellStatus.UNLOCKED
+	s.mark_beaten(0, CareerState.READINESS_TOUR)
+	assert_true(s.is_unlocked(0, CareerState.READINESS_TOUR + 1), "next Tour unlocked")
+	assert_true(s.is_unlocked(1, 0), "City Flat & Warm unlocked off the readiness tour")
+	assert_false(s.is_unlocked(1, 3), "City's own cells beyond Flat & Warm NOT unlocked")
+
+
+func test_beating_old_gate_tour_no_longer_unlocks_next_league() -> void:
 	var s := _state()
 	s.cell_status[s.cell_index(0, 3)] = CareerState.CellStatus.UNLOCKED
 	s.mark_beaten(0, 3)
-	assert_true(s.is_unlocked(0, 4), "next Tour unlocked")
-	assert_true(s.is_unlocked(1, 0), "City Flat & Warm unlocked")
-	assert_false(s.is_unlocked(1, 3), "City's own gate cell NOT directly unlocked")
+	assert_true(s.is_unlocked(0, 4), "next Tour still unlocks")
+	assert_false(s.is_unlocked(1, 0), "tour 3 (Day Mixed) no longer opens the next League")
 
 
-func test_province_gate_beat_has_no_level_above() -> void:
+func test_readiness_tour_at_top_level_does_not_crash() -> void:
 	var s := _state()
-	s.cell_status[s.cell_index(2, 3)] = CareerState.CellStatus.UNLOCKED
-	s.mark_beaten(2, 3)   # no level 3 — must not crash
-	assert_true(s.is_unlocked(2, 4))
+	s.cell_status[s.cell_index(2, CareerState.READINESS_TOUR)] = CareerState.CellStatus.UNLOCKED
+	s.mark_beaten(2, CareerState.READINESS_TOUR)   # no level 3 — must not crash
+	assert_true(s.is_unlocked(2, CareerState.READINESS_TOUR + 1))
 
 
 func test_beat_at_edges_clamps() -> void:
