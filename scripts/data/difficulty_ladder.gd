@@ -27,7 +27,13 @@ const OPP_STARS := [2.0, 2.5, 3.0, 3.0, 3.0, 3.5, 4.0]
 # continuity under future sheet edits.
 static func brain_for(d: float) -> Array:
 	if d <= 3.0:
-		return [TourSpec.Tier.NAIVE, 1.0]
+		# Entry-tour over-boost fix (player-leverage PL2, 2026-06-14): a pure-NAIVE
+		# (random) opponent handed the Player's weakest side a ~25% Club-league-win
+		# floor regardless of card (the Player faces it; the rest of the league plays
+		# competently). TEXTBOOK with p=0.4 (else NAIVE via blend-down) = "weak but
+		# not a pushover" -> a fresh underdog wins ~12% and must grow the card to win.
+		# Sits just below Tour 4's [TEXTBOOK, 0.5]. Only affects Club Tours 1-3.
+		return [TourSpec.Tier.TEXTBOOK, 0.4]
 	if d <= 6.0:
 		return [TourSpec.Tier.TEXTBOOK, 0.5]
 	if d <= 10.0:

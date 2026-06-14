@@ -85,6 +85,41 @@ At City/Province the Player's weak team **correctly finishes near the bottom**. 
 3. **Re-anchor:** `sweep_difficulty_ladder` (grid wall) + `career_preview` (pacing) + spot-run `probe_scoring_env` / `sweep_jokers` (ledger unchanged). Record all in §10.
 4. **Docs:** CONTEXT.md difficulty canon + `docs/mockups/difficulty-ladder-v1.html` / `calibration-v1.html` DATA refreshed for the new Club on-ramp.
 
-## 8. Findings (§10) — filled during build
+## 8. Findings (§10)
 
-_(beat-rates, pacing numbers, ledger spot-checks recorded here as the build runs.)_
+**The fix (production brain p=0.4, `standings_correlation`, fresh 1.5★ = weakest of 8, N=150):**
+
+| Cell | Player finish | Player win% | r (star→finish) | vs. before |
+|---|---|---|---|---|
+| Club Tour 1 (d=1) | 4.22 / 8 | **12%** | 0.348 | was 2.9 / 35% / r=0.20 |
+| Club Tour 2 (d=2) | 4.19 / 8 | 10% | 0.374 | — |
+| Club Tour 3 (d=3) | 4.81 / 8 | 4% | 0.421 | — |
+| Club Tour 4 (d=4, unchanged) | 5.29 / 8 | 5% | 0.492 | unchanged band |
+
+Monotone on-ramp (win 12→10→4%), fresh underdog inside the 10–15% target, no longer the standings outlier. The weakest team's `r` climbed from 0.20 (broken) toward the healthy band.
+
+**Card-sensitive (Club Tour 1, N=150):** card 6→13% · 11→12% · 25→21% · **50→43%** win. A fresh underdog grinds mid-low; card growth earns the climb; a maxed player can top the easiest tour (43%, not a lock). The old ~25–35% naive floor is gone.
+
+**City/Province unchanged (spot-run, N=150):** City Day Mixed finish 7.15 / win 0% (was 7.20 / 0%); Province Premier finish 7.29 / win 0% (was 7.30 / 0%) — byte-identical within noise (their brain band is untouched). ✓ PL7-3.
+
+**Ledger unchanged (PL6):** `probe_scoring_env` mean total **155.0** (env held); joker floor / build / pay sit on the ball path that never calls `brain_for` → byte-identical by construction. ✓ PL7-4.
+
+**Difficulty grid re-anchor (PL5, `sweep_difficulty_ladder`, N=200, full re-run on the world-scale-v2 base).** Note the grid measures a **mid reference build (35/30/30/30 = 125 pts) on a ★3 tour-average team** — NOT the fresh-underdog start (that's the standings probe above). So the grid is far less sensitive to the entry-brain change than the fresh-underdog standings (a ★3 team never relied on the naive freebie). New grid (beat = top-3 finish):
+
+| Cell | beat% | brain |
+|---|---|---|
+| Club Flat & Warm (d1) | 75.0 | TEXTBOOK ½(0.4) |
+| Club Spin (d2) | 78.0 | TEXTBOOK ½(0.4) |
+| Club Green Mamba (d3) | 81.5 | TEXTBOOK ½(0.4) |
+| Club Day Mixed (d4) | 70.0 | TEXTBOOK ½(0.5) |
+| … | … | … |
+| City Premier (d15) | 24.0 | STATIC_EQ |
+| Province Premier (d20) | **17.5** | ADAPTIVE |
+
+The wall now spans **Club 75–81% → Province Premier 17.5%**. Club Tours 1–3 dropped from the pure-naive band (cf. the sweep's naive-isolation **85.5%** at d7 — at the weaker Club d1–3 the pre-fix beat was ~85–90%) to 75–81.5% for the reference build — honestly harder, still the easiest band. Cells 4–23 are byte-identical to world-scale v2 (their brain band is untouched). **Pre-existing inversion noted (NOT this rung's):** Club 1→3 beat rises with d (75→81.5) — the ★3 reference team sits at the tour mean while opponents have fixed stars, so a wider spread at higher d lets the mean team crush the bottom half more easily. Inherited from the low-tour strength theme (world-scale/env-span), surfaced (not caused) by un-saturating the brain.
+
+**Career pacing re-anchor (PL5, `career_preview`, N=100 — measure + flag; the pacing re-peg is Nico's deferred call, NOT done here):**
+- attr_only: **65/100 complete**, 35 capped, seasons-to-complete **median 78**, attributes maxed median S68, matches-to-complete median 632.
+- balanced (jokers): **62/100 complete**, 38 capped, seasons-to-complete **median 79**.
+- **My change's isolated share** (same base + seeds, OLD naive brain vs NEW): old = 58/100 complete, median 82 S → new = 65/100, median 78 S. The harder on-ramp **did not worsen** completion — marginally *improved* it (the naive freebie was rushing under-developed players to the top to stall). The bulk of the drift from the old ~86/100·~57 S is world-scale v2's long-climb re-peg (`attr_cost_base` 13→7, max-out ~S68), not the entry brain.
+- **Verdict:** careers still complete (~63%) and are NOT unwinnable, so per PL5 the rung does **not** re-peg `attr_cost_base`. The median ~78–79 S vs Nico's ~50 target is the deferred pacing decision (world-scale v2 flagged it); recorded for Nico, not actioned (scope discipline + it's his call).

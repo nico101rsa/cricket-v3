@@ -56,10 +56,17 @@ func test_ladder_overlap_anchors_are_exact() -> void:
 
 
 func test_ladder_brain_progression() -> void:
-	# v2 brain map (spec DV3).
+	# v2 brain map (spec DV3) + entry-tour over-boost fix (player-leverage PL2):
+	# Club Tours 1-3 (d<=3) play TEXTBOOK with p=0.4 (else naive via blend-down),
+	# not pure NAIVE — a naive entry opponent handed the weakest team a ~25%
+	# league-win floor regardless of card. Sits just below Tour 4's [TEXTBOOK, 0.5].
 	var club_t1 := DifficultyLadder.spec_for(0, 0)
-	assert_eq(club_t1.brain_tier, TourSpec.Tier.NAIVE)
-	assert_almost_eq(club_t1.blend, 1.0, 0.0001)
+	assert_eq(club_t1.brain_tier, TourSpec.Tier.TEXTBOOK)
+	assert_almost_eq(club_t1.blend, 0.4, 0.0001)
+	# Monotone: the entry band is no harder than the next tour up (same tier).
+	var club_t4 := DifficultyLadder.spec_for(0, 3)
+	assert_eq(club_t4.brain_tier, TourSpec.Tier.TEXTBOOK)
+	assert_true(club_t1.blend <= club_t4.blend, "entry blend <= Tour 4 blend")
 	var club_premier := DifficultyLadder.spec_for(0, 7)        # d10
 	assert_eq(club_premier.brain_tier, TourSpec.Tier.TEXTBOOK)
 	assert_almost_eq(club_premier.blend, 1.0, 0.0001)
