@@ -54,15 +54,15 @@ The three poles:
 
 | Pole | `choose_tour` | `choose_offer` | The hypothesis it tests |
 |---|---|---|---|
-| **`rush`** | lowest unbeaten unlocked tour; if all beaten, the Premier tour (T7) | accept the cross-up Offer the moment a higher Level is reachable (`offer.level > current` and that Level is unlocked) | Fewest tours touched → fewest seasons. The minimal-path baseline (≈ today's naive line). |
+| **`rush`** | lowest unbeaten unlocked tour; if all beaten, the Premier tour (T7) | accept the cross-up Offer the moment a higher Level is reachable (`offer.level > current`) — i.e. straight after beating the gate (T3), **without** winning the Level's Premier | Fewest tours touched → fewest seasons. The genuinely-minimal path (NOT previously measured). |
 | **`farm`** | highest **unlocked** tour (climb to the richest tour, then replay it for the escalating prizes + Premier super prize) | **stay** until the card is maxed (all 4 attrs at cap), then accept the cross-up | Buy full card strength at safe/rich lower tours *before* facing Province under-built. |
-| **`trophy`** | lowest unbeaten unlocked tour; if all beaten, the Premier tour (T7) — replays it until the final is won | stay until the current Level's Premier final is **won** (`state.level_won[current]`), then accept the cross-up | The completionist line: win each Level's trophy before moving up — richest prizes, strongest card, most seasons. |
+| **`trophy`** | lowest unbeaten unlocked tour; if all beaten, the Premier tour (T7) — replays it until the final is won | stay until the current Level's Premier final is **won** (`state.level_won[current]`), then accept the cross-up | The completionist line: win each Level's trophy before moving up. **≡ today's naive line** (`career_preview` gates cross-up on `level_won`), so `trophy × spend` is the regression cross-check. |
 
 Notes:
 - **`beat` (top-3) marks a tour beaten, but only `won_final` (1st) sets `level_won`** — so a career can beat all 8 tours without winning the Premier final. The "if all beaten → T7" `choose_tour` fallback (rush & trophy) means a career that has run out of unbeaten cells **replays the Premier** to keep trying for the final win it needs to advance/complete. (Matches the naive `_choose_tour` fallback `playable_cells().back()` = T7.)
 - `choose_offer` returns an `Offer` to accept or `null` to stay; the harness then calls `accept_offer`/`stay`. It must never accept a **down** Offer (DC16's safety net is for softlocks the naive line never hits; these three poles never need to move down — they only ever cross up or stay).
 - `farm`/`trophy` "stay" semantics: when the policy says stay but no higher Level exists yet (still climbing within the Level toward the gate/Premier), the loop simply plays the next `choose_tour` cell — staying is about *Offers*, climbing-within-a-Level happens through `choose_tour` regardless.
-- `rush` reproduces the current naive climb decisions exactly, so the `rush × {attr_only,joker_only,balanced}` arms should reproduce `career_preview`'s latest numbers (a free cross-check / regression guard, ~within Monte-Carlo noise at equal N+seeds).
+- `trophy` reproduces the current naive climb decisions exactly (`choose_tour` = lowest-unbeaten/T7 fallback; `choose_offer` = accept cross-up iff `level_won[current]`), so the `trophy × {attr_only,joker_only,balanced}` arms should reproduce `career_preview`'s latest numbers at equal N+seeds (a free regression cross-check). `rush` and `farm` are new lines never previously measured.
 
 ### 3.2 Spend — existing `ShopPolicy` (unchanged)
 
