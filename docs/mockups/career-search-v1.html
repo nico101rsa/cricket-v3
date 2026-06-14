@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Career search v1 — optimal line (E4)</title>
+<style>
+ body{background:#101418;color:#dde3ea;font:14px/1.45 -apple-system,sans-serif;margin:24px;max-width:1000px}
+ h1{font-size:20px} h2{font-size:15px;margin-top:28px;color:#9fb3c8}
+ .note{color:#8a97a5;font-size:12.5px;max-width:72em}
+ .banner{padding:10px 14px;border-radius:6px;margin:14px 0;font-size:14px;font-weight:600}
+ .ok{background:#16301f;color:#9ae6b4;border:1px solid #2f6f46}
+ .warn{background:#3a2519;color:#ffcc99;border:1px solid #8a5a32}
+ .opt{color:#ffd54f;font-weight:600}
+ table.grid{border-collapse:separate;border-spacing:6px;margin-top:10px}
+ table.grid th{color:#9fb3c8;font-weight:600;font-size:12.5px;padding:2px 6px}
+ table.grid td{background:#19212a;border:1px solid #2a333d;border-radius:6px;padding:9px 12px;text-align:center;min-width:130px;vertical-align:top}
+ table.grid td.best{border:2px solid #ffd54f;background:#23231a}
+ .pct{font-size:19px;font-weight:700;color:#dde3ea}
+ .cnt{font-size:11px;color:#8a97a5}
+ .ttb{font-size:13px;color:#4fc3f7;margin-top:4px}
+ .sub{font-size:11px;color:#8a97a5;margin-top:2px}
+ code{color:#bcd}
+</style></head><body>
+<h1>Career search v1 — the optimal line <span style="color:#8a97a5;font-size:14px">(E4)</span></h1>
+<p class="note" id="head"></p>
+<div id="verdict"></div>
+<p class="note opt" id="optline"></p>
+
+<h2>9 career lines — how you climb × how you spend</h2>
+<p class="note">Each cell = one strategy run as <b id="nlabel"></b> full careers from a fresh 1.5★ Club underdog (card 11/11/11/11) to beating Province Premier. Big number = <b>% of careers that finished</b> (count underneath). Blue = <b>time-to-beat</b>: median hours of match play to finish (median seasons in grey). The gold-bordered cell is the optimal line — fastest among the lines that finish reliably.</p>
+<table class="grid" id="tbl"></table>
+
+<h2>What the three climb lines mean</h2>
+<p class="note">
+ <b>Rush</b> — go straight up: cross to the next League the moment you beat its gate (Tour 4 "Day Mixed"), without bothering to win the current League's title. Fewest seasons spent, but you face each new League under-built.<br>
+ <b>Farm</b> — grind the richest tours (Premier + its super-prize) at your current League until your card is fully maxed (all four attributes at 60), <i>then</i> cross up. Buys full strength before facing harder cricket.<br>
+ <b>Trophy</b> — win each League's Premier final before moving up (this is exactly the old "naive" line the earlier career-loop eyeball used, so its three cells double as a regression check). The completionist path: richest, strongest, slowest.<br>
+ The spend columns are the existing Kit Room presets: <b>attr_only</b> (always train the lowest attribute), <b>joker_only</b> (always buy the best joker you can, never train), <b>balanced</b> (buy a scarce Rare/Legendary when one's affordable, else train).
+</p>
+<p class="note">Source: <code>tools/career_search.gd</code> (spec <code>docs/superpowers/specs/2026-06-14-e4-career-line-search-design.md</code>).
+ Single-agent search — a career is not adversarial (the opponent captain's brain is fixed per cell by the v2 difficulty sheet), so this measures named strategies rather than a self-play equilibrium. Time-to-beat = median Player matches × ~2:45. <b>No sim math changed this rung</b> — the balance ledger (joker floor, build/pay spreads, scoring env) is untouched by construction.</p>
+
+<script>
+/* Full N=60 run, tools/career_search.gd (2026-06-14). */
+const DATA = {"arms":[{"climb":"rush","completed":52,"completion_pct":86.7,"median_end_bank":20960,"median_hours":20.3,"median_matches":443,"median_maxed_season":72.0,"median_seasons":55.0,"n":60,"spend":"attr_only"},{"climb":"rush","completed":52,"completion_pct":86.7,"median_end_bank":11761,"median_hours":14.9,"median_matches":325,"median_maxed_season":0.0,"median_seasons":40.0,"n":60,"spend":"joker_only"},{"climb":"rush","completed":56,"completion_pct":93.3,"median_end_bank":8184,"median_hours":15.8,"median_matches":345,"median_maxed_season":0.0,"median_seasons":42.5,"n":60,"spend":"balanced"},{"climb":"farm","completed":43,"completion_pct":71.7,"median_end_bank":61060,"median_hours":33.5,"median_matches":730,"median_maxed_season":69.5,"median_seasons":90.0,"n":60,"spend":"attr_only"},{"climb":"farm","completed":0,"completion_pct":0.0,"median_end_bank":46087,"median_hours":0.0,"median_matches":0,"median_maxed_season":0.0,"median_seasons":0.0,"n":60,"spend":"joker_only"},{"climb":"farm","completed":0,"completion_pct":0.0,"median_end_bank":40558,"median_hours":0.0,"median_matches":0,"median_maxed_season":116.0,"median_seasons":0.0,"n":60,"spend":"balanced"},{"climb":"trophy","completed":36,"completion_pct":60.0,"median_end_bank":64592,"median_hours":29.4,"median_matches":642,"median_maxed_season":68.0,"median_seasons":78.0,"n":60,"spend":"attr_only"},{"climb":"trophy","completed":26,"completion_pct":43.3,"median_end_bank":36154,"median_hours":27.9,"median_matches":608,"median_maxed_season":0.0,"median_seasons":75.0,"n":60,"spend":"joker_only"},{"climb":"trophy","completed":37,"completion_pct":61.7,"median_end_bank":24638,"median_hours":27.6,"median_matches":603,"median_maxed_season":0.0,"median_seasons":76.0,"n":60,"spend":"balanced"}],"dominant":false,"n":60,"optimal":{"climb":"rush","completed":56,"completion_pct":93.3,"median_end_bank":8184,"median_hours":15.8,"median_matches":345,"median_maxed_season":0.0,"median_seasons":42.5,"n":60,"spend":"balanced"},"season_cap":120};
+
+const CLIMBS=["rush","farm","trophy"], SPENDS=["attr_only","joker_only","balanced"];
+const SPEND_LABEL={attr_only:"attr_only",joker_only:"joker_only",balanced:"balanced"};
+const arm=(c,s)=>DATA.arms.find(a=>a.climb===c&&a.spend===s);
+const opt=DATA.optimal||{};
+
+document.getElementById("nlabel").textContent = `N=${DATA.n}`;
+document.getElementById("head").textContent =
+ `9 lines (3 ways to climb × 3 ways to spend), N=${DATA.n} careers each, season cap ${DATA.season_cap}. `+
+ `The question: which line beats the game fastest and most reliably — and is any line a no-brainer?`;
+
+// Optimal callout
+(()=>{const a=arm(opt.climb,opt.spend);
+ if(!a){document.getElementById("optline").textContent="No line completed any careers."; return;}
+ document.getElementById("optline").textContent =
+  `Fastest reliable line: ${opt.climb} + ${opt.spend} — beats the game in a median ~${a.median_hours}h `+
+  `(${a.median_matches} matches / ${a.median_seasons} seasons), finishing ${a.completed}/${a.n} careers.`;})();
+
+// Dominance banner
+(()=>{const v=document.getElementById("verdict");
+ if(DATA.dominant){const a=arm(opt.climb,opt.spend);
+  v.innerHTML=`<div class="banner warn">⚠ Dominant line found: <b>${opt.climb} + ${opt.spend}</b> wins on BOTH completion and speed by a clear margin — a solved-meta risk (the player should face a real trade-off, ADR-0003). Worth a balance look.</div>`;
+ }else{
+  v.innerHTML=`<div class="banner ok">No single dominant line — the fastest line and the most-reliable line trade off, so the player faces a genuine choice (healthy depth, ADR-0003).</div>`;}})();
+
+// 3×3 grid
+(()=>{let h="<tr><th></th>"; SPENDS.forEach(s=>h+=`<th>${SPEND_LABEL[s]}</th>`); h+="</tr>";
+ CLIMBS.forEach(c=>{h+=`<tr><th style="text-align:right">${c}</th>`;
+  SPENDS.forEach(s=>{const a=arm(c,s); const best=(c===opt.climb&&s===opt.spend);
+   const ttb=a.completed?`<div class="ttb">~${a.median_hours}h to beat</div><div class="sub">${a.median_matches} matches · ${a.median_seasons} seasons</div>`
+                        :`<div class="sub" style="color:#ef9a9a">never finished (cap ${DATA.season_cap})</div>`;
+   h+=`<td class="${best?'best':''}"><div class="pct">${a.completion_pct}%</div><div class="cnt">${a.completed}/${a.n} finished</div>${ttb}</td>`;});
+  h+="</tr>";});
+ document.getElementById("tbl").innerHTML=h;})();
+</script>
+</body></html>
