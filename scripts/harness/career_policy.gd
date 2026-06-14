@@ -12,6 +12,10 @@ extends RefCounted
 
 const KINDS := ["rush", "farm", "trophy"]
 
+const FARM_MIN_SEASONS := 8   # farm crosses after this many Seasons at a Level even if
+                              # the card never maxes (joker_only/balanced never train) —
+                              # fixes the 0% softlock. Tunable — swept by career_search.gd.
+
 
 # Which unlocked tour to play at the current Level this Season.
 static func choose_tour(kind: String, state: CareerState) -> int:
@@ -47,7 +51,10 @@ static func _wants_to_cross(kind: String, state: CareerState, player: Player) ->
 		"rush":
 			return true                                # cross the instant offered
 		"farm":
-			return _card_maxed(player)                 # build the full card first
+			# Over-invest before moving on: cross once the card maxes OR after
+			# lingering FARM_MIN_SEASONS at this Level (the no-softlock fallback,
+			# since joker_only/balanced never fully train).
+			return _card_maxed(player) or state.seasons_at_level >= FARM_MIN_SEASONS
 		"trophy":
 			return state.level_won[state.current_level()]  # win the trophy first
 	return false

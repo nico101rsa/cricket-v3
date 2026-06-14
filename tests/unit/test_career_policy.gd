@@ -116,3 +116,33 @@ func test_no_pole_accepts_a_down_offer() -> void:
 	down.stars = 1.5
 	for kind in CareerPolicy.KINDS:
 		assert_null(CareerPolicy.choose_offer(kind, state, [down], player))
+
+
+# --- farm-trigger fix (career-line balancing): cross on maxed-OR-FARM_MIN_SEASONS ---
+
+func _maxed_player() -> Player:
+	var p := _fresh_player()
+	for a in ["power", "composure", "attack", "control"]:
+		p.attributes.set(a, ShopResolver.ATTR_CAP)
+	return p
+
+func test_farm_crosses_after_min_seasons_even_unmaxed() -> void:
+	var s := CareerState.new()
+	var p := _fresh_player()   # card well below the cap
+	s.seasons_at_level = CareerPolicy.FARM_MIN_SEASONS
+	assert_true(CareerPolicy._wants_to_cross("farm", s, p),
+		"farm crosses once it has lingered FARM_MIN_SEASONS, even unmaxed")
+
+func test_farm_holds_before_min_seasons_when_unmaxed() -> void:
+	var s := CareerState.new()
+	var p := _fresh_player()
+	s.seasons_at_level = CareerPolicy.FARM_MIN_SEASONS - 1
+	assert_false(CareerPolicy._wants_to_cross("farm", s, p),
+		"farm holds while under the linger cap and unmaxed")
+
+func test_farm_crosses_immediately_when_maxed() -> void:
+	var s := CareerState.new()
+	var p := _maxed_player()
+	s.seasons_at_level = 0
+	assert_true(CareerPolicy._wants_to_cross("farm", s, p),
+		"a maxed card crosses without waiting for the linger cap")
