@@ -16,7 +16,7 @@ extends Resource
 # pos_ref the formula is the original share-only promotion (strong builds unchanged);
 # below it a weak fresh player bats lower and climbs the order as it levels up.
 # Tuned by tools/build_spectrum_sweep.gd to flatten fresh-end build win-equality.
-@export var pos_ref_batting: float = 60.0
+@export var pos_ref_batting: float = 70.0
 
 # weakening-tail curve: factor(p) = max(tail_floor, 1 - (p-1)*tail_slope)
 @export var tail_floor: float = 0.45
