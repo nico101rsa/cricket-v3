@@ -25,6 +25,8 @@ Measured by `tools/career_search.gd` at **N=60/arm** (the E4 protocol), the rung
 
 (Confirmed read: completion-rate equality + all inside the 27–33h band — *not* the tighter "times also within 5% of each other".)
 
+> **Outcome update (2026-06-15):** measurement found this strict bar **over-constrained** — `joker_only` viability and `trophy`-via-card-strength pull the Province-final design in opposite directions, so all-9-within-5pts is unreachable without flattening genuine roguelite trade-offs. Nico ruled to **ship the gate and accept the trade-offs**; the reframed acceptance (no climb strategy dominates · all lines complete · time spread ≤1.6×) is in §10.
+
 ## 3. The two structural facts that constrain the design
 
 1. **Jokers reset every Season; attributes are permanent.** Only `carryover_joker_id` survives a Season. So durable power = attributes; jokers are in-Season power.
@@ -126,4 +128,54 @@ The oracle (`career_search.gd`) is the acceptance instrument, not a unit test �
 
 ## 10. Findings
 
-*(Filled during the build — the converged `READINESS_TOUR` / `FARM_LINGER`, the final 9-arm completion+time table proving §2 green, the iteration path, and the ledger-untouched confirmation.)*
+**Acceptance bar (§2):** completion max−min ≤ 5 pts AND every median time-to-beat ∈ [27,33]h.
+
+### Iteration log
+
+Each entry: dials → 9-arm table (completion% · median time-to-beat). E4's pre-rung baseline (gate=tour3, farm=card-maxed) for reference: rush 87–93% / 15–20h, farm 0–72% / 0–34h (two arms 0%), trophy 43–62% / 28–29h.
+
+**Smoke (N=10, noisy — mechanism check only): gate=5, farm=8.**
+
+| climb \ spend | attr_only | joker_only | balanced |
+|---|---|---|---|
+| rush | 100% · 23.6h | 90% · 21.9h | 80% · 21.3h |
+| farm | 100% · 19.6h | 80% · 22.6h | 80% · 17.2h |
+| trophy | 20% · 28.2h | 60% · 19.2h | 60% · 25.8h |
+
+Read: softlocks gone (farm completes everywhere), rush slowed (15.8→21h), but times cluster below the 27–33h band and completion is uneven. N=10 too noisy to tune from → run N=60 baseline.
+
+**Iteration 0 — N=60 baseline: gate=5 (Evening Mamba), farm=8.**
+
+| climb \ spend | attr_only | joker_only | balanced |
+|---|---|---|---|
+| rush | 90.0% · 23.4h | 75.0% · 19.3h | 83.3% · 24.1h |
+| farm | 86.7% · 22.6h | 73.3% · 19.7h | 81.7% · 21.6h |
+| trophy | 55.0% · 30.8h | 63.3% · 30.0h | 63.3% · 29.1h |
+
+Completion spread **35 pts** (55–90); time **19.3–30.8h**. Structure: the gate equalized rush≈farm (both ~73–90% / 19–24h, below band); trophy is the outlier — in-band on time (~30h) but low completion (55–63%) and hoarding ₸74k (winning every Premier costs seasons + the super-prize cash can't convert once attributes cap). Within rush/farm, completion is spend-driven (attr ~87–90 > balanced ~82 > joker ~73–75). **Move: gate 5→6** to push rush/farm up into the band on time and pull their completion down toward trophy's (converge both axes).
+
+**Iteration 1 — N=60 (FINAL config): gate=6 (Evening Mixed), farm=8.**
+
+| climb \ spend | attr_only | joker_only | balanced |
+|---|---|---|---|
+| rush | 86.7% · 26.0h | 80.0% · 21.6h | 85.0% · 21.8h |
+| farm | 85.0% · 26.0h | 78.3% · 23.4h | 83.3% · 21.8h |
+| trophy | 56.7% · 33.9h | 56.7% · 25.6h | 68.3% · 27.7h |
+
+Completion spread **30 pts** (56.7–86.7); time **21.6–33.9h** (ratio **1.57×**). vs gate=5 (iteration 0): tighter on both (completion 30 vs 35, time ratio 1.57 vs 1.60), more lines pushed toward the band, and only the Premier (tour 8) left optional. **Chosen as final.**
+
+### Outcome — the strict numeric target is over-constrained; the gate is shipped (Nico's ruling 2026-06-15)
+
+**The strict §2 bar (all 9 within 5 pts completion AND all ∈ 27–33h) is NOT reachable by these dials, and the reason is structural, not a tuning failure.** The completion of every line is gated by winning the Province Premier **final** (1st of 8 — a hard, luck-heavy event), and the measurement shows **completion is driven by the number of *attempts* at that final, not by card strength**: `rush + joker_only` (a *fresh* 11/11/11/11 card) completes **80%** while `trophy + attr_only` (a *fully maxed* card) completes only **57%**, because rush reaches Province fast (many cracks at the final) and trophy arrives late (few cracks before the season cap). This creates an unresolvable squeeze:
+
+- To give **trophy** equal completion, the final must **reward card strength** (so its maxed card wins in few attempts).
+- But a strength-rewarding final **craters `joker_only`** — it never trains attributes, so a strength-gated final locks it out (§3.2, the same constraint that forced the gate to be performance-based).
+- Jokers reset each Season; attributes are permanent (§3.1). So `joker_only` is structurally "viable hard mode" and `trophy` is structurally "the long, safe way" — honest roguelite trade-offs, not bugs (E4 already found "no dominant spend, healthy").
+
+**What the rung DID achieve (the real E4 fix):** the climb axis is balanced — `rush ≈ farm` (both ~78–87% / 22–26h), and the field went from **E4's 2.25× time spread + two arms that never complete (0%)** to **1.57× spread with all 9 arms completing 57–87%**. Rush is no longer a 2× no-brainer speed-run. The two farm softlocks are fixed.
+
+**Reframed acceptance (Nico's ruling 2026-06-15 — "ship the gate, treat the rest as healthy trade-offs"):** the rung is accepted on (1) no climb strategy dominates (rush no longer 2× faster — rush≈farm), (2) every line completes (no softlocks), (3) the time spread compressed to 1.57× (from 2.25×+∞). The residual completion spread is the spend axis (joker_only = hard mode) + the trophy pole (the long way), kept as deliberate roguelite trade-offs. Strict 9-way equality was declined as over-flattening genuine strategic diversity (and impossible to reconcile with `joker_only` viability).
+
+**Ledger: untouched (not re-run).** This rung changed only career-grid structure (`CareerState.READINESS_TOUR`, `seasons_at_level`) and the `CareerPolicy` farm trigger — no ball/innings/joker/economy/difficulty *math*, no tuning resource. The balance ledger (joker floor 45.5, build spread 1.9, pay spread ₸0.3, env 155) holds by construction. No reserve dial (`EconomyTuning`, difficulty ladder) was touched.
+
+**Final dials:** `CareerState.READINESS_TOUR = 6` (Evening Mixed), `CareerPolicy.FARM_MIN_SEASONS = 8`. **562 tests green.**
