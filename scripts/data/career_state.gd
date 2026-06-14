@@ -20,6 +20,9 @@ const LEAGUE_GATE_TOUR := 3   # Day Mixed — beating it unlocks the next League
 @export var cell_status: Array[int] = []
 @export var level_won: Array[bool] = [false, false, false]
 @export var seasons_played: int = 0
+@export var seasons_at_level: int = 0   # Seasons at the current Level since the last
+                                        # cross-up; resets on accept_offer. Feeds the
+                                        # farm climb trigger (career-line balancing).
 @export var complete: bool = false
 # The one joker elected to survive Season reset (shop rung DK6; "" = none).
 @export var carryover_joker_id: String = ""

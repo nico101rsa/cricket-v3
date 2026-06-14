@@ -21,6 +21,11 @@ func _state() -> CareerState:
 	return s
 
 
+func test_fresh_state_seasons_at_level_zero() -> void:
+	var s := CareerState.new()
+	assert_eq(s.seasons_at_level, 0, "fresh state has lingered zero Seasons")
+
+
 func test_fresh_state_only_club_practise_unlocked() -> void:
 	var s := _state()
 	assert_true(s.is_unlocked(0, 0), "Club Practise open")

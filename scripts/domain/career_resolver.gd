@@ -98,6 +98,7 @@ static func _append_offer(state: CareerState, level: int, taken: Array, offers: 
 
 static func accept_offer(state: CareerState, player: Player, offer: Offer) -> void:
 	state.current_team_index = offer.team_index
+	state.seasons_at_level = 0
 	player.affinity = 0
 
 
@@ -183,6 +184,7 @@ static func play_season(
 
 	state.record_outcome(level, tour_index, season.beat, season.won_final)
 	state.seasons_played += 1
+	state.seasons_at_level += 1
 
 	for t in state.teams:
 		t.mutate_stars(rng)
