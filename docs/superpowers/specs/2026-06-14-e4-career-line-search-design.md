@@ -120,6 +120,30 @@ E4 adds **only** `scripts/harness/career_policy.gd` + `tools/career_search.gd` +
 - No tuning changes — E4 measures, it does not re-peg (the pacing re-peg is its own deferred decision).
 - No shipped career-AI / UI — `CareerPolicy` is a harness strategy set, not the game's default line.
 
-## 10. Findings (filled at end of rung)
+## 10. Findings
 
-_TBD — optimal line, dominance verdict, optimal time-to-beat (seasons/matches/hours), pacing-target number, viz path, final test count._
+Measured by `tools/career_search.gd`, **N=60 careers/arm**, season cap 120, fresh 1.5★ Club underdog (card 11/11/11/11), textbook opponent plans, seeds `9000+c` shared across arms. Full grid in `docs/mockups/career-search-v1.html`. Raw per-arm table (completion · median time-to-beat):
+
+| climb \ spend | attr_only | joker_only | balanced |
+|---|---|---|---|
+| **rush** | 86.7% · 55 S / 443 m / **20.3h** | 86.7% · 40 S / 325 m / **14.9h** | **93.3%** · 42.5 S / 345 m / **15.8h** |
+| **farm** | 71.7% · 90 S / 730 m / 33.5h | **0%** (never completes) | **0%** (never completes) |
+| **trophy** | 60.0% · 78 S / 642 m / 29.4h | 43.3% · 75 S / 608 m / 27.9h | 61.7% · 76 S / 603 m / 27.6h |
+
+**Headline (the optimal line):** **`rush + balanced`** — 93.3% of careers beat Province Premier, median **42.5 seasons / 345 matches / ~15.8h** of match play. The naive line measured before E4 (`trophy + attr_only`, ≈ the career-loop eyeball) takes **78 seasons / ~29.4h** — **rushing nearly halves time-to-beat.**
+
+**The climb axis is decisive; the spend axis is a real trade-off.**
+- **Climb is (nearly) solved — `rush` strictly dominates.** At every matched spend, rush beats trophy and farm on *both* completion AND speed (rush 86.7–93.3% / 15–20h vs trophy 43–62% / 28–29h). There is no time-to-beat reason to play trophy or farm. This is the expected consequence of the career-pacing DP1 ruling (Province Premier has no Level-win gate → the lower Premier titles are *optional*), now quantified: a player optimizing for "beat the game" skips them. **Feel question for Nico (below).**
+- **Spend within rush is a genuine choice (no dominant line, `dominant=false`).** `balanced` is most reliable (93.3%) and near-fastest (15.8h); `joker_only` is fractionally faster (14.9h) but less reliable (86.7%); `attr_only` is reliable-ish but slowest (20.3h — attribute training defers the joker power that actually wins finals). Reliability vs raw speed trade off → healthy depth (ADR-0003).
+
+**Reconciling the two "dominance" reads (they measure different things):** the tool's `dominant=false` is a *per-arm* test (no single climb×spend cell is best on both axes — `rush+balanced` wins completion, `rush+joker_only` wins speed). Separately, at the *climb-strategy* level `rush` dominates the other two climbs outright. Both are true: the **spend** choice is open, the **climb** choice is solved.
+
+**Farm joker_only/balanced never complete (0/60) — a strategy artifact, not a bug.** `farm`'s cross-up trigger is "card maxed (all 4 attrs at 60)," but `joker_only` never trains attributes, so the card never maxes → the line never leaves Club/City → it can't reach Province Premier. Honest consequence of pairing "wait until maxed" with "never train"; recorded, not patched (E4 measures the lines as specified, and `farm` is dominated by `rush` regardless).
+
+**Regression check passed (`trophy ≡ naive`).** `trophy + attr_only` = 36/60 (60.0%), median **78 seasons** — matches the career-loop/handoff naive attr_only figure (65/100, median 78 S) within Monte-Carlo noise at the different N. Confirms `CareerPolicy` reproduces the old hardcoded naive line exactly.
+
+**The number for the deferred pacing re-peg — and a caveat that changes the lever.** Under *optimal* play the career completes in median **42.5 seasons** (not the naive ~78); Nico's stated target is ~50. So optimal play already beats the game slightly *faster* than target, while naive play overshoots. **Caveat (important):** under `rush`, attributes barely matter — `rush+balanced`/`rush+joker_only` complete with median card-max-season **0** (most careers win the Province Premier final *before* maxing, often without training at all). **So `attr_cost_base` is a weak lever on optimal time-to-beat** — the optimal line is gated by a rare event (winning the Province Premier *final*, finishing 1st of 8), not by the attribute grind. Lengthening skilled play would mean making that final harder or rushing less effective (e.g. a soft gate / readiness check), **not** raising attribute costs. This reframes the pacing decision and is Nico's call (E4-7).
+
+**Ledger: untouched (not re-run).** E4 added only `scripts/harness/career_policy.gd`, `tools/career_search.gd`, their test, and the viz — no ball/innings/economy/joker/difficulty math, no tuning resource, no change to `CareerResolver`/`ShopPolicy`/`SeasonResolver`. The balance ledger (joker floor 45.5, build spread 1.9, pay spread ₸0.3, env 155) holds by construction.
+
+**Test count:** 556 green (+9: 4 `choose_tour` + 5 `choose_offer`).
