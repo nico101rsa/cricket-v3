@@ -72,6 +72,7 @@ func _over_at_cursor() -> int:
 
 func step(delta: int) -> void:
 	_cursor = clampi(_cursor + delta, 0, _event_count)
+	_render()   # always show the state up to the cursor (the dismissal's context)
 	# pause for a DRS offer at the cursor (the event about to be shown)
 	var offer := _session.review_offer(_cursor)
 	if not offer.is_empty() and delta > 0:
@@ -79,18 +80,16 @@ func step(delta: int) -> void:
 		_show_overlay(offer)
 		pause()
 		return
-	_render()
 	if _cursor >= _event_count:
 		pause()
 
 func seek_to(cursor: int) -> void:
 	_cursor = clampi(cursor, 0, _event_count)
+	_render()
 	var offer := _session.review_offer(_cursor)
 	if not offer.is_empty():
 		_pending_review = offer
 		_show_overlay(offer)
-	else:
-		_render()
 
 func play() -> void:
 	if _cursor >= _event_count: return

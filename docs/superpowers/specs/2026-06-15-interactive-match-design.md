@@ -121,6 +121,15 @@ Red via parse-error (new `class_name`), green by the suite count climbing past *
 - `ball_id` shape = `(innings_no, over, ball_in_over)`.
 - Re-sim on every decision (no incremental diff) — <1ms, trivially fast.
 
-## 10. Findings (filled during build)
+## 10. Findings (build, 2026-06-15)
 
-_TBD during implementation._
+**Shipped exactly as designed (Approach C).** No engine refactor — the interactive match is the pure resolver re-run with Player-authored policy.
+
+- **610 tests green** (+19 over 591: 5 DRS-seam + 11 `MatchSession` + 3 scene).
+- **Ledger byte-identical:** `probe_scoring_env` reads **155.0** (PP 9.72 / mid 6.58 / death 7.49) — unchanged. The `DRSPolicy.review_balls == null` default path proves the gate is off for every sweep/headless call.
+- **Demo match** (`tools/preview_interactive_match.gd`, seed-20260615, Player forced to bat first): screenshot `docs/mockups/interactive-match-built-v1.png` shows a real decision — **109/2 in over 14.1, the Player given out, "Review? (2 left)"**, with a ball-by-ball feed and the BOOST button live. **SHOWCASE labels:** the Boost on over 5 and the seek-to-dismissal are scripted *for the shot*; a real session presses/reviews live.
+- **Three gotchas hit & recorded:**
+  1. **`do_review` needed an explicit `: bool`** — `review_balls` is untyped (Variant), so `null-check or .has()` can't be `:=`-inferred; the inference failure broke `InningsResolver`'s compile and cascaded "nonexistent function" errors across the suite. (The documented GDScript ternary/inference gotcha.)
+  2. **The caller must attach the captured ball-logs to the `MatchResult`.** `simulate_match_teams` fills the passed-in arrays *by reference* but does NOT set `mr.ball_log_innings1/2` — `LeagueResolver` does that after the call (L126), and so must `MatchSession._resim` (and the seam test's `_run`). Missed at first → `innings1.wickets == 6` but an empty `ball_log_innings1`.
+  3. **The scene must `_render()` before showing the overlay.** First cut skipped the render on an offer, so the scoreboard/feed stayed at boot state (0/0, empty) behind the DRS prompt. Render-then-overlay gives the dismissal its context.
+- **DRS scoping confirmed at the right layer:** the resolver gate reviews any listed `[over, ball]`; the player-only scoping is a `MatchSession.review_offer` concern (offers fire only on player-involved wicket events, since teammate wickets are folded into "over" summaries). The seam unit-test scripts the first wicket (any batter); the session tests script player dismissals.
