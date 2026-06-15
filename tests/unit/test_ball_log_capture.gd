@@ -19,14 +19,18 @@ func test_match_result_logs_default_empty() -> void:
 func test_simulate_match_capture_fills_both_logs() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 99
+	var bl1: Array = []
+	var bl2: Array = []
 	var m := MatchResolver.simulate_match(
 		_attrs(), 31.25, 31.25, 31.25, 31.25, 31.25, 31.25,
 		true, BallTuning.new(), _itun(), rng,
 		null, null, [], null, null, null, null, null, null,
 		[], [], 1.0, 1.0, null, null, null,
-		[], [])  # ball_log_1, ball_log_2 = fresh arrays
+		bl1, bl2)  # ball_log_1, ball_log_2 = bound arrays we assert on
 	# Both innings produced deliveries (each ball_log entry == one delivery).
-	assert_gt(m.innings1.balls, 0, "innings1 had deliveries")
+	assert_gt(bl1.size(), 0, "innings1 ball-log filled")
+	assert_eq(bl1.size(), m.innings1.balls, "innings1 log has one entry per delivery")
+	assert_eq(bl2.size(), m.innings2.balls, "innings2 log has one entry per delivery")
 
 func test_league_capture_true_attaches_logs_off_stays_empty() -> void:
 	var career := CareerResolver.start_career(0)
@@ -47,3 +51,7 @@ func test_league_capture_true_attaches_logs_off_stays_empty() -> void:
 		BallTuning.new(), _itun(), rng_off,
 		null, null, null, [], Callable())  # capture defaults false
 	assert_eq(league_off.player_matches[0].ball_log_innings1, [], "off → empty innings1 log")
+	assert_eq(league_off.player_matches[0].ball_log_innings2, [], "off → empty innings2 log")
+	# Same seed (7) → capture must not perturb the result vs capture-off.
+	assert_eq(league_on.player_matches[0].innings1.total, league_off.player_matches[0].innings1.total, "capture must not change outcomes")
+	assert_eq(league_on.player_matches[0].innings2.total, league_off.player_matches[0].innings2.total, "capture must not change outcomes")
