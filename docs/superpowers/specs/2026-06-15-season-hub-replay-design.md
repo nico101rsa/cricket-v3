@@ -134,6 +134,22 @@ bench · cross-season career-stat *persistence* (this slice folds within one sea
 splash/resume routing changes · gear/info corner-control behaviour · the economy pay-spread reconciliation
 (Nico is doing economy in a separate session).
 
-## 10. Findings / deltas (filled at end of rung)
+## 10. Findings / deltas (end of rung)
 
-_(TBD during build — final test count, any layout adaptations, screenshot path, anything that surprised us.)_
+**Built & green: 580 tests** (was 566; +14: 2 `SeasonView`, 9 `SeasonViewBuilder`, 3 `season_hub` scene). No new orphans. Zero resolver/tuning files touched ⇒ ledger untouched by construction (env/joker/build/pay all unaffected — not re-run, can't have moved).
+
+**Screenshot (the deliverable):** `docs/mockups/season-hub-built-v1.png` — a seed-20260615 Club season, scrubbed to Match 4 of 7. Everything on it is real folded data: Karoo Kings vs 7 named opponents, WON/LOST score lines, the ▶ scrub head at Match 5, the player card (4 inns · 10.5 avg · SR 135.5 · best 0/8 · OVR 26 — folded from the actual match lines), the FINAL TABLE with Karoo Kings highlighted 6th, "Match 4 / 7" scrubber. Regenerate with `tools/preview_season_hub.gd` (run **with** rendering, not headless).
+
+**Batching vs the plan:** Tasks 2–6 (builder) were written as one cohesive file + one test file (the fold logic is interdependent); Tasks 7–9 (scene) likewise. Net behaviour identical to the plan; fewer commits.
+
+**Deltas from the plan:**
+- **Boot is explicit, not `_ready`-auto.** A `SceneTree -s` preview proved `@onready` refs aren't resolved when you inject in `_initialize`; more importantly, auto-booting in `_ready` would fire a real-season sim (and read the save file) during scene tests. So `boot()` is a public method the router calls after mounting (`main._push_hub()`), and the preview/tests inject via `set_source`/`set_view`. Cleaner and save-safe.
+- **GDScript gotcha:** a ternary assigned with `:=` can't be type-inferred (`Cannot infer the type of "rr_for"`); needs an explicit `var x: float = (...) if c else y`. (Hit on the NRR lines.)
+- **Title shows team name only** (not "Team · Country") — the country accent colour carries the locale; keeps the ₸ chip from being pushed off-screen.
+
+**Known cosmetic polish (deferred to the art/margin-parity rung, per §-scope "structural not pixel-perfect"):**
+- A ~16px right-edge clip trims the ₸ chip ("₸ 180" → "₸ 18") and a thin left inset — the `MarginContainer` insets aren't visually landing in the preview window. Functional, not faithful; fold into the hi-fi styling pass.
+- Portraits/rarity-glow/gradient chrome are approximated (solid colours / text) — art parity is its own rung (§ visual-fidelity scope).
+- "best 0/8" shows for a non-bowling build (0 wickets, fewest runs) — honest but reads oddly; a "did-not-bowl" sentinel is a nicety for later.
+
+**Next rung options (handoff):** the playable **Play → match screen** (the in-match hi-fi), or **true live mid-season** standings + resumable season-state (turns the scrub into a real forward-play), or the **art/margin hi-fi pass** on this hub. Seams in place: `SeasonView` (read-model), `SeasonViewBuilder.build(player, career, season, scrub_index)` (pure fold), `scenes/season_hub/` (`set_view`/`set_source`/`boot`/`step`), `tools/preview_season_hub.gd` (visual harness).

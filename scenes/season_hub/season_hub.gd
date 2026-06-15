@@ -80,7 +80,9 @@ func _render() -> void:
 	if _view == null:
 		return
 	var accent: Color = COUNTRY_ACCENT.get(_view.country, Color("1f7a4d"))
-	_root.get_node("Header/TitleLabel").text = "%s · %s" % [_view.team_name, _country_word(_view.country)]
+	# Team name only; the accent colour signals the country (keeps the ₸ chip from
+	# being pushed off the right edge on long team names).
+	_root.get_node("Header/TitleLabel").text = _view.team_name
 	_root.get_node("Header/TitleLabel").add_theme_color_override("font_color", accent)
 	_root.get_node("Header/TonsChip").text = "₸ %d" % _view.tons_balance
 	_root.get_node("ContextLabel").text = "%s · %s · %s" % [
