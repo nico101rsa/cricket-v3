@@ -9,3 +9,8 @@ extends RefCounted
 
 var base_reviews: int = 2
 var base_p: float = 0.32
+
+# Interactive (DI3): when non-null, the Player's batting-side survive-review fires
+# ONLY on the [over, ball_in_over] pairs in this set (scripted by MatchSession).
+# null = auto policy (every sweep / headless call) → byte-identical to pre-rung.
+var review_balls = null

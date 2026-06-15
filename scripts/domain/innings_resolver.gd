@@ -239,7 +239,11 @@ static func simulate_innings(
 		var orig_dot := (not o.wicket) and o.runs == 0
 		if orig_wicket:
 			if player_is_batting and drs_policy != null:
-				if runtime.try_review(jokers, true, intent, drs_policy.base_p, balls + 1, rng):
+				# DI3 — scripted mode (review_balls non-null): only review the listed
+				# [over, ball_in_over] deliveries; auto mode (null) = byte-identical.
+				var bio := balls % 6 + 1
+				var do_review: bool = drs_policy.review_balls == null or drs_policy.review_balls.has([over, bio])
+				if do_review and runtime.try_review(jokers, true, intent, drs_policy.base_p, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
 			elif (not player_is_batting) and opp_drs_policy != null:
 				if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
