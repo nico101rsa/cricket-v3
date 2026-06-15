@@ -147,8 +147,9 @@ splash/resume routing changes · gear/info corner-control behaviour · the econo
 - **GDScript gotcha:** a ternary assigned with `:=` can't be type-inferred (`Cannot infer the type of "rr_for"`); needs an explicit `var x: float = (...) if c else y`. (Hit on the NRR lines.)
 - **Title shows team name only** (not "Team · Country") — the country accent colour carries the locale; keeps the ₸ chip from being pushed off-screen.
 
-**Known cosmetic polish (deferred to the art/margin-parity rung, per §-scope "structural not pixel-perfect"):**
-- A ~16px right-edge clip trims the ₸ chip ("₸ 180" → "₸ 18") and a thin left inset — the `MarginContainer` insets aren't visually landing in the preview window. Functional, not faithful; fold into the hi-fi styling pass.
+**Layout fix (same-day follow-up after Nico flagged "does not render completely"):** the first cut clipped content on **both** edges (first char of every row, ₸180→₸18, OVR 26→OVR 2) and didn't fill the panel. Root cause: the hand-authored `MarginContainer` insets weren't landing and long labels overflowed the phone width. **Fix:** wrapped the tree in a `ScrollContainer` (vertical-only; `horizontal_scroll_mode=0` constrains child width so nothing overflows) with explicit `offset_*=0` on the root, `autowrap_mode` on every long label + the fixture buttons, `clip_text` on the title (chip keeps its space), and a full-width "‹ Prev · Match N/7 · Next ›" bar. Re-rendered `season-hub-built-v1.png` — clean both margins, the career line wraps to two lines, all 8 table rows show. Node path moved `Margin/Root` → `Scroll/Margin/Root` (script `_root` + scene tests updated). 580 still green.
+
+**Known polish still deferred (art-parity rung, per §-scope "structural not pixel-perfect"):**
 - Portraits/rarity-glow/gradient chrome are approximated (solid colours / text) — art parity is its own rung (§ visual-fidelity scope).
 - "best 0/8" shows for a non-bowling build (0 wickets, fewest runs) — honest but reads oddly; a "did-not-bowl" sentinel is a nicety for later.
 

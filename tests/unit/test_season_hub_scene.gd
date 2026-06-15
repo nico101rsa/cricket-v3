@@ -72,7 +72,7 @@ func test_scene_renders_view_and_panels_are_visible() -> void:
 	add_child_autofree(hub)
 	hub.set_view(_view())
 	await get_tree().process_frame   # let the containers lay out
-	var root := hub.get_node("Margin/Root")
+	var root := hub.get_node("Scroll/Margin/Root")
 	assert_true(root.get_node("Header/TonsChip").text.contains("120"), "tons chip shows balance")
 	assert_true(root.get_node("FixturesBox").get_child_count() >= 7, "7 fixture rows")
 	assert_gt(root.get_node("FixturesBox").size.y, 0.0, "fixtures box not collapsed")
@@ -88,7 +88,7 @@ func test_next_advances_scrub_and_grows_card() -> void:
 	assert_eq(hub.scrub_index(), 0, "boots at 0")
 	hub.step(1)
 	assert_eq(hub.scrub_index(), 1, "next advances")
-	var lbl := hub.get_node("Margin/Root/ScrubBar/ScrubLabel")
+	var lbl := hub.get_node("Scroll/Margin/Root/ScrubBar/ScrubLabel")
 	assert_true(lbl.text.contains("1"), "readout updated")
 
 # --- Task 9: boot ---

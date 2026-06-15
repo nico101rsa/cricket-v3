@@ -19,7 +19,7 @@ const COUNTRY_ACCENT := {
 }
 const BOOT_SEED := 20260615
 
-@onready var _root: VBoxContainer = $Margin/Root
+@onready var _root: VBoxContainer = $Scroll/Margin/Root
 
 var _view: SeasonView
 var _player: Player
@@ -102,6 +102,8 @@ func _render_fixtures(accent: Color) -> void:
 		var f: Dictionary = _view.fixtures[i]
 		var row := Button.new()   # tappable: jump the scrub head to this fixture
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # never clip on a narrow phone
+		row.size_flags_horizontal = Control.SIZE_FILL
 		var idx := i
 		row.pressed.connect(func(): _rebuild(idx))
 		if f["played"]:
@@ -155,6 +157,7 @@ func _render_standings() -> void:
 	for i in range(_view.standings.size()):
 		var s: Dictionary = _view.standings[i]
 		var row := Label.new()
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.text = "%d. %s  %dpts  NRR %+.2f" % [i + 1, s["team_name"], s["points"], s["nrr"]]
 		if s["is_player"]:
 			row.add_theme_color_override("font_color", Color("ffc23c"))
