@@ -5,7 +5,7 @@ extends Node
 const IDENTITY := preload("res://scenes/player_creation/identity.tscn")
 const BUILD := preload("res://scenes/player_creation/build.tscn")
 const STARTING_TEAM := preload("res://scenes/stubs/starting_team_picker_stub.tscn")
-const SEASON_HUB := preload("res://scenes/stubs/season_hub_stub.tscn")
+const SEASON_HUB := preload("res://scenes/season_hub/season_hub.tscn")
 const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 
 @onready var _slot: Control = $Slot
@@ -13,7 +13,7 @@ const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 func _ready() -> void:
 	LifecycleManager.career_ended.connect(_on_career_ended)
 	if SaveManager.has_player():
-		_push(SEASON_HUB.instantiate())
+		_push_hub()
 	else:
 		_start_creation()
 
@@ -36,8 +36,16 @@ func _on_identity_advance(draft: PlayerCreationDraft) -> void:
 
 func _on_build_confirmed(_player: Player) -> void:
 	var picker := STARTING_TEAM.instantiate()
-	picker.proceed_to_season.connect(func(): _push(SEASON_HUB.instantiate()))
+	picker.proceed_to_season.connect(_push_hub)
 	_push(picker)
+
+# Instantiate the Season Hub, mount it, then boot a real season. boot() is
+# explicit (not auto-run in the hub's _ready) so tests can inject a view without
+# triggering a sim — see scenes/season_hub/season_hub.gd.
+func _push_hub() -> void:
+	var hub := SEASON_HUB.instantiate()
+	_push(hub)
+	hub.boot()
 
 func _on_career_ended(_reason: String) -> void:
 	var hof := HALL_OF_FAME.instantiate()

@@ -1,0 +1,81 @@
+[gd_scene load_steps=2 format=3 uid="uid://cs0nhub00001"]
+
+[ext_resource type="Script" path="res://scenes/season_hub/season_hub.gd" id="1_hub"]
+
+[node name="SeasonHub" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_hub")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="Root" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="Margin/Root/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Team"
+
+[node name="TonsChip" type="Label" parent="Margin/Root/Header"]
+layout_mode = 2
+text = "₸ 0"
+
+[node name="ContextLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+text = "Context"
+
+[node name="FixturesBox" type="VBoxContainer" parent="Margin/Root"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="PlayerCard" type="VBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Margin/Root/PlayerCard"]
+layout_mode = 2
+text = "Name"
+
+[node name="AttrLabel" type="Label" parent="Margin/Root/PlayerCard"]
+layout_mode = 2
+
+[node name="CareerLabel" type="Label" parent="Margin/Root/PlayerCard"]
+layout_mode = 2
+
+[node name="JokersBox" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="AffinityLabel" type="Label" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="StandingsBox" type="VBoxContainer" parent="Margin/Root"]
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+
+[node name="ScrubBar" type="HBoxContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="PrevBtn" type="Button" parent="Margin/Root/ScrubBar"]
+layout_mode = 2
+text = "‹"
+
+[node name="ScrubLabel" type="Label" parent="Margin/Root/ScrubBar"]
+layout_mode = 2
+text = "Match 0 / 7"
+
+[node name="NextBtn" type="Button" parent="Margin/Root/ScrubBar"]
+layout_mode = 2
+text = "›"
