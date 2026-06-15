@@ -1,0 +1,71 @@
+[gd_scene load_steps=2 format=3 uid="uid://cm5matchview01"]
+
+[ext_resource type="Script" path="res://scenes/match_view/match_view.gd" id="1_mv"]
+
+[node name="MatchView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+script = ExtResource("1_mv")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+size_flags_horizontal = 3
+
+[node name="Header" type="Label" parent="Root"]
+layout_mode = 2
+text = "Team  v  Opponent"
+
+[node name="Scoreboard" type="Label" parent="Root"]
+layout_mode = 2
+text = "Scoreboard"
+
+[node name="Target" type="Label" parent="Root"]
+layout_mode = 2
+
+[node name="CurrentLine" type="Label" parent="Root"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="FeedBox" type="VBoxContainer" parent="Root"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+
+[node name="Controls" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="StepBack" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "‹"
+
+[node name="PlayPause" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "Play"
+
+[node name="Speed" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "1x"
+
+[node name="StepFwd" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "›"
+
+[node name="Back" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "Back"
+
+[node name="Tick" type="Timer" parent="."]
+wait_time = 0.6
+one_shot = false
