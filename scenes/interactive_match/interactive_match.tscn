@@ -1,0 +1,111 @@
+[gd_scene load_steps=2 format=3 uid="uid://cm5interactive01"]
+
+[ext_resource type="Script" path="res://scenes/interactive_match/interactive_match.gd" id="1_im"]
+
+[node name="InteractiveMatch" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+script = ExtResource("1_im")
+
+[node name="Root" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+size_flags_horizontal = 3
+
+[node name="Header" type="Label" parent="Root"]
+layout_mode = 2
+text = "Team  v  Opponent"
+
+[node name="Scoreboard" type="Label" parent="Root"]
+layout_mode = 2
+text = "Scoreboard"
+
+[node name="Target" type="Label" parent="Root"]
+layout_mode = 2
+
+[node name="CurrentLine" type="Label" parent="Root"]
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="FeedBox" type="VBoxContainer" parent="Root"]
+custom_minimum_size = Vector2(0, 180)
+layout_mode = 2
+
+[node name="Controls" type="HBoxContainer" parent="Root"]
+layout_mode = 2
+
+[node name="StepBack" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "‹"
+
+[node name="PlayPause" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "Play"
+
+[node name="Speed" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "1x"
+
+[node name="StepFwd" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "›"
+
+[node name="Boost" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "BOOST"
+
+[node name="Back" type="Button" parent="Root/Controls"]
+layout_mode = 2
+text = "Back"
+
+[node name="Tick" type="Timer" parent="."]
+wait_time = 0.6
+one_shot = false
+
+[node name="Overlay" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -70.0
+offset_right = 140.0
+offset_bottom = 70.0
+
+[node name="OverlayBox" type="VBoxContainer" parent="Overlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+
+[node name="Prompt" type="Label" parent="Overlay/OverlayBox"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Review?"
+
+[node name="ReviewYes" type="Button" parent="Overlay/OverlayBox"]
+layout_mode = 2
+text = "Review"
+
+[node name="ReviewNo" type="Button" parent="Overlay/OverlayBox"]
+layout_mode = 2
+text = "No"
