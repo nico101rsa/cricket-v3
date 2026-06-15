@@ -87,11 +87,12 @@ static func simulate_season(
 		player_bowling_plan: BowlingPlan = null,
 		opp_spec: TourSpec = null,
 		jokers: Array = [],
-		shop_hook: Callable = Callable()
+		shop_hook: Callable = Callable(),
+		capture: bool = false
 ) -> SeasonResult:
 	var league := LeagueResolver.simulate_league(
 		player_attrs, player_team, opponents, tour, tuning, itun, rng,
-		player_intent_plan, player_bowling_plan, opp_spec, jokers, shop_hook)
+		player_intent_plan, player_bowling_plan, opp_spec, jokers, shop_hook, capture)
 	# Career-fidelity CF2: knockouts play the same roster path as the league.
 	var rosters := LeagueResolver.build_rosters(player_attrs, itun, opponents.size() + 1)
 	var bat: Array = league.team_bat

@@ -14,6 +14,12 @@ var margin_runs: int = 0           # set when a side wins batting first
 var margin_wickets: int = 0        # set when a side wins chasing
 var balls_remaining: int = 0       # set when a side wins chasing
 
+# Opt-in per-ball replay logs (Play → Match screen, spec §6). Empty unless the
+# match was simulated with capture on. innings1/innings2 follow bat order (same as
+# the InningsResult fields); each entry is the per-ball dict InningsResolver records.
+var ball_log_innings1: Array = []
+var ball_log_innings2: Array = []
+
 func player_won() -> bool:
 	return outcome == Outcome.PLAYER_WIN
 
