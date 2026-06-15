@@ -16,7 +16,8 @@ var _cursor := 0
 var _event_count := 0
 var _speed_idx := 0
 var _playing := false
-var _pending_review := {}   # the offer currently shown in the overlay
+var _pending_review := {}     # the offer currently shown in the overlay
+var _resume_after_review := false   # was autoplay running when the overlay popped?
 
 func _ready() -> void:
 	$Root/Controls/StepBack.pressed.connect(func(): pause(); step(-1))
@@ -77,6 +78,7 @@ func step(delta: int) -> void:
 	var offer := _session.review_offer(_cursor)
 	if not offer.is_empty() and delta > 0:
 		_pending_review = offer
+		_resume_after_review = _playing   # remember to resume after the decision
 		_show_overlay(offer)
 		pause()
 		return
@@ -136,11 +138,20 @@ func _on_review_yes() -> void:
 		_event_count = _session.events().size()
 	_pending_review = {}
 	_render()   # re-render the (possibly overturned) cursor event
+	_resume_play_after_decision()
 
 func _on_review_no() -> void:
 	$Overlay.visible = false
 	_pending_review = {}
 	_render()
+	_resume_play_after_decision()
+
+# After a DRS decision, pick up where we left off: if autoplay was running, resume it
+# (the next tick steps past the reviewed ball); otherwise stay paused for manual control.
+func _resume_play_after_decision() -> void:
+	if _resume_after_review and _cursor < _event_count:
+		_resume_after_review = false
+		play()
 
 func _render() -> void:
 	var v := MatchViewBuilder.build(_session.result(), _session.player(), _cursor)
