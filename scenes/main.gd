@@ -7,6 +7,7 @@ const BUILD := preload("res://scenes/player_creation/build.tscn")
 const STARTING_TEAM := preload("res://scenes/stubs/starting_team_picker_stub.tscn")
 const SEASON_HUB := preload("res://scenes/season_hub/season_hub.tscn")
 const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
+const MATCH_VIEW := preload("res://scenes/match_view/match_view.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -44,8 +45,24 @@ func _on_build_confirmed(_player: Player) -> void:
 # triggering a sim — see scenes/season_hub/season_hub.gd.
 func _push_hub() -> void:
 	var hub := SEASON_HUB.instantiate()
+	hub.open_match.connect(_push_match)
 	_push(hub)
 	hub.boot()
+
+# Tap a played fixture → watch that match's ball-by-ball replay. Pulls the
+# captured match + opponent/team names off the live hub (via its public getters)
+# and pushes the watch-only match scene. back returns to the hub.
+func _push_match(match_index: int) -> void:
+	var player := SaveManager.load_player()
+	var hub = _slot.get_child(0)   # the live Season Hub
+	var view: SeasonView = hub.current_view()
+	var mr: MatchResult = hub.season().league.player_matches[match_index]
+	var opp: String = view.fixtures[match_index]["opponent_name"]
+	var screen := MATCH_VIEW.instantiate()
+	screen.back.connect(_push_hub)
+	_push(screen)
+	screen.set_match(mr, player, view.team_name, opp)
+	screen.boot()
 
 func _on_career_ended(_reason: String) -> void:
 	var hof := HALL_OF_FAME.instantiate()
