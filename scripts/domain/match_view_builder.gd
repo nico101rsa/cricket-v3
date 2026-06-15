@@ -56,3 +56,76 @@ static func build_events(mr: MatchResult, _player: Player) -> Array:
 	events.append({"type": "result", "text": mr.margin_text(),
 		"player_won": mr.player_won()})
 	return events
+
+# Fold the event stream up to `cursor` (0..event_count) into the current MatchView.
+static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
+	var events := build_events(mr, player)
+	var v := MatchView.new()
+	v.event_count = events.size()
+	var c: int = clampi(cursor, 0, events.size())
+
+	var bat_total := 0
+	var bat_wkts := 0
+	var innings_no := 1
+	var target := 0
+	var feed: Array = []
+
+	for k in range(c):
+		var e: Dictionary = events[k]
+		match e["type"]:
+			"ball":
+				innings_no = e["innings"]
+				bat_total = e["total"]; bat_wkts = e["wickets"]
+				var tag := ""
+				if e["boost"]: tag = "BOOST · "
+				var what := ("WICKET!" if e["wicket"] else "%d run%s" % [e["runs"], "" if e["runs"] == 1 else "s"])
+				feed.append("%d.%d  %s%s" % [e["over"], e["ball"], tag, what])
+				v.current_line = _line_for(e, bat_total, bat_wkts)
+			"over":
+				innings_no = e["innings"]
+				bat_total = e["total"]; bat_wkts = e["wickets"]
+				feed.append("Over %d: %d run%s%s" % [e["over"], e["runs"],
+					"" if e["runs"] == 1 else "s",
+					(", %d wkt" % e["wkts"]) if e["wkts"] > 0 else ""])
+			"innings_break":
+				target = e["target"]
+				innings_no = 2
+				bat_total = 0; bat_wkts = 0
+				feed.append("Innings break — chasing %d" % target)
+			"result":
+				v.finished = true
+				v.result_text = e["text"]
+				v.player_won = e["player_won"]
+				feed.append("Result: %s" % e["text"])
+
+	# Active innings label + scoreboard.
+	var player_bats_this := (innings_no == 1) == mr.player_bats_first
+	if innings_no == 2 and target > 0:
+		v.innings_label = ("Your chase" if player_bats_this else "Bowling — defending %d" % target)
+		v.target_text = "Target %d" % target
+	else:
+		v.innings_label = ("Your innings" if player_bats_this else "Bowling")
+		v.target_text = ""
+	var od := _over_dot(events, c)
+	var overs := "%d.%d" % [od[0], od[1]]
+	v.batting_score = "%d/%d (%s)" % [bat_total, bat_wkts, overs]
+	v.feed = feed.slice(maxi(0, feed.size() - 6))
+	return v
+
+# The striker/bowler one-liner for the current ball.
+static func _line_for(e: Dictionary, total: int, _wkts: int) -> String:
+	if e["player_bowling"]:
+		return "You bowling — %d.%d" % [e["over"], e["ball"]]
+	if e["player_batting"]:
+		return "You batting — team %d" % total
+	return ""
+
+# Best-effort current over.ball from the last applied event (display only).
+static func _over_dot(events: Array, c: int) -> Array:
+	for k in range(c - 1, -1, -1):
+		var e: Dictionary = events[k]
+		if e["type"] == "ball":
+			return [e["over"], e["ball"]]
+		if e["type"] == "over":
+			return [e["over"], 6]
+	return [0, 0]

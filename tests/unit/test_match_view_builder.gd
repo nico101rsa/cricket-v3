@@ -57,3 +57,24 @@ func test_result_event_carries_outcome() -> void:
 	var res: Dictionary = events[-1]
 	assert_true(res["player_won"], "result marks the player win")
 	assert_string_contains(res["text"], "won by", "result text uses margin phrasing")
+
+func test_build_running_score_at_cursor() -> void:
+	var log1 := [
+		_ball(1, 1, true, true, false, 4, false, false, 4, 0),
+		_ball(1, 2, true, true, false, 6, false, false, 10, 0),
+		_ball(1, 3, true, true, false, 0, true,  false, 10, 1)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var view := MatchViewBuilder.build(m, _player(), 2)  # after 2 events (2 balls)
+	assert_string_contains(view.batting_score, "10/0", "running score reflects 2 balls")
+	assert_false(view.finished, "not finished mid-stream")
+	assert_gt(view.event_count, 0, "event_count populated")
+
+func test_build_at_end_is_finished_with_result() -> void:
+	var log1 := [_ball(1, 1, true, true, false, 4, false, false, 4, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var view := MatchViewBuilder.build(m, _player(), 99)  # past the end → clamps
+	assert_true(view.finished, "finished at end of stream")
+	assert_string_contains(view.result_text, "won by", "result text present")
+	assert_true(view.player_won, "player_won set")
