@@ -78,8 +78,11 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 				bat_total = e["total"]; bat_wkts = e["wickets"]
 				var tag := ""
 				if e["boost"]: tag = "BOOST · "
+				# Every individual "ball" event is a Player delivery (teammates fold into "over"
+				# summaries) — label it so participation is legible.
+				var who := "You bat " if e["player_batting"] else "You bowl "
 				var what := ("WICKET!" if e["wicket"] else "%d run%s" % [e["runs"], "" if e["runs"] == 1 else "s"])
-				feed.append("%d.%d  %s%s" % [e["over"], e["ball"], tag, what])
+				feed.append("%d.%d  %s%s%s" % [e["over"], e["ball"], who, tag, what])
 				v.current_line = _line_for(e, bat_total, bat_wkts)
 			"over":
 				innings_no = e["innings"]
