@@ -32,7 +32,8 @@ static func simulate_league(
 		player_bowling_plan: BowlingPlan = null,
 		opp_spec: TourSpec = null,
 		jokers: Array = [],
-		shop_hook: Callable = Callable()
+		shop_hook: Callable = Callable(),
+		capture: bool = false
 ) -> LeagueResult:
 	var teams: Array = [player_team]
 	teams.append_array(opponents)
@@ -84,6 +85,8 @@ static func simulate_league(
 			bplan = jplans["boost"]
 			dp = DRSPolicy.new()
 			odp = DRSPolicy.new()
+		var bl1 = [] if (capture and i == 0) else null
+		var bl2 = [] if (capture and i == 0) else null
 		var m := MatchResolver.simulate_match(
 			p_attrs,
 			bat[i], bowl[i], bowl[i],
@@ -91,7 +94,7 @@ static func simulate_league(
 			i_bats_first, tuning, itun, rng, ip, bp,
 			jokers if i == 0 else [], fp, null, oip, bplan, dp, null,
 			rosters[i], rosters[j], bat[i] / MatchResolver.REF_SCALAR, bat[j] / MatchResolver.REF_SCALAR,
-			null, odp, obp)
+			null, odp, obp, bl1, bl2)
 
 		# Attribute innings (innings1 = first-batting side).
 		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2
@@ -119,6 +122,9 @@ static func simulate_league(
 				rj.points += 1
 
 		if i == 0:
+			if capture:
+				m.ball_log_innings1 = bl1
+				m.ball_log_innings2 = bl2
 			player_matches.append(m)
 			# Shop visits V1/V2 (shop rung DK2): after Player matches 3 and 5.
 			if shop_hook.is_valid() and (player_matches.size() == 3 or player_matches.size() == 5):

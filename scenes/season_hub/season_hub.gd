@@ -19,6 +19,10 @@ const COUNTRY_ACCENT := {
 }
 const BOOT_SEED := 20260615
 
+# Tapping a PLAYED fixture row opens that match's ball-by-ball replay. main.gd
+# wires this to _push_match. Unplayed rows keep scrubbing the season head.
+signal open_match(match_index: int)
+
 @onready var _root: VBoxContainer = $Scroll/Margin/Root
 
 var _view: SeasonView
@@ -46,7 +50,8 @@ func boot() -> void:
 	rng.seed = BOOT_SEED
 	var season := SeasonResolver.simulate_season(
 		player.attributes, team, career.opponents_of_current(),
-		spec.make_tour(), BallTuning.new(), InningsTuning.new(), rng)
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), rng,
+		null, null, null, [], Callable(), true)
 	set_source(player, career, season)
 
 # --- Source + scrub ---
@@ -64,6 +69,14 @@ func _rebuild(index: int) -> void:
 
 func scrub_index() -> int:
 	return _view.scrub_index if _view != null else 0
+
+# Public getters so main.gd's _push_match can read the captured season + names
+# without reaching into the hub's private fields (cleaner coupling, plan §6 note).
+func season() -> SeasonResult:
+	return _season
+
+func current_view() -> SeasonView:
+	return _view
 
 func step(delta: int) -> void:
 	if _view == null:
@@ -105,7 +118,10 @@ func _render_fixtures(accent: Color) -> void:
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # never clip on a narrow phone
 		row.size_flags_horizontal = Control.SIZE_FILL
 		var idx := i
-		row.pressed.connect(func(): _rebuild(idx))
+		if f["played"]:
+			row.pressed.connect(func(): open_match.emit(idx))
+		else:
+			row.pressed.connect(func(): _rebuild(idx))
 		if f["played"]:
 			var tag := "WON " if f["player_won"] else "LOST "
 			row.text = "%d. v %s — %s%s" % [i + 1, f["opponent_name"], tag, f["score_text"]]
