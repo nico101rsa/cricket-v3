@@ -69,6 +69,12 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 	var innings_no := 1
 	var target := 0
 	var feed: Array = []
+	var my_runs := 0
+	var my_balls := 0
+	var my_out := false
+	var bw_wkts := 0
+	var bw_runs := 0
+	var bw_balls := 0
 
 	for k in range(c):
 		var e: Dictionary = events[k]
@@ -83,7 +89,16 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 				var who := "You bat " if e["player_batting"] else "You bowl "
 				var what := ("WICKET!" if e["wicket"] else "%d run%s" % [e["runs"], "" if e["runs"] == 1 else "s"])
 				feed.append("%d.%d  %s%s%s" % [e["over"], e["ball"], who, tag, what])
-				v.current_line = _line_for(e, bat_total, bat_wkts)
+				if e["player_batting"]:
+					my_balls += 1
+					if e["wicket"]: my_out = true
+					else: my_runs += e["runs"]
+					v.current_line = "You %d%s (%d)" % [my_runs, "" if my_out else "*", my_balls]
+				elif e["player_bowling"]:
+					bw_balls += 1
+					if e["wicket"]: bw_wkts += 1
+					else: bw_runs += e["runs"]
+					v.current_line = "You %d/%d (%d.%d)" % [bw_wkts, bw_runs, bw_balls / 6, bw_balls % 6]
 			"over":
 				innings_no = e["innings"]
 				bat_total = e["total"]; bat_wkts = e["wickets"]
