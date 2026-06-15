@@ -300,8 +300,8 @@ func _match(player_first: bool, won: bool) -> MatchResult:
 		m.innings1 = bat; m.innings2 = bowl
 	else:
 		m.innings1 = bowl; m.innings2 = bat
-	m.outcome = (Outcome.WIN_BATTING if won else Outcome.LOSS_BATTING) if player_first \
-		else (Outcome.WIN_CHASING if won else Outcome.LOSS_CHASING)
+	# Outcome is a nested enum on MatchResult: { PLAYER_WIN, OPPONENT_WIN, TIE }.
+	m.outcome = MatchResult.Outcome.PLAYER_WIN if won else MatchResult.Outcome.OPPONENT_WIN
 	return m
 
 func _season_with(n_matches: int) -> SeasonResult:
@@ -821,7 +821,7 @@ func _season7() -> SeasonResult:
 		m.innings1 = InningsResult.new(150, 5, 120, [], [
 			{"position": 3, "is_player": true, "runs": 30, "balls": 24, "out": true}])
 		m.innings2 = InningsResult.new(140, 8, 120, [], [], 2, 26, 24)
-		m.outcome = Outcome.WIN_BATTING
+		m.outcome = MatchResult.Outcome.PLAYER_WIN
 		pms.append(m)
 	lr.player_matches = pms; lr.standings = []
 	sr.league = lr
