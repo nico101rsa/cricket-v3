@@ -15,7 +15,7 @@ The trick that keeps it cheap and safe: the sim is **deterministic** and **fast*
 ## 2. Decisions (locked)
 
 - **DI1 — Architecture = deterministic re-simulation (Approach C), NOT an engine refactor.** A `MatchSession` controller holds the seed + the accumulating decision policy; each decision re-runs `MatchResolver.simulate_match_teams` with rebuilt policies + re-capture, producing a fresh event stream. The synchronous innings loop is **not** reworked into a pausable state-machine. *Why:* zero risk to the 591-green ledger (we only *call* the existing resolver), smallest slice, reuses the entire capture→replay scaffold. The pausable-machine engine (Approach A) is the real prerequisite for *live mid-season* (rung option 2) and earns its cost there, not here.
-- **DI2 — Boost is interactive in BOTH innings** (batting → +runs window; bowling → +wicket window). The decision is *when to press*, expressed exactly by the existing `BoostPlan.press_overs`. No resolver change needed for Boost.
+- **DI2 — Boost is a press-anytime BUTTON, interactive in BOTH innings** (batting → +runs window; bowling → +wicket window). Faithful to ADR 0005 ("the only decision is *when* to press"): the button is enabled while budget remains; pressing it applies the boost to the *next* over (`press_overs += next_over`), re-sims, and play continues. It is **not** a forced pause — pausing at every over-boundary (40/match) would be unplayable. The decision is expressed exactly by the existing `BoostPlan.press_overs`; no resolver change needed for Boost.
 - **DI3 — DRS is interactive on the BATTING side only ("review to survive").** Pause when *your* team loses a wicket and a review remains. *Why bowling-side ("review a dot to claim a wicket") is deferred:* the sim has no "was it close?" signal on a dot, so the only honest prompt would fire on every dot (~80/innings) = unplayable. Bowling-side review needs a new "appeal" concept = its own slice (§9).
 - **DI4 — The opponent's Boost/DRS stay fully automatic** (the existing `opp_boost_plan` / `opp_drs_policy`). Unchanged, re-run identically on every re-sim.
 - **DI5 — Boost budget = strawman, not canon.** A fixed number of presses per innings (strawman `BOOST_BUDGET = 2`), tunable. The ADR 0005 water-meter magnitude model (fill² strength/duration, ~25s recharge, ~6 presses/match) is a **real-time/hi-fi** concept that does not map onto a turn-based ball-by-ball replay — deferred to a real-time match rung. We keep the sim's existing discrete `base_mult`/`base_n` press.
@@ -52,7 +52,7 @@ The trick that keeps it cheap and safe: the sim is **deterministic** and **fast*
   - `func decide_boost(over) -> void` — append `over` to `press_overs`, re-run + re-capture, rebuild events.
   - `func decide_review(ball_id) -> void` — append `ball_id` to `review_balls`, re-run + re-capture, rebuild events.
   - `func presses_left(innings_no) -> int` / `func reviews_left() -> int` — budget read-outs for the overlay.
-- **Resolver seam (DI3, the only sim change):** an optional `review_balls` parameter threaded `simulate_match_teams → simulate_match → simulate_innings`. In the batting-side DRS branch (`innings_resolver.gd` ~L240–246), when `review_balls != null` the Player's review fires **iff** the current ball-id is in the set (no auto-roll otherwise); when `null` (every sweep, every headless call) the current auto-logic is byte-identical. Bowling-side review branch untouched. Boost needs no seam.
+- **Resolver seam (DI3, the only sim change):** a new optional `review_balls` field on `DRSPolicy` (which is *already* threaded `simulate_match_teams → simulate_match → simulate_innings` as `drs_policy`) — so **no new params and no `match_resolver.gd` change**. In the batting-side DRS branch (`innings_resolver.gd` ~L240–243), when `drs_policy.review_balls != null` the Player's survive-review fires **iff** `[over, ball_in_over]` is in the set (no auto-roll otherwise); when `null` (every sweep, every headless call) the current auto-logic is byte-identical. The bowling-side claim branch ignores `review_balls` entirely (stays auto — bowling-side DRS is deferred, DI3). Boost needs no seam.
 - **Scene** `scenes/interactive_match/interactive_match.{gd,tscn}` — mirrors `match_view`'s structure (header / scoreboard / current line / feed + play/pause/step/speed/back). Adds a **decision overlay** (a Panel with the prompt + Yes/No). Driving loop: on each Tick or Step, ask `MatchSession.boost_offer/review_offer(cursor)`; if an offer exists, `pause()` and show the overlay; on Yes call the relevant `decide_*` and re-render at the (stable) cursor; on No just advance. `boot()` explicit (tests inject without a sim), same as `match_view`.
 
 ## 4. Where the decisions surface (the event/cursor mapping)
@@ -60,7 +60,7 @@ The trick that keeps it cheap and safe: the sim is **deterministic** and **fast*
 The event stream is the same one `MatchViewBuilder.build_events` already produces (`"ball"` / `"over"` / `"innings_break"` / `"result"`). Decision detection rides on it:
 
 - **Boost offer** — fires at an **over boundary** in a Player-facing innings (your batting innings, or the opponent's batting innings while you bowl) when `presses_left(innings_no) > 0` and that over isn't already pressed. The natural cursor: just before the first event of a new over. The overlay shows the side-aware effect (+runs while batting / +wickets while bowling).
-- **Review offer** — fires when the **next event is a `"ball"` with `wicket == true` in your batting innings** and `reviews_left() > 0`. The `ball_id` is `(innings_no, over, ball_in_over)` — stable in the prefix (DI7). The overlay shows "Your batter is given out — Review? (N left)".
+- **Review offer** — fires when the **next event is a `"ball"` with `wicket == true` AND `player_batting == true`** (i.e. *you* are given out — a player-involved ball; teammate wickets are folded into "over" summaries and aren't individually reviewable this slice) and `reviews_left() > 0`. The `ball_id` is `[over, ball_in_over]` (the Player bats exactly one innings, so it's unique). The overlay shows "You're given out — Review? (N left)". Because a player-dismissal ball has the Player as striker, scripting a review at that ball reviews exactly that delivery.
 
 Ball-id stability: because a decision only ever adds to the policy at/after the current cursor, the *prefix* (every ball before the offer) is byte-identical across re-sims, so cursors/ball-ids already shown never shift. Only the suffix diverges. (DI7 test.)
 
@@ -77,9 +77,9 @@ Ball-id stability: because a decision only ever adds to the policy at/after the 
 | File | Change |
 |---|---|
 | `scripts/domain/match_session.gd` | **NEW** — the controller (§3). |
-| `scripts/data/drs_policy.gd` | add optional `review_balls` set (or a sibling field) the resolver reads. |
-| `scripts/domain/innings_resolver.gd` | batting-side DRS branch: honor `review_balls` when set (DI3); default-off byte-identical. Thread the param. |
-| `scripts/domain/match_resolver.gd` | thread `review_balls` through `simulate_match_teams` / `simulate_match`. |
+| `scripts/data/drs_policy.gd` | add optional `review_balls` field (default `null`) the resolver reads. |
+| `scripts/domain/innings_resolver.gd` | batting-side survive-review branch: honor `drs_policy.review_balls` when set (DI3); default-off byte-identical. No new param (rides on `drs_policy`). |
+| `scripts/domain/match_resolver.gd` | **no change** — `drs_policy` is already threaded through. |
 | `scenes/interactive_match/interactive_match.{gd,tscn}` | **NEW** — interactive scene + decision overlay. |
 | `tools/preview_interactive_match.gd` | **NEW** — fixed-seed match, scripts a couple of decisions, renders the screenshot. |
 | `scripts/domain/match_view_builder.gd`, `scripts/data/match_view.gd` | **REUSED unchanged.** |
