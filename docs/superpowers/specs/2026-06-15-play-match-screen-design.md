@@ -139,4 +139,17 @@ Red via parse-error (missing `class_name`), green by total count climbing past t
 
 ## 10. Findings (filled during build)
 
-_TBD — populated as the rung is built: actual event counts on a real match, runtime feel, any sim-seam surprises, screenshot path._
+**Screenshot:** `docs/mockups/match-view-built-v1.png` (390×844 portrait), rendered by `tools/preview_match_view.gd` from a real captured season (seed `20260615`, attrs P55/C45/A35/Co30, team "Karoo Kings", `player_matches[0]`, cursor stepped 12 events in). It shows the header, "Your innings  69/2 (6.6)" scoreboard, "You batting — team 69" current line, a feed mixing individual player balls (6.1–6.6) with a collapsed "Over 5: 8 runs, 1 wkt" summary, and the control row (‹ Play 1x › Back). Confirms both event kinds render and the watch-only controls are present.
+
+**Event counts (previewed match, `player_matches[0]`):**
+- Raw ball-logs: **120 deliveries** in each innings (`ball_log_innings1` = 120, `ball_log_innings2` = 120) — a full 20-over-a-side T20.
+- `build_events()` produced **76 events** total: **37 `ball`** (individual player-involved deliveries) + **37 `over`** (collapsed non-player residual summaries, ~one per over per innings) + **1 `innings_break`** + **1 `result`**.
+- Of the 37 player balls: **19 the player batted**, **18 the player bowled** — i.e. the player faced 19 deliveries across the chase/innings and bowled 18 (≈3 overs). The ~240 raw deliveries fold to 76 events because non-player balls collapse per over: this is the player-centric compression working as designed (DM2).
+
+**Tests:** full suite green at **591 / 591** (`All tests passed`, 9524 asserts). Task 7 adds no tests.
+
+**Wire-vocabulary reconcile (reviewer-flagged):** the builder code emits event type `"over"` with fields `runs` / `total` (see `match_view_builder.gd._innings_events`), whereas §4's prose illustrates it as `"over_summary"` with `runs_in_over` / `end_total`. **The code is canonical; §4's names are illustrative shorthand.** They are reconciled — no code change. Likewise the `build()` `match` statement keys (`"ball"`, `"over"`, `"innings_break"`, `"result"`) are the real contract.
+
+**Surprises / harness notes:**
+- `Team` has no `name` property — its field is `team_name` (corrected in the harness; the header now reads "Karoo Kings v Opponent").
+- In a `-s SceneTree` script, `_ready` (and thus signal wiring / `@onready` / `$Tick`) defers to the first rendered frame, so `set_match`/`boot`/`step` must run from `_process` after a frame, not in `_initialize` (mirrors `preview_season_hub.gd`). Stepping in `_initialize` left the scene showing its `.tscn` placeholder text. Fixed by deferred injection at frame 2, screenshot at frame 8.
