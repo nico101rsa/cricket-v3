@@ -115,6 +115,10 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 				v.result_text = e["text"]
 				v.player_won = e["player_won"]
 				feed.append("Result: %s" % e["text"])
+				v.player_summary = "You: %d%s (%d) bat  ·  %d/%d (%d.%d) bowl" % [
+					my_runs, "" if my_out else "*", my_balls,
+					bw_wkts, bw_runs, bw_balls / 6, bw_balls % 6]
+				feed.append(v.player_summary)
 
 	# Active innings label + scoreboard.
 	var player_bats_this := (innings_no == 1) == mr.player_bats_first
