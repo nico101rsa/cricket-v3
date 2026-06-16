@@ -93,6 +93,28 @@ func test_next_advances_scrub_and_grows_card() -> void:
 
 # --- Task 9: boot ---
 
+# --- Live league loop (2026-06-16): forward-play render ---
+
+func test_live_play_renders_running_table_and_play_control() -> void:
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	var career := CareerResolver.start_career(0)
+	var player := _player()
+	var team: Team = career.teams[career.current_team_index]
+	var sp := SeasonPlay.start(player.attributes, team, career.opponents_of_current(),
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), 20260616)
+	sp.commit_player_result(sp.make_session().result())   # play 1 game
+	hub.set_play(player, career, sp)
+	await get_tree().process_frame
+	var root := hub.get_node("Scroll/Margin/Root")
+	# Running table: header label + 8 team rows.
+	assert_true(root.get_node("StandingsBox").get_child_count() >= 9, "running table rows present")
+	assert_true(root.get_node("StandingsBox").get_child(0).text.contains("1/7"),
+		"table labelled by your progress")
+	# Next-fixture PLAY control exists + is visible.
+	assert_true(hub.has_play_control(), "next-fixture PLAY control present")
+	assert_true(root.get_node("PlayNextBtn").is_visible_in_tree(), "PLAY visible")
+
 func test_boots_a_real_season_when_player_saved() -> void:
 	var p := _player()
 	SaveManager.save_player(p)
