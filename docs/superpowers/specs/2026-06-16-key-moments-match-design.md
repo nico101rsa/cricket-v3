@@ -92,6 +92,24 @@ Per the lesson from this session ([[feedback-launch-playable-not-screenshot]]): 
 - Powerplay band stays the base default (not a decision this rung) — PP Exit decides the *middle*, the first thing you actually control.
 - Card copy uses the DESIGN_HANDOFF labels (Anchor/Hunt etc.); plain descriptive text, no recommendation arrow (ADR 0003).
 
-## 10. Findings (build) — filled in next session
+## 10. Findings (build) — 2026-06-16
 
-(to be completed at build: trigger-cursor mapping, a worked resim example showing the prefix held + future changed, test count delta, and the launch instructions given to Nico.)
+**Built exactly as specced, the "cheap third door" route (D1).** Branch `key-moments-match`, **632 tests green** (+13 from 619). Plan: `docs/superpowers/plans/2026-06-16-key-moments-match.md`.
+
+**Architecture as shipped (zero new resolver params):** a new pure `KeyMomentPlan` (`scripts/data/key_moment_plan.gd`) holds `overrides: Array` of `{from_over, band}` + `effective_for_over(over, base_band)` (latest override ≤ over wins, else base). `IntentPlan` gained one optional field `key_moments: KeyMomentPlan` — `for_over` now consults it (null ⇒ plain phase bands). `MatchSession._resim` passes an all-BALANCED `IntentPlan` carrying `_km_plan` on the **existing `player_intent_plan` seam** — so the override rides into the player's batting innings only, with **no changes to `simulate_match_teams`/`simulate_match`/`simulate_innings` signatures** (the spec §3 "extend IntentPlan" route, chosen over a new param).
+
+**Trigger-cursor mapping (the key design resolution):** a Key Moment pauses at an **over boundary** — the cursor where the next event to show is the first event of over `N` in the player's batting innings. The override applies from over `N` onward; because over `N`'s balls haven't rendered yet, the watched prefix is byte-identical (D1 honored exactly). This cleanly reconciles spec §3/§4's "from that over" with the hard byte-identical contract.
+- ⚡ Powerplay Exit → `N=7` (always). Anchor=DEF / Hunt=AGG (the middle phase).
+- 🩸 Wicket Crisis → `N = W+1` where `W` = over of the first team wicket in overs **7–14** (capped at 14 so the override over ≤ 15 stays in the middle and **never collides with Death Plan at 16** — a refinement of §9's default). Settle=DEF / Counter-attack=AGG. Doesn't fire if no qualifying wicket.
+- 💀 Death Plan → `N=16` (always). Milk it=BAL / Go big=AGG (the death phase).
+- "Always" moments simply don't fire if the player is all out before that over (no matching cursor).
+
+**Byte-identical proved by test** (`test_empty_km_is_byte_identical_to_no_plan`): a no-decision KM session's ball-log == a same-seed baseline with `player_intent_plan=null` (matching boost/DRS). **Gotcha hit & recorded:** `DRSPolicy.review_balls` defaults to `null` (auto path); `MatchSession` sets it to `[]` (scoped path) — the first baseline used a bare `DRSPolicy.new()` and diverged on the DRS gate, not the IntentPlan. The baseline must mirror the session's exact boost/DRS to isolate the intent change.
+
+**Worked resim example** (seed 20260615, force bats-first, the demo build 55/45/35/30): baseline innings1 total = `T0`; deciding ⚡ Powerplay Exit → **Hunt (AGGRESSIVE middle)** re-sims and changes the innings1 total (`test_decide_key_moment_changes_the_future`), while every pre-over-7 ball stays identical (`test_decide_key_moment_prefix_byte_identical`). At cursor 7 (40/2 after over 6 in the preview shot) the card reads "⚡ Powerplay Exit / How do you play the middle overs? / Anchor · Hunt".
+
+**Visible-overlay proof** (the recurring blank-UI lesson): `tools/preview_key_moment.gd` → `docs/mockups/key-moment-built-v1.png` shows the card rendered (Panel background + two non-flat Buttons = the proven DRS-overlay pattern, not flat+modulate). `km_overlay_visible()==true` at the trigger.
+
+**Live integration:** the live-league loop already routes player fixtures through `MatchSession`/`interactive_match` (PR #71/#67), so Key Moments fire automatically in real played matches — batting first OR chasing (the cursor mapping uses the player's batting innings whichever it is). Boost + DRS untouched (D6).
+
+**Edge case noted (rare, acceptable):** if a Player dismissal ball is *also* the first event of a trigger over, the KM card takes precedence (it's a strategic over-level call); the same-cursor DRS offer is skipped after the KM re-sim (that ball changes anyway). Not observed in the demo seed.

@@ -20,6 +20,11 @@ var chase_up_rr: float = -1.0    # chasing & req RR >= this -> escalate one band
 var chase_down_rr: float = -1.0  # chasing & req RR <= this -> de-escalate one band
 var collapse_wkts: int = -1      # wickets fallen >= this -> de-escalate one band
 
+# Key Moment overrides (spec 2026-06-16-key-moments-match-design.md): per-over Intent
+# overrides from in-match captain decisions. null => plain phase bands (byte-identical
+# to every pre-Key-Moment caller).
+var key_moments: KeyMomentPlan = null
+
 # Phase index for a 1-based over: 0 = Powerplay, 1 = middle, 2 = death.
 # Single source of truth for phase boundaries (BB2, bowling-balance spec).
 static func phase_of(over: int) -> int:
@@ -29,8 +34,15 @@ static func phase_of(over: int) -> int:
 		return 1
 	return 2
 
-# 1-based over number -> Intent band for that over.
+# 1-based over number -> Intent band for that over (Key Moment overrides win).
 func for_over(over: int) -> int:
+	var base := _phase_band(over)
+	if key_moments != null:
+		return key_moments.effective_for_over(over, base)
+	return base
+
+# The plain phase band (no Key Moment overrides applied).
+func _phase_band(over: int) -> int:
 	match IntentPlan.phase_of(over):
 		0:
 			return powerplay

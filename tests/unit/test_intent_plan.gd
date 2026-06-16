@@ -92,3 +92,16 @@ func test_for_state_zero_balls_remaining_safe() -> void:
 	plan.chase_up_rr = 0.0
 	# balls == max_balls: no div-by-zero, chase rules skipped
 	assert_eq(plan.for_state(20, 40, 2, 120, 160, 120), BallResolver.Intent.BALANCED)
+
+func test_key_moments_override_for_over() -> void:
+	var km := KeyMomentPlan.new()
+	km.overrides.append({"from_over": 7, "band": BallResolver.Intent.AGGRESSIVE})
+	var plan := IntentPlan.new()  # all phases BALANCED
+	plan.key_moments = km
+	assert_eq(plan.for_over(6), BallResolver.Intent.BALANCED, "powerplay unaffected")
+	assert_eq(plan.for_over(7), BallResolver.Intent.AGGRESSIVE, "override drives the middle")
+
+func test_null_key_moments_is_phase_band() -> void:
+	var plan := IntentPlan.new()
+	plan.middle = BallResolver.Intent.DEFENSIVE
+	assert_eq(plan.for_over(10), BallResolver.Intent.DEFENSIVE, "no km => plain phase band")
