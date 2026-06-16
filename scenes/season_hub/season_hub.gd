@@ -23,12 +23,17 @@ const BOOT_SEED := 20260615
 # wires this to _push_match. Unplayed rows keep scrubbing the season head.
 signal open_match(match_index: int)
 
+# Emitted when the player taps PLAY on their next fixture (live forward-play path).
+# main.gd pushes the Interactive Match scene; on return it commits the result.
+signal play_next(team_index: int)
+
 @onready var _root: VBoxContainer = $Scroll/Margin/Root
 
 var _view: SeasonView
 var _player: Player
 var _career: CareerState
 var _season: SeasonResult
+var _play: SeasonPlay   # live forward-play driver (null on the scrub-replay/test path)
 
 func _ready() -> void:
 	_root.get_node("ScrubBar/PrevBtn").pressed.connect(func(): step(-1))
@@ -37,8 +42,8 @@ func _ready() -> void:
 # --- Production boot: simulate the saved Player's current cell once. ---
 
 func boot() -> void:
-	if _view != null:
-		return   # a test (or caller) already injected a view/source
+	if _view != null or _play != null:
+		return   # a test (or caller) already injected a view/source/play
 	if not SaveManager.has_player():
 		return
 	var player := SaveManager.load_player()
@@ -46,13 +51,12 @@ func boot() -> void:
 		else CareerResolver.start_career(0)
 	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
 	var team: Team = career.teams[career.current_team_index]
-	var rng := RandomNumberGenerator.new()
-	rng.seed = BOOT_SEED
-	var season := SeasonResolver.simulate_season(
+	# Forward-play: a live SeasonPlay you advance fixture-by-fixture, not a
+	# pre-simmed season you scrub (spec D6).
+	var play := SeasonPlay.start(
 		player.attributes, team, career.opponents_of_current(),
-		spec.make_tour(), BallTuning.new(), InningsTuning.new(), rng,
-		null, null, null, [], Callable(), true)
-	set_source(player, career, season)
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), BOOT_SEED)
+	set_play(player, career, play)
 
 # --- Source + scrub ---
 
@@ -61,6 +65,31 @@ func set_source(player: Player, career: CareerState, season: SeasonResult) -> vo
 	_career = career
 	_season = season
 	_rebuild(0)
+
+# --- Live forward-play source (spec D5/D6) ---
+
+# Render the growing league via the existing SeasonViewBuilder, with the scrub
+# head pinned to how many games you've played.
+func set_play(player: Player, career: CareerState, play: SeasonPlay) -> void:
+	_player = player
+	_career = career
+	_play = play
+	_rebuild_live()
+
+func _rebuild_live() -> void:
+	if _play == null:
+		return
+	set_view(SeasonViewBuilder.build(_player, _career, _play.live_season(), _play.played_count()))
+
+func live_play() -> SeasonPlay:
+	return _play
+
+func current_career() -> CareerState:
+	return _career
+
+func has_play_control() -> bool:
+	return _play != null and not _play.league_done() \
+		and _root.get_node_or_null("PlayNextBtn") != null
 
 func _rebuild(index: int) -> void:
 	if _player == null or _career == null or _season == null:
@@ -101,6 +130,7 @@ func _render() -> void:
 	_root.get_node("ContextLabel").text = "%s · %s · %s" % [
 		_level_word(_view.level), _view.tour_name, _view.difficulty_label]
 	_render_fixtures(accent)
+	_render_play_next(accent)
 	_render_card()
 	_render_jokers()
 	_root.get_node("AffinityLabel").text = "Affinity %d" % _view.affinity
@@ -133,6 +163,33 @@ func _render_fixtures(accent: Color) -> void:
 		if i == _view.scrub_index:
 			row.text = "▶ " + row.text   # the scrub head
 		box.add_child(row)
+
+# The next-fixture PLAY button (live forward-play path only). A solid
+# StyleBoxFlat tile — NOT a flat button — because flat+modulate renders
+# invisibly (CLAUDE.md). Hidden once the league is done or on the scrub path.
+func _render_play_next(accent: Color) -> void:
+	var existing := _root.get_node_or_null("PlayNextBtn")
+	if existing != null:
+		existing.queue_free()
+	if _play == null or _play.league_done():
+		return
+	var nxt := _play.next_player_opponent()
+	var btn := Button.new()
+	btn.name = "PlayNextBtn"
+	btn.text = "▶ PLAY  —  v %s" % nxt["name"]
+	btn.size_flags_horizontal = Control.SIZE_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = accent
+	sb.content_margin_top = 10; sb.content_margin_bottom = 10
+	btn.add_theme_stylebox_override("normal", sb)
+	btn.add_theme_stylebox_override("hover", sb)
+	btn.add_theme_stylebox_override("pressed", sb)
+	btn.add_theme_color_override("font_color", Color.WHITE)
+	var idx: int = nxt["team_index"]
+	btn.pressed.connect(func(): play_next.emit(idx))
+	var fixtures := _root.get_node("FixturesBox")
+	_root.add_child(btn)
+	_root.move_child(btn, fixtures.get_index() + 1)
 
 func _render_card() -> void:
 	_root.get_node("PlayerCard/NameLabel").text = "%s · %s" % [_view.player_name, _view.city]
@@ -168,7 +225,7 @@ func _render_standings() -> void:
 	for c in box.get_children():
 		c.queue_free()
 	var head := Label.new()
-	head.text = "FINAL TABLE"
+	head.text = "FINAL TABLE" if _play == null else "LEAGUE TABLE · your matches %d/7" % _play.played_count()
 	box.add_child(head)
 	for i in range(_view.standings.size()):
 		var s: Dictionary = _view.standings[i]

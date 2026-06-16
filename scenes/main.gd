@@ -8,6 +8,7 @@ const STARTING_TEAM := preload("res://scenes/stubs/starting_team_picker_stub.tsc
 const SEASON_HUB := preload("res://scenes/season_hub/season_hub.tscn")
 const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 const MATCH_VIEW := preload("res://scenes/match_view/match_view.tscn")
+const INTERACTIVE_MATCH := preload("res://scenes/interactive_match/interactive_match.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -46,20 +47,64 @@ func _on_build_confirmed(_player: Player) -> void:
 func _push_hub() -> void:
 	var hub := SEASON_HUB.instantiate()
 	hub.open_match.connect(_push_match)
+	hub.play_next.connect(func(team_index: int): _play_next(team_index))
 	_push(hub)
 	hub.boot()
 
-# Tap a played fixture → watch that match's ball-by-ball replay. Pulls the
-# captured match + opponent/team names off the live hub (via its public getters)
-# and pushes the watch-only match scene. back returns to the hub.
+# Re-show a hub for an already-live SeasonPlay (after playing/watching a match).
+# _push frees the old hub, but `play` is RefCounted and held by the caller's
+# closure, so progress survives — we just rebind it onto a fresh hub.
+func _show_live_hub(play: SeasonPlay, career: CareerState) -> void:
+	var player := SaveManager.load_player()
+	var hub := SEASON_HUB.instantiate()
+	hub.open_match.connect(_push_match)
+	hub.play_next.connect(func(team_index: int): _play_next(team_index))
+	_push(hub)
+	hub.set_play(player, career, play)
+
+# Tap PLAY on the next fixture → play it interactively (Boost/DRS). The hub owns
+# the live SeasonPlay; we pull a MatchSession off it, push the Interactive Match
+# scene, and on back commit the result into the SAME SeasonPlay + re-show the hub.
+func _play_next(team_index: int) -> void:
+	var hub = _slot.get_child(0)
+	var play: SeasonPlay = hub.live_play()
+	if play == null or play.league_done():
+		return
+	var career: CareerState = hub.current_career()
+	var player := SaveManager.load_player()
+	var team: Team = career.teams[career.current_team_index]
+	var opp: Team = career.opponents_of_current()[team_index - 1]
+	var session := play.make_session()
+	var screen := INTERACTIVE_MATCH.instantiate()
+	screen.back.connect(func(): _commit_and_return(play, session, career))
+	_push(screen)
+	screen.set_session(session, team.team_name, opp.team_name)
+	screen.boot()
+
+func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState) -> void:
+	play.commit_player_result(session.result())
+	_show_live_hub(play, career)
+
+# Tap a played fixture → watch that match's ball-by-ball replay (watch-only). On
+# the live path the played matches live in the SeasonPlay; back returns to the
+# live hub (NOT a fresh boot — that would wipe your league progress).
 func _push_match(match_index: int) -> void:
 	var player := SaveManager.load_player()
 	var hub = _slot.get_child(0)   # the live Season Hub
 	var view: SeasonView = hub.current_view()
-	var mr: MatchResult = hub.season().league.player_matches[match_index]
+	var play: SeasonPlay = hub.live_play()
+	var career: CareerState = hub.current_career()
+	var mr: MatchResult
+	if play != null:
+		mr = play.live_league().player_matches[match_index]
+	else:
+		mr = hub.season().league.player_matches[match_index]
 	var opp: String = view.fixtures[match_index]["opponent_name"]
 	var screen := MATCH_VIEW.instantiate()
-	screen.back.connect(_push_hub)
+	if play != null:
+		screen.back.connect(func(): _show_live_hub(play, career))
+	else:
+		screen.back.connect(_push_hub)
 	_push(screen)
 	screen.set_match(mr, player, view.team_name, opp)
 	screen.boot()
