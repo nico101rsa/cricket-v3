@@ -18,6 +18,8 @@ var _speed_idx := 0
 var _playing := false
 var _pending_review := {}     # the offer currently shown in the overlay
 var _resume_after_review := false   # was autoplay running when the overlay popped?
+var _boost_active_over := -1        # over a press is currently boosting (-1 = none)
+var _boost_active_innings := -1     # innings that boost belongs to
 
 func _ready() -> void:
 	$Root/Controls/StepBack.pressed.connect(func(): pause(); step(-1))
@@ -121,11 +123,31 @@ func _on_tick() -> void:
 
 func _on_boost() -> void:
 	var inn := _innings_at_cursor()
-	if not _session.can_boost(inn): return
+	if not _session.can_boost(inn) or _boost_active_over != -1: return
 	var next_over := mini(_over_at_cursor() + 1, 20)
 	_session.decide_boost(inn, next_over)
 	_event_count = _session.events().size()
+	_boost_active_over = next_over      # button "charges" until this over plays out
+	_boost_active_innings = inn
 	_render()
+
+# Boost button state (Nico's recharge feel): ACTIVE (faded) while the boosted over
+# is still to play; once the cursor passes it, the button "fills back up" and shows
+# the presses left; greyed when the innings budget is spent.
+func _update_boost_button() -> void:
+	var inn := _innings_at_cursor()
+	if _boost_active_over != -1 and (inn != _boost_active_innings or _over_at_cursor() > _boost_active_over):
+		_boost_active_over = -1          # boost has played out → recharge
+	var btn: Button = $Root/Controls/Boost
+	if _boost_active_over != -1:
+		btn.disabled = true
+		btn.text = "BOOST ON"
+	elif _session.can_boost(inn):
+		btn.disabled = false
+		btn.text = "BOOST (%d)" % _session.presses_left(inn)
+	else:
+		btn.disabled = true
+		btn.text = "BOOST 0"
 
 func _show_overlay(offer: Dictionary) -> void:
 	$Overlay/OverlayBox/Prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
@@ -158,9 +180,9 @@ func _render() -> void:
 	$Root/Header.text = "%s  v  %s" % [_team_name, _opp_name]
 	$Root/Scoreboard.text = "%s   %s" % [v.innings_label, v.batting_score]
 	$Root/Target.text = v.target_text
-	$Root/CurrentLine.text = (v.result_text if v.finished else v.current_line)
-	var inn := _innings_at_cursor()
-	$Root/Controls/Boost.disabled = not _session.can_boost(inn)
+	# When finished, show the result + the Player's own final card; else the live line.
+	$Root/CurrentLine.text = ("%s\n%s" % [v.result_text, v.player_summary]) if v.finished else v.current_line
+	_update_boost_button()
 	var box: VBoxContainer = $Root/FeedBox
 	for c in box.get_children():
 		c.queue_free()
