@@ -23,6 +23,8 @@ var _force: int                  # force_player_bats_first (-1 toss / 1 / 0)
 var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
 var _reviews_used := 0           # batting-side reviews the Player has committed
+var _km_plan := KeyMomentPlan.new()   # accumulated Key Moment overrides (spec 2026-06-16)
+var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices}
 
 var _result: MatchResult
 var _events: Array = []
@@ -64,15 +66,18 @@ func _resim() -> void:
 		boost.press_overs.append(p[1])   # 1-based within-innings; resolver checks per innings
 	var drs := DRSPolicy.new()
 	drs.review_balls = _review_balls
+	var ip := IntentPlan.new()         # all-BALANCED base; carries the Key Moment overrides
+	ip.key_moments = _km_plan
 	var log1: Array = []
 	var log2: Array = []
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
-		null, null, [], null, null, null,
+		ip, null, [], null, null, null,
 		boost, drs, null, null, null, _force, null, log1, log2)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
 	_events = MatchViewBuilder.build_events(_result, _player)
+	_compute_km_moments()
 
 # -- Boost (DI2) -------------------------------------------------------------
 
@@ -128,4 +133,74 @@ func decide_review(ball_id: Array) -> void:
 	if not _review_balls.has(ball_id):
 		_review_balls.append(ball_id)
 	_reviews_used += 1
+	_resim()
+
+# -- Key Moments (spec 2026-06-16) ------------------------------------------
+
+# The player's batting-innings raw ball-log (triggers read the ball-log, not the
+# player-centric event stream — a teammate's wicket lives in an over summary; D7).
+func _player_batting_log() -> Array:
+	return _result.ball_log_innings1 if _result.player_bats_first else _result.ball_log_innings2
+
+# Over of the first team wicket falling in overs 7..14, else -1 (Wicket Crisis source).
+# Capped at 14 so the override over (wicket+1) stays in the middle phase (<= 15) and
+# never collides with Death Plan at over 16.
+func _first_middle_wicket_over() -> int:
+	for b in _player_batting_log():
+		if b["wicket"] and b["over"] >= 7 and b["over"] <= 14:
+			return b["over"]
+	return -1
+
+# Cursor (event index) of the first event of `over` in the player's batting innings,
+# or -1 if the innings never reaches it (all out earlier). The pause fires BEFORE this
+# event shows, so overs < `over` are byte-identical.
+func _cursor_for_over(player_innings: int, over: int) -> int:
+	for i in range(_events.size()):
+		var e: Dictionary = _events[i]
+		if e.get("innings", -1) == player_innings and e.has("over") and e["over"] == over:
+			return i
+	return -1
+
+func _add_moment(player_innings: int, title: String, prompt: String, from_over: int, choices: Array) -> void:
+	var c := _cursor_for_over(player_innings, from_over)
+	if c == -1:
+		return  # the innings never reached this over (e.g. all out) — moment doesn't fire
+	_km_moments.append({"title": title, "prompt": prompt, "from_over": from_over,
+		"cursor": c, "choices": choices})
+
+func _compute_km_moments() -> void:
+	_km_moments = []
+	var pbi := 1 if _result.player_bats_first else 2
+	_add_moment(pbi, "⚡ Powerplay Exit", "How do you play the middle overs?", 7,
+		[{"label": "Anchor", "band": BallResolver.Intent.DEFENSIVE},
+		 {"label": "Hunt", "band": BallResolver.Intent.AGGRESSIVE}])
+	var wo := _first_middle_wicket_over()
+	if wo != -1:
+		_add_moment(pbi, "🩸 Wicket Crisis", "A wicket's down — how do you respond?", wo + 1,
+			[{"label": "Settle", "band": BallResolver.Intent.DEFENSIVE},
+			 {"label": "Counter-attack", "band": BallResolver.Intent.AGGRESSIVE}])
+	_add_moment(pbi, "💀 Death Plan", "Last five overs — what's the play?", 16,
+		[{"label": "Milk it", "band": BallResolver.Intent.BALANCED},
+		 {"label": "Go big", "band": BallResolver.Intent.AGGRESSIVE}])
+
+func _km_decided(from_over: int) -> bool:
+	for o in _km_plan.overrides:
+		if o["from_over"] == from_over:
+			return true
+	return false
+
+# Given the playback cursor (index of the event about to be shown), return the Key
+# Moment to pause on — {title, prompt, from_over, choices:[{label,band}]} — or {}.
+func key_moment_offer(cursor: int) -> Dictionary:
+	for m in _km_moments:
+		if m["cursor"] == cursor and not _km_decided(m["from_over"]):
+			return {"title": m["title"], "prompt": m["prompt"],
+				"from_over": m["from_over"], "choices": m["choices"]}
+	return {}
+
+# Commit a Key Moment: override batting Intent to `band` from `from_over` onward, re-sim.
+func decide_key_moment(from_over: int, band: int) -> void:
+	if _km_decided(from_over):
+		return
+	_km_plan.overrides.append({"from_over": from_over, "band": band})
 	_resim()
