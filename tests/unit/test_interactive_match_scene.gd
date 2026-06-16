@@ -42,3 +42,30 @@ func test_boost_button_enabled_with_budget():
 	_scene.set_session(s, "Karoo Kings", "Opponent")
 	_scene.boot()
 	assert_true(_scene.boost_enabled(), "boost available at start")
+
+func _km_cursor(s: MatchSession, kind: String) -> int:
+	for c in range(s.events().size()):
+		var o := s.key_moment_offer(c)
+		if not o.is_empty() and (kind in o["title"]):
+			return c
+	return -1
+
+func test_km_overlay_appears_at_a_trigger():
+	var s := _make_session()
+	var c := _km_cursor(s, "Powerplay")
+	assert_gt(c, -1, "a Powerplay Exit moment exists")
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c)
+	assert_true(_scene.km_overlay_visible(), "KM card shown at the trigger")
+
+func test_km_choice_changes_event_stream():
+	var s := _make_session()
+	var c := _km_cursor(s, "Powerplay")
+	var before := s.result().innings1.total
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c)
+	_scene.km_press(1)   # the second option (Hunt = AGGRESSIVE)
+	assert_false(_scene.km_overlay_visible(), "overlay hides after a choice")
+	assert_ne(s.result().innings1.total, before, "the choice re-simulated the match")

@@ -20,6 +20,8 @@ var _pending_review := {}     # the offer currently shown in the overlay
 var _resume_after_review := false   # was autoplay running when the overlay popped?
 var _boost_active_over := -1        # over a press is currently boosting (-1 = none)
 var _boost_active_innings := -1     # innings that boost belongs to
+var _pending_km := {}               # the Key Moment offer currently shown
+var _resume_after_km := false       # was autoplay running when the KM card popped?
 
 func _ready() -> void:
 	$Root/Controls/StepBack.pressed.connect(func(): pause(); step(-1))
@@ -30,9 +32,12 @@ func _ready() -> void:
 	$Root/Controls/Back.pressed.connect(func(): back.emit())
 	$Overlay/OverlayBox/ReviewYes.pressed.connect(_on_review_yes)
 	$Overlay/OverlayBox/ReviewNo.pressed.connect(_on_review_no)
+	$KMOverlay/KMBox/KMOptA.pressed.connect(func(): km_press(0))
+	$KMOverlay/KMBox/KMOptB.pressed.connect(func(): km_press(1))
 	$Tick.timeout.connect(_on_tick)
 	$Tick.wait_time = BASE_TICK
 	$Overlay.visible = false
+	$KMOverlay.visible = false
 
 func set_session(s: MatchSession, team_name: String, opp_name: String) -> void:
 	_session = s
@@ -75,21 +80,35 @@ func _over_at_cursor() -> int:
 
 func step(delta: int) -> void:
 	_cursor = clampi(_cursor + delta, 0, _event_count)
-	_render()   # always show the state up to the cursor (the dismissal's context)
-	# pause for a DRS offer at the cursor (the event about to be shown)
-	var offer := _session.review_offer(_cursor)
-	if not offer.is_empty() and delta > 0:
-		_pending_review = offer
-		_resume_after_review = _playing   # remember to resume after the decision
-		_show_overlay(offer)
-		pause()
-		return
+	_render()   # always show the state up to the cursor (the moment's context)
+	if delta > 0:
+		# A Key Moment (over-boundary strategic call) takes precedence over a
+		# ball-level DRS offer at the same cursor.
+		var km := _session.key_moment_offer(_cursor)
+		if not km.is_empty():
+			_pending_km = km
+			_resume_after_km = _playing
+			_show_km_overlay(km)
+			pause()
+			return
+		var offer := _session.review_offer(_cursor)
+		if not offer.is_empty():
+			_pending_review = offer
+			_resume_after_review = _playing   # remember to resume after the decision
+			_show_overlay(offer)
+			pause()
+			return
 	if _cursor >= _event_count:
 		pause()
 
 func seek_to(cursor: int) -> void:
 	_cursor = clampi(cursor, 0, _event_count)
 	_render()
+	var km := _session.key_moment_offer(_cursor)
+	if not km.is_empty():
+		_pending_km = km
+		_show_km_overlay(km)
+		return
 	var offer := _session.review_offer(_cursor)
 	if not offer.is_empty():
 		_pending_review = offer
@@ -152,6 +171,31 @@ func _update_boost_button() -> void:
 func _show_overlay(offer: Dictionary) -> void:
 	$Overlay/OverlayBox/Prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
 	$Overlay.visible = true
+
+# -- Key Moment card (spec 2026-06-16) --------------------------------------
+
+func km_overlay_visible() -> bool:
+	return $KMOverlay.visible
+
+func _show_km_overlay(km: Dictionary) -> void:
+	$KMOverlay/KMBox/KMTitle.text = km["title"]
+	$KMOverlay/KMBox/KMPrompt.text = km["prompt"]
+	$KMOverlay/KMBox/KMOptA.text = km["choices"][0]["label"]
+	$KMOverlay/KMBox/KMOptB.text = km["choices"][1]["label"]
+	$KMOverlay.visible = true
+
+# Player picked option index i (0/1) on the current Key Moment card.
+func km_press(i: int) -> void:
+	$KMOverlay.visible = false
+	if not _pending_km.is_empty():
+		var band: int = _pending_km["choices"][i]["band"]
+		_session.decide_key_moment(_pending_km["from_over"], band)
+		_event_count = _session.events().size()
+	_pending_km = {}
+	_render()
+	if _resume_after_km and _cursor < _event_count:
+		_resume_after_km = false
+		play()
 
 func _on_review_yes() -> void:
 	$Overlay.visible = false
