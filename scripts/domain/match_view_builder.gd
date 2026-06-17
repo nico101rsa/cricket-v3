@@ -88,7 +88,7 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 				# summaries) — label it so participation is legible.
 				var who := "You bat " if e["player_batting"] else "You bowl "
 				var what := ("WICKET!" if e["wicket"] else "%d run%s" % [e["runs"], "" if e["runs"] == 1 else "s"])
-				feed.append("%d.%d  %s%s%s" % [e["over"], e["ball"], who, tag, what])
+				feed.append("%s  %s%s%s" % [_overs(e["over"], e["ball"]), who, tag, what])
 				if e["player_batting"]:
 					my_balls += 1
 					if e["wicket"]: my_out = true
@@ -129,7 +129,7 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 		v.innings_label = ("Your innings" if player_bats_this else "Bowling")
 		v.target_text = ""
 	var od := _over_dot(events, c)
-	var overs := "%d.%d" % [od[0], od[1]]
+	var overs := _overs(od[0], od[1])
 	v.batting_score = "%d/%d (%s)" % [bat_total, bat_wkts, overs]
 	v.feed = feed.slice(maxi(0, feed.size() - 6))
 	return v
@@ -141,6 +141,15 @@ static func _line_for(e: Dictionary, total: int, _wkts: int) -> String:
 	if e["player_batting"]:
 		return "You batting — team %d" % total
 	return ""
+
+# Cricket overs notation from a 1-based over + 1-6 ball: completed-overs.balls.
+# The 6th ball of an over ticks the over count over (over 1 ball 6 -> "1.0", over 20
+# ball 5 -> "19.5", ball 6 -> "20.0") — not the raw "20.6" the ball-log stores.
+static func _overs(over: int, ball: int) -> String:
+	if over < 1:
+		return "0.0"
+	var total := (over - 1) * 6 + ball
+	return "%d.%d" % [total / 6, total % 6]
 
 # Best-effort current over.ball from the last applied event (display only).
 static func _over_dot(events: Array, c: int) -> Array:

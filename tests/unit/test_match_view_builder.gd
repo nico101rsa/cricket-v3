@@ -78,3 +78,40 @@ func test_build_at_end_is_finished_with_result() -> void:
 	assert_true(view.finished, "finished at end of stream")
 	assert_string_contains(view.result_text, "won by", "result text present")
 	assert_true(view.player_won, "player_won set")
+
+# -- Overs notation (cricket: completed-overs.balls; 6th ball ticks the over over) --
+
+func test_overs_notation_completed_over_reads_dot_zero() -> void:
+	# All 6 balls of over 1 -> "1.0" (over complete), NOT "1.6".
+	var log1 := [
+		_ball(1, 1, true, true, false, 1, false, false, 1, 0),
+		_ball(1, 2, true, true, false, 1, false, false, 2, 0),
+		_ball(1, 3, true, true, false, 1, false, false, 3, 0),
+		_ball(1, 4, true, true, false, 1, false, false, 4, 0),
+		_ball(1, 5, true, true, false, 1, false, false, 5, 0),
+		_ball(1, 6, true, true, false, 1, false, false, 6, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var view := MatchViewBuilder.build(m, _player(), 6)
+	assert_string_contains(view.batting_score, "(1.0)", "6th ball of over 1 reads 1.0")
+	assert_false("1.6" in view.batting_score, "never shows a .6")
+
+func test_overs_notation_mid_over() -> void:
+	var log1 := [
+		_ball(1, 1, true, true, false, 1, false, false, 1, 0),
+		_ball(1, 2, true, true, false, 1, false, false, 2, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var view := MatchViewBuilder.build(m, _player(), 2)
+	assert_string_contains(view.batting_score, "(0.2)", "2 balls into over 1 reads 0.2")
+
+func test_feed_ball_line_uses_cricket_notation() -> void:
+	var log1 := [
+		_ball(1, 5, true, true, false, 1, false, false, 5, 0),
+		_ball(1, 6, true, true, false, 4, false, false, 9, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var view := MatchViewBuilder.build(m, _player(), 2)
+	var joined := "\n".join(view.feed)
+	assert_true("1.0  " in joined, "the over-completing ball reads 1.0 in the feed")
+	assert_false("1.6" in joined, "the feed never shows a .6")
