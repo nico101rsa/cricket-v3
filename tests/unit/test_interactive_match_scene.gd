@@ -69,3 +69,39 @@ func test_km_choice_changes_event_stream():
 	_scene.km_press(1)   # the second option (Hunt = AGGRESSIVE)
 	assert_false(_scene.km_overlay_visible(), "overlay hides after a choice")
 	assert_ne(s.result().innings1.total, before, "the choice re-simulated the match")
+
+func _first_player_dismissal(s: MatchSession) -> int:
+	for i in range(s.events().size()):
+		var e: Dictionary = s.events()[i]
+		if e["type"] == "ball" and e.get("player_batting", false) and e["wicket"]:
+			return i
+	return -1
+
+func test_review_popup_shows_outcome_then_ok_resumes():
+	var s := _make_session()
+	var c := _first_player_dismissal(s)
+	assert_gt(c, -1, "a player dismissal exists")
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c)
+	assert_true(_scene.overlay_visible(), "review overlay shown at the dismissal")
+	_scene.review_yes()
+	assert_true(_scene.overlay_visible(), "overlay stays up showing the outcome")
+	assert_true(_scene.review_ok_visible(), "an OK button is shown after the decision")
+	_scene.review_ok()
+	assert_false(_scene.overlay_visible(), "OK dismisses the overlay")
+
+func test_flash_label_shows_your_boundary():
+	var s := _make_session()
+	var c := -1
+	for i in range(s.events().size()):
+		var e: Dictionary = s.events()[i]
+		if e["type"] == "ball" and e.get("player_batting", false) and (e["runs"] == 4 or e["runs"] == 6):
+			c = i; break
+	if c == -1:
+		assert_true(true, "no player boundary in this seed — nothing to flash")
+		return
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c + 1)   # render through the boundary; highlight is for the just-shown ball
+	assert_ne(_scene.flash_text(), "", "the flash label shows a your-moment after a boundary")
