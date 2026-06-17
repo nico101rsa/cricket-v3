@@ -93,6 +93,12 @@ Launch the real game for Nico to play the next fixture and feel: does the review
 - Review economy change (successful review retained) — separate balance call.
 - Highlighting opponent/teammate moments.
 
-## 9. Findings (build) — filled in at build
+## 9. Findings (build) — 2026-06-17
 
-(to be completed: test count delta, the exact Flash styling used, launch instructions given to Nico.)
+**Built as specced.** Branch `match-feedback-polish`, **643 tests green** (+8 from 635). Built TDD inline (the spec's §4/§6 were the plan — no separate plan doc for a tweak this size).
+
+- **Review popup:** `review_yes` re-sims, reads `MatchSession.ball_is_wicket(bid)`, flips the existing Overlay to the outcome (`✅ … NOT OUT` / `❌ … still OUT (N left)`), hides Yes/No, shows a new `ReviewOk` button; `review_ok` restores the buttons + resumes. Handlers renamed public (`review_yes`/`review_no`/`review_ok`) to mirror `km_press`. Review economy unchanged (a review still burns one — D1).
+- **Highlights:** `MatchViewBuilder._bat_highlight`/`_bowl_highlight` compute `MatchView.highlight_text` for the cursor-1 ball only. Priority: hundred→fifty→six→four→out (batting), 5-for→3-for→wicket (bowling). The scene shows it in a new `Root/Flash` Label styled gold (`Color(1,0.84,0)`) at font size 28 (= the "bold"); during autoplay a non-empty flash stops `Tick` and starts a one-shot `FlashTimer` (`FLASH_HOLD=1.5s`) that restarts `Tick` on timeout unless the user paused. KM/DRS overlays take precedence (checked first in `step`).
+- **Gotcha:** the `Flash` Label is parented to `Root`, so the node path is `$Root/Flash`, not `$Root`-sibling `$Flash` — the first cut used `$Flash` and every scene test failed with "Node not found: Flash" in `_ready`. (Same class of mistake as any wrong `$`-path; the node tree is the source of truth.)
+- **Eyeballed** (invisible-UI lesson): `docs/mockups/match-flash-built-v1.png` (a gold `SIX!` over `58/2 (8.0)`) + `docs/mockups/review-outcome-built-v1.png` (`❌ Review lost — still OUT (1 left)` + OK over `109/2 (13.1)`). Both render; overs notation correct (the prior fix).
+- **Launch for Nico:** `/Applications/Godot.app/Contents/MacOS/Godot --path "/Users/nicomcdonald/Documents/Playground/Cricket v2"` (quit the editor first; save already seeded).
