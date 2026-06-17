@@ -186,3 +186,13 @@ func test_empty_km_is_byte_identical_to_no_plan():
 		rng, null, null, [], null, null, null, boost, drs,
 		null, null, null, 1, null, l1, l2)
 	assert_eq(s.result().ball_log_innings1, l1, "no-decision KM session == null-intent baseline (byte-identical)")
+
+# -- Review outcome query (spec 2026-06-17) ---------------------------------
+
+func test_ball_is_wicket_reflects_log():
+	var s := _session()
+	var c := _first_dismissal_cursor(s)
+	assert_gt(c, -1, "a dismissal exists")
+	var e: Dictionary = s.events()[c]
+	var bid := [e["over"], e["ball"]]
+	assert_true(s.ball_is_wicket(bid), "the dismissal ball reads as a wicket before any review")

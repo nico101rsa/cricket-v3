@@ -126,6 +126,15 @@ func review_offer(cursor: int) -> Dictionary:
 		return {"ball_id": [e["over"], e["ball"]], "over": e["over"], "ball": e["ball"]}
 	return {}
 
+# Is the ball at ball_id [over, ball_in_over] currently a wicket in the player's
+# batting innings? Drives the post-review outcome popup (spec 2026-06-17). After a
+# decide_review re-sim a successful review flips the ball to not-out (false here).
+func ball_is_wicket(ball_id: Array) -> bool:
+	for b in _player_batting_log():
+		if b["over"] == ball_id[0] and b["ball_in_over"] == ball_id[1]:
+			return b["wicket"]
+	return true
+
 # Commit a review of the dismissal at ball_id [over, ball_in_over], re-sim.
 func decide_review(ball_id: Array) -> void:
 	if reviews_left() <= 0:
