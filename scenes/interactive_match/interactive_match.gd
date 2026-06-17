@@ -8,6 +8,7 @@ signal back
 
 const SPEEDS := [1.0, 2.0, 4.0]
 const BASE_TICK := 0.6
+const FLASH_HOLD := 1.5   # seconds autoplay holds on a your-moment highlight
 
 var _session: MatchSession
 var _team_name := ""
@@ -22,6 +23,7 @@ var _boost_active_over := -1        # over a press is currently boosting (-1 = n
 var _boost_active_innings := -1     # innings that boost belongs to
 var _pending_km := {}               # the Key Moment offer currently shown
 var _resume_after_km := false       # was autoplay running when the KM card popped?
+var _flash := ""                    # current your-moment highlight (for the brief hold)
 
 func _ready() -> void:
 	$Root/Controls/StepBack.pressed.connect(func(): pause(); step(-1))
@@ -30,14 +32,17 @@ func _ready() -> void:
 	$Root/Controls/Speed.pressed.connect(_cycle_speed)
 	$Root/Controls/Boost.pressed.connect(_on_boost)
 	$Root/Controls/Back.pressed.connect(func(): back.emit())
-	$Overlay/OverlayBox/ReviewYes.pressed.connect(_on_review_yes)
-	$Overlay/OverlayBox/ReviewNo.pressed.connect(_on_review_no)
+	$Overlay/OverlayBox/ReviewYes.pressed.connect(review_yes)
+	$Overlay/OverlayBox/ReviewNo.pressed.connect(review_no)
+	$Overlay/OverlayBox/ReviewOk.pressed.connect(review_ok)
 	$KMOverlay/KMBox/KMOptA.pressed.connect(func(): km_press(0))
 	$KMOverlay/KMBox/KMOptB.pressed.connect(func(): km_press(1))
 	$Tick.timeout.connect(_on_tick)
 	$Tick.wait_time = BASE_TICK
+	$FlashTimer.timeout.connect(_on_flash_done)
 	$Overlay.visible = false
 	$KMOverlay.visible = false
+	$Root/Flash.text = ""
 
 func set_session(s: MatchSession, team_name: String, opp_name: String) -> void:
 	_session = s
@@ -97,6 +102,11 @@ func step(delta: int) -> void:
 			_resume_after_review = _playing   # remember to resume after the decision
 			_show_overlay(offer)
 			pause()
+			return
+		# brief hold on a your-moment so it's legible (autoplay only)
+		if _flash != "" and _playing:
+			$Tick.stop()
+			$FlashTimer.start(FLASH_HOLD)
 			return
 	if _cursor >= _event_count:
 		pause()
@@ -168,9 +178,23 @@ func _update_boost_button() -> void:
 		btn.disabled = true
 		btn.text = "BOOST 0"
 
-func _show_overlay(offer: Dictionary) -> void:
+func _show_overlay(_offer: Dictionary) -> void:
 	$Overlay/OverlayBox/Prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
+	$Overlay/OverlayBox/ReviewYes.visible = true
+	$Overlay/OverlayBox/ReviewNo.visible = true
+	$Overlay/OverlayBox/ReviewOk.visible = false
 	$Overlay.visible = true
+
+func review_ok_visible() -> bool:
+	return $Overlay/OverlayBox/ReviewOk.visible
+
+func flash_text() -> String:
+	return $Root/Flash.text
+
+# FlashTimer fired after a brief your-moment hold: resume autoplay if still playing.
+func _on_flash_done() -> void:
+	if _playing:
+		$Tick.start()
 
 # -- Key Moment card (spec 2026-06-16) --------------------------------------
 
@@ -197,18 +221,36 @@ func km_press(i: int) -> void:
 		_resume_after_km = false
 		play()
 
-func _on_review_yes() -> void:
-	$Overlay.visible = false
+# Tapped Review: re-sim, then flip the overlay to the outcome with an OK button
+# (spec 2026-06-17 D1). Stays visible until OK so you see whether it was lost/won.
+func review_yes() -> void:
 	if not _pending_review.is_empty():
-		_session.decide_review(_pending_review["ball_id"])
+		var bid: Array = _pending_review["ball_id"]
+		_session.decide_review(bid)
 		_event_count = _session.events().size()
+		var success := not _session.ball_is_wicket(bid)
+		var msg: String = ("✅ Review successful — NOT OUT" if success
+			else "❌ Review lost — still OUT (%d left)" % _session.reviews_left())
+		$Overlay/OverlayBox/Prompt.text = msg
+		$Overlay/OverlayBox/ReviewYes.visible = false
+		$Overlay/OverlayBox/ReviewNo.visible = false
+		$Overlay/OverlayBox/ReviewOk.visible = true
 	_pending_review = {}
-	_render()   # re-render the (possibly overturned) cursor event
+	_render()   # re-render the (possibly overturned) cursor event behind the popup
+
+# Tapped No on a review: accept the out, no outcome popup.
+func review_no() -> void:
+	$Overlay.visible = false
+	_pending_review = {}
+	_render()
 	_resume_play_after_decision()
 
-func _on_review_no() -> void:
+# Tapped OK on the review outcome: dismiss + resume.
+func review_ok() -> void:
 	$Overlay.visible = false
-	_pending_review = {}
+	$Overlay/OverlayBox/ReviewYes.visible = true
+	$Overlay/OverlayBox/ReviewNo.visible = true
+	$Overlay/OverlayBox/ReviewOk.visible = false
 	_render()
 	_resume_play_after_decision()
 
@@ -226,6 +268,8 @@ func _render() -> void:
 	$Root/Target.text = v.target_text
 	# When finished, show the result + the Player's own final card; else the live line.
 	$Root/CurrentLine.text = ("%s\n%s" % [v.result_text, v.player_summary]) if v.finished else v.current_line
+	_flash = v.highlight_text
+	$Root/Flash.text = _flash
 	_update_boost_button()
 	var box: VBoxContainer = $Root/FeedBox
 	for c in box.get_children():
