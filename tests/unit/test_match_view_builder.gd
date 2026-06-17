@@ -115,3 +115,62 @@ func test_feed_ball_line_uses_cricket_notation() -> void:
 	var joined := "\n".join(view.feed)
 	assert_true("1.0  " in joined, "the over-completing ball reads 1.0 in the feed")
 	assert_false("1.6" in joined, "the feed never shows a .6")
+
+# -- Your-moment highlights (spec 2026-06-17) -------------------------------
+
+# highlight_text of the build whose cursor sits just after the Nth ball event
+# matching `pred`.
+func _hl_after(m: MatchResult, pred: Callable) -> String:
+	var events := MatchViewBuilder.build_events(m, _player())
+	for i in range(events.size()):
+		if pred.call(events[i]):
+			return MatchViewBuilder.build(m, _player(), i + 1).highlight_text
+	return "<no match>"
+
+func test_highlight_four_and_six() -> void:
+	var log1 := [_ball(1, 1, true, true, false, 4, false, false, 4, 0),
+		_ball(1, 2, true, true, false, 6, false, false, 10, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	assert_eq(MatchViewBuilder.build(m, _player(), 1).highlight_text, "FOUR!", "a your-four flashes FOUR!")
+	assert_eq(MatchViewBuilder.build(m, _player(), 2).highlight_text, "SIX!", "a your-six flashes SIX!")
+
+func test_highlight_fifty_milestone_wins_over_boundary() -> void:
+	var log1: Array = []
+	var tot := 0
+	for i in range(8):  # eight sixes = 48
+		tot += 6
+		log1.append(_ball(1, i + 1, true, true, false, 6, false, false, tot, 0))
+	tot += 4  # a four brings up 52 (crosses 50)
+	log1.append(_ball(2, 3, true, true, false, 4, false, false, tot, 0))
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var hl := MatchViewBuilder.build(m, _player(), 9).highlight_text
+	assert_true(hl.begins_with("FIFTY!"), "the run-bringing-up-50 ball flashes FIFTY! (not FOUR!), got: %s" % hl)
+
+func test_getting_out_is_highlighted() -> void:
+	var log1 := [_ball(1, 1, true, true, false, 12, false, false, 12, 0),
+		_ball(1, 2, true, true, false, 0, true, false, 12, 1)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	assert_true(MatchViewBuilder.build(m, _player(), 2).highlight_text.begins_with("OUT!"), "your dismissal flashes OUT!")
+
+func test_over_summary_event_has_no_highlight() -> void:
+	# a teammate ball folds into an "over" summary — not a your-moment, no flash
+	var log1 := [_ball(1, 1, false, false, false, 4, false, false, 4, 0),
+		_ball(1, 2, true, true, false, 1, false, false, 5, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	var hl := _hl_after(m, func(e): return e["type"] == "over")
+	assert_eq(hl, "", "an over-summary (teammate balls) does not flash")
+
+func test_bowling_three_and_five_for() -> void:
+	var log1 := [_ball(1, 1, true, true, false, 4, false, false, 4, 0)]
+	var log2: Array = []
+	for i in range(5):  # five player-bowled wickets
+		log2.append(_ball(i + 1, 1, false, false, true, 0, true, false, 0, i + 1))
+	var m := _match_with_logs(log1, log2, true)
+	# innings1: [ball] + innings_break = 2 events; bowling wickets start at index 2
+	assert_eq(MatchViewBuilder.build(m, _player(), 3).highlight_text, "WICKET! 1/0", "1st wicket = WICKET!")
+	assert_true(MatchViewBuilder.build(m, _player(), 5).highlight_text.begins_with("THREE-FOR!"), "3rd = THREE-FOR!")
+	assert_true(MatchViewBuilder.build(m, _player(), 7).highlight_text.begins_with("FIVE-FOR!"), "5th = FIVE-FOR!")

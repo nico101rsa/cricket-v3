@@ -90,15 +90,20 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 				var what := ("WICKET!" if e["wicket"] else "%d run%s" % [e["runs"], "" if e["runs"] == 1 else "s"])
 				feed.append("%s  %s%s%s" % [_overs(e["over"], e["ball"]), who, tag, what])
 				if e["player_batting"]:
+					var runs_before := my_runs
 					my_balls += 1
 					if e["wicket"]: my_out = true
 					else: my_runs += e["runs"]
 					v.current_line = "You %d%s (%d)" % [my_runs, "" if my_out else "*", my_balls]
+					if k == c - 1:  # flash this ball only if it's the one just shown
+						v.highlight_text = _bat_highlight(runs_before, my_runs, my_balls, e["wicket"], e["runs"])
 				elif e["player_bowling"]:
 					bw_balls += 1
 					if e["wicket"]: bw_wkts += 1
 					else: bw_runs += e["runs"]
 					v.current_line = "You %d/%d (%d.%d)" % [bw_wkts, bw_runs, bw_balls / 6, bw_balls % 6]
+					if k == c - 1 and e["wicket"]:
+						v.highlight_text = _bowl_highlight(bw_wkts, bw_runs)
 			"over":
 				innings_no = e["innings"]
 				bat_total = e["total"]; bat_wkts = e["wickets"]
@@ -141,6 +146,29 @@ static func _line_for(e: Dictionary, total: int, _wkts: int) -> String:
 	if e["player_batting"]:
 		return "You batting — team %d" % total
 	return ""
+
+# Your-moment flash for a Player batting ball (spec 2026-06-17 §4). Milestones win
+# over a plain boundary; getting out is also flagged. "" = nothing to flash.
+static func _bat_highlight(runs_before: int, runs_after: int, balls: int, wicket: bool, runs: int) -> String:
+	if wicket:
+		return "OUT! %d (%d)" % [runs_after, balls]
+	if runs_before < 100 and runs_after >= 100:
+		return "HUNDRED! %d (%d)" % [runs_after, balls]
+	if runs_before < 50 and runs_after >= 50:
+		return "FIFTY! %d (%d)" % [runs_after, balls]
+	if runs == 6:
+		return "SIX!"
+	if runs == 4:
+		return "FOUR!"
+	return ""
+
+# Your-moment flash for a Player bowling wicket (3-for / 5-for win over a plain wicket).
+static func _bowl_highlight(wkts: int, runs: int) -> String:
+	if wkts == 5:
+		return "FIVE-FOR! %d/%d" % [wkts, runs]
+	if wkts == 3:
+		return "THREE-FOR! %d/%d" % [wkts, runs]
+	return "WICKET! %d/%d" % [wkts, runs]
 
 # Cricket overs notation from a 1-based over + 1-6 ball: completed-overs.balls.
 # The 6th ball of an over ticks the over count over (over 1 ball 6 -> "1.0", over 20
