@@ -30,3 +30,16 @@ func test_factories_and_default() -> void:
 	assert_eq(bare.powerplay, t.powerplay, "new() == textbook powerplay")
 	assert_eq(bare.middle, t.middle, "new() == textbook middle")
 	assert_eq(bare.death, t.death, "new() == textbook death")
+
+func test_key_moments_override_phase_rotation():
+	var plan := BowlingPlan.new()   # textbook: PACE / SPIN / PACE
+	assert_eq(plan.for_over(16), BowlingPlan.Kind.PACE, "death = pace by default")
+	plan.key_moments = BowlingKeyMomentPlan.new()
+	plan.key_moments.overrides.append({"from_over": 16, "kind": BowlingPlan.Kind.SPIN})
+	assert_eq(plan.for_over(15), BowlingPlan.Kind.SPIN, "over 15 still the phase default (middle = spin)")
+	assert_eq(plan.for_over(16), BowlingPlan.Kind.SPIN, "over 16 now overridden to spin")
+
+func test_null_key_moments_is_plain_rotation():
+	var plan := BowlingPlan.new()
+	assert_eq(plan.key_moments, null, "key_moments defaults to null")
+	assert_eq(plan.for_over(16), BowlingPlan.Kind.PACE, "null => plain phase rotation")

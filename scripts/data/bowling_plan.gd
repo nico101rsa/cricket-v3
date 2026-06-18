@@ -14,8 +14,20 @@ var powerplay: int = Kind.PACE  # overs 1..6
 var middle: int = Kind.SPIN     # overs 7..15
 var death: int = Kind.PACE      # overs 16..20
 
-# 1-based over number -> bowler Kind for that over.
+# Bowling Key Moment overrides (spec 2026-06-18): per-over bowler-kind overrides from
+# in-match captain decisions. null => plain phase rotation (byte-identical to every
+# pre-Key-Moment caller). Mirror of IntentPlan.key_moments.
+var key_moments: BowlingKeyMomentPlan = null
+
+# 1-based over number -> bowler Kind for that over (Key Moment overrides win).
 func for_over(over: int) -> int:
+	var base := _phase_kind(over)
+	if key_moments != null:
+		return key_moments.effective_for_over(over, base)
+	return base
+
+# The plain phase kind (no Key Moment overrides applied).
+func _phase_kind(over: int) -> int:
 	if over <= POWERPLAY_OVERS:
 		return powerplay
 	if over < DEATH_START_OVER:
