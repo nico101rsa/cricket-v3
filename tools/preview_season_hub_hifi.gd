@@ -45,7 +45,9 @@ func _process(_delta: float) -> bool:
 		_injected = true
 	if _frames >= 8:
 		var img := root.get_viewport().get_texture().get_image()
+		# Versioned build proof + a STABLE "latest" path the design track always reads.
 		img.save_png("res://docs/mockups/season-hub-hifi-v2-built.png")
+		img.save_png("res://docs/mockups/latest/season-hub.png")
 		print("PREVIEW_SAVED")
 		return true
 	return false
