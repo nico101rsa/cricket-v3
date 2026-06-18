@@ -39,3 +39,21 @@ func test_margin_text_wickets() -> void:
 func test_margin_text_tie() -> void:
 	var r := _result(MatchResult.Outcome.TIE, 0, 0, 0)
 	assert_eq(r.margin_text(), "match tied", "tie text")
+
+# Perspective line — names the winner so a defending side doesn't read the neutral
+# margin ("won by 1 wickets") as its own win (the 2026-06-18 confusing-result bug).
+func test_result_line_player_win() -> void:
+	var r := _result(MatchResult.Outcome.PLAYER_WIN, 0, 6, 8)
+	assert_eq(r.result_line_for_player(), "You won by 6 wickets (8 balls left)")
+
+func test_result_line_opponent_win_singular() -> void:
+	var r := _result(MatchResult.Outcome.OPPONENT_WIN, 0, 1, 0)
+	assert_eq(r.result_line_for_player(), "Opponent won by 1 wicket (0 balls left)")
+
+func test_result_line_runs_margin() -> void:
+	var r := _result(MatchResult.Outcome.PLAYER_WIN, 14, 0, 0)
+	assert_eq(r.result_line_for_player(), "You won by 14 runs")
+
+func test_result_line_tie() -> void:
+	var r := _result(MatchResult.Outcome.TIE, 0, 0, 0)
+	assert_eq(r.result_line_for_player(), "Match tied")
