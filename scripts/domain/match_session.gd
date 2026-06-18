@@ -25,7 +25,8 @@ var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
 var _reviews_used := 0           # batting-side reviews the Player has committed
 var _km_plan := KeyMomentPlan.new()   # accumulated Key Moment overrides (spec 2026-06-16)
-var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices}
+var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices, lever}
+var _bowl_km_plan := BowlingKeyMomentPlan.new()  # accumulated bowling overrides (spec 2026-06-18)
 
 var _result: MatchResult
 var _events: Array = []
@@ -82,11 +83,20 @@ func _resim() -> void:
 	drs.review_balls = _review_balls
 	var ip := IntentPlan.new()         # all-BALANCED base; carries the Key Moment overrides
 	ip.key_moments = _km_plan
+	# Player bowling plan rides the existing player_bowling_plan slot. Only passed when
+	# the opponent brain has rotation on (_opp_spec != null) — then textbook+empty-KM ==
+	# the null->textbook() path the live game already runs (byte-identical), and a KM
+	# override changes only the future. In the standalone path (_opp_spec == null) we keep
+	# null so every pre-rung test/preview is byte-identical (spec §5 gotcha).
+	var pbp: BowlingPlan = null
+	if _opp_spec != null:
+		pbp = BowlingPlan.new()
+		pbp.key_moments = _bowl_km_plan
 	var log1: Array = []
 	var log2: Array = []
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
-		ip, null, [], null, null, oip,
+		ip, pbp, [], null, null, oip,
 		boost, drs, null, null, null, _force, obp, log1, log2)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2

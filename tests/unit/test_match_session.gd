@@ -228,3 +228,29 @@ func test_ball_is_wicket_reflects_log():
 	var e: Dictionary = s.events()[c]
 	var bid := [e["over"], e["ball"]]
 	assert_true(s.ball_is_wicket(bid), "the dismissal ball reads as a wicket before any review")
+
+# -- Bowling Key Moments (spec 2026-06-18) ----------------------------------
+# Bowling moments fire in the OPPOSITION batting innings, and need rotation mode on
+# (which only the opponent brain activates), so these use a spec'd session: opp bats
+# FIRST (force=0) as a full innings, adaptive brain spec, mirror of _spec_session.
+
+func test_empty_bowling_km_is_byte_identical_to_textbook_plan():
+	var spec := _adaptive_spec()
+	var s := _spec_session(spec)   # force=0, opp index 6, spec'd (rotation on)
+	# Rebuild the same match but pass an explicit textbook player bowling plan (no KM).
+	# If the session (empty bowling-KM) matches it, an empty plan is byte-identical.
+	var a := Attributes.new()
+	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
+	var rng := RandomNumberGenerator.new(); rng.seed = 20260615
+	var career := CareerResolver.start_career(0)
+	var team: Team = career.teams[career.current_team_index]
+	var opp: Team = career.opponents_of_current()[6]
+	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
+	var plans := OpponentBrain.draw_plans(spec.brain_tier, spec.blend, rng)
+	var boost := BoostPlan.new()
+	var drs := DRSPolicy.new(); drs.review_balls = []
+	var l1: Array = []; var l2: Array = []
+	MatchResolver.simulate_match_teams(a, team, opp, tour, BallTuning.new(), InningsTuning.new(),
+		rng, IntentPlan.new(), BowlingPlan.new(), [], null, null, plans[0], boost, drs,
+		null, null, null, 0, plans[1], l1, l2)
+	assert_eq(s.result().ball_log_innings1, l1, "empty bowling-KM session == explicit textbook bowling plan (byte-identical)")
