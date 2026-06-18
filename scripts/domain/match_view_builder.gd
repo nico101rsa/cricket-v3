@@ -53,7 +53,7 @@ static func build_events(mr: MatchResult, _player: Player) -> Array:
 	events.append({"type": "innings_break", "first_total": first_total,
 		"first_wkts": mr.innings1.wickets, "target": first_total + 1})
 	events.append_array(_innings_events(mr.ball_log_innings2, 2))
-	events.append({"type": "result", "text": mr.margin_text(),
+	events.append({"type": "result", "text": mr.result_line_for_player(),
 		"player_won": mr.player_won()})
 	return events
 

@@ -58,6 +58,19 @@ func test_result_event_carries_outcome() -> void:
 	assert_true(res["player_won"], "result marks the player win")
 	assert_string_contains(res["text"], "won by", "result text uses margin phrasing")
 
+func test_result_event_names_the_winner_on_a_loss() -> void:
+	# The confusing-result bug: a defending side read the neutral "won by 1 wickets" as
+	# its own win. The result line now names who won.
+	var log1 := [_ball(1, 1, true, true, false, 4, false, false, 4, 0)]
+	var log2 := [_ball(1, 1, false, false, true, 0, true, false, 0, 1)]
+	var m := _match_with_logs(log1, log2, true)
+	m.outcome = MatchResult.Outcome.OPPONENT_WIN
+	m.margin_wickets = 1; m.balls_remaining = 0
+	var events := MatchViewBuilder.build_events(m, _player())
+	var res: Dictionary = events[-1]
+	assert_false(res["player_won"], "marked a loss")
+	assert_string_contains(res["text"], "Opponent won", "result text names the opponent as winner")
+
 func test_build_running_score_at_cursor() -> void:
 	var log1 := [
 		_ball(1, 1, true, true, false, 4, false, false, 4, 0),

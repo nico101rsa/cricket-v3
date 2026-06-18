@@ -33,3 +33,16 @@ func margin_text() -> String:
 	if margin_runs > 0:
 		return "won by %d runs" % margin_runs
 	return "won by %d wickets (%d balls left)" % [margin_wickets, balls_remaining]
+
+# Result line from the PLAYER's perspective — NAMES the winner so a side defending a
+# total doesn't read the neutral margin_text ("won by 1 wickets") as its own win
+# (the 2026-06-18 confusing-result bug). Used by the match screens; margin_text stays
+# neutral for the season-table rows that show won/lost separately.
+func result_line_for_player() -> String:
+	if is_tie():
+		return "Match tied"
+	var who := "You" if player_won() else "Opponent"
+	if margin_runs > 0:
+		return "%s won by %d run%s" % [who, margin_runs, "" if margin_runs == 1 else "s"]
+	return "%s won by %d wicket%s (%d balls left)" % [
+		who, margin_wickets, "" if margin_wickets == 1 else "s", balls_remaining]
