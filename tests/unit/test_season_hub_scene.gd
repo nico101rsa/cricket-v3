@@ -73,11 +73,18 @@ func test_scene_renders_view_and_panels_are_visible() -> void:
 	hub.set_view(_view())
 	await get_tree().process_frame   # let the containers lay out
 	var root := hub.get_node("Scroll/Margin/Root")
-	assert_true(root.get_node("Header/TonsChip").text.contains("120"), "tons chip shows balance")
-	assert_true(root.get_node("FixturesBox").get_child_count() >= 7, "7 fixture rows")
-	assert_gt(root.get_node("FixturesBox").size.y, 0.0, "fixtures box not collapsed")
-	assert_true(root.get_node("PlayerCard/NameLabel").is_visible_in_tree(), "name visible")
-	assert_true(root.get_node("ScrubBar/ScrubLabel").text.contains("0"), "scrub readout")
+	# data still renders
+	assert_true(root.get_node("TonsPanel/TonsRow/TonsCol/TonsChip").text.contains("120"), "tons shows balance")
+	assert_eq(root.get_node("FixturesPanel/FixturesWrap/FixturesBox").get_child_count(), 7, "7 fixture nodes")
+	assert_true(root.get_node("CardPanel/PlayerCard/CardInfo/NameLabel").is_visible_in_tree(), "name visible")
+	assert_true(root.get_node("ScrubPanel/ScrubBar/ScrubLabel").text.contains("0"), "scrub readout")
+	# new blocks render visible + non-collapsed (StyleBox/ScrollContainer traps)
+	for p in ["TopbarPanel", "TonsPanel", "FixturesPanel", "CardPanel", "JokersPanel", "AffinityPanel"]:
+		assert_true(root.get_node(p).is_visible_in_tree(), p + " visible")
+		assert_gt(root.get_node(p).size.y, 0.0, p + " not collapsed")
+	# §16.3 portrait frame present with a swap-in face slot
+	assert_true(root.get_node("CardPanel/PlayerCard/Portrait").is_visible_in_tree(), "portrait frame visible")
+	assert_not_null(root.get_node_or_null("CardPanel/PlayerCard/Portrait/FaceSlot"), "face swap-in slot exists")
 
 # --- Task 8: scrub ---
 
@@ -88,7 +95,7 @@ func test_next_advances_scrub_and_grows_card() -> void:
 	assert_eq(hub.scrub_index(), 0, "boots at 0")
 	hub.step(1)
 	assert_eq(hub.scrub_index(), 1, "next advances")
-	var lbl := hub.get_node("Scroll/Margin/Root/ScrubBar/ScrubLabel")
+	var lbl := hub.get_node("Scroll/Margin/Root/ScrubPanel/ScrubBar/ScrubLabel")
 	assert_true(lbl.text.contains("1"), "readout updated")
 
 # --- Task 9: boot ---
@@ -108,8 +115,9 @@ func test_live_play_renders_running_table_and_play_control() -> void:
 	await get_tree().process_frame
 	var root := hub.get_node("Scroll/Margin/Root")
 	# Running table: header label + 8 team rows.
-	assert_true(root.get_node("StandingsBox").get_child_count() >= 9, "running table rows present")
-	assert_true(root.get_node("StandingsBox").get_child(0).text.contains("1/7"),
+	var standings := root.get_node("StandingsPanel/StandingsWrap/StandingsBox")
+	assert_true(standings.get_child_count() >= 9, "running table rows present")
+	assert_true(standings.get_child(0).text.contains("1/7"),
 		"table labelled by your progress")
 	# Next-fixture PLAY control exists + is visible.
 	assert_true(hub.has_play_control(), "next-fixture PLAY control present")

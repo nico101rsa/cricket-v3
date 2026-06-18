@@ -13,6 +13,13 @@ offset_right = 0.0
 offset_bottom = 0.0
 script = ExtResource("1_hub")
 
+[node name="BG" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.101961, 0.101961, 0.133333, 1)
+
 [node name="Scroll" type="ScrollContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -27,76 +34,214 @@ horizontal_scroll_mode = 0
 [node name="Margin" type="MarginContainer" parent="Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
 
 [node name="Root" type="VBoxContainer" parent="Scroll/Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 10
 
-[node name="Header" type="HBoxContainer" parent="Scroll/Margin/Root"]
+[node name="TopbarPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="Scroll/Margin/Root/Header"]
+[node name="Header" type="HBoxContainer" parent="Scroll/Margin/Root/TopbarPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Badge" type="Label" parent="Scroll/Margin/Root/TopbarPanel/Header"]
+layout_mode = 2
+vertical_alignment = 1
+horizontal_alignment = 1
+text = "CG"
+
+[node name="TeamId" type="VBoxContainer" parent="Scroll/Margin/Root/TopbarPanel/Header"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="Scroll/Margin/Root/TopbarPanel/Header/TeamId"]
+layout_mode = 2
 clip_text = true
 text = "Team"
 
-[node name="TonsChip" type="Label" parent="Scroll/Margin/Root/Header"]
+[node name="StarsLabel" type="Label" parent="Scroll/Margin/Root/TopbarPanel/Header/TeamId"]
+layout_mode = 2
+text = "★★★"
+
+[node name="PosPill" type="Label" parent="Scroll/Margin/Root/TopbarPanel/Header"]
+layout_mode = 2
+vertical_alignment = 1
+horizontal_alignment = 1
+text = "—"
+
+[node name="TonsPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
+layout_mode = 2
+
+[node name="TonsRow" type="HBoxContainer" parent="Scroll/Margin/Root/TonsPanel"]
+layout_mode = 2
+
+[node name="TonsCol" type="VBoxContainer" parent="Scroll/Margin/Root/TonsPanel/TonsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TonsCap" type="Label" parent="Scroll/Margin/Root/TonsPanel/TonsRow/TonsCol"]
+layout_mode = 2
+text = "TONS BANKED"
+
+[node name="TonsChip" type="Label" parent="Scroll/Margin/Root/TonsPanel/TonsRow/TonsCol"]
 layout_mode = 2
 text = "₸ 0"
 
-[node name="ContextLabel" type="Label" parent="Scroll/Margin/Root"]
+[node name="ContextCol" type="VBoxContainer" parent="Scroll/Margin/Root/TonsPanel/TonsRow"]
 layout_mode = 2
-autowrap_mode = 3
+
+[node name="ContextLabel" type="Label" parent="Scroll/Margin/Root/TonsPanel/TonsRow/ContextCol"]
+layout_mode = 2
+horizontal_alignment = 2
 text = "Context"
 
-[node name="FixturesBox" type="VBoxContainer" parent="Scroll/Margin/Root"]
+[node name="ProgressLabel" type="Label" parent="Scroll/Margin/Root/TonsPanel/TonsRow/ContextCol"]
+layout_mode = 2
+horizontal_alignment = 2
+text = "MATCH 0 / 7"
+
+[node name="FixturesPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
+layout_mode = 2
+
+[node name="FixturesWrap" type="VBoxContainer" parent="Scroll/Margin/Root/FixturesPanel"]
+layout_mode = 2
+
+[node name="FixHeader" type="Label" parent="Scroll/Margin/Root/FixturesPanel/FixturesWrap"]
+layout_mode = 2
+text = "FIXTURES"
+
+[node name="FixturesBox" type="HBoxContainer" parent="Scroll/Margin/Root/FixturesPanel/FixturesWrap"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="PlayerCard" type="VBoxContainer" parent="Scroll/Margin/Root"]
+[node name="CardPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="Scroll/Margin/Root/PlayerCard"]
+[node name="PlayerCard" type="HBoxContainer" parent="Scroll/Margin/Root/CardPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Portrait" type="Panel" parent="Scroll/Margin/Root/CardPanel/PlayerCard"]
+custom_minimum_size = Vector2(64, 84)
+layout_mode = 2
+
+[node name="FaceSlot" type="Control" parent="Scroll/Margin/Root/CardPanel/PlayerCard/Portrait"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="NumLabel" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/Portrait"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "00"
+
+[node name="StarsCorner" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/Portrait"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 4.0
+offset_top = 3.0
+text = "★★★"
+
+[node name="CardInfo" type="VBoxContainer" parent="Scroll/Margin/Root/CardPanel/PlayerCard"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Name"
 
-[node name="AttrLabel" type="Label" parent="Scroll/Margin/Root/PlayerCard"]
+[node name="OvrFormRow" type="HBoxContainer" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="OvrLabel" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo/OvrFormRow"]
+layout_mode = 2
+text = "OVR 0"
+
+[node name="FormChip" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo/OvrFormRow"]
+layout_mode = 2
+text = "Steady"
+
+[node name="CareerLabel" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="CareerLabel" type="Label" parent="Scroll/Margin/Root/PlayerCard"]
+[node name="AttrLabel" type="Label" parent="Scroll/Margin/Root/CardPanel/PlayerCard/CardInfo"]
 layout_mode = 2
 autowrap_mode = 3
 
-[node name="JokersBox" type="HBoxContainer" parent="Scroll/Margin/Root"]
+[node name="JokersPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
 layout_mode = 2
 
-[node name="AffinityLabel" type="Label" parent="Scroll/Margin/Root"]
+[node name="JokersWrap" type="VBoxContainer" parent="Scroll/Margin/Root/JokersPanel"]
 layout_mode = 2
 
-[node name="StandingsBox" type="VBoxContainer" parent="Scroll/Margin/Root"]
+[node name="JokHeader" type="Label" parent="Scroll/Margin/Root/JokersPanel/JokersWrap"]
+layout_mode = 2
+text = "JOKERS BENCH"
+
+[node name="JokersBox" type="HBoxContainer" parent="Scroll/Margin/Root/JokersPanel/JokersWrap"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="AffinityPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
+layout_mode = 2
+
+[node name="AffinityWrap" type="VBoxContainer" parent="Scroll/Margin/Root/AffinityPanel"]
+layout_mode = 2
+
+[node name="AffinityLabel" type="Label" parent="Scroll/Margin/Root/AffinityPanel/AffinityWrap"]
+layout_mode = 2
+text = "AFFINITY"
+
+[node name="AffinityBar" type="ProgressBar" parent="Scroll/Margin/Root/AffinityPanel/AffinityWrap"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="StandingsPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
+layout_mode = 2
+
+[node name="StandingsWrap" type="VBoxContainer" parent="Scroll/Margin/Root/StandingsPanel"]
+layout_mode = 2
+
+[node name="StandingsBox" type="VBoxContainer" parent="Scroll/Margin/Root/StandingsPanel/StandingsWrap"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 
-[node name="ScrubBar" type="HBoxContainer" parent="Scroll/Margin/Root"]
+[node name="ScrubPanel" type="PanelContainer" parent="Scroll/Margin/Root"]
 layout_mode = 2
 
-[node name="PrevBtn" type="Button" parent="Scroll/Margin/Root/ScrubBar"]
+[node name="ScrubBar" type="HBoxContainer" parent="Scroll/Margin/Root/ScrubPanel"]
+layout_mode = 2
+
+[node name="PrevBtn" type="Button" parent="Scroll/Margin/Root/ScrubPanel/ScrubBar"]
 layout_mode = 2
 text = "‹ Prev"
 
-[node name="ScrubLabel" type="Label" parent="Scroll/Margin/Root/ScrubBar"]
+[node name="ScrubLabel" type="Label" parent="Scroll/Margin/Root/ScrubPanel/ScrubBar"]
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_alignment = 1
 text = "Match 0 / 7"
 
-[node name="NextBtn" type="Button" parent="Scroll/Margin/Root/ScrubBar"]
+[node name="NextBtn" type="Button" parent="Scroll/Margin/Root/ScrubPanel/ScrubBar"]
 layout_mode = 2
 text = "Next ›"
