@@ -32,9 +32,7 @@ func _initialize() -> void:
 	_play = SeasonPlay.start(
 		_player.attributes, team, _career.opponents_of_current(),
 		spec.make_tour(), BallTuning.new(), InningsTuning.new(), 20260615, spec)
-	# Play 3 fixtures so there are W/L dots + a running table + a next-fixture CTA.
-	for _i in range(3):
-		_play.commit_player_result(_play.make_session().result())
+	# Season start (Match 1, no games played) — matches the reference image.
 
 	root.size = Vector2i(390, 844)
 	_hub = load("res://scenes/season_hub/season_hub.tscn").instantiate()
@@ -47,7 +45,7 @@ func _process(_delta: float) -> bool:
 		_injected = true
 	if _frames >= 8:
 		var img := root.get_viewport().get_texture().get_image()
-		img.save_png("res://docs/mockups/season-hub-hifi-built-v1.png")
+		img.save_png("res://docs/mockups/season-hub-hifi-v2-built.png")
 		print("PREVIEW_SAVED")
 		return true
 	return false

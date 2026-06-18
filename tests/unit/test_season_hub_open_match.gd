@@ -20,6 +20,6 @@ func test_played_row_emits_open_match() -> void:
 	hub.set_view(_view_with_one_played())
 	await get_tree().process_frame
 	watch_signals(hub)
-	var box: HBoxContainer = hub.get_node("Scroll/Margin/Root/FixturesPanel/FixturesWrap/FixturesBox")
-	box.get_child(0).pressed.emit()
+	var box: HBoxContainer = hub.get_node("Margin/Root/FixturesPanel/FixturesWrap/FixturesRow/FixturesBox")
+	box.get_child(0).get_node("Dot").pressed.emit()
 	assert_signal_emitted_with_parameters(hub, "open_match", [0])

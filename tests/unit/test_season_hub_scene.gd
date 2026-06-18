@@ -1,12 +1,11 @@
 extends GutTest
 
-# Season Hub scene — renders a SeasonView, scrubs, and boots a real season
-# (spec 2026-06-15-season-hub-replay §5/§7).
+# Season Hub scene — hi-fi v2 (spec 2026-06-18-season-hub-hifi-v2). Renders a
+# SeasonView; single dense screen (no scroll, no league table). Hard rules tested:
+# never show raw PWR/COM/ATT/CON; position pill is "—" until a result exists.
 
 const SeasonHubScene = preload("res://scenes/season_hub/season_hub.tscn")
 
-# --- Save isolation: the boot test writes user://player.tres. Snapshot the real
-# save once and restore it after, so a dev's actual Player/Career is never lost. ---
 var _had_player := false
 var _saved_player: Player = null
 var _had_career := false
@@ -19,7 +18,6 @@ func before_all() -> void:
 	_had_career = SaveManager.has_career()
 	if _had_career:
 		_saved_career = SaveManager.load_career()
-	# Deterministic boot: no career saved → boot uses start_career(0).
 	SaveManager.clear_player()
 	SaveManager.clear_career()
 
@@ -65,44 +63,48 @@ func _season7() -> SeasonResult:
 	sr.league = lr
 	return sr
 
-# --- Task 7: render ---
+# Gather all Label text under a node (for the no-raw-stats rule).
+func _all_label_text(node: Node) -> String:
+	var out := ""
+	if node is Label:
+		out += " " + node.text
+	for c in node.get_children():
+		out += _all_label_text(c)
+	return out
 
 func test_scene_renders_view_and_panels_are_visible() -> void:
 	var hub = SeasonHubScene.instantiate()
 	add_child_autofree(hub)
 	hub.set_view(_view())
-	await get_tree().process_frame   # let the containers lay out
-	var root := hub.get_node("Scroll/Margin/Root")
-	# data still renders
+	await get_tree().process_frame
+	var root := hub.get_node("Margin/Root")
 	assert_true(root.get_node("TonsPanel/TonsRow/TonsCol/TonsChip").text.contains("120"), "tons shows balance")
-	assert_eq(root.get_node("FixturesPanel/FixturesWrap/FixturesBox").get_child_count(), 7, "7 fixture nodes")
+	assert_eq(root.get_node("FixturesPanel/FixturesWrap/FixturesRow/FixturesBox").get_child_count(), 7, "7 fixture nodes")
 	assert_true(root.get_node("CardPanel/PlayerCard/CardInfo/NameLabel").is_visible_in_tree(), "name visible")
-	assert_true(root.get_node("ScrubPanel/ScrubBar/ScrubLabel").text.contains("0"), "scrub readout")
-	# new blocks render visible + non-collapsed (StyleBox/ScrollContainer traps)
 	for p in ["TopbarPanel", "TonsPanel", "FixturesPanel", "CardPanel", "JokersPanel", "AffinityPanel"]:
 		assert_true(root.get_node(p).is_visible_in_tree(), p + " visible")
 		assert_gt(root.get_node(p).size.y, 0.0, p + " not collapsed")
-	# §16.3 portrait frame present with a swap-in face slot
-	assert_true(root.get_node("CardPanel/PlayerCard/Portrait").is_visible_in_tree(), "portrait frame visible")
-	assert_not_null(root.get_node_or_null("CardPanel/PlayerCard/Portrait/FaceSlot"), "face swap-in slot exists")
+	# real portrait art present
+	assert_true(root.get_node("CardPanel/PlayerCard/Portrait").is_visible_in_tree(), "portrait visible")
+	assert_not_null(root.get_node("CardPanel/PlayerCard/Portrait/PortraitTex").texture, "portrait art bound")
+	# position pill is "—" at season start (no fake "1st")
+	assert_eq(root.get_node("TopbarPanel/Header/PosPill/PosNum").text, "—", "no fake position pre-result")
+	# HARD RULE: never show raw skill stats
+	var labels := _all_label_text(root)
+	assert_false(labels.contains("PWR"), "no raw PWR stat leaked")
+	assert_false(labels.contains("COM "), "no raw COM stat leaked")
 
-# --- Task 8: scrub ---
-
-func test_next_advances_scrub_and_grows_card() -> void:
+func test_step_advances_scrub_head() -> void:
 	var hub = SeasonHubScene.instantiate()
 	add_child_autofree(hub)
 	hub.set_source(_player(), CareerResolver.start_career(0), _season7())
 	assert_eq(hub.scrub_index(), 0, "boots at 0")
 	hub.step(1)
-	assert_eq(hub.scrub_index(), 1, "next advances")
-	var lbl := hub.get_node("Scroll/Margin/Root/ScrubPanel/ScrubBar/ScrubLabel")
-	assert_true(lbl.text.contains("1"), "readout updated")
+	assert_eq(hub.scrub_index(), 1, "step advances the head")
+	assert_true(hub.get_node("Margin/Root/TonsPanel/TonsRow/ContextCol/ProgressLabel").text.contains("of 7"),
+		"progress readout present")
 
-# --- Task 9: boot ---
-
-# --- Live league loop (2026-06-16): forward-play render ---
-
-func test_live_play_renders_running_table_and_play_control() -> void:
+func test_live_play_shows_played_fixture_and_play_control() -> void:
 	var hub = SeasonHubScene.instantiate()
 	add_child_autofree(hub)
 	var career := CareerResolver.start_career(0)
@@ -113,22 +115,20 @@ func test_live_play_renders_running_table_and_play_control() -> void:
 	sp.commit_player_result(sp.make_session().result())   # play 1 game
 	hub.set_play(player, career, sp)
 	await get_tree().process_frame
-	var root := hub.get_node("Scroll/Margin/Root")
-	# Running table: header label + 8 team rows.
-	var standings := root.get_node("StandingsPanel/StandingsWrap/StandingsBox")
-	assert_true(standings.get_child_count() >= 9, "running table rows present")
-	assert_true(standings.get_child(0).text.contains("1/7"),
-		"table labelled by your progress")
-	# Next-fixture PLAY control exists + is visible.
-	assert_true(hub.has_play_control(), "next-fixture PLAY control present")
-	assert_true(root.get_node("PlayNextBtn").is_visible_in_tree(), "PLAY visible")
+	var root := hub.get_node("Margin/Root")
+	assert_true(hub.has_play_control(), "live play control present")
+	assert_true(root.get_node("CTA/CtaCenter/CtaLines/CtaBig").text.contains("NEXT MATCH"),
+		"CTA reads NEXT MATCH after a game")
+	assert_true(root.get_node("TonsPanel/TonsRow/ContextCol/ProgressLabel").text.contains("2 of 7"),
+		"progress reflects 1 played (about to play match 2)")
+	assert_ne(root.get_node("TopbarPanel/Header/PosPill/PosNum").text, "—", "a result exists → real position")
 
 func test_boots_a_real_season_when_player_saved() -> void:
 	var p := _player()
 	SaveManager.save_player(p)
 	var hub = SeasonHubScene.instantiate()
 	add_child_autofree(hub)
-	hub.boot()   # router calls this after pushing the hub
+	hub.boot()
 	assert_not_null(hub._view, "boot built a view")
 	assert_eq(hub._view.fixtures.size(), 7)
 	assert_false(hub._view.team_name.is_empty())
