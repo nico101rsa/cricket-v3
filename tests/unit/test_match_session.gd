@@ -228,3 +228,83 @@ func test_ball_is_wicket_reflects_log():
 	var e: Dictionary = s.events()[c]
 	var bid := [e["over"], e["ball"]]
 	assert_true(s.ball_is_wicket(bid), "the dismissal ball reads as a wicket before any review")
+
+# -- Bowling Key Moments (spec 2026-06-18) ----------------------------------
+# Bowling moments fire in the OPPOSITION batting innings, and need rotation mode on
+# (which only the opponent brain activates), so these use a spec'd session: opp bats
+# FIRST (force=0) as a full innings, adaptive brain spec, mirror of _spec_session.
+
+func test_empty_bowling_km_is_byte_identical_to_textbook_plan():
+	var spec := _adaptive_spec()
+	var s := _spec_session(spec)   # force=0, opp index 6, spec'd (rotation on)
+	# Rebuild the same match but pass an explicit textbook player bowling plan (no KM).
+	# If the session (empty bowling-KM) matches it, an empty plan is byte-identical.
+	var a := Attributes.new()
+	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
+	var rng := RandomNumberGenerator.new(); rng.seed = 20260615
+	var career := CareerResolver.start_career(0)
+	var team: Team = career.teams[career.current_team_index]
+	var opp: Team = career.opponents_of_current()[6]
+	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
+	var plans := OpponentBrain.draw_plans(spec.brain_tier, spec.blend, rng)
+	var boost := BoostPlan.new()
+	var drs := DRSPolicy.new(); drs.review_balls = []
+	var l1: Array = []; var l2: Array = []
+	MatchResolver.simulate_match_teams(a, team, opp, tour, BallTuning.new(), InningsTuning.new(),
+		rng, IntentPlan.new(), BowlingPlan.new(), [], null, null, plans[0], boost, drs,
+		null, null, null, 0, plans[1], l1, l2)
+	assert_eq(s.result().ball_log_innings1, l1, "empty bowling-KM session == explicit textbook bowling plan (byte-identical)")
+
+func _bowl_km_cursor(s: MatchSession, kind_contains: String) -> int:
+	for c in range(s.events().size()):
+		var o := s.key_moment_offer(c)
+		if not o.is_empty() and o.get("lever", "intent") == "bowling" and (kind_contains in o["title"]):
+			return c
+	return -1
+
+func test_bowling_powerplay_exit_offer_fires():
+	var s := _spec_session(_adaptive_spec())   # opp bats first, full innings
+	var c := _bowl_km_cursor(s, "Powerplay")
+	assert_gt(c, -1, "a bowling Powerplay Exit moment is offered")
+	var o := s.key_moment_offer(c)
+	assert_eq(o["from_over"], 7, "bowling PP Exit overrides from over 7")
+	assert_eq(o["lever"], "bowling", "tagged as a bowling lever")
+	assert_eq(o["choices"].size(), 2, "two choices")
+	assert_true(o["choices"][0].has("kind"), "bowling choices carry a kind, not a band")
+
+func test_bowling_death_defence_offer_fires():
+	var s := _spec_session(_adaptive_spec())
+	var c := _bowl_km_cursor(s, "Death")
+	assert_gt(c, -1, "a bowling Death Defence moment is offered")
+	assert_eq(s.key_moment_offer(c)["from_over"], 16, "Death Defence overrides from over 16")
+
+func test_decide_bowling_key_moment_prefix_byte_identical():
+	var s := _spec_session(_adaptive_spec())
+	var c := _bowl_km_cursor(s, "Powerplay")
+	var o := s.key_moment_offer(c)
+	# opp bats innings1 here (force=0), so the bowling innings log is ball_log_innings1
+	var before := s.result().ball_log_innings1.duplicate(true)
+	s.decide_bowling_key_moment(o["from_over"], BowlingPlan.Kind.SPIN)
+	var after := s.result().ball_log_innings1
+	for i in range(before.size()):
+		if before[i]["over"] < o["from_over"]:
+			assert_eq(after[i], before[i], "prefix ball %d unchanged" % i)
+		else:
+			break
+
+func test_decide_bowling_key_moment_changes_the_future():
+	var s := _spec_session(_adaptive_spec())
+	var c := _bowl_km_cursor(s, "Death")
+	assert_gt(c, -1, "a Death Defence moment exists to decide")
+	var before := s.result().ball_log_innings1.duplicate(true)
+	# Force the death overs to spin (away from textbook pace) — the opp innings (the balls
+	# from over 16 on) must diverge. (The TOTAL can coincidentally re-land at this seed; the
+	# honest proof of "your call changed the match" is that the future balls differ.)
+	s.decide_bowling_key_moment(16, BowlingPlan.Kind.SPIN)
+	assert_ne(s.result().ball_log_innings1, before, "a spin death changed the opposition innings")
+
+func test_bowling_offer_clears_after_decision():
+	var s := _spec_session(_adaptive_spec())
+	var c := _bowl_km_cursor(s, "Powerplay")
+	s.decide_bowling_key_moment(7, BowlingPlan.Kind.SPIN)
+	assert_true(s.key_moment_offer(c).is_empty(), "a decided bowling moment no longer offers")

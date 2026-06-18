@@ -25,7 +25,8 @@ var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
 var _reviews_used := 0           # batting-side reviews the Player has committed
 var _km_plan := KeyMomentPlan.new()   # accumulated Key Moment overrides (spec 2026-06-16)
-var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices}
+var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices, lever}
+var _bowl_km_plan := BowlingKeyMomentPlan.new()  # accumulated bowling overrides (spec 2026-06-18)
 
 var _result: MatchResult
 var _events: Array = []
@@ -82,11 +83,20 @@ func _resim() -> void:
 	drs.review_balls = _review_balls
 	var ip := IntentPlan.new()         # all-BALANCED base; carries the Key Moment overrides
 	ip.key_moments = _km_plan
+	# Player bowling plan rides the existing player_bowling_plan slot. Only passed when
+	# the opponent brain has rotation on (_opp_spec != null) — then textbook+empty-KM ==
+	# the null->textbook() path the live game already runs (byte-identical), and a KM
+	# override changes only the future. In the standalone path (_opp_spec == null) we keep
+	# null so every pre-rung test/preview is byte-identical (spec §5 gotcha).
+	var pbp: BowlingPlan = null
+	if _opp_spec != null:
+		pbp = BowlingPlan.new()
+		pbp.key_moments = _bowl_km_plan
 	var log1: Array = []
 	var log2: Array = []
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
-		ip, null, [], null, null, oip,
+		ip, pbp, [], null, null, oip,
 		boost, drs, null, null, null, _force, obp, log1, log2)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
@@ -184,12 +194,24 @@ func _cursor_for_over(player_innings: int, over: int) -> int:
 			return i
 	return -1
 
-func _add_moment(player_innings: int, title: String, prompt: String, from_over: int, choices: Array) -> void:
+func _add_moment(player_innings: int, title: String, prompt: String, from_over: int, choices: Array, lever: String = "intent") -> void:
 	var c := _cursor_for_over(player_innings, from_over)
 	if c == -1:
 		return  # the innings never reached this over (e.g. all out) — moment doesn't fire
 	_km_moments.append({"title": title, "prompt": prompt, "from_over": from_over,
-		"cursor": c, "choices": choices})
+		"cursor": c, "choices": choices, "lever": lever})
+
+# The opposition's batting-innings raw ball-log (the innings where the Player bowls).
+func _opp_batting_log() -> Array:
+	return _result.ball_log_innings2 if _result.player_bats_first else _result.ball_log_innings1
+
+# Over of the first opposition wicket falling in overs 7..14, else -1 (New Batsman source).
+# Capped at 14 so the override over (wicket+1) stays <= 15, never colliding with Death (16).
+func _first_opp_middle_wicket_over() -> int:
+	for b in _opp_batting_log():
+		if b["wicket"] and b["over"] >= 7 and b["over"] <= 14:
+			return b["over"]
+	return -1
 
 func _compute_km_moments() -> void:
 	_km_moments = []
@@ -205,25 +227,50 @@ func _compute_km_moments() -> void:
 	_add_moment(pbi, "💀 Death Plan", "Last five overs — what's the play?", 16,
 		[{"label": "Milk it", "band": BallResolver.Intent.BALANCED},
 		 {"label": "Go big", "band": BallResolver.Intent.AGGRESSIVE}])
+	# Bowling moments fire in the opposition's batting innings and override the team's
+	# bowler kind (Pace/Spin). Only when rotation is on (_opp_spec != null) — see Task 3 /
+	# spec §5: the player bowling plan is passed only then, so prefixes stay byte-identical.
+	if _opp_spec != null:
+		var obi := 2 if _result.player_bats_first else 1
+		_add_moment(obi, "🎯 Powerplay Exit", "Powerplay's done — how do you bowl the middle?", 7,
+			[{"label": "Spin", "kind": BowlingPlan.Kind.SPIN},
+			 {"label": "Pace", "kind": BowlingPlan.Kind.PACE}], "bowling")
+		var owo := _first_opp_middle_wicket_over()
+		if owo != -1:
+			_add_moment(obi, "🔥 New Batsman In", "A new batter's in — how do you attack?", owo + 1,
+				[{"label": "Pace", "kind": BowlingPlan.Kind.PACE},
+				 {"label": "Spin", "kind": BowlingPlan.Kind.SPIN}], "bowling")
+		_add_moment(obi, "💀 Death Defence", "Last five overs — how do you defend?", 16,
+			[{"label": "Pace", "kind": BowlingPlan.Kind.PACE},
+			 {"label": "Spin", "kind": BowlingPlan.Kind.SPIN}], "bowling")
 
-func _km_decided(from_over: int) -> bool:
-	for o in _km_plan.overrides:
+func _km_decided(from_over: int, lever: String = "intent") -> bool:
+	var plan: Variant = _bowl_km_plan if lever == "bowling" else _km_plan
+	for o in plan.overrides:
 		if o["from_over"] == from_over:
 			return true
 	return false
 
 # Given the playback cursor (index of the event about to be shown), return the Key
-# Moment to pause on — {title, prompt, from_over, choices:[{label,band}]} — or {}.
+# Moment to pause on — {title, prompt, from_over, lever, choices:[{label,band|kind}]} — or {}.
 func key_moment_offer(cursor: int) -> Dictionary:
 	for m in _km_moments:
-		if m["cursor"] == cursor and not _km_decided(m["from_over"]):
+		var lever: String = m.get("lever", "intent")
+		if m["cursor"] == cursor and not _km_decided(m["from_over"], lever):
 			return {"title": m["title"], "prompt": m["prompt"],
-				"from_over": m["from_over"], "choices": m["choices"]}
+				"from_over": m["from_over"], "choices": m["choices"], "lever": lever}
 	return {}
 
 # Commit a Key Moment: override batting Intent to `band` from `from_over` onward, re-sim.
 func decide_key_moment(from_over: int, band: int) -> void:
-	if _km_decided(from_over):
+	if _km_decided(from_over, "intent"):
 		return
 	_km_plan.overrides.append({"from_over": from_over, "band": band})
+	_resim()
+
+# Commit a bowling Key Moment: override bowler kind to `kind` from `from_over` onward, re-sim.
+func decide_bowling_key_moment(from_over: int, kind: int) -> void:
+	if _km_decided(from_over, "bowling"):
+		return
+	_bowl_km_plan.overrides.append({"from_over": from_over, "kind": kind})
 	_resim()

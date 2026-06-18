@@ -29,6 +29,10 @@ const AGG := BallResolver.Intent.AGGRESSIVE
 const BASE_ARM := {"name": "base", "boost": false, "drs": false, "km": []}
 const ALL_AGGR_ARM := {"name": "all_aggr", "boost": true, "drs": true, "km": [[7, AGG], [16, AGG]]}
 
+# Bowling Key Moment kinds (spec 2026-06-18). bowl_km = [[from_over, kind], ...].
+const PACE := BowlingPlan.Kind.PACE
+const SPIN := BowlingPlan.Kind.SPIN
+
 
 func _init() -> void:
 	var quick := OS.get_environment("ILB_QUICK") == "1"
@@ -101,11 +105,29 @@ func _init() -> void:
 		grow.append({"name": arm["name"], "win": r["win"], "matches": r["matches"], "wins": r["wins"]})
 		print("%-11s %5.1f  (%d/%d)" % [arm["name"], 100.0 * r["win"], r["wins"], r["matches"]])
 
+	# ---- 5. Bowling Key Moment lever (spec 2026-06-18, D6). Is pace/spin a real read or
+	# a free buff? Forcing the whole bowling innings one way (spin@7+16 / pace@7+16) vs the
+	# textbook rotation, at the entry tour (brain on → bowling moments fire). If one band
+	# flatly beats base, flag it as a feel call for Nico (phase-correct bowling CAN be the
+	# textbook answer, just as phase-correct batting is — the test is whether it dominates).
+	var bowl_arms := [
+		BASE_ARM,
+		{"name": "bowl_spin", "boost": false, "drs": false, "km": [], "bowl_km": [[7, SPIN], [16, SPIN]]},
+		{"name": "bowl_pace", "boost": false, "drs": false, "km": [], "bowl_km": [[7, PACE], [16, PACE]]},
+	]
+	print("\n== bowling-KM lever @ Club entry tour (brain on) — 1.5★ ref build vs club field ==")
+	print("arm          win%    (wins/matches)")
+	var bowl_rows: Array = []
+	for arm in bowl_arms:
+		var r := _run_arm_at(arm, ref_build, PLAYER_STARS, tour, entry_spec, n, tuning, itun)
+		bowl_rows.append({"name": arm["name"], "win": r["win"], "matches": r["matches"], "wins": r["wins"]})
+		print("%-11s %5.1f   (%d/%d)" % [arm["name"], 100.0 * r["win"], r["wins"], r["matches"]])
+
 	print("\nelapsed %.1f min" % ((Time.get_ticks_msec() - t0) / 60000.0))
 	print("DATA = " + JSON.stringify({
 		"n": n, "brain_rows": brain_rows, "arms": rows, "ceiling": ceiling,
 		"deterministic": {"base": det_base["text"], "all": det_all["text"]},
-		"growth": grow,
+		"growth": grow, "bowl_rows": bowl_rows,
 	}))
 	quit()
 
@@ -161,6 +183,8 @@ func _apply(s: MatchSession, arm: Dictionary) -> void:
 		s.decide_boost(inn, 18)
 	for km in arm.get("km", []):
 		s.decide_key_moment(km[0], km[1])
+	for bkm in arm.get("bowl_km", []):
+		s.decide_bowling_key_moment(bkm[0], bkm[1])
 	if arm.get("drs", false):
 		var res := s.result()
 		var log: Array = res.ball_log_innings1 if res.player_bats_first else res.ball_log_innings2

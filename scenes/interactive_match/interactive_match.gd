@@ -212,8 +212,13 @@ func _show_km_overlay(km: Dictionary) -> void:
 func km_press(i: int) -> void:
 	$KMOverlay.visible = false
 	if not _pending_km.is_empty():
-		var band: int = _pending_km["choices"][i]["band"]
-		_session.decide_key_moment(_pending_km["from_over"], band)
+		var lever: String = _pending_km.get("lever", "intent")
+		if lever == "bowling":
+			var kind: int = _pending_km["choices"][i]["kind"]
+			_session.decide_bowling_key_moment(_pending_km["from_over"], kind)
+		else:
+			var band: int = _pending_km["choices"][i]["band"]
+			_session.decide_key_moment(_pending_km["from_over"], band)
 		_event_count = _session.events().size()
 	_pending_km = {}
 	_render()
