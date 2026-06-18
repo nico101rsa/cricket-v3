@@ -20,19 +20,16 @@
   p{margin:8px 0}
   .verdict{border-left:4px solid var(--good);}
   .verdict b{color:var(--good)}
-  /* bar chart */
+  /* lift bars */
   .chart{margin:18px 0 6px}
-  .row{display:flex;align-items:center;gap:12px;margin:9px 0}
-  .lbl{width:110px;text-align:right;font-size:13px;color:var(--muted);flex:none}
+  .row{display:flex;align-items:center;gap:12px;margin:11px 0}
+  .lbl{width:150px;text-align:right;font-size:13px;color:var(--muted);flex:none}
   .lbl.hi{color:var(--ink);font-weight:700}
-  .track{position:relative;flex:1;height:26px;background:#141a22;border:1px solid var(--line);border-radius:6px}
-  .fill{position:absolute;top:0;left:0;height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:12px;font-weight:700;color:#0c1117;min-width:42px}
-  .ref{position:absolute;top:-6px;bottom:-6px;width:0;border-left:2px dashed #6f7e8e}
-  .reflab{position:absolute;top:-22px;transform:translateX(-50%);font-size:11px;color:#6f7e8e}
-  .cnt{font-size:11px;color:var(--muted);width:78px;flex:none}
-  /* two-up comparison */
+  .track{position:relative;flex:1;height:24px;background:#141a22;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .fill{position:absolute;top:0;left:0;height:100%;border-radius:6px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:12px;font-weight:700;color:#0c1117;min-width:40px}
+  .liftcol{width:74px;flex:none;font-size:13px;font-weight:700;text-align:right}
   .grid2{display:flex;gap:14px;flex-wrap:wrap}
-  .card{flex:1;min-width:240px;background:#141a22;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .card{flex:1;min-width:230px;background:#141a22;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
   .card h4{margin:0 0 8px;font-size:14px}
   .big{font-size:22px;font-weight:800}
   .win{color:var(--good)} .lose{color:var(--bad)}
@@ -42,78 +39,71 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Interactive match — is it balanced?</h1>
-  <p class="sub">Per-match win-rate for the <b>weakest team in the league</b> (Club slot-0, 1.5★, reference 35/30/30/30 build) vs the seven club opponents (2.0–4.5★), default tour "Flat &amp; Warm". Measured through the real <code>MatchSession</code> controller. <b>N = 600 seasons × 7 fixtures = 4,200 matches per arm</b> (±0.7pp). Source: <code>tools/sweep_interactive_levers.gd</code>.</p>
+  <h1>Why "just go aggro" used to win — and why it doesn't anymore</h1>
+  <p class="sub">Per-match win-rate for the <b>weakest team</b> (Club slot-0, 1.5★, reference 35/30/30/30 build) vs the club field, through the real <code>MatchSession</code>. The matchup is held fixed — <b>only the opponent's brain changes</b> — so each bar isolates how much the AI's tactics contest you. <b>N = 400 seasons × 7 = 2,800 matches per cell</b> (±0.9pp). Source: <code>tools/sweep_interactive_levers.gd</code>.</p>
 
   <div class="panel verdict">
-    <p style="margin:0"><b>Verdict: balanced.</b> The worst team wins <b>30.8%</b> with no levers and tops out at a <b>50.4% ceiling</b> with optimal lever play — a coin-flip for an underdog. Healthy. No nerf needed.</p>
+    <p style="margin:0"><b>The bug, found:</b> the interactive AI used <b>none</b> of your tools — no Boost, no DRS, no adaptive hunt/milk. It played one fixed line, so aggression was uncontested and free. <b>The fix:</b> the AI now plays a difficulty-scaled brain. <b>The "go aggro" bonus collapsed from +19 win-points to +1.5.</b></p>
   </div>
 
-  <h2>What each lever is worth</h2>
+  <h2>Aggression's payoff vs opponent intelligence</h2>
   <div class="panel">
+    <p class="muted" style="margin-top:0">Each bar = how many win-points you gain by playing all levers aggressively instead of doing nothing. The smarter the AI, the smaller the free lunch.</p>
     <div class="chart" id="chart"></div>
     <p class="muted" style="font-size:13px;margin-top:14px">
-      <span class="key" style="background:var(--base)"></span>base &nbsp;
-      <span class="key" style="background:var(--good)"></span>helps &nbsp;
-      <span class="key" style="background:var(--bad)"></span>hurts &nbsp;
-      <span class="key" style="background:var(--gold)"></span>realistic ceiling (all levers, aggressive)
+      <span class="key" style="background:var(--bad)"></span>brainless (old behaviour) &nbsp;
+      <span class="key" style="background:var(--gold)"></span>random/too-weak &nbsp;
+      <span class="key" style="background:var(--good)"></span>competent brain (≈ no free lunch)
     </p>
-    <p style="margin-top:10px">Only <b>Key Moments</b> move the needle (+14.9 aggressive / −13.5 defensive). <b>Boost</b> adds +1.5; <b>DRS</b> is noise (−0.3). The reason you always win isn't the levers being broken — it's that picking "aggressive" Key Moments is the obviously-correct answer here, so it acts as a free buff.</p>
   </div>
 
-  <h2>The game you actually replay</h2>
+  <h2>What ships: the entry tour, floored to a competent opponent</h2>
   <div class="panel">
-    <p>The season boots from a <b>constant seed</b>, so every fresh start is the <i>identical</i> first fixture (1.5★ vs 2.0★). That one frozen game is a win — which is why you "always win":</p>
+    <p>The difficulty ladder dumbs the entry tour to a <b>60% random</b> opponent (a league-realism device). In a 1-v-1 a random opponent plays badly and <i>hands</i> you wins — so we floor the interactive opponent at competent textbook. Difficulty still scales <i>above</i> that as you climb (static_eq → adaptive).</p>
     <div class="grid2">
-      <div class="card"><h4>No levers</h4><div class="big win">PLAYER WIN</div><div class="muted">won by 7 runs</div></div>
-      <div class="card"><h4>All levers (aggressive)</h4><div class="big win">PLAYER WIN</div><div class="muted">won by 40 runs</div></div>
+      <div class="card"><h4>Do nothing</h4><div class="big">43.8%</div><div class="muted">1,226 / 2,800</div></div>
+      <div class="card"><h4>Go aggressive (Hunt + Go big)</h4><div class="big lose">40.7%</div><div class="muted">1,139 / 2,800 — aggression now <b>loses</b> ground</div></div>
+      <div class="card"><h4>All levers, best line</h4><div class="big">45.3%</div><div class="muted">1,268 / 2,800 — the ceiling</div></div>
     </div>
-    <p class="muted" style="margin-top:12px">You never see the losses because you replay one favourable seed. Across 4,200 varied games the same build wins only ~31–50%.</p>
+    <p style="margin-top:12px">A competent opponent <b>punishes</b> reckless aggression (going aggro drops you to 40.7%). The value moved to Boost/DRS (small), and Key Moments became a real tactical choice — <b>with no Key-Moment redesign</b>. It fell out of giving the AI a brain.</p>
   </div>
 
-  <h2>Does growing the card matter? (yes)</h2>
+  <h2>Your frozen game flipped</h2>
   <div class="panel">
     <div class="grid2">
-      <div class="card"><h4>★3 team, strong 50/50 build — no levers</h4><div class="big">48.3%</div><div class="cnt muted">2,029 / 4,200</div></div>
-      <div class="card"><h4>★3 team, strong build — all levers</h4><div class="big win">68.3%</div><div class="cnt muted">2,868 / 4,200</div></div>
+      <div class="card"><h4>Before (brainless AI)</h4><div class="big win">PLAYER WIN</div><div class="muted">by 5 wickets — a guaranteed win you kept replaying</div></div>
+      <div class="card"><h4>After (competent AI)</h4><div class="big">NAIL-BITER</div><div class="muted">base now <span class="lose">loses</span> by 5 wkts; all-levers wins by <b>1 run</b></div></div>
     </div>
-    <p class="muted" style="margin-top:12px">Win-rate scales cleanly with team stars + build — the roguelite growth loop works as intended.</p>
   </div>
 
-  <h2>The one open question (a feel call, not a balance bug)</h2>
+  <h2>Growing the card still matters</h2>
   <div class="panel">
-    <p>Key Moments have a strictly-best answer (aggressive), because the choice overrides your batting intent <i>for the whole rest of the phase</i>. That's correct cricket against weak bowling — but it means the "decision" has a right answer. Two ways to read it:</p>
-    <p><b>A.</b> Keep it as a learnable phase-strategy chooser (the answer flips on harder tours). <b>B.</b> Make it a state-dependent dilemma (aggression risks a collapse when wickets are scarce) — best designed alongside the upcoming bowling Key Moments so both are genuine trade-offs. <b>Your call.</b></p>
+    <div class="grid2">
+      <div class="card"><h4>★3 team, strong 50/50 build — no levers</h4><div class="big">60.5%</div><div class="muted">1,694 / 2,800</div></div>
+      <div class="card"><h4>★3 team, strong build — all levers</h4><div class="big win">62.0%</div><div class="muted">1,737 / 2,800</div></div>
+    </div>
+    <p class="muted" style="margin-top:12px">Win-rate scales cleanly with stars + build; the levers add little (they were never the problem). The roguelite growth loop is intact.</p>
   </div>
 </div>
 <script>
-const ARMS = [
-  {name:"base",        win:30.8, n:"1292/4200", cls:"base"},
-  {name:"+ boost",     win:32.3, n:"1356/4200", cls:"good"},
-  {name:"+ DRS",       win:30.5, n:"1281/4200", cls:"base"},
-  {name:"+ KM aggressive", win:45.7, n:"1921/4200", cls:"good"},
-  {name:"+ KM defensive",  win:17.3, n:"728/4200",  cls:"bad"},
-  {name:"all (aggr)",  win:50.4, n:"2117/4200", cls:"gold", hi:true},
-  {name:"all (def)",   win:19.2, n:"808/4200",  cls:"bad"},
+// aggro lift (all_aggr - base) per opponent brain tier
+const TIERS = [
+  {name:"brainless (off)",      lift:19.2, cls:"bad"},
+  {name:"random p0.4 (raw)",    lift: 3.5, cls:"gold"},
+  {name:"textbook ★ shipped",   lift: 1.5, cls:"good", hi:true},
+  {name:"static_eq B/A/B",      lift: 0.5, cls:"good"},
+  {name:"adaptive (hunt/milk)", lift: 1.9, cls:"good"},
 ];
 const C = {base:"var(--base)", good:"var(--good)", bad:"var(--bad)", gold:"var(--gold)"};
-const MAX = 60; // axis max %
+const MAX = 22;
 const el = document.getElementById("chart");
-// 50% reference line marker
-ARMS.forEach(a=>{
+TIERS.forEach(t=>{
   const row=document.createElement("div"); row.className="row";
-  row.innerHTML=`<div class="lbl ${a.hi?'hi':''}">${a.name}</div>
-    <div class="track">
-      <div class="ref" style="left:${50/MAX*100}%"></div>
-      <div class="fill" style="width:${a.win/MAX*100}%;background:${C[a.cls]}">${a.win}%</div>
-    </div>
-    <div class="cnt">${a.n}</div>`;
+  row.innerHTML=`<div class="lbl ${t.hi?'hi':''}">${t.name}</div>
+    <div class="track"><div class="fill" style="width:${Math.max(t.lift,0.6)/MAX*100}%;background:${C[t.cls]}"></div></div>
+    <div class="liftcol" style="color:${C[t.cls]}">+${t.lift.toFixed(1)}</div>`;
   el.appendChild(row);
 });
-// 50% label on first row's track
-const firstTrack=el.querySelector(".track");
-const rl=document.createElement("div"); rl.className="reflab"; rl.style.left=(50/MAX*100)+"%"; rl.textContent="50% (coin-flip)";
-firstTrack.appendChild(rl);
 </script>
 </body>
 </html>

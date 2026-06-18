@@ -19,6 +19,7 @@ var _tuning: BallTuning
 var _itun: InningsTuning
 var _seed: int
 var _force: int                  # force_player_bats_first (-1 toss / 1 / 0)
+var _opp_spec: TourSpec           # difficulty cell -> OpponentBrain plans; null = brainless (pre-rung)
 
 var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
@@ -32,7 +33,8 @@ var _player := Player.new()      # carries attributes for the builder
 
 static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistribution,
 		seed: int, force_player_bats_first: int = -1,
-		tuning: BallTuning = null, itun: InningsTuning = null) -> MatchSession:
+		tuning: BallTuning = null, itun: InningsTuning = null,
+		opp_spec: TourSpec = null) -> MatchSession:
 	var s := MatchSession.new()
 	s._attrs = attrs
 	s._team = team
@@ -42,6 +44,7 @@ static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistributi
 	s._force = force_player_bats_first
 	s._tuning = tuning if tuning != null else BallTuning.new()
 	s._itun = itun if itun != null else InningsTuning.new()
+	s._opp_spec = opp_spec
 	s._player.attributes = attrs
 	s._resim()
 	return s
@@ -61,6 +64,17 @@ func player() -> Player:
 # by reference but the caller wires them onto the result).
 func _resim() -> void:
 	var rng := RandomNumberGenerator.new(); rng.seed = _seed
+	# The cell's opponent brain (DL5, mirrors LeagueResolver): the AI now bats to a
+	# difficulty-scaled Intent plan (defends/attacks by state at higher tiers) and
+	# rotates its own bowling, instead of the old brainless default. Drawn first thing
+	# off the re-seeded RNG so every re-sim is identical (the prefix-stable contract);
+	# null _opp_spec draws nothing -> byte-identical to the pre-rung brainless match.
+	var oip: IntentPlan = null
+	var obp: BowlingPlan = null
+	if _opp_spec != null:
+		var plans := OpponentBrain.draw_plans(_opp_spec.brain_tier, _opp_spec.blend, rng)
+		oip = plans[0]
+		obp = plans[1]
 	var boost := BoostPlan.new()
 	for p in _presses:
 		boost.press_overs.append(p[1])   # 1-based within-innings; resolver checks per innings
@@ -72,8 +86,8 @@ func _resim() -> void:
 	var log2: Array = []
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
-		ip, null, [], null, null, null,
-		boost, drs, null, null, null, _force, null, log1, log2)
+		ip, null, [], null, null, oip,
+		boost, drs, null, null, null, _force, obp, log1, log2)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
 	_events = MatchViewBuilder.build_events(_result, _player)

@@ -187,6 +187,38 @@ func test_empty_km_is_byte_identical_to_no_plan():
 		null, null, null, 1, null, l1, l2)
 	assert_eq(s.result().ball_log_innings1, l1, "no-decision KM session == null-intent baseline (byte-identical)")
 
+# -- Opponent brain (difficulty-scaled, spec 2026-06-17) --------------------
+
+func _adaptive_spec() -> TourSpec:
+	var spec := TourSpec.new()
+	spec.brain_tier = TourSpec.Tier.ADAPTIVE
+	spec.blend = 1.0   # fixed tier, blend 1.0 draws NO RNG -> stream-neutral + deterministic
+	return spec
+
+# Opponent bats FIRST (force=0) and is a strong 4.5★ side (opp index 6) so it plays a
+# full innings that reaches the middle overs — where the adaptive B/A/B plan diverges
+# from the brainless all-BALANCED default (the powerplay is BALANCED in both).
+func _spec_session(spec) -> MatchSession:
+	var a := Attributes.new()
+	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
+	var career := CareerResolver.start_career(0)
+	var team: Team = career.teams[career.current_team_index]
+	var opp: Team = career.opponents_of_current()[6]
+	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
+	return MatchSession.start(a, team, opp, tour, 20260615, 0, null, null, spec)
+
+func test_opp_brain_changes_the_match():
+	var s_null := _spec_session(null)
+	var s_brain := _spec_session(_adaptive_spec())
+	assert_ne(s_brain.result().ball_log_innings1, s_null.result().ball_log_innings1,
+		"opponent's full innings now follows its own adaptive plan -> differs from the brainless default")
+
+func test_opp_brain_deterministic():
+	var a := _spec_session(_adaptive_spec())
+	var b := _spec_session(_adaptive_spec())
+	assert_eq(a.result().ball_log_innings1, b.result().ball_log_innings1,
+		"same spec + seed -> identical opponent innings (re-sim stays stable)")
+
 # -- Review outcome query (spec 2026-06-17) ---------------------------------
 
 func test_ball_is_wicket_reflects_log():
