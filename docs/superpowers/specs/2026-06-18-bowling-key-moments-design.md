@@ -113,6 +113,24 @@ interactive_match scene (extended, scenes/interactive_match/)
 
 ---
 
+## 10. Results — the bowling lever is a real trade-off (D6 measured)
+
+**Oracle:** `tools/sweep_interactive_levers.gd` §5 (the bowling-KM arm). 1.5★ reference build (35/30/30/30) vs the seven club opponents at the Club entry tour (brain on → bowling moments fire). Each arm forces the whole bowling innings one way via the two always-fire moments (Powerplay Exit @7 + Death Defence @16); `base` = the textbook phase rotation (no override). Smoke run **N=30×7 = 210 matches/arm** (full N=400 available, ~6.5 min):
+
+| arm | win% | vs base |
+|---|---|---|
+| **base** (textbook P / S / P rotation) | **44.8%** (94/210) | — |
+| bowl_spin (spin from over 7 on) | 36.2% (76/210) | **−8.6** |
+| bowl_pace (pace from over 7 on) | 20.0% (42/210) | **−24.8** |
+
+**Verdict: a real lever with real downside — NOT a free buff.** The phase-correct rotation (spin the middle, pace the death) is best; the *wrong* call costs **9–25 win-points**. Pace-everywhere is the worst (−24.8) because it wastes the middle overs where spin owns the matchup; spin-everywhere only mis-bowls the death (−8.6). This is the same shape as the batting Key Moments — phase-correct cricket is the reliable answer, a **learnable read**, and the intent×kind matchup (bowling-balance spec §4.2) means the right kind can shift against an aggressive opponent. So picking a side at each moment is a genuine decision: get it wrong and you lose more.
+
+**Feel note for Nico:** at the entry tour the "textbook" reply (Spin at the PP-Exit, Pace at the Death) is the dependable best — i.e. there *is* a learnable correct answer per moment (just as aggressive batting was correct before the opponent brain made it punishable). That's healthy for an entry tour. If you ever want bowling moments to be a knife-edge dilemma even here, the lever to add is the deferred Field Set / a per-moment risk (e.g. attacking fields trade catches for boundaries) — recorded, not built.
+
+**Deliverable:** `docs/mockups/bowling-key-moment-built-v1.png` (the 🎯 Powerplay Exit bowling card paused at over 7, Spin/Pace buttons), via `tools/preview_bowling_key_moment.gd`.
+
+---
+
 ## 8. Deliverable for Nico
 
 Launch the real game (per `feedback-launch-playable-not-screenshot`): from the hub, play your fixture, **bat through your innings, then watch the bowling innings pause** at the Powerplay Exit, at a New Batsman In if a wicket falls, and at the Death Defence — pick Pace or Spin on each and feel the opposition's chase change. Plus the screenshot proof `docs/mockups/bowling-key-moment-built-v1.png`. Plain-English wrap-up naming the one thing to look at.
