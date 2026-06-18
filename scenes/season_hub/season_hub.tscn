@@ -88,15 +88,18 @@ text = "★½"
 layout_mode = 2
 text = "CLUB"
 
-[node name="PosPill" type="VBoxContainer" parent="Margin/Root/TopbarPanel/Header"]
+[node name="PosPill" type="PanelContainer" parent="Margin/Root/TopbarPanel/Header"]
 layout_mode = 2
 
-[node name="PosNum" type="Label" parent="Margin/Root/TopbarPanel/Header/PosPill"]
+[node name="PosCol" type="VBoxContainer" parent="Margin/Root/TopbarPanel/Header/PosPill"]
+layout_mode = 2
+
+[node name="PosNum" type="Label" parent="Margin/Root/TopbarPanel/Header/PosPill/PosCol"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "—"
 
-[node name="PosPts" type="Label" parent="Margin/Root/TopbarPanel/Header/PosPill"]
+[node name="PosPts" type="Label" parent="Margin/Root/TopbarPanel/Header/PosPill/PosCol"]
 layout_mode = 2
 horizontal_alignment = 1
 text = "0 PTS"
@@ -264,6 +267,10 @@ layout_mode = 2
 autowrap_mode = 3
 text = ""
 
+[node name="SpA" type="Control" parent="Margin/Root"]
+layout_mode = 2
+size_flags_vertical = 3
+
 [node name="JokersPanel" type="PanelContainer" parent="Margin/Root"]
 layout_mode = 2
 
@@ -287,6 +294,10 @@ text = "0 / 4"
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 theme_override_constants/separation = 6
+
+[node name="SpB" type="Control" parent="Margin/Root"]
+layout_mode = 2
+size_flags_vertical = 3
 
 [node name="AffinityPanel" type="PanelContainer" parent="Margin/Root"]
 layout_mode = 2
@@ -324,9 +335,50 @@ max_value = 5.0
 value = 0.0
 show_percentage = false
 
-[node name="Spacer" type="Control" parent="Margin/Root"]
+[node name="GoalSpacerTop" type="Control" parent="Margin/Root"]
 layout_mode = 2
 size_flags_vertical = 3
+
+[node name="SeasonGoal" type="PanelContainer" parent="Margin/Root"]
+layout_mode = 2
+
+[node name="GoalRow" type="HBoxContainer" parent="Margin/Root/SeasonGoal"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="GoalIcon" type="Label" parent="Margin/Root/SeasonGoal/GoalRow"]
+layout_mode = 2
+vertical_alignment = 1
+text = "🎯"
+
+[node name="GoalCol" type="VBoxContainer" parent="Margin/Root/SeasonGoal/GoalRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GoalCap" type="Label" parent="Margin/Root/SeasonGoal/GoalRow/GoalCol"]
+layout_mode = 2
+text = "SEASON GOAL · CLUB"
+
+[node name="GoalText" type="Label" parent="Margin/Root/SeasonGoal/GoalRow/GoalCol"]
+layout_mode = 2
+autowrap_mode = 3
+text = "Finish Top 4 → reach the Semi-Final"
+
+[node name="TargetPill" type="PanelContainer" parent="Margin/Root/SeasonGoal/GoalRow"]
+layout_mode = 2
+
+[node name="TargetCol" type="VBoxContainer" parent="Margin/Root/SeasonGoal/GoalRow/TargetPill"]
+layout_mode = 2
+
+[node name="TargetNum" type="Label" parent="Margin/Root/SeasonGoal/GoalRow/TargetPill/TargetCol"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "4/8"
+
+[node name="TargetCap" type="Label" parent="Margin/Root/SeasonGoal/GoalRow/TargetPill/TargetCol"]
+layout_mode = 2
+horizontal_alignment = 1
+text = "ADVANCE"
 
 [node name="CTA" type="Button" parent="Margin/Root"]
 custom_minimum_size = Vector2(0, 58)

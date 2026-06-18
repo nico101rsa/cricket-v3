@@ -88,7 +88,7 @@ func test_scene_renders_view_and_panels_are_visible() -> void:
 	assert_true(root.get_node("CardPanel/PlayerCard/Portrait").is_visible_in_tree(), "portrait visible")
 	assert_not_null(root.get_node("CardPanel/PlayerCard/Portrait/PortraitTex").texture, "portrait art bound")
 	# position pill is "—" at season start (no fake "1st")
-	assert_eq(root.get_node("TopbarPanel/Header/PosPill/PosNum").text, "—", "no fake position pre-result")
+	assert_eq(root.get_node("TopbarPanel/Header/PosPill/PosCol/PosNum").text, "—", "no fake position pre-result")
 	# HARD RULE: never show raw skill stats
 	var labels := _all_label_text(root)
 	assert_false(labels.contains("PWR"), "no raw PWR stat leaked")
@@ -121,7 +121,7 @@ func test_live_play_shows_played_fixture_and_play_control() -> void:
 		"CTA reads NEXT MATCH after a game")
 	assert_true(root.get_node("TonsPanel/TonsRow/ContextCol/ProgressLabel").text.contains("2 of 7"),
 		"progress reflects 1 played (about to play match 2)")
-	assert_ne(root.get_node("TopbarPanel/Header/PosPill/PosNum").text, "—", "a result exists → real position")
+	assert_ne(root.get_node("TopbarPanel/Header/PosPill/PosCol/PosNum").text, "—", "a result exists → real position")
 
 func test_boots_a_real_season_when_player_saved() -> void:
 	var p := _player()

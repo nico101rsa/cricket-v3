@@ -84,6 +84,15 @@ static func cta(accent: Color) -> StyleBoxFlat:
 	sb.content_margin_top = 12; sb.content_margin_bottom = 12
 	return sb
 
+# Season-goal strip: faint gold tint, gold border (stakes, not filler).
+static func goal_panel() -> StyleBoxFlat:
+	var sb := _box(Color(Palette.GOLD.r, Palette.GOLD.g, Palette.GOLD.b, 0.06), PANEL_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(Palette.GOLD.r, Palette.GOLD.g, Palette.GOLD.b, 0.5)
+	sb.content_margin_left = 11; sb.content_margin_right = 11
+	sb.content_margin_top = 9; sb.content_margin_bottom = 9
+	return sb
+
 # Round 26×26 corner button (ⓘ / ⚙).
 static func corner_btn() -> StyleBoxFlat:
 	var sb := _box(Palette.SURFACE_2, 13)

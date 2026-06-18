@@ -51,6 +51,23 @@ func _style_static() -> void:
 	_root.get_node("CardPanel").add_theme_stylebox_override("panel", UIStyle.panel())
 	_root.get_node("JokersPanel").add_theme_stylebox_override("panel", UIStyle.panel())
 	_root.get_node("AffinityPanel").add_theme_stylebox_override("panel", UIStyle.panel())
+	_root.get_node("SeasonGoal").add_theme_stylebox_override("panel", UIStyle.goal_panel())
+	var target := UIStyle.pill(Color(0, 0, 0, 0.35))
+	target.set_border_width_all(1); target.border_color = Palette.BORDER
+	_root.get_node("SeasonGoal/GoalRow/TargetPill").add_theme_stylebox_override("panel", target)
+	# goal strip labels
+	var gcap: Label = _root.get_node("SeasonGoal/GoalRow/GoalCol/GoalCap")
+	gcap.add_theme_color_override("font_color", Palette.GOLD)
+	gcap.add_theme_font_size_override("font_size", 9)
+	_root.get_node("SeasonGoal/GoalRow/GoalCol/GoalText").add_theme_color_override("font_color", Palette.WHITE_SOFT)
+	_root.get_node("SeasonGoal/GoalRow/GoalCol/GoalText").add_theme_font_size_override("font_size", 12)
+	_root.get_node("SeasonGoal/GoalRow/GoalIcon").add_theme_font_size_override("font_size", 18)
+	var tnum: Label = _root.get_node("SeasonGoal/GoalRow/TargetPill/TargetCol/TargetNum")
+	tnum.add_theme_color_override("font_color", Palette.WHITE)
+	tnum.add_theme_font_size_override("font_size", 14)
+	var tcap: Label = _root.get_node("SeasonGoal/GoalRow/TargetPill/TargetCol/TargetCap")
+	tcap.add_theme_color_override("font_color", Palette.GOLD)
+	tcap.add_theme_font_size_override("font_size", 8)
 	_root.get_node("CardPanel/PlayerCard/CardInfo/OvrFormRow/OvrTile").add_theme_stylebox_override("panel", UIStyle.ovr_tile())
 	_root.get_node("CardPanel/PlayerCard/CardInfo/CareerArea/EmptyState").add_theme_stylebox_override("panel", UIStyle.joker_slot(false))
 	# uppercase dim section labels
@@ -166,6 +183,7 @@ func _render() -> void:
 	_render_card()
 	_render_jokers()
 	_render_affinity(cset)
+	_render_goal()
 	_render_cta(cset)
 
 func _render_topbar(cset: Dictionary) -> void:
@@ -183,13 +201,14 @@ func _render_topbar(cset: Dictionary) -> void:
 	stars.text = _stars_str(_view.team_stars)
 	stars.add_theme_color_override("font_color", Palette.GOLD)
 	var chip: Label = _root.get_node("TopbarPanel/Header/TeamId/MetaRow/LevelChip")
-	chip.text = _level_word(_view.level).to_upper()
+	chip.text = "%s · %s" % [_level_word(_view.level).to_upper(), _conditions().to_upper()]
 	chip.add_theme_stylebox_override("normal", UIStyle.pill(Color(0, 0, 0, 0.25)))
 	chip.add_theme_color_override("font_color", Palette.WHITE_SOFT)
 	chip.add_theme_font_size_override("font_size", 9)
-	# position pill — "—" / 0 PTS until a result exists (no fake "1st")
-	var posn: Label = _root.get_node("TopbarPanel/Header/PosPill/PosNum")
-	var pospts: Label = _root.get_node("TopbarPanel/Header/PosPill/PosPts")
+	# position pill — "—" / 0 PTS until a result exists (no fake "1st"); dark bg so
+	# the dash never floats bare on the green header.
+	var posn: Label = _root.get_node("TopbarPanel/Header/PosPill/PosCol/PosNum")
+	var pospts: Label = _root.get_node("TopbarPanel/Header/PosPill/PosCol/PosPts")
 	if _played() == 0:
 		posn.text = "—"
 		pospts.text = "0 PTS"
@@ -200,12 +219,15 @@ func _render_topbar(cset: Dictionary) -> void:
 	posn.add_theme_font_size_override("font_size", 17)
 	pospts.add_theme_color_override("font_color", Palette.WHITE_MID)
 	pospts.add_theme_font_size_override("font_size", 8)
-	_root.get_node("TopbarPanel/Header/PosPill").add_theme_stylebox_override("panel", UIStyle.pill(Color(0, 0, 0, 0.28)))
+	var pp := UIStyle.pill(Color(0, 0, 0, 0.35))
+	pp.set_border_width_all(1)
+	pp.border_color = Palette.BORDER
+	_root.get_node("TopbarPanel/Header/PosPill").add_theme_stylebox_override("panel", pp)
 
 func _render_tons() -> void:
 	_root.get_node("TonsPanel/TonsRow/TonsCol/TonsChip").text = "₸ %d" % _view.tons_balance
-	_root.get_node("TonsPanel/TonsRow/ContextCol/SeasonLabel").text = "%s · %s" % [
-		_level_word(_view.level).to_upper(), _view.tour_name.to_upper()]
+	_root.get_node("TonsPanel/TonsRow/ContextCol/SeasonLabel").text = "SEASON %d · %s" % [
+		_season_no(), _level_word(_view.level).to_upper()]
 	_root.get_node("TonsPanel/TonsRow/ContextCol/ProgressLabel").text = "MATCH %d of %d" % [
 		mini(_played() + 1, _view.match_count), _view.match_count]
 
@@ -349,6 +371,11 @@ func _render_affinity(cset: Dictionary) -> void:
 	bar.max_value = AFF_FULL
 	bar.value = clampf(float(_view.affinity), 0.0, AFF_FULL)
 
+# Season Goal strip — what the season is FOR (fills the lower third with stakes).
+# Top-4-of-8 reaches the Semi-Final (spec copy; level word is dynamic).
+func _render_goal() -> void:
+	_root.get_node("SeasonGoal/GoalRow/GoalCol/GoalCap").text = "SEASON GOAL · %s" % _level_word(_view.level).to_upper()
+
 func _render_cta(cset: Dictionary) -> void:
 	_root.get_node("CTA").add_theme_stylebox_override("normal", UIStyle.cta(Palette.GOLD))
 	_root.get_node("CTA").add_theme_stylebox_override("hover", UIStyle.cta(Palette.GOLD.lightened(0.05)))
@@ -421,3 +448,15 @@ func _ordinal(n: int) -> String:
 
 func _level_word(level: int) -> String:
 	return ["Club", "City", "Province"][clampi(level, 0, 2)]
+
+# Conditions only (tour_name is "Club Flat & Warm" → "Flat & Warm"), so the meta
+# chip reads "CLUB · FLAT & WARM" not "CLUB · CLUB FLAT & WARM".
+func _conditions() -> String:
+	var lvl := _level_word(_view.level)
+	var t := _view.tour_name
+	if t.begins_with(lvl + " "):
+		return t.substr(lvl.length() + 1)
+	return t
+
+func _season_no() -> int:
+	return (_career.seasons_played + 1) if _career != null else 1

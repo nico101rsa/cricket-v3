@@ -16,6 +16,13 @@ You are updating the **Season Hub** scene in my Godot cricket game (mobile, port
 - **No full league table on this screen.** Standing is shown only by the header position pill + the fixtures chain. (Tapping the pill opens a separate table screen — just stub the signal.)
 - **No hardcoded hex values.** Build ONE `Theme` resource with the tokens below and reference it everywhere, so the country palette can be swapped by overriding 4 tokens.
 
+## Layout / vertical rhythm (IMPORTANT)
+The device is taller than the reference's design ratio, so don't just top-stack the panels and pin the CTA — that leaves a dead gap in the lower third. Either give the panel `VBox` **even spacing** (size flags so the gaps between panels expand evenly), or rely on the **Season Goal strip** above to fill it. Aim for the screen to read as deliberately spaced, not half-empty.
+
+## Two nits seen in the last build
+- **Position pill** must keep its dark rounded background (`rgba(0,0,0,.35)`, 1px border, radius 7). A bare `—` floating on the green header reads as a stray dash.
+- **Conditions copy** — render `CLUB · FLAT & WARM`, not `CLUB · CLUB FLAT & WARM` (don't repeat the level word).
+
 ## Node tree
 ```
 SeasonHub (Control, full-rect, margin 13)
@@ -35,6 +42,8 @@ SeasonHub (Control, full-rect, margin 13)
    │  └─ Header "JOKERS BENCH" + "0/4" · HBox: Joker x4
    ├─ Affinity (PanelContainer)
    │  └─ HBox: 🤝 · VBox[label + next-bonus ⟷ / ProgressBar]
+   ├─ SeasonGoal (PanelContainer — faint gold tint, gold border)
+   │  └─ HBox: 🎯 · VBox["SEASON GOAL · CLUB" / "Finish Top 4 → reach the Semi-Final"] · TargetPill["4/8" / "ADVANCE"]
    └─ CTA (Button, gold gradient, 2 lines: "FIRST MATCH ▶" / "v Dusty Plains · home")
 ```
 Every `PanelContainer` = bg `surface`, 1px `border`, corner_radius 11, content margin 9 (v) × 11 (h).
@@ -77,6 +86,8 @@ System font. Sizes(px): labels 8.5–9 (UPPERCASE, +1.6 letter-spacing, weight 8
 **Jokers bench** — 4 slots. Empty = dashed border, "+ Win to earn". Slot 4 locked = "🔒 1st Level win". When filled later, apply rarity skins: common (plain), rare (blue border+glow), legendary (gold border + purple gradient).
 
 **Affinity** — handshake icon + "AFFINITY · KAROO KINGS" label + right "building · +3% form at full" + a thin ProgressBar (~12%) filled `country-2 → country-accent`.
+
+**Season Goal strip** (between Affinity and the CTA) — fills the lower third with stakes, not filler. Faint gold-tinted panel, gold border. Left: 🎯 icon + "SEASON GOAL · CLUB" label + "Finish **Top 4** → reach the Semi-Final". Right: a small dark target pill "4/8 · ADVANCE". This tells a new player what the season is *for*.
 
 **CTA** — full-width gold gradient button, 2 lines: "FIRST MATCH ▶" (use "NEXT MATCH" after match 1) and small "v Dusty Plains · home".
 
