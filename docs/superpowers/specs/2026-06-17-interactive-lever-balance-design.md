@@ -135,3 +135,61 @@ balance defect:
 untouched (it's balanced); take Option A↔B and the frozen-seed/testing-workflow
 question to Nico — both are feel/workflow calls, not balance fixes.
 
+## Follow-up rung — OPPONENT BRAIN in the interactive match (2026-06-18)
+
+Nico's ruling on the Key-Moment dominance: **"you cannot just go aggro and a 1.5★ team
+goes all the way to 50%."** His diagnostic question — *does the AI use Boost / adaptive
+hunt-milk play?* — was the key: **no, it didn't.** `MatchSession._resim` passed `null`
+for `opp_intent_plan`/`opp_boost_plan`/`opp_drs_policy`/`opp_bowling_plan`, so the
+interactive opponent played a brainless all-BALANCED line that never adapted. The
+contest was one-sided, which is *why* aggression was free. (The league path already
+uses `OpponentBrain`; the interactive path was an explicit deferral from the
+live-league rung.)
+
+**Fix (Nico chose "difficulty-scaled brain"):** wire the existing `OpponentBrain` into
+`MatchSession` via an optional `opp_spec` (null = byte-identical to before), threaded
+`season_hub → SeasonPlay → MatchSession`. The opponent now bats to a difficulty-scaled
+Intent plan (+ rotates bowling), mirroring `LeagueResolver`. Plus a **textbook floor**
+in `SeasonPlay._floored_spec`: the marquee 1-v-1 opponent never plays the sub-textbook
+NAIVE blend (a league-realism device that just hands a random, easily-beaten opponent);
+difficulty still scales *above* textbook (static_eq → adaptive).
+
+**Measured (N=400 × 7 = 2800 matches/cell, ±0.9pp; matchup held fixed at 1.5★ ref build
+vs the club field, only the brain tier varies):**
+
+| opponent brain | base | all_aggr | aggro lift |
+|---|---|---|---|
+| off (null, the old brainless default) | 31.1% | 50.2% | **+19.2** |
+| textbook p0.4 (raw entry tour, 60% random) | 58.9% | 62.4% | +3.5 |
+| **textbook (the floored entry tour = AS SHIPPED)** | **43.8%** | **45.3%** | **+1.5** |
+| static_eq (B/A/B) | 52.1% | 52.6% | +0.5 |
+| adaptive (hunt/milk) | 42.4% | 44.4% | +1.9 |
+
+**Findings:**
+1. **The free-aggro lunch is gone.** Brainless gave aggression +19.2 win-points; against
+   *any* competent brain it's +0.5…+1.9 (within noise of zero). The AI adapts, so
+   aggression is contested. Nico's complaint is resolved.
+2. **The raw entry-tour brain (p0.4) was *too weak*** — 60% random plays read base 58.9%,
+   *easier* than the brainless default. The textbook floor fixes this (43.8%).
+3. **As shipped, going aggressive now slightly HURTS at the entry tour** (`+km_aggr`
+   40.7% < base 43.8%): a competent opponent punishes recklessness. Key Moments became a
+   genuine tactical choice **with no Key-Moment redesign** — it fell out of giving the AI
+   a brain. (This answers the Option A/B question above: B is achieved for free.)
+4. The 1.5★ ref build now tops out at **45.3%** (Boost/DRS, not aggression); card growth
+   still scales (★3 strong build 60.5% / 62.0%).
+5. The frozen `BOOT_SEED` fixture flipped from a guaranteed win to a **1-run nail-biter**
+   (base now *loses*).
+
+**Scope note — opponent Boost still deferred.** `OpponentBrain` supplies intent + bowling
+(matching the league); it does not press a Boost. Since the adaptive brain already
+neutralises the aggro lift, opponent Boost isn't needed to fix the complaint — flagged
+as an easy future symmetric-levers add if Nico wants it.
+
+**Seams:** `MatchSession.start(..., opp_spec: TourSpec = null)` → `_resim` draws
+`OpponentBrain.draw_plans(tier, blend, rng)` first off the re-seeded RNG (prefix-stable;
+adaptive blend-1.0 draws no RNG → stream-neutral, proven by
+`test_opp_brain_changes_the_match`). `SeasonPlay.start(..., opp_spec)` floors via
+`_floored_spec` (tier ≥ TEXTBOOK, no naive drop) and passes it to `make_session`.
+`season_hub.boot()` passes the cell's `DifficultyLadder.spec_for(...)`. Oracle
+`tools/sweep_interactive_levers.gd` gained the brain-tier sweep.
+

@@ -55,7 +55,7 @@ func boot() -> void:
 	# pre-simmed season you scrub (spec D6).
 	var play := SeasonPlay.start(
 		player.attributes, team, career.opponents_of_current(),
-		spec.make_tour(), BallTuning.new(), InningsTuning.new(), BOOT_SEED)
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), BOOT_SEED, spec)
 	set_play(player, career, play)
 
 # --- Source + scrub ---

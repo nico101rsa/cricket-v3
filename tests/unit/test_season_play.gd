@@ -95,3 +95,27 @@ func test_revealed_ai_grows_with_play() -> void:
 		total_played += r.played
 	# After 1 game: 3 AI fixtures (6 team-appearances) + your 1 game (2) = 8.
 	assert_eq(total_played, 8, "3 AI + 1 player game revealed after game 1")
+
+# --- Interactive opponent-brain floor (2026-06-18) ---
+# The marquee 1-v-1 opponent always plays at least competent textbook cricket: the
+# sub-textbook naive blend (a league-realism device) just hands a random, easily-beaten
+# opponent and inflated the underdog's win-rate. Difficulty still SCALES above textbook.
+
+func test_interactive_opponent_floored_to_textbook() -> void:
+	var weak := TourSpec.new()
+	weak.brain_tier = TourSpec.Tier.TEXTBOOK
+	weak.blend = 0.4   # the actual Club entry tour: 60% random plays
+	var f := SeasonPlay._floored_spec(weak)
+	assert_eq(f.brain_tier, TourSpec.Tier.TEXTBOOK, "stays textbook")
+	assert_eq(f.blend, 1.0, "naive blend removed -> full textbook (opponent never plays randomly)")
+
+func test_interactive_opponent_keeps_higher_tier_scaling() -> void:
+	var hard := TourSpec.new()
+	hard.brain_tier = TourSpec.Tier.ADAPTIVE
+	hard.blend = 0.5
+	var f := SeasonPlay._floored_spec(hard)
+	assert_eq(f.brain_tier, TourSpec.Tier.ADAPTIVE, "tier above textbook preserved (difficulty scales)")
+	assert_eq(f.blend, 0.5, "blend above textbook preserved")
+
+func test_floored_spec_passes_through_null() -> void:
+	assert_null(SeasonPlay._floored_spec(null), "no spec -> no brain (unchanged)")

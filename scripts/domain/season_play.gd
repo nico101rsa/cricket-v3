@@ -18,6 +18,7 @@ var _tour: TourDistribution
 var _tuning: BallTuning
 var _itun: InningsTuning
 var _seed: int
+var _opp_spec: TourSpec       # difficulty cell -> the interactive opponent's brain (DL5)
 
 var _bat: Array = []         # held per-team batting strength (ADR 0009), index-aligned
 var _bowl: Array = []        # held per-team bowling strength
@@ -26,7 +27,7 @@ var _player_results: Array = []   # committed MatchResult, one per played player
 
 static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 		tour: TourDistribution, tuning: BallTuning, itun: InningsTuning,
-		seed: int) -> SeasonPlay:
+		seed: int, opp_spec: TourSpec = null) -> SeasonPlay:
 	var sp := SeasonPlay.new()
 	sp._attrs = player_attrs
 	sp._teams = [player_team]
@@ -35,9 +36,31 @@ static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 	sp._tuning = tuning
 	sp._itun = itun
 	sp._seed = seed
+	sp._opp_spec = _floored_spec(opp_spec)
 	sp._draw_strengths()
 	sp._resolve_ai_fixtures()
 	return sp
+
+# The marquee interactive opponent always plays at least competent textbook cricket.
+# The difficulty ladder dumbs the entry tours with a sub-textbook NAIVE blend
+# (TEXTBOOK p0.4 — a league-realism device, PL2): in a 1-v-1 that's just a random
+# opponent who plays badly and HANDS the underdog wins (measured 2026-06-18: faithful
+# p0.4 read base 58.9% vs floored textbook 43.8% for the 1.5★ ref build). So floor the
+# brain at full textbook (no naive drop); difficulty still SCALES above it
+# (static_eq -> adaptive) as you climb. null = no brain (unchanged).
+static func _floored_spec(opp_spec: TourSpec) -> TourSpec:
+	if opp_spec == null:
+		return null
+	var f := TourSpec.new()
+	f.level = opp_spec.level
+	f.tour_index = opp_spec.tour_index
+	f.d = opp_spec.d
+	f.cell_name = opp_spec.cell_name
+	f.opp_stars = opp_spec.opp_stars
+	f.brain_tier = maxi(opp_spec.brain_tier, TourSpec.Tier.TEXTBOOK)
+	# blend < 1.0 drops one tier; at textbook that drop is NAIVE (random) — disallowed.
+	f.blend = 1.0 if f.brain_tier == TourSpec.Tier.TEXTBOOK else opp_spec.blend
+	return f
 
 func total_player_fixtures() -> int:
 	return PLAYER_FIXTURES
@@ -167,7 +190,7 @@ func make_session() -> MatchSession:
 	var opp: Team = _teams[played_count() + 1]
 	var fixture_seed := _seed + 100 + played_count()
 	return MatchSession.start(_attrs, _teams[0], opp, _tour, fixture_seed,
-		-1, _tuning, _itun)
+		-1, _tuning, _itun, _opp_spec)
 
 # Fold a finished player match into the league + advance. Caller passes the
 # MatchSession's result (after the player's Boost/DRS decisions).
