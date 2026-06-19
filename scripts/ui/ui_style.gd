@@ -114,3 +114,96 @@ static func bar_track() -> StyleBoxFlat:
 
 static func bar_fill(accent: Color) -> StyleBoxFlat:
 	return _box(accent, 4)
+
+# --- In-match scene tokens (docs/design-inbox/in-match.md) -------------------
+
+# Opponent-tinted bowler row: bg accent@0.12, border accent@0.5, radius 9.
+static func team_row(accent: Color) -> StyleBoxFlat:
+	var sb := _box(Color(accent.r, accent.g, accent.b, 0.12), CARD_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.5)
+	sb.content_margin_left = 9; sb.content_margin_right = 9
+	sb.content_margin_top = 7; sb.content_margin_bottom = 7
+	return sb
+
+# One ball cell in the "this over" grid, filled by outcome kind.
+# kind ∈ dot / run / four / six / wicket / pending.
+static func ball_cell(kind: String) -> StyleBoxFlat:
+	var bg: Color = {
+		"dot": Palette.SURFACE_2,
+		"run": Color(Palette.BLUE.r, Palette.BLUE.g, Palette.BLUE.b, 0.22),
+		"four": Palette.GOLD,
+		"six": Palette.GREEN_DARK,
+		"wicket": Palette.RED,
+		"pending": Color(Palette.SURFACE_2.r, Palette.SURFACE_2.g, Palette.SURFACE_2.b, 0.40),
+	}.get(kind, Palette.SURFACE_2)
+	return _box(bg, 6)
+
+# Text colour to pair with a ball_cell of the same kind.
+static func ball_cell_text(kind: String) -> Color:
+	match kind:
+		"four": return Color("000000")
+		"six", "wicket": return Color("ffffff")
+		"run": return Color("9ec5ff")
+		_: return Palette.WHITE_DIM
+
+# Dock auto-sim bar shell: accent-tinted (bg accent@0.12, border accent@0.4), radius 13.
+static func autosim_bar(accent: Color) -> StyleBoxFlat:
+	var sb := _box(Color(accent.r, accent.g, accent.b, 0.12), BTN_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.4)
+	sb.content_margin_left = 12; sb.content_margin_right = 12
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	return sb
+
+# Round 60×60 BOOST control: solid green + green glow (radial gradient approximated).
+static func boost_button() -> StyleBoxFlat:
+	var sb := _box(Palette.GREEN_DARK, 30)
+	sb.set_border_width_all(2)
+	sb.border_color = Palette.GREEN_DARK
+	sb.shadow_color = Palette.form_glow(2)
+	sb.shadow_size = 10
+	return sb
+
+# Gold count badge on the BOOST button.
+static func boost_badge() -> StyleBoxFlat:
+	var sb := _box(Palette.GOLD, 11)
+	sb.set_border_width_all(2)
+	sb.border_color = Palette.GREEN_DARK
+	return sb
+
+# Overlay scrim (a dim, not an unload).
+static func scrim() -> StyleBoxFlat:
+	return _box(Color(0, 0, 0, 0.78), 0)
+
+# Overlay top banner by kind: moment=gold, boost=green, drs=blue.
+static func banner(kind: String) -> StyleBoxFlat:
+	var bg: Color = {
+		"moment": Palette.GOLD_WARN, "boost": Palette.GREEN_DARK, "drs": Palette.BLUE,
+	}.get(kind, Palette.GOLD_WARN)
+	var sb := _box(bg, CARD_RADIUS)
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	sb.content_margin_left = 8; sb.content_margin_right = 8
+	return sb
+
+# Dramatic overlay card by kind (moment/drs = green-black, boost = deeper green).
+static func moment_card(kind: String) -> StyleBoxFlat:
+	var top: Color = Palette.MOMENT_BOOST_1 if kind == "boost" else Palette.MOMENT_1
+	var bot: Color = Palette.MOMENT_BOOST_2 if kind == "boost" else Palette.MOMENT_2
+	var sb := _box(top.lerp(bot, 0.5), BTN_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Palette.BORDER
+	sb.shadow_color = Color(0, 0, 0, 0.5)
+	sb.shadow_size = 8
+	sb.content_margin_left = 14; sb.content_margin_right = 14
+	sb.content_margin_top = 14; sb.content_margin_bottom = 14
+	return sb
+
+# A two-option choice button on a moment card; accent tints the border + verb.
+static func choice_btn(accent: Color) -> StyleBoxFlat:
+	var sb := _box(Color(accent.r, accent.g, accent.b, 0.14), CARD_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Color(accent.r, accent.g, accent.b, 0.55)
+	sb.content_margin_left = 11; sb.content_margin_right = 11
+	sb.content_margin_top = 11; sb.content_margin_bottom = 11
+	return sb

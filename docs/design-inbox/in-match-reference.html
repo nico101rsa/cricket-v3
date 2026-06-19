@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In-Match — SA / Karoo Kings handoff reference</title>
+<style>
+  /* ============================================================
+     TOKENS — mirror of Palette.gd / UIStyle.gd (SA default).
+     Every colour below maps to a named token; see in-match.md.
+     ============================================================ */
+  :root{
+    --bg:#0f0f14;
+    --surface:rgba(255,255,255,.04);
+    --surface-2:rgba(255,255,255,.07);
+    --surface-3:rgba(255,255,255,.10);
+    --border:rgba(255,255,255,.08);
+    --border-strong:rgba(255,255,255,.15);
+    --white:rgba(255,255,255,.92);
+    --white-soft:rgba(255,255,255,.85);
+    --white-mid:rgba(255,255,255,.65);
+    --white-dim:rgba(255,255,255,.45);
+    --gold:#ffd166;
+    --gold-warn:#f5a623;
+    --gold-deep:#c9912b;
+    --green:#2ecc71;
+    --green-dark:#16a34a;
+    --red:#c41e3a;
+    --red-dark:#8b0000;
+    --blue:#4a90e2;
+    /* country = SA (mine) */
+    --c1:#007749; --c2:#003e26; --c-glow:rgba(0,119,73,.45); --c-accent:#FFB81C;
+    /* opponent = AUS amber (the "them" colour) */
+    --opp1:#d97706; --opp2:#7c3f00; --opp-accent:#f59e0b; --opp-tint:rgba(217,119,6,.12); --opp-line:rgba(217,119,6,.5);
+    /* PROPOSED new tokens (flagged in spec) */
+    --moment-1:#16271d; --moment-2:#0a130e;
+    --moment-boost-1:#123524; --moment-boost-2:#08160f;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:#07070a; color:var(--white);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:40px 30px 48px;
+  }
+  .sheet-head{max-width:2100px;margin:0 auto 8px;width:max-content;}
+  .sheet-head h1{font-size:20px;font-weight:800;letter-spacing:.3px;margin:0 0 4px;}
+  .sheet-head p{font-size:13px;color:var(--white-mid);margin:0;line-height:1.5;max-width:760px;}
+  .sheet-head .tag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+    color:#08160f;background:var(--c-accent);padding:3px 8px;border-radius:5px;margin-bottom:12px;}
+
+  .gallery{
+    display:flex;flex-wrap:nowrap;gap:26px;justify-content:flex-start;
+    width:max-content;margin:28px auto 0;
+  }
+  .frame{display:flex;flex-direction:column;align-items:center;}
+  .frame-label{margin-top:16px;font-size:12px;text-transform:uppercase;letter-spacing:2.5px;color:var(--c-accent);font-weight:800;}
+  .frame-sub{font-size:11px;color:var(--white-dim);margin-top:4px;max-width:360px;text-align:center;line-height:1.45;}
+
+  /* ===================== PHONE ===================== */
+  .phone{
+    width:390px;height:844px;flex-shrink:0;
+    background:var(--bg);
+    border:1px solid #23232c;
+    border-radius:44px;
+    padding:13px;                /* 13px safe-area inset */
+    display:flex;flex-direction:column;
+    overflow:hidden;position:relative;
+    box-shadow:0 24px 70px rgba(0,0,0,.6);
+  }
+  .phone *{box-sizing:border-box;}
+  .notch{width:120px;height:26px;background:#000;border-radius:0 0 16px 16px;
+    position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:50;}
+  .col{display:flex;flex-direction:column;flex:1;min-height:0;gap:7px;padding-top:8px;}
+
+  /* ---------- HEADER (country gradient + glow) ---------- */
+  .hdr{
+    background:linear-gradient(95deg,var(--c1),var(--c2));
+    box-shadow:0 0 10px var(--c-glow);
+    border-radius:11px;
+    padding:9px 13px;
+    display:flex;align-items:center;justify-content:space-between;
+    flex-shrink:0;
+  }
+  .hdr .bat{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:800;letter-spacing:.5px;}
+  .hdr .badge{width:22px;height:22px;border-radius:6px;background:rgba(0,0,0,.28);
+    display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:var(--c-accent);}
+  .hdr .vs{font-size:11px;color:rgba(255,255,255,.6);font-weight:600;}
+  .hdr .opp{font-size:13px;font-weight:700;color:rgba(255,255,255,.82);display:flex;align-items:center;gap:7px;}
+  .hdr .badge.opp-badge{color:var(--opp-accent);}
+
+  /* ---------- SCOREBAR ---------- */
+  .scorebar{
+    background:var(--surface);
+    border:1px solid rgba(0,119,73,.4);
+    border-radius:11px;
+    padding:10px 13px;
+    display:flex;justify-content:space-between;align-items:center;
+    flex-shrink:0;
+  }
+  .score-big{font-size:30px;font-weight:800;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums;}
+  .score-meta{font-size:11px;color:var(--white-mid);text-transform:uppercase;letter-spacing:1px;margin-top:4px;}
+  .target{text-align:right;}
+  .target .sub{font-size:10px;color:var(--c-accent);text-transform:uppercase;letter-spacing:.8px;display:block;}
+  .target b{font-size:19px;color:var(--white);font-weight:800;display:block;line-height:1.1;font-variant-numeric:tabular-nums;}
+  .target .sub.dim{color:var(--white-dim);}
+
+  /* ---------- BATTER STRIP ---------- */
+  .batters{display:grid;grid-template-columns:1fr 1fr;gap:7px;flex-shrink:0;}
+  .chip{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:7px 9px;
+    display:flex;align-items:center;gap:9px;min-width:0;
+  }
+  .chip.strike{
+    background:rgba(255,209,102,.07);
+    border-color:rgba(255,209,102,.5);
+  }
+  .chip .who{flex:1;min-width:0;}
+  .chip .nm{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.3px;}
+  .chip.strike .nm{color:var(--gold);}
+  .chip .runs{font-size:11px;color:var(--white-mid);font-variant-numeric:tabular-nums;margin-top:2px;}
+  .chip .runs .star{color:var(--gold);}
+
+  /* ---------- BOWLER ROW (opponent amber tint) ---------- */
+  .bowler{
+    background:var(--opp-tint);
+    border:1px solid var(--opp-line);
+    border-radius:9px;
+    padding:7px 9px;
+    display:flex;align-items:center;gap:9px;flex-shrink:0;min-width:0;
+  }
+  .bowler .lbl{font-size:9px;font-weight:800;letter-spacing:1px;color:var(--opp-accent);text-transform:uppercase;flex-shrink:0;}
+  .bowler .who{flex:1;min-width:0;}
+  .bowler .nm{font-size:13px;font-weight:800;color:var(--opp-accent);letter-spacing:.3px;}
+  .bowler .stat{font-size:10px;color:var(--white-mid);margin-top:2px;}
+  .bowler .figs{font-size:15px;font-weight:800;color:var(--white);font-variant-numeric:tabular-nums;}
+  .bowler .figs .ov{font-size:10px;color:var(--white-dim);margin-left:3px;font-weight:600;}
+
+  /* ---------- COMMENTARY ---------- */
+  .comm{
+    background:var(--surface);
+    border-left:3px solid var(--gold-warn);
+    border-radius:0 9px 9px 0;
+    padding:7px 11px;
+    display:flex;align-items:center;gap:8px;flex-shrink:0;
+  }
+  .comm .lang{background:var(--gold-warn);color:#000;font-size:8px;font-weight:800;letter-spacing:.5px;
+    padding:2px 5px;border-radius:4px;flex-shrink:0;}
+  .comm .txt{font-size:11px;font-style:italic;color:var(--white-soft);line-height:1.3;}
+
+  /* ---------- BODY / VIZ ---------- */
+  .body{flex:1;display:flex;flex-direction:column;gap:7px;min-height:0;position:relative;}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:10px 12px;}
+  .panel-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--white-dim);margin-bottom:8px;font-weight:700;}
+
+  .rr{display:flex;justify-content:space-between;align-items:flex-end;}
+  .rr .crr{font-size:34px;font-weight:800;color:var(--gold);line-height:.9;font-variant-numeric:tabular-nums;}
+  .rr .crr-lbl{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--white-dim);margin-top:5px;}
+  .rr .req{text-align:right;}
+  .rr .req .v{font-size:21px;font-weight:800;color:var(--red);font-variant-numeric:tabular-nums;}
+  .rr .req .l{font-size:8px;text-transform:uppercase;letter-spacing:1px;color:var(--white-dim);margin-top:2px;}
+
+  .over{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
+  .ball{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .ball.dot{background:var(--surface-2);color:var(--white-dim);}
+  .ball.run{background:rgba(74,144,226,.22);color:#9ec8f5;}
+  .ball.four{background:var(--gold);color:#000;}
+  .ball.six{background:var(--green-dark);color:#fff;}
+  .ball.wkt{background:var(--red);color:#fff;}
+  .ball.next{background:var(--surface-2);color:var(--white-dim);opacity:.4;}
+
+  .pship-meta{display:flex;justify-content:space-between;font-size:12px;margin-bottom:8px;}
+  .pship-meta .who{color:var(--white-soft);}
+  .pship-meta b{color:var(--gold);font-variant-numeric:tabular-nums;}
+  .pship-track{height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden;}
+  .pship-fill{height:100%;background:var(--c-accent);border-radius:4px;}
+
+  /* ---------- DOCK ---------- */
+  .dock{display:flex;align-items:center;gap:12px;flex-shrink:0;margin-top:auto;}
+  .autosim{
+    flex:1;height:56px;
+    background:rgba(255,184,28,.12);
+    border:1px solid rgba(255,184,28,.4);
+    border-radius:13px;
+    display:flex;align-items:center;gap:11px;padding:0 16px;
+  }
+  .autosim .play{font-size:14px;font-weight:800;color:var(--c-accent);letter-spacing:1px;}
+  .autosim .spd{font-size:11px;font-weight:800;color:var(--white-mid);letter-spacing:.5px;}
+  .autosim .track{flex:1;height:5px;background:var(--surface-3);border-radius:3px;overflow:hidden;}
+  .autosim .fill{height:100%;width:55%;background:var(--c-accent);border-radius:3px;}
+  .boost{
+    width:60px;height:60px;border-radius:50%;flex-shrink:0;position:relative;
+    background:radial-gradient(circle at 35% 32%,#4cdc89,#16a34a 68%,#0f6b30);
+    border:2px solid var(--green-dark);
+    box-shadow:0 6px 16px rgba(46,204,113,.45),inset 0 2px 0 rgba(255,255,255,.3),inset 0 -2px 0 rgba(0,0,0,.2);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);
+  }
+  .boost .bolt{font-size:22px;line-height:1;}
+  .boost .w{font-size:9px;font-weight:800;letter-spacing:.5px;margin-top:1px;}
+  .boost .cnt{position:absolute;top:-4px;right:-4px;width:22px;height:22px;border-radius:50%;
+    background:var(--gold);color:#000;font-size:12px;font-weight:900;
+    display:flex;align-items:center;justify-content:center;border:2px solid var(--green-dark);}
+
+  /* ===================== OVERLAYS (modal pause) ===================== */
+  .overlay{position:absolute;inset:0;background:rgba(0,0,0,.78);z-index:30;
+    display:flex;flex-direction:column;align-items:stretch;padding:8px;border-radius:32px;}
+  .banner{width:100%;border-radius:9px;text-align:center;padding:8px;font-size:13px;font-weight:800;letter-spacing:2px;flex-shrink:0;}
+  .banner.moment{background:var(--gold-warn);color:#1a1205;}
+  .banner.mboost{background:var(--green-dark);color:#fff;}
+  .banner.drs{background:var(--blue);color:#06203f;}
+
+  .mcard{
+    width:100%;flex:1;min-height:0;margin-top:9px;border-radius:13px;padding:14px;
+    background:linear-gradient(165deg,var(--moment-1),var(--moment-2));
+    border:1px solid rgba(255,255,255,.06);
+    display:flex;flex-direction:column;justify-content:space-between;
+    box-shadow:0 8px 26px rgba(0,0,0,.5);
+  }
+  .mcard.mboost{background:linear-gradient(165deg,var(--moment-boost-1),var(--moment-boost-2));}
+  .mcard .ctx{text-align:center;font-size:10px;color:var(--gold);text-transform:uppercase;letter-spacing:1.6px;}
+  .mcard.mboost .ctx{color:#6dd49a;}
+  .mcard.drs .ctx{color:#9ec8f5;}
+
+  .actor{background:rgba(0,0,0,.45);border-radius:9px;padding:10px;display:flex;gap:12px;align-items:center;}
+  .actor .info{flex:1;}
+  .actor .an{font-size:17px;font-weight:800;color:var(--gold);letter-spacing:.4px;}
+  .actor .at{font-size:10px;color:var(--white-mid);margin-top:3px;}
+  .actor .as{font-size:9px;color:var(--white-dim);margin-top:4px;text-transform:uppercase;letter-spacing:.8px;}
+
+  .scene{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;font-size:42px;margin:4px 0;}
+  .narr{font-style:italic;font-size:13px;line-height:1.45;text-align:center;color:var(--white-soft);margin-bottom:12px;}
+  .narr b{color:var(--gold);font-style:normal;}
+  .choices{display:flex;gap:8px;}
+  .choice{flex:1;padding:11px 8px;border-radius:9px;text-align:center;}
+  .choice.left{background:rgba(74,144,226,.14);border:1px solid var(--blue);}
+  .choice.right{background:rgba(196,30,58,.14);border:1px solid var(--red);}
+  .choice .verb{font-size:14px;font-weight:800;}
+  .choice.left .verb{color:#9ec8f5;}
+  .choice.right .verb{color:#ef6c6c;}
+  .choice .stake{font-size:9px;color:var(--white-mid);margin-top:3px;}
+  /* boost choices recolour to green */
+  .choice.opt-green{background:rgba(46,204,113,.14);border-color:var(--green);}
+  .choice.opt-green .verb{color:#6dd49a;}
+
+  /* DRS specific */
+  .choice.accept{background:rgba(196,30,58,.12);border:1px solid var(--red);}
+  .choice.accept .verb{color:#ef6c6c;}
+  .choice.review{background:rgba(74,144,226,.16);border:1px solid var(--blue);}
+  .choice.review .verb{color:#9ec8f5;}
+  .drs-pop{
+    position:absolute;left:50%;bottom:120px;transform:translateX(-50%);
+    width:230px;background:linear-gradient(165deg,var(--moment-1),var(--moment-2));
+    border:1px solid var(--border-strong);border-radius:13px;padding:14px;text-align:center;
+    box-shadow:0 12px 30px rgba(0,0,0,.6);z-index:40;
+  }
+  .drs-pop .res{font-size:22px;font-weight:900;letter-spacing:1px;}
+  .drs-pop .res.out{color:#ef6c6c;}
+  .drs-pop .res.notout{color:var(--green);}
+  .drs-pop .det{font-size:10px;color:var(--white-mid);margin-top:5px;}
+  .drs-pop .ok{margin-top:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;
+    padding:8px;font-size:11px;font-weight:800;letter-spacing:1px;color:var(--white-soft);}
+
+  /* ===================== RESULT ===================== */
+  .result{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:14px;}
+  .res-head{font-size:30px;font-weight:900;line-height:1.05;color:var(--green);letter-spacing:.5px;}
+  .res-margin{font-size:12px;color:var(--white-mid);margin-top:6px;margin-bottom:18px;}
+  .res-lines{width:100%;display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+  .res-line{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:10px 13px;
+    display:flex;justify-content:space-between;font-size:13px;}
+  .res-line b{color:var(--gold);font-variant-numeric:tabular-nums;}
+  .recap{width:100%;background:rgba(0,119,73,.08);border-left:3px solid var(--c1);border-radius:0 9px 9px 0;
+    padding:11px 13px;text-align:left;margin-bottom:18px;}
+  .recap .t{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--c-accent);margin-bottom:6px;font-weight:800;}
+  .recap ul{margin:0;padding-left:16px;line-height:1.7;font-size:11px;color:var(--white-soft);}
+  .recap b{color:var(--gold);}
+  .cta{background:var(--gold);color:#1a1205;border:none;border-radius:13px;padding:13px 30px;
+    font-size:14px;font-weight:800;letter-spacing:1px;}
+
+  /* small portrait placeholder (Godot: TextureRect + skill-ring) */
+  .pt{border-radius:8px;flex-shrink:0;display:flex;align-items:flex-end;justify-content:center;position:relative;
+    font-weight:900;color:rgba(255,255,255,.85);overflow:hidden;}
+  .pt.sa{background:linear-gradient(180deg,#0a5c39,#04301e);}
+  .pt.aus{background:linear-gradient(180deg,#a65c08,#5c3300);}
+  .pt.tiny{width:30px;height:36px;font-size:11px;border:2px solid var(--blue);padding-bottom:3px;}
+  .pt.tiny.t4{border-color:var(--gold);}
+  .pt.med{width:62px;height:78px;font-size:18px;border:3px solid var(--gold);padding-bottom:6px;}
+  .pt .ring-star{position:absolute;top:2px;right:3px;font-size:8px;color:var(--gold);}
+</style>
+</head>
+<body>
+
+  <div class="sheet-head">
+    <span class="tag">Handoff reference · build target</span>
+    <h1>In-Match — SA / Karoo Kings re-theme of locked layout v4</h1>
+    <p>Same structure as <code>match-screen-final.html</code> (v4), re-coloured to the shipped SA palette via <code>Palette.country_set("ZA")</code>: header green <code>#007749→#003e26</code>, accent gold <code>#FFB81C</code>, opponent amber. Five built states. Sizes, spacing and tokens are pinned in <code>in-match.md</code>. Names/numbers are illustrative — bound from the match model.</p>
+  </div>
+
+  <div class="gallery">
+
+    <!-- ============ 1 · AUTO-SIM ============ -->
+    <div class="frame">
+      <div class="phone" data-screen-label="Auto-sim">
+        <div class="notch"></div>
+        <div class="col">
+          <div class="hdr">
+            <span class="bat"><span class="badge">KK</span>KAROO KINGS</span>
+            <span class="vs">vs</span>
+            <span class="opp">DUSTY PLAINS<span class="badge opp-badge">DP</span></span>
+          </div>
+          <div class="scorebar">
+            <div>
+              <div class="score-big">72/2</div>
+              <div class="score-meta">9.4 ov · CRR 7.6</div>
+            </div>
+            <div class="target">
+              <span class="sub">1st innings</span>
+              <b>72</b>
+              <span class="sub dim">runs · 2 down</span>
+            </div>
+          </div>
+          <div class="batters">
+            <div class="chip strike">
+              <div class="pt tiny sa t4">KG<span class="ring-star">★</span></div>
+              <div class="who"><div class="nm">KGOSI</div><div class="runs"><span class="star">★</span> 41* (28)</div></div>
+            </div>
+            <div class="chip">
+              <div class="pt tiny sa">NA</div>
+              <div class="who"><div class="nm">NAIDOO</div><div class="runs">19* (15)</div></div>
+            </div>
+          </div>
+          <div class="bowler">
+            <span class="lbl">Bowl</span>
+            <div class="pt tiny aus t4">PR</div>
+            <div class="who"><div class="nm">PRETORIUS</div><div class="stat">spin · 4★ · 2.4 ov · econ 8.9</div></div>
+            <div class="figs">1/24<span class="ov">(2.4)</span></div>
+          </div>
+          <div class="comm">
+            <span class="lang">ZU</span>
+            <span class="txt">"Kgosi works it square for two…"</span>
+          </div>
+          <div class="body">
+            <div class="panel">
+              <div class="panel-lbl">Run rate</div>
+              <div class="rr">
+                <div><div class="crr">7.6</div><div class="crr-lbl">Current RR</div></div>
+                <div class="req"><div class="v">72</div><div class="l">runs · 2 down</div></div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-lbl">This over · Pretorius</div>
+              <div class="over">
+                <div class="ball run">1</div>
+                <div class="ball four">4</div>
+                <div class="ball dot">·</div>
+                <div class="ball run">2</div>
+                <div class="ball next">?</div>
+                <div class="ball next">?</div>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-lbl">3rd-wicket partnership</div>
+              <div class="pship-meta"><span class="who">KGOSI &amp; NAIDOO</span><b>32 (28)</b></div>
+              <div class="pship-track"><div class="pship-fill" style="width:48%"></div></div>
+            </div>
+            <div class="dock">
+              <div class="autosim">
+                <span class="play">▶▶</span>
+                <div class="track"><div class="fill"></div></div>
+                <span class="spd">2×</span>
+              </div>
+              <button class="boost"><span class="bolt">⚡</span><span class="w">BOOST</span><span class="cnt">3</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-label">1 · Auto-sim</div>
+      <div class="frame-sub">Live watch. Score → batters → bowler → commentary → viz → dock. Round green BOOST floats beside the auto-sim bar.</div>
+    </div>
+
+    <!-- ============ 2 · KEY MOMENT ============ -->
+    <div class="frame">
+      <div class="phone" data-screen-label="Key Moment">
+        <div class="notch"></div>
+        <div class="col">
+          <div class="hdr">
+            <span class="bat"><span class="badge">KK</span>KAROO KINGS</span>
+            <span class="vs">vs</span>
+            <span class="opp">DUSTY PLAINS<span class="badge opp-badge">DP</span></span>
+          </div>
+          <div class="scorebar">
+            <div>
+              <div class="score-big">128/3</div>
+              <div class="score-meta">16.0 ov · CRR 8.0</div>
+            </div>
+            <div class="target">
+              <span class="sub">1st innings</span>
+              <b>128</b>
+              <span class="sub dim">4 ov left</span>
+            </div>
+          </div>
+          <div class="batters">
+            <div class="chip strike">
+              <div class="pt tiny sa t4">KG<span class="ring-star">★</span></div>
+              <div class="who"><div class="nm">KGOSI</div><div class="runs"><span class="star">★</span> 63* (42)</div></div>
+            </div>
+            <div class="chip">
+              <div class="pt tiny sa">VW</div>
+              <div class="who"><div class="nm">VAN WYK</div><div class="runs">8* (5)</div></div>
+            </div>
+          </div>
+          <div class="bowler">
+            <span class="lbl">Bowl</span>
+            <div class="pt tiny aus">DP</div>
+            <div class="who"><div class="nm">DU PLESSIS</div><div class="stat">medium · 2★ · 3 ov · econ 10.7</div></div>
+            <div class="figs">0/32<span class="ov">(3)</span></div>
+          </div>
+          <div class="comm">
+            <span class="lang">ZU</span>
+            <span class="txt">"Death overs. The coach is up…"</span>
+          </div>
+          <div class="body">
+            <div class="overlay">
+              <div class="banner moment">⚡ KEY MOMENT ⚡</div>
+              <div class="mcard">
+                <div class="ctx">128/3 · 4 overs left · death</div>
+                <div class="actor">
+                  <div class="pt med sa">KG<span class="ring-star">★★★★</span></div>
+                  <div class="info">
+                    <div class="an">KGOSI</div>
+                    <div class="at">On strike · time to accelerate</div>
+                    <div class="as">63 (42) · captain · OVR 71</div>
+                  </div>
+                </div>
+                <div class="scene">💀</div>
+                <div class="narr">Death plan. <b>Twos &amp; fours</b> (reliable 50+) or <b>six-or-bust</b> (boom or bust)?</div>
+                <div class="choices">
+                  <button class="choice left"><div class="verb">← 2s &amp; 4s</div><div class="stake">Reliable 50+</div></button>
+                  <button class="choice right"><div class="verb">BIG HITS →</div><div class="stake">Boom or bust</div></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-label">2 · Key Moment</div>
+      <div class="frame-sub">Modal pause. Matchup stays visible above the card. Two-button call (batting: Powerplay Exit / Wicket Crisis / Death Plan).</div>
+    </div>
+
+    <!-- ============ 3 · BOOST USED ============ -->
+    <div class="frame">
+      <div class="phone" data-screen-label="Boost used">
+        <div class="notch"></div>
+        <div class="col">
+          <div class="hdr">
+            <span class="bat"><span class="badge">KK</span>KAROO KINGS</span>
+            <span class="vs">bowl</span>
+            <span class="opp">DUSTY PLAINS<span class="badge opp-badge">DP</span></span>
+          </div>
+          <div class="scorebar">
+            <div>
+              <div class="score-big">110/3</div>
+              <div class="score-meta">14.2 ov · CRR 7.7</div>
+            </div>
+            <div class="target">
+              <span class="sub">chasing</span>
+              <b>163</b>
+              <span class="sub dim">need 53 in 34</span>
+            </div>
+          </div>
+          <div class="batters">
+            <div class="chip strike">
+              <div class="pt tiny aus t4">BO<span class="ring-star">★</span></div>
+              <div class="who"><div class="nm">BOTHA</div><div class="runs"><span class="star">★</span> 49* (35)</div></div>
+            </div>
+            <div class="chip">
+              <div class="pt tiny aus">SW</div>
+              <div class="who"><div class="nm">SWART</div><div class="runs">12* (9)</div></div>
+            </div>
+          </div>
+          <div class="bowler">
+            <span class="lbl">Bowl</span>
+            <div class="pt tiny sa t4">MK</div>
+            <div class="who"><div class="nm">MKHIZE</div><div class="stat">fast · 4★ · 3 ov · econ 7.3</div></div>
+            <div class="figs">1/22<span class="ov">(3)</span></div>
+          </div>
+          <div class="comm">
+            <span class="lang">ZU</span>
+            <span class="txt">"The manager has called timeout!"</span>
+          </div>
+          <div class="body">
+            <div class="overlay">
+              <div class="banner mboost">⚡ MANAGER BOOST ⚡</div>
+              <div class="mcard mboost">
+                <div class="ctx">timeout · 2 boosts left</div>
+                <div class="actor">
+                  <div class="pt med sa">MK<span class="ring-star">★★★★</span></div>
+                  <div class="info">
+                    <div class="an">YOUR CALL</div>
+                    <div class="at">Botha looks set · burn a boost?</div>
+                    <div class="as">2 of 3 boosts remaining</div>
+                  </div>
+                </div>
+                <div class="scene">🎙️</div>
+                <div class="narr"><b>Pep talk</b> (+20% dot) or <b>field switch</b> (force rotation)?</div>
+                <div class="choices">
+                  <button class="choice left opt-green"><div class="verb">← PEP TALK</div><div class="stake">+20% dot · 6 balls</div></button>
+                  <button class="choice right opt-green"><div class="verb">FIELD SWITCH →</div><div class="stake">Force rotation</div></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-label">3 · Boost used</div>
+      <div class="frame-sub">Green overlay, same skeleton as Key Moment. Round BOOST counts down 3→2. "Burn a boost?" framing.</div>
+    </div>
+
+    <!-- ============ 4 · DRS REVIEW ============ -->
+    <div class="frame">
+      <div class="phone" data-screen-label="DRS review">
+        <div class="notch"></div>
+        <div class="col">
+          <div class="hdr">
+            <span class="bat"><span class="badge">KK</span>KAROO KINGS</span>
+            <span class="vs">vs</span>
+            <span class="opp">DUSTY PLAINS<span class="badge opp-badge">DP</span></span>
+          </div>
+          <div class="scorebar">
+            <div>
+              <div class="score-big">96/4</div>
+              <div class="score-meta">12.5 ov · CRR 7.5</div>
+            </div>
+            <div class="target">
+              <span class="sub">chasing</span>
+              <b>164</b>
+              <span class="sub dim">need 68 in 43</span>
+            </div>
+          </div>
+          <div class="batters">
+            <div class="chip strike">
+              <div class="pt tiny sa t4">KG<span class="ring-star">★</span></div>
+              <div class="who"><div class="nm">KGOSI</div><div class="runs"><span class="star">★</span> 38 (27)</div></div>
+            </div>
+            <div class="chip">
+              <div class="pt tiny sa">NA</div>
+              <div class="who"><div class="nm">NAIDOO</div><div class="runs">22* (19)</div></div>
+            </div>
+          </div>
+          <div class="bowler">
+            <span class="lbl">Bowl</span>
+            <div class="pt tiny aus t4">PR</div>
+            <div class="who"><div class="nm">PRETORIUS</div><div class="stat">spin · 4★ · 3.5 ov · econ 7.6</div></div>
+            <div class="figs">2/29<span class="ov">(3.5)</span></div>
+          </div>
+          <div class="comm">
+            <span class="lang">ZU</span>
+            <span class="txt">"Given out! But Kgosi isn't walking…"</span>
+          </div>
+          <div class="body">
+            <div class="overlay">
+              <div class="banner drs">⚖ DRS · REVIEW?</div>
+              <div class="mcard drs">
+                <div class="ctx">caught behind · umpire's call OUT</div>
+                <div class="actor">
+                  <div class="pt med sa">KG<span class="ring-star">★★★★</span></div>
+                  <div class="info">
+                    <div class="an">KGOSI</div>
+                    <div class="at">Given OUT — caught behind</div>
+                    <div class="as">38 (27) · captain · OVR 71</div>
+                  </div>
+                </div>
+                <div class="scene">🟥</div>
+                <div class="narr">Send it upstairs? <b>2 reviews left</b>. Wrong call burns one.</div>
+                <div class="choices">
+                  <button class="choice accept"><div class="verb">✗ ACCEPT</div><div class="stake">Take the wicket</div></button>
+                  <button class="choice review"><div class="verb">REVIEW ↑</div><div class="stake">2 left</div></button>
+                </div>
+              </div>
+              <div class="drs-pop">
+                <div class="res notout">✅ NOT OUT</div>
+                <div class="det">Ultra-edge: no contact · review retained</div>
+                <div class="ok">OK</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-label">4 · DRS review</div>
+      <div class="frame-sub">Fires when YOU'RE given out. Review? (n left) → Yes/No → ✅/❌ outcome popup → OK. Popup shown inset.</div>
+    </div>
+
+    <!-- ============ 5 · RESULT ============ -->
+    <div class="frame">
+      <div class="phone" data-screen-label="Result">
+        <div class="notch"></div>
+        <div class="col">
+          <div class="hdr">
+            <span class="bat"><span class="badge">KK</span>KAROO KINGS</span>
+            <span class="vs">def</span>
+            <span class="opp">DUSTY PLAINS<span class="badge opp-badge">DP</span></span>
+          </div>
+          <div class="scorebar">
+            <div>
+              <div class="score-big" style="color:var(--green)">WON</div>
+              <div class="score-meta">by 4 runs</div>
+            </div>
+            <div class="target">
+              <span class="sub">result</span>
+              <b style="color:var(--c-accent)">+1</b>
+              <span class="sub dim">league point</span>
+            </div>
+          </div>
+          <div class="comm">
+            <span class="lang">ZU</span>
+            <span class="txt">"What a defence! Karoo Kings hold on."</span>
+          </div>
+          <div class="body">
+            <div class="result">
+              <div class="res-head">WON BY 4 RUNS</div>
+              <div class="res-margin">vs Dusty Plains · 18 May · Club</div>
+              <div class="res-lines">
+                <div class="res-line"><span>KAROO KINGS 1st</span><span><b>162/5</b> (20)</span></div>
+                <div class="res-line"><span>DUSTY PLAINS 2nd</span><span><b>158/8</b> (20)</span></div>
+              </div>
+              <div class="recap">
+                <div class="t">Your decisions</div>
+                <ul>
+                  <li>PP exit: <b>Anchor</b></li>
+                  <li>Death plan: <b>2s &amp; 4s</b></li>
+                  <li>Bowling change: <b>Spinner</b></li>
+                  <li>Boosts: <b>2/3</b> (pep talk + field switch)</li>
+                  <li>DRS: <b>1 retained</b> (Kgosi not out)</li>
+                </ul>
+              </div>
+              <button class="cta">PLAY AGAIN ▶</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-label">5 · Result</div>
+      <div class="frame-sub">Won/lost by margin · league point · innings lines · decision recap. CTA = gold.</div>
+    </div>
+
+  </div>
+
+  <template id="__bundler_thumbnail">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <rect width="100" height="100" fill="#007749"/>
+      <rect x="30" y="22" width="40" height="56" rx="8" fill="#0f0f14"/>
+      <circle cx="50" cy="50" r="9" fill="#FFB81C"/>
+    </svg>
+  </template>
+
+</body>
+</html>

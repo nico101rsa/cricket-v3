@@ -1,53 +1,366 @@
 extends Control
 
-# Interactive Match screen (spec §3). Replays a MatchSession's event stream with
-# watch controls, a press-anytime Boost button (DI2), and a forced DRS overlay on
-# Player dismissals (DI3). boot() is explicit so tests inject without a sim.
+# Interactive Match screen — v4 hi-fi (docs/design-inbox/in-match.md). Replays a
+# MatchSession event stream as a live scorecard with a collapsed auto-sim bar + round
+# Boost (Nico's call: no discrete step buttons — step/seek stay under the hood), a
+# Key Moment card, and a DRS overlay on Player dismissals. The UI is built in code
+# from Palette/UIStyle (like the Season Hub); boot() is explicit so tests inject
+# without a sim. Player NAMES on screen are flavour (PlayerNames); all numbers real.
 
 signal back
 
 const SPEEDS := [1.0, 2.0, 4.0]
 const BASE_TICK := 0.6
-const FLASH_HOLD := 1.5   # seconds autoplay holds on a your-moment highlight
+const FLASH_HOLD := 1.5
 
 var _session: MatchSession
 var _team_name := ""
 var _opp_name := ""
+var _my_stars := 2.5
+var _opp_stars := 2.5
+var _my_code := 0
+var _opp_code := 1
 var _cursor := 0
 var _event_count := 0
 var _speed_idx := 0
 var _playing := false
-var _pending_review := {}     # the offer currently shown in the overlay
-var _resume_after_review := false   # was autoplay running when the overlay popped?
-var _boost_active_over := -1        # over a press is currently boosting (-1 = none)
-var _boost_active_innings := -1     # innings that boost belongs to
-var _pending_km := {}               # the Key Moment offer currently shown
-var _resume_after_km := false       # was autoplay running when the KM card popped?
-var _flash := ""                    # current your-moment highlight (for the brief hold)
+var _pending_review := {}
+var _resume_after_review := false
+var _boost_active_over := -1
+var _boost_active_innings := -1
+var _pending_km := {}
+var _resume_after_km := false
+var _flash := ""
+
+# Node refs (built in _build_ui).
+var _root: VBoxContainer
+var _bat_badge: Label; var _bat_name: Label; var _opp_name_lbl: Label; var _opp_badge: Label
+var _header: PanelContainer
+var _score_big: Label; var _score_meta: Label; var _tag_sub: Label; var _target_big: Label; var _target_sub: Label
+var _batters: HBoxContainer
+var _bowler_row: PanelContainer; var _bowl_lbl: Label; var _bowl_name: Label; var _bowl_stat: Label; var _bowl_fig: Label
+var _comm_chip: Label; var _comm_lbl: Label
+var _body: Control; var _body_vbox: VBoxContainer
+var _crr_big: Label; var _req_big: Label
+var _over_grid: GridContainer
+var _pship_names: Label; var _pship_runs: Label; var _pship_bar: ProgressBar
+var _autosim_bar: Button; var _play_lbl: Label; var _speed_lbl: Label; var _sim_progress: ProgressBar
+var _boost_btn: Button; var _boost_badge: Label
+var _result_box: VBoxContainer
+var _overlay: Control; var _ov_banner: Label; var _ov_prompt: Label
+var _ov_yes: Button; var _ov_no: Button; var _ov_ok: Button
+var _km_overlay: Control; var _km_banner: Label; var _km_title: Label; var _km_prompt: Label; var _km_a: Button; var _km_b: Button
+var _tick: Timer; var _flash_timer: Timer
+
+# ---------------------------------------------------------------- build helpers
+
+func _lbl(txt: String, size: int, col: Color, halign: int = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
+	var l := Label.new()
+	l.text = txt
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", col)
+	l.horizontal_alignment = halign
+	return l
+
+func _spacer() -> Control:
+	var c := Control.new()
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return c
+
+func _panel(sb: StyleBoxFlat) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", sb)
+	return p
+
+func _badge(text: String, bg: Color, fg: Color) -> Label:
+	var l := _lbl(text, 9, fg, HORIZONTAL_ALIGNMENT_CENTER)
+	l.add_theme_stylebox_override("normal", UIStyle.pill(bg))
+	l.custom_minimum_size = Vector2(22, 22)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	return l
 
 func _ready() -> void:
-	$Root/Controls/StepBack.pressed.connect(func(): pause(); step(-1))
-	$Root/Controls/StepFwd.pressed.connect(func(): pause(); step(1))
-	$Root/Controls/PlayPause.pressed.connect(_toggle_play)
-	$Root/Controls/Speed.pressed.connect(_cycle_speed)
-	$Root/Controls/Boost.pressed.connect(_on_boost)
-	$Root/Controls/Back.pressed.connect(func(): back.emit())
-	$Overlay/OverlayBox/ReviewYes.pressed.connect(review_yes)
-	$Overlay/OverlayBox/ReviewNo.pressed.connect(review_no)
-	$Overlay/OverlayBox/ReviewOk.pressed.connect(review_ok)
-	$KMOverlay/KMBox/KMOptA.pressed.connect(func(): km_press(0))
-	$KMOverlay/KMBox/KMOptB.pressed.connect(func(): km_press(1))
-	$Tick.timeout.connect(_on_tick)
-	$Tick.wait_time = BASE_TICK
-	$FlashTimer.timeout.connect(_on_flash_done)
-	$Overlay.visible = false
-	$KMOverlay.visible = false
-	$Root/Flash.text = ""
+	_build_ui()
+	_tick = Timer.new(); _tick.wait_time = BASE_TICK; _tick.one_shot = false
+	add_child(_tick); _tick.timeout.connect(_on_tick)
+	_flash_timer = Timer.new(); _flash_timer.one_shot = true
+	add_child(_flash_timer); _flash_timer.timeout.connect(_on_flash_done)
 
-func set_session(s: MatchSession, team_name: String, opp_name: String) -> void:
+func _build_ui() -> void:
+	var bg := ColorRect.new()
+	bg.color = Palette.BG
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(bg)
+
+	_root = VBoxContainer.new()
+	_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_root.offset_left = 13; _root.offset_top = 13; _root.offset_right = -13; _root.offset_bottom = -13
+	_root.add_theme_constant_override("separation", 7)
+	add_child(_root)
+
+	_build_header()
+	_build_scorebar()
+	_batters = HBoxContainer.new()
+	_batters.add_theme_constant_override("separation", 7)
+	_root.add_child(_batters)
+	_build_bowler_row()
+	_build_commentary()
+	_build_body()
+	_build_result_box()
+	_build_overlays()
+
+func _build_header() -> void:
+	var my_set := Palette.country_set(_my_code)
+	_header = _panel(UIStyle.header(my_set.grad1, my_set.grad2, my_set.glow))
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
+	_bat_badge = _badge("KK", Color(0, 0, 0, 0.28), Palette.COUNTRY_ACCENT_SA)
+	_bat_name = _lbl("KAROO KINGS", 13, Palette.WHITE)
+	_opp_name_lbl = _lbl("OPPONENT", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
+	_opp_badge = _badge("OP", Color(0, 0, 0, 0.28), Palette.country_set(_opp_code).accent)
+	h.add_child(_bat_badge); h.add_child(_bat_name)
+	h.add_child(_lbl("vs", 11, Palette.WHITE_MID))
+	h.add_child(_spacer())
+	h.add_child(_opp_name_lbl); h.add_child(_opp_badge)
+	_header.add_child(h)
+	_root.add_child(_header)
+
+func _build_scorebar() -> void:
+	var sb := UIStyle.panel()
+	sb.border_color = Color(Palette.COUNTRY_1_SA.r, Palette.COUNTRY_1_SA.g, Palette.COUNTRY_1_SA.b, 0.4)
+	var p := _panel(sb)
+	var h := HBoxContainer.new()
+	var left := VBoxContainer.new()
+	_score_big = _lbl("0/0", 30, Palette.GOLD)
+	_score_meta = _lbl("0.0 OV · CRR 0.0", 11, Palette.WHITE_MID)
+	left.add_child(_score_big); left.add_child(_score_meta)
+	var right := VBoxContainer.new()
+	_tag_sub = _lbl("1ST INNINGS", 10, Palette.COUNTRY_ACCENT_SA, HORIZONTAL_ALIGNMENT_RIGHT)
+	_target_big = _lbl("", 19, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	_target_sub = _lbl("", 10, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+	right.add_child(_tag_sub); right.add_child(_target_big); right.add_child(_target_sub)
+	h.add_child(left); h.add_child(_spacer()); h.add_child(right)
+	p.add_child(h)
+	_root.add_child(p)
+
+func _build_bowler_row() -> void:
+	_bowler_row = _panel(UIStyle.team_row(Palette.country_set(_opp_code).accent))
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 9)
+	_bowl_lbl = _lbl("BOWL", 9, Palette.country_set(_opp_code).accent)
+	_bowl_name = _lbl("—", 13, Palette.country_set(_opp_code).accent)
+	_bowl_stat = _lbl("", 10, Palette.WHITE_MID)
+	_bowl_fig = _lbl("", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	h.add_child(_bowl_lbl); h.add_child(_bowl_name); h.add_child(_bowl_stat)
+	h.add_child(_spacer()); h.add_child(_bowl_fig)
+	_bowler_row.add_child(h)
+	_root.add_child(_bowler_row)
+
+func _build_commentary() -> void:
+	var sb := UIStyle.panel()
+	sb.border_width_left = 3; sb.border_color = Palette.GOLD_WARN
+	var p := _panel(sb)
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
+	_comm_chip = _lbl("ZU", 8, Color(0, 0, 0))
+	_comm_chip.add_theme_stylebox_override("normal", UIStyle.pill(Palette.GOLD_WARN))
+	_comm_lbl = _lbl("", 11, Palette.WHITE_SOFT)
+	h.add_child(_comm_chip); h.add_child(_comm_lbl)
+	p.add_child(h)
+	_root.add_child(p)
+
+func _build_body() -> void:
+	_body = Control.new()
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_root.add_child(_body)
+	_body_vbox = VBoxContainer.new()
+	_body_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_body_vbox.add_theme_constant_override("separation", 7)
+	_body.add_child(_body_vbox)
+
+	# Run rate viz
+	var rr := _panel(UIStyle.panel())
+	var rv := VBoxContainer.new()
+	rv.add_child(_lbl("RUN RATE", 9, Palette.WHITE_DIM))
+	var rrh := HBoxContainer.new()
+	_crr_big = _lbl("0.0", 34, Palette.GOLD)
+	_req_big = _lbl("", 21, Palette.RED, HORIZONTAL_ALIGNMENT_RIGHT)
+	rrh.add_child(_crr_big); rrh.add_child(_spacer()); rrh.add_child(_req_big)
+	rv.add_child(rrh)
+	rr.add_child(rv)
+	_body_vbox.add_child(rr)
+
+	# This over viz
+	var to := _panel(UIStyle.panel())
+	var tv := VBoxContainer.new()
+	tv.add_child(_lbl("THIS OVER", 9, Palette.WHITE_DIM))
+	_over_grid = GridContainer.new(); _over_grid.columns = 6
+	_over_grid.add_theme_constant_override("h_separation", 6)
+	tv.add_child(_over_grid)
+	to.add_child(tv)
+	_body_vbox.add_child(to)
+
+	# Partnership viz
+	var pp := _panel(UIStyle.panel())
+	var pv := VBoxContainer.new()
+	pv.add_child(_lbl("PARTNERSHIP", 9, Palette.WHITE_DIM))
+	var ph := HBoxContainer.new()
+	_pship_names = _lbl("—", 12, Palette.WHITE_SOFT)
+	_pship_runs = _lbl("", 12, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	ph.add_child(_pship_names); ph.add_child(_spacer()); ph.add_child(_pship_runs)
+	pv.add_child(ph)
+	_pship_bar = _mk_bar(Palette.COUNTRY_ACCENT_SA)
+	pv.add_child(_pship_bar)
+	pp.add_child(pv)
+	_body_vbox.add_child(pp)
+
+	_body_vbox.add_child(_spacer())
+	_build_dock()
+
+func _mk_bar(accent: Color) -> ProgressBar:
+	var b := ProgressBar.new()
+	b.show_percentage = false
+	b.custom_minimum_size = Vector2(0, 8)
+	b.add_theme_stylebox_override("background", UIStyle.bar_track())
+	b.add_theme_stylebox_override("fill", UIStyle.bar_fill(accent))
+	return b
+
+func _build_dock() -> void:
+	var dock := HBoxContainer.new(); dock.add_theme_constant_override("separation", 12)
+	_autosim_bar = Button.new()
+	_autosim_bar.flat = true
+	_autosim_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_autosim_bar.custom_minimum_size = Vector2(0, 56)
+	_autosim_bar.add_theme_stylebox_override("normal", UIStyle.autosim_bar(Palette.COUNTRY_ACCENT_SA))
+	_autosim_bar.add_theme_stylebox_override("hover", UIStyle.autosim_bar(Palette.COUNTRY_ACCENT_SA))
+	_autosim_bar.add_theme_stylebox_override("pressed", UIStyle.autosim_bar(Palette.COUNTRY_ACCENT_SA))
+	_autosim_bar.pressed.connect(_toggle_play)
+	var ah := HBoxContainer.new()
+	ah.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	ah.offset_left = 12; ah.offset_right = -12
+	ah.add_theme_constant_override("separation", 10)
+	ah.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_play_lbl = _lbl("▶▶", 14, Palette.COUNTRY_ACCENT_SA)
+	_sim_progress = _mk_bar(Palette.COUNTRY_ACCENT_SA)
+	_sim_progress.custom_minimum_size = Vector2(0, 5)
+	_sim_progress.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_sim_progress.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_speed_lbl = _lbl("1×", 11, Palette.WHITE_MID)
+	ah.add_child(_play_lbl); ah.add_child(_sim_progress); ah.add_child(_speed_lbl)
+	_autosim_bar.add_child(ah)
+
+	# Speed cycle button (small, right of the bar) + Boost.
+	var speed_btn := Button.new()
+	speed_btn.text = "»"; speed_btn.custom_minimum_size = Vector2(34, 56)
+	speed_btn.pressed.connect(_cycle_speed)
+
+	var boost_wrap := Control.new()
+	boost_wrap.custom_minimum_size = Vector2(60, 60)
+	_boost_btn = Button.new()
+	_boost_btn.text = "⚡\nBOOST"
+	_boost_btn.add_theme_font_size_override("font_size", 9)
+	_boost_btn.add_theme_color_override("font_color", Palette.WHITE)
+	_boost_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_boost_btn.add_theme_stylebox_override("normal", UIStyle.boost_button())
+	_boost_btn.add_theme_stylebox_override("hover", UIStyle.boost_button())
+	_boost_btn.add_theme_stylebox_override("pressed", UIStyle.boost_button())
+	_boost_btn.pressed.connect(_on_boost)
+	boost_wrap.add_child(_boost_btn)
+	_boost_badge = _lbl("0", 12, Color(0, 0, 0), HORIZONTAL_ALIGNMENT_CENTER)
+	_boost_badge.add_theme_stylebox_override("normal", UIStyle.boost_badge())
+	_boost_badge.custom_minimum_size = Vector2(22, 22)
+	_boost_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_boost_badge.position = Vector2(40, -4)
+	boost_wrap.add_child(_boost_badge)
+
+	dock.add_child(_autosim_bar); dock.add_child(speed_btn); dock.add_child(boost_wrap)
+	_body_vbox.add_child(dock)
+
+func _build_result_box() -> void:
+	_result_box = VBoxContainer.new()
+	_result_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_result_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	_result_box.add_theme_constant_override("separation", 10)
+	_result_box.visible = false
+	_body.add_child(_result_box)
+
+func _build_overlays() -> void:
+	_overlay = _make_overlay_root()
+	add_child(_overlay)
+	var card := _overlay.get_node("Center/Card") as PanelContainer
+	var cv := card.get_node("V") as VBoxContainer
+	_ov_banner = _overlay.get_node("Center/Banner") as Label
+	_ov_prompt = _lbl("Review?", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
+	_ov_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD
+	cv.add_child(_ov_prompt)
+	var btns := HBoxContainer.new(); btns.add_theme_constant_override("separation", 8)
+	_ov_yes = _choice("REVIEW ↑", Palette.BLUE); _ov_yes.pressed.connect(review_yes)
+	_ov_no = _choice("✗ ACCEPT", Palette.RED); _ov_no.pressed.connect(review_no)
+	btns.add_child(_ov_no); btns.add_child(_ov_yes)
+	cv.add_child(btns)
+	_ov_ok = _choice("OK", Palette.SURFACE_2); _ov_ok.visible = false; _ov_ok.pressed.connect(review_ok)
+	cv.add_child(_ov_ok)
+	_overlay.visible = false
+
+	_km_overlay = _make_overlay_root()
+	add_child(_km_overlay)
+	var kcard := _km_overlay.get_node("Center/Card") as PanelContainer
+	var kv := kcard.get_node("V") as VBoxContainer
+	_km_banner = _km_overlay.get_node("Center/Banner") as Label
+	_km_title = _lbl("", 17, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	_km_prompt = _lbl("", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
+	_km_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD
+	kv.add_child(_km_title); kv.add_child(_km_prompt)
+	var kbtns := HBoxContainer.new(); kbtns.add_theme_constant_override("separation", 8)
+	_km_a = _choice("A", Palette.BLUE); _km_a.pressed.connect(func(): km_press(0))
+	_km_b = _choice("B", Palette.RED); _km_b.pressed.connect(func(): km_press(1))
+	kbtns.add_child(_km_a); kbtns.add_child(_km_b)
+	kv.add_child(kbtns)
+	_km_overlay.visible = false
+
+func _make_overlay_root() -> Control:
+	var o := Control.new()
+	o.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var scrim := ColorRect.new()
+	scrim.color = Color(0, 0, 0, 0.78)
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	o.add_child(scrim)
+	var center := VBoxContainer.new()
+	center.name = "Center"
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.offset_left = 20; center.offset_top = 120; center.offset_right = -20; center.offset_bottom = -120
+	center.add_theme_constant_override("separation", 9)
+	o.add_child(center)
+	var banner := _lbl("", 13, Color(0, 0, 0), HORIZONTAL_ALIGNMENT_CENTER)
+	banner.name = "Banner"
+	banner.add_theme_stylebox_override("normal", UIStyle.banner("moment"))
+	center.add_child(banner)
+	var card := _panel(UIStyle.moment_card("moment"))
+	card.name = "Card"
+	card.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var v := VBoxContainer.new(); v.name = "V"; v.add_theme_constant_override("separation", 9)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	card.add_child(v)
+	center.add_child(card)
+	return o
+
+func _choice(txt: String, accent: Color) -> Button:
+	var b := Button.new()
+	b.text = txt
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_font_size_override("font_size", 14)
+	b.add_theme_color_override("font_color", Palette.WHITE)
+	b.add_theme_stylebox_override("normal", UIStyle.choice_btn(accent))
+	b.add_theme_stylebox_override("hover", UIStyle.choice_btn(accent))
+	b.add_theme_stylebox_override("pressed", UIStyle.choice_btn(accent))
+	return b
+
+# ---------------------------------------------------------------- public API
+
+func set_session(s: MatchSession, team_name: String, opp_name: String,
+		my_stars: float = 2.5, opp_stars: float = 2.5, my_code: int = 0, opp_code: int = 1) -> void:
 	_session = s
 	_team_name = team_name
 	_opp_name = opp_name
+	_my_stars = my_stars; _opp_stars = opp_stars
+	_my_code = my_code; _opp_code = opp_code
 
 func boot() -> void:
 	if _session == null:
@@ -60,12 +373,22 @@ func event_count() -> int:
 	return _event_count
 
 func overlay_visible() -> bool:
-	return $Overlay.visible
+	return _overlay.visible
+
+func km_overlay_visible() -> bool:
+	return _km_overlay.visible
 
 func boost_enabled() -> bool:
-	return not $Root/Controls/Boost.disabled
+	return not _boost_btn.disabled
 
-# Which innings is at the current cursor (for boost routing / budget).
+func review_ok_visible() -> bool:
+	return _ov_ok.visible
+
+func flash_text() -> String:
+	return _flash
+
+# ---------------------------------------------------------------- playback
+
 func _innings_at_cursor() -> int:
 	for k in range(_cursor, -1, -1):
 		if k < _session.events().size():
@@ -74,7 +397,6 @@ func _innings_at_cursor() -> int:
 				return e["innings"]
 	return 1
 
-# 1-based within-innings over at the cursor (best effort; for boosting the NEXT over).
 func _over_at_cursor() -> int:
 	for k in range(_cursor, -1, -1):
 		if k < _session.events().size():
@@ -85,10 +407,8 @@ func _over_at_cursor() -> int:
 
 func step(delta: int) -> void:
 	_cursor = clampi(_cursor + delta, 0, _event_count)
-	_render()   # always show the state up to the cursor (the moment's context)
+	_render()
 	if delta > 0:
-		# A Key Moment (over-boundary strategic call) takes precedence over a
-		# ball-level DRS offer at the same cursor.
 		var km := _session.key_moment_offer(_cursor)
 		if not km.is_empty():
 			_pending_km = km
@@ -99,14 +419,13 @@ func step(delta: int) -> void:
 		var offer := _session.review_offer(_cursor)
 		if not offer.is_empty():
 			_pending_review = offer
-			_resume_after_review = _playing   # remember to resume after the decision
+			_resume_after_review = _playing
 			_show_overlay(offer)
 			pause()
 			return
-		# brief hold on a your-moment so it's legible (autoplay only)
 		if _flash != "" and _playing:
-			$Tick.stop()
-			$FlashTimer.start(FLASH_HOLD)
+			_tick.stop()
+			_flash_timer.start(FLASH_HOLD)
 			return
 	if _cursor >= _event_count:
 		pause()
@@ -114,6 +433,9 @@ func step(delta: int) -> void:
 func seek_to(cursor: int) -> void:
 	_cursor = clampi(cursor, 0, _event_count)
 	_render()
+	# Scrubbing to a non-trigger cursor clears any overlay left showing.
+	_overlay.visible = false
+	_km_overlay.visible = false
 	var km := _session.key_moment_offer(_cursor)
 	if not km.is_empty():
 		_pending_km = km
@@ -127,16 +449,16 @@ func seek_to(cursor: int) -> void:
 func play() -> void:
 	if _cursor >= _event_count: return
 	_playing = true
-	$Tick.start()
-	$Root/Controls/PlayPause.text = "Pause"
+	_tick.start()
+	_play_lbl.text = "⏸"
 
 func pause() -> void:
 	_playing = false
-	$Tick.stop()
-	$Root/Controls/PlayPause.text = "Play"
+	_tick.stop()
+	_play_lbl.text = "▶▶"
 
 func set_speed(mult: float) -> void:
-	$Tick.wait_time = BASE_TICK / mult
+	_tick.wait_time = BASE_TICK / mult
 
 func _toggle_play() -> void:
 	if _playing: pause()
@@ -145,10 +467,16 @@ func _toggle_play() -> void:
 func _cycle_speed() -> void:
 	_speed_idx = (_speed_idx + 1) % SPEEDS.size()
 	set_speed(SPEEDS[_speed_idx])
-	$Root/Controls/Speed.text = "%dx" % int(SPEEDS[_speed_idx])
+	_speed_lbl.text = "%d×" % int(SPEEDS[_speed_idx])
 
 func _on_tick() -> void:
 	step(1)
+
+func _on_flash_done() -> void:
+	if _playing:
+		_tick.start()
+
+# ---------------------------------------------------------------- boost
 
 func _on_boost() -> void:
 	var inn := _innings_at_cursor()
@@ -156,61 +484,79 @@ func _on_boost() -> void:
 	var next_over := mini(_over_at_cursor() + 1, 20)
 	_session.decide_boost(inn, next_over)
 	_event_count = _session.events().size()
-	_boost_active_over = next_over      # button "charges" until this over plays out
+	_boost_active_over = next_over
 	_boost_active_innings = inn
 	_render()
 
-# Boost button state (Nico's recharge feel): ACTIVE (faded) while the boosted over
-# is still to play; once the cursor passes it, the button "fills back up" and shows
-# the presses left; greyed when the innings budget is spent.
 func _update_boost_button() -> void:
 	var inn := _innings_at_cursor()
 	if _boost_active_over != -1 and (inn != _boost_active_innings or _over_at_cursor() > _boost_active_over):
-		_boost_active_over = -1          # boost has played out → recharge
-	var btn: Button = $Root/Controls/Boost
+		_boost_active_over = -1
 	if _boost_active_over != -1:
-		btn.disabled = true
-		btn.text = "BOOST ON"
+		_boost_btn.disabled = true
+		_boost_badge.text = "ON"
 	elif _session.can_boost(inn):
-		btn.disabled = false
-		btn.text = "BOOST (%d)" % _session.presses_left(inn)
+		_boost_btn.disabled = false
+		_boost_badge.text = str(_session.presses_left(inn))
 	else:
-		btn.disabled = true
-		btn.text = "BOOST 0"
+		_boost_btn.disabled = true
+		_boost_badge.text = "0"
+
+# ---------------------------------------------------------------- DRS overlay
 
 func _show_overlay(_offer: Dictionary) -> void:
-	$Overlay/OverlayBox/Prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
-	$Overlay/OverlayBox/ReviewYes.visible = true
-	$Overlay/OverlayBox/ReviewNo.visible = true
-	$Overlay/OverlayBox/ReviewOk.visible = false
-	$Overlay.visible = true
+	_ov_banner.text = "⚖ DRS · REVIEW?"
+	_ov_banner.add_theme_stylebox_override("normal", UIStyle.banner("drs"))
+	_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("drs"))
+	_ov_prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
+	_ov_yes.visible = true; _ov_no.visible = true; _ov_ok.visible = false
+	_overlay.visible = true
 
-func review_ok_visible() -> bool:
-	return $Overlay/OverlayBox/ReviewOk.visible
+func review_yes() -> void:
+	if not _pending_review.is_empty():
+		var bid: Array = _pending_review["ball_id"]
+		_session.decide_review(bid)
+		_event_count = _session.events().size()
+		var success := not _session.ball_is_wicket(bid)
+		_ov_prompt.text = ("✅ Review successful — NOT OUT" if success
+			else "❌ Review lost — still OUT (%d left)" % _session.reviews_left())
+		_ov_yes.visible = false; _ov_no.visible = false; _ov_ok.visible = true
+	_pending_review = {}
+	_render()
 
-func flash_text() -> String:
-	return $Root/Flash.text
+func review_no() -> void:
+	_overlay.visible = false
+	_pending_review = {}
+	_render()
+	_resume_play_after_decision()
 
-# FlashTimer fired after a brief your-moment hold: resume autoplay if still playing.
-func _on_flash_done() -> void:
-	if _playing:
-		$Tick.start()
+func review_ok() -> void:
+	_overlay.visible = false
+	_ov_yes.visible = true; _ov_no.visible = true; _ov_ok.visible = false
+	_render()
+	_resume_play_after_decision()
 
-# -- Key Moment card (spec 2026-06-16) --------------------------------------
+func _resume_play_after_decision() -> void:
+	if _resume_after_review and _cursor < _event_count:
+		_resume_after_review = false
+		play()
 
-func km_overlay_visible() -> bool:
-	return $KMOverlay.visible
+# ---------------------------------------------------------------- Key Moment
 
 func _show_km_overlay(km: Dictionary) -> void:
-	$KMOverlay/KMBox/KMTitle.text = km["title"]
-	$KMOverlay/KMBox/KMPrompt.text = km["prompt"]
-	$KMOverlay/KMBox/KMOptA.text = km["choices"][0]["label"]
-	$KMOverlay/KMBox/KMOptB.text = km["choices"][1]["label"]
-	$KMOverlay.visible = true
+	var lever: String = km.get("lever", "intent")
+	var kind := "boost" if lever == "bowling" else "moment"
+	_km_banner.text = "🎯 KEY MOMENT" if lever == "bowling" else "⚡ KEY MOMENT ⚡"
+	_km_banner.add_theme_stylebox_override("normal", UIStyle.banner("moment"))
+	_km_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("moment"))
+	_km_title.text = km["title"]
+	_km_prompt.text = km["prompt"]
+	_km_a.text = km["choices"][0]["label"]
+	_km_b.text = km["choices"][1]["label"]
+	_km_overlay.visible = true
 
-# Player picked option index i (0/1) on the current Key Moment card.
 func km_press(i: int) -> void:
-	$KMOverlay.visible = false
+	_km_overlay.visible = false
 	if not _pending_km.is_empty():
 		var lever: String = _pending_km.get("lever", "intent")
 		if lever == "bowling":
@@ -226,60 +572,126 @@ func km_press(i: int) -> void:
 		_resume_after_km = false
 		play()
 
-# Tapped Review: re-sim, then flip the overlay to the outcome with an OK button
-# (spec 2026-06-17 D1). Stays visible until OK so you see whether it was lost/won.
-func review_yes() -> void:
-	if not _pending_review.is_empty():
-		var bid: Array = _pending_review["ball_id"]
-		_session.decide_review(bid)
-		_event_count = _session.events().size()
-		var success := not _session.ball_is_wicket(bid)
-		var msg: String = ("✅ Review successful — NOT OUT" if success
-			else "❌ Review lost — still OUT (%d left)" % _session.reviews_left())
-		$Overlay/OverlayBox/Prompt.text = msg
-		$Overlay/OverlayBox/ReviewYes.visible = false
-		$Overlay/OverlayBox/ReviewNo.visible = false
-		$Overlay/OverlayBox/ReviewOk.visible = true
-	_pending_review = {}
-	_render()   # re-render the (possibly overturned) cursor event behind the popup
-
-# Tapped No on a review: accept the out, no outcome popup.
-func review_no() -> void:
-	$Overlay.visible = false
-	_pending_review = {}
-	_render()
-	_resume_play_after_decision()
-
-# Tapped OK on the review outcome: dismiss + resume.
-func review_ok() -> void:
-	$Overlay.visible = false
-	$Overlay/OverlayBox/ReviewYes.visible = true
-	$Overlay/OverlayBox/ReviewNo.visible = true
-	$Overlay/OverlayBox/ReviewOk.visible = false
-	_render()
-	_resume_play_after_decision()
-
-# After a DRS decision, pick up where we left off: if autoplay was running, resume it
-# (the next tick steps past the reviewed ball); otherwise stay paused for manual control.
-func _resume_play_after_decision() -> void:
-	if _resume_after_review and _cursor < _event_count:
-		_resume_after_review = false
-		play()
+# ---------------------------------------------------------------- render
 
 func _render() -> void:
-	var v := MatchViewBuilder.build(_session.result(), _session.player(), _cursor)
-	$Root/Header.text = "%s  v  %s" % [_team_name, _opp_name]
-	$Root/Scoreboard.text = "%s   %s" % [v.innings_label, v.batting_score]
-	$Root/Target.text = v.target_text
-	# When finished, show the result + the Player's own final card; else the live line.
-	$Root/CurrentLine.text = ("%s\n%s" % [v.result_text, v.player_summary]) if v.finished else v.current_line
+	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
+		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
 	_flash = v.highlight_text
-	$Root/Flash.text = _flash
+
+	# Header
+	_bat_name.text = _team_name.to_upper()
+	_opp_name_lbl.text = _opp_name.to_upper()
+	_bat_badge.text = PlayerNames.badge(_team_name)
+	_opp_badge.text = PlayerNames.badge(_opp_name)
+
+	# Scorebar
+	_score_big.text = v.score_big
+	_score_meta.text = v.score_meta
+	_tag_sub.text = v.innings_tag
+	_target_big.text = v.target_big
+	_target_sub.text = v.target_sub
+
+	if v.finished:
+		_render_result(v)
+		_update_boost_button()
+		_set_sim_progress()
+		return
+	_batters.visible = true; _bowler_row.visible = true; _body_vbox.visible = true; _result_box.visible = false
+
+	_render_batters(v)
+	# Bowler row
+	if v.bowler:
+		_bowl_name.text = v.bowler.get("name", "—")
+		_bowl_stat.text = _stars_str(v.bowler.get("stars", 2.5))
+		_bowl_fig.text = "econ %s" % v.bowler.get("econ", "0.0")
+	# Commentary
+	_comm_chip.text = v.lang
+	_comm_lbl.text = v.commentary
+	# Run rate
+	_crr_big.text = v.crr
+	_req_big.text = v.req_value
+	_req_big.add_theme_color_override("font_color", Palette.RED if v.innings_tag == "CHASING" else Palette.WHITE_DIM)
+	# This over
+	for c in _over_grid.get_children(): c.queue_free()
+	for cell in v.this_over:
+		_over_grid.add_child(_ball_cell(cell))
+	# Partnership
+	if v.partnership:
+		_pship_names.text = v.partnership.get("names", "—")
+		_pship_runs.text = "%d (%d)" % [v.partnership.get("runs", 0), v.partnership.get("balls", 0)]
+		_pship_bar.value = v.partnership.get("frac", 0.0) * 100.0
+	else:
+		_pship_names.text = "—"; _pship_runs.text = ""; _pship_bar.value = 0
+
 	_update_boost_button()
-	var box: VBoxContainer = $Root/FeedBox
-	for c in box.get_children():
-		c.queue_free()
-	for line in v.feed:
-		var l := Label.new()
-		l.text = line
-		box.add_child(l)
+	_set_sim_progress()
+
+func _set_sim_progress() -> void:
+	_sim_progress.value = (float(_cursor) / maxf(_event_count, 1.0)) * 100.0
+
+func _render_batters(v: MatchView) -> void:
+	for c in _batters.get_children(): c.queue_free()
+	_batters.add_child(_batter_chip(v.striker))
+	_batters.add_child(_batter_chip(v.nonstriker))
+
+func _batter_chip(b: Dictionary) -> PanelContainer:
+	var on: bool = b.get("on_strike", false)
+	var p := _panel(UIStyle.goal_panel() if on else UIStyle.panel())
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 9)
+	var ring := _panel(UIStyle.portrait_ring(Palette.skill_ring(b.get("stars", 2.5))))
+	ring.custom_minimum_size = Vector2(30, 36)
+	var ini := _lbl(b.get("badge", ""), 11, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ring.add_child(ini)
+	var vb := VBoxContainer.new()
+	var nm := _lbl(b.get("name", "—"), 13, Palette.GOLD if on else Palette.WHITE)
+	var rn := _lbl("%s%d* (%d)" % ["★ " if on else "", b.get("runs", 0), b.get("balls", 0)], 11, Palette.WHITE_MID)
+	vb.add_child(nm); vb.add_child(rn)
+	h.add_child(ring); h.add_child(vb)
+	p.add_child(h)
+	return p
+
+func _ball_cell(cell: Dictionary) -> Control:
+	var kind: String = cell.get("kind", "dot")
+	var p := _panel(UIStyle.ball_cell(kind))
+	p.custom_minimum_size = Vector2(38, 38)
+	var l := _lbl(cell.get("label", "·"), 14, UIStyle.ball_cell_text(kind), HORIZONTAL_ALIGNMENT_CENTER)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	p.add_child(l)
+	return p
+
+func _render_result(v: MatchView) -> void:
+	_batters.visible = false; _bowler_row.visible = false; _body_vbox.visible = false
+	_result_box.visible = true
+	for c in _result_box.get_children(): c.queue_free()
+	_tag_sub.text = "RESULT"
+	_score_big.text = "WON" if v.won else "LOST"
+	_score_big.add_theme_color_override("font_color", Palette.GREEN if v.won else Palette.RED)
+	_target_big.text = "+1" if v.won else ""
+	_target_sub.text = "LEAGUE POINT" if v.won else ""
+	_comm_lbl.text = v.commentary
+
+	var head := _lbl(v.result_text, 22, Palette.GREEN if v.won else Palette.RED, HORIZONTAL_ALIGNMENT_CENTER)
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD
+	head.size_flags_horizontal = Control.SIZE_FILL
+	_result_box.add_child(head)
+	for line in v.innings_lines:
+		var row := _panel(UIStyle.panel())
+		row.size_flags_horizontal = Control.SIZE_FILL
+		var h := HBoxContainer.new()
+		var lab := _lbl(line.get("label", ""), 13, Palette.WHITE)
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(lab)
+		h.add_child(_lbl(line.get("score", ""), 13, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT))
+		row.add_child(h)
+		_result_box.add_child(row)
+	var cta := _choice("PLAY AGAIN ▶", Palette.GOLD)
+	cta.add_theme_color_override("font_color", Color("1a1205"))
+	cta.pressed.connect(func(): back.emit())
+	_result_box.add_child(cta)
+
+func _stars_str(stars: float) -> String:
+	var n := int(round(stars))
+	return "★".repeat(maxi(n, 1))

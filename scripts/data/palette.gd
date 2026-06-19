@@ -30,6 +30,12 @@ const RED := Color("c41e3a")
 const RED_DARK := Color("8b0000")      # lost fixtures
 const BLUE := Color("4a90e2")          # ★3 skill ring / rare joker
 
+# --- in-match overlay cards (dramatic green-black, replaces v4's purple) ---
+const MOMENT_1 := Color("16271d")        # key-moment / DRS card top
+const MOMENT_2 := Color("0a130e")        # key-moment / DRS card bottom
+const MOMENT_BOOST_1 := Color("123524")  # manager-boost card top
+const MOMENT_BOOST_2 := Color("08160f")  # manager-boost card bottom
+
 # --- joker rarity ---
 const COMMON := Color("e8e8e8")
 const RARE := Color("4f8cff")

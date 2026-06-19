@@ -139,6 +139,172 @@ static func build(mr: MatchResult, player: Player, cursor: int) -> MatchView:
 	v.feed = feed.slice(maxi(0, feed.size() - 6))
 	return v
 
+# --- Rich in-match read-model (hi-fi interactive scene) ----------------------
+# Builds the structured scorecard the v4 screen renders by walking the RAW ball
+# log of the active innings up to the cursor. Every number is real; player names
+# are flavour (PlayerNames). Reuses build() for feed/result/flash. Context: the
+# screen's player team name + the opponent name + their star ratings + country codes.
+static func build_rich(mr: MatchResult, player: Player, cursor: int,
+		p_team: String, opp_team: String,
+		my_stars: float = 2.5, opp_stars: float = 2.5,
+		my_code: int = 0, opp_code: int = 1) -> MatchView:
+	var v := build(mr, player, cursor)
+	v.my_code = my_code
+	v.opp_code = opp_code
+
+	# Active innings + how many balls into it the cursor sits.
+	var events := build_events(mr, player)
+	var c: int = clampi(cursor, 0, events.size())
+	var innings_no := 1
+	for k in range(c):
+		if events[k]["type"] == "innings_break":
+			innings_no = 2
+	var od := _over_dot(events, c)
+	var balls_into: int = maxi(0, (od[0] - 1) * 6 + od[1]) if od[0] >= 1 else 0
+
+	# Which side bats this innings (and its flavour palette).
+	var player_batting_this := (innings_no == 1) == mr.player_bats_first
+	v.bat_team = p_team if player_batting_this else opp_team
+	v.bowl_team = opp_team if player_batting_this else p_team
+	var bat_code := my_code if player_batting_this else opp_code
+	var bat_stars := my_stars if player_batting_this else opp_stars
+	var bowl_code := opp_code if player_batting_this else my_code
+	var bowl_stars := opp_stars if player_batting_this else my_stars
+
+	var log: Array = mr.ball_log_innings1 if innings_no == 1 else mr.ball_log_innings2
+	var n: int = mini(balls_into, log.size())
+
+	# Walk the innings to the cursor: per-position runs/balls/out, last partnership break.
+	var runs := {}
+	var faced := {}
+	var out := {}
+	var player_pos := -1
+	var total := 0
+	var wkts := 0
+	var last_wkt_total := 0
+	var last_wkt_ball := 0
+	for i in range(n):
+		var b: Dictionary = log[i]
+		var pos: int = b["striker_pos"]
+		if b["is_player"]: player_pos = pos
+		faced[pos] = faced.get(pos, 0) + 1
+		if b["wicket"]:
+			out[pos] = true
+			last_wkt_total = b["total"]; last_wkt_ball = i + 1
+		else:
+			runs[pos] = runs.get(pos, 0) + b["runs"]
+		total = b["total"]; wkts = b["wickets"]
+
+	# The two batters currently at the crease (positions 1..wkts+2 that aren't out).
+	var pair: Array = []
+	for pos in range(1, mini(wkts + 2, 11) + 1):
+		if not out.get(pos, false):
+			pair.append(pos)
+	var on_strike := -1
+	if n < log.size():
+		on_strike = log[n]["striker_pos"]
+	elif not pair.is_empty():
+		on_strike = pair[0]
+
+	# Build the two batter chips (flavour names; "YOU" for the player slot).
+	var chips: Array = []
+	for pos in pair:
+		var nm := "YOU" if pos == player_pos else PlayerNames.upper(v.bat_team, bat_code, pos)
+		chips.append({
+			"name": nm,
+			"badge": "YOU" if pos == player_pos else PlayerNames.badge(PlayerNames.for_position(v.bat_team, bat_code, pos)),
+			"runs": runs.get(pos, 0), "balls": faced.get(pos, 0),
+			"on_strike": pos == on_strike, "stars": bat_stars, "out": false,
+		})
+	if not chips.is_empty():
+		# striker first
+		if chips.size() == 2 and not chips[0]["on_strike"]:
+			chips.reverse()
+		v.striker = chips[0]
+		if chips.size() > 1: v.nonstriker = chips[1]
+
+	# This-over cells (the balls of the current over so far + pending pads to 6).
+	var cur_over: int = od[0] if od[0] >= 1 else 1
+	var over_cells: Array = []
+	for i in range(n):
+		var b: Dictionary = log[i]
+		if b["over"] == cur_over:
+			over_cells.append(_ball_kind(b["runs"], b["wicket"]))
+	while over_cells.size() < 6:
+		over_cells.append({"kind": "pending", "label": "?"})
+	v.this_over = over_cells.slice(0, 6)
+
+	# Partnership (current pair, runs since the last wicket).
+	if v.striker and not v.nonstriker.is_empty():
+		var pr := total - last_wkt_total
+		var pb := n - last_wkt_ball
+		v.partnership = {
+			"names": "%s & %s" % [v.striker["name"], v.nonstriker["name"]],
+			"runs": pr, "balls": pb, "frac": clampf(float(pr) / maxf(total, 1.0), 0.0, 1.0),
+		}
+
+	# Run rate (real) + the bowler row (flavour name, real ★/economy).
+	var crr_f := (total * 6.0 / n) if n > 0 else 0.0
+	v.crr = "%.1f" % crr_f
+	v.bowler = {
+		"name": PlayerNames.upper(v.bowl_team, bowl_code, 7 + (cur_over % 5)),
+		"badge": PlayerNames.badge(PlayerNames.for_position(v.bowl_team, bowl_code, 7 + (cur_over % 5))),
+		"stars": bowl_stars, "econ": "%.1f" % crr_f,
+	}
+
+	# Scorebar + innings tag + chase/target lines.
+	v.score_big = "%d/%d" % [total, wkts]
+	v.score_meta = "%s OV · CRR %s" % [_overs(od[0], od[1]), v.crr]
+	if v.finished:
+		v.innings_tag = "RESULT"
+	elif innings_no == 1:
+		v.innings_tag = "1ST INNINGS"
+		v.req_value = str(total)
+	else:
+		var target: int = mr.innings1.total + 1
+		var need: int = maxi(target - total, 0)
+		var balls_left: int = maxi(120 - n, 0)
+		v.target_big = str(target)
+		v.target_sub = "NEED %d IN %d" % [need, balls_left]
+		v.req_value = str(need)
+		v.innings_tag = "CHASING" if player_batting_this else "DEFENDING"
+
+	# Commentary (flavour) + locale chip.
+	v.lang = "ZU" if bat_code == 0 else "EN"
+	v.commentary = v.highlight_text if v.highlight_text != "" else _phase_comment(cur_over, innings_no)
+
+	# Result recap: both innings totals with the batting side's name.
+	if v.finished:
+		v.won = mr.player_won()
+		var first_team := p_team if mr.player_bats_first else opp_team
+		var second_team := opp_team if mr.player_bats_first else p_team
+		v.innings_lines = [
+			{"label": "%s 1st" % first_team.to_upper(),
+				"score": "%d/%d (%s)" % [mr.innings1.total, mr.innings1.wickets, _overs_from_balls(mr.innings1.balls)]},
+			{"label": "%s 2nd" % second_team.to_upper(),
+				"score": "%d/%d (%s)" % [mr.innings2.total, mr.innings2.wickets, _overs_from_balls(mr.innings2.balls)]},
+		]
+	return v
+
+# Ball outcome → {kind, label} for the this-over grid.
+static func _ball_kind(runs: int, wicket: bool) -> Dictionary:
+	if wicket: return {"kind": "wicket", "label": "W"}
+	if runs == 6: return {"kind": "six", "label": "6"}
+	if runs == 4: return {"kind": "four", "label": "4"}
+	if runs == 0: return {"kind": "dot", "label": "·"}
+	return {"kind": "run", "label": str(runs)}
+
+# Flavour commentary line keyed to phase (no data — pure dressing).
+static func _phase_comment(over: int, innings_no: int) -> String:
+	if innings_no == 2 and over >= 17: return "\"Down to the wire here...\""
+	if over <= 6: return "\"Powerplay's on — field's up.\""
+	if over >= 17: return "\"Death overs. The coach is up.\""
+	return "\"Working it around for now.\""
+
+# Completed-overs notation from a raw legal-ball count (120 -> "20.0", 117 -> "19.3").
+static func _overs_from_balls(balls: int) -> String:
+	return "%d.%d" % [balls / 6, balls % 6]
+
 # The striker/bowler one-liner for the current ball.
 static func _line_for(e: Dictionary, total: int, _wkts: int) -> String:
 	if e["player_bowling"]:

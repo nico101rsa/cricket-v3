@@ -78,7 +78,8 @@ func _play_next(team_index: int) -> void:
 	var screen := INTERACTIVE_MATCH.instantiate()
 	screen.back.connect(func(): _commit_and_return(play, session, career))
 	_push(screen)
-	screen.set_session(session, team.team_name, opp.team_name)
+	screen.set_session(session, team.team_name, opp.team_name,
+		team.stars, opp.stars, Country.Code.SA, Country.Code.AUS)
 	screen.boot()
 
 func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState) -> void:

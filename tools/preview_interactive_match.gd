@@ -1,54 +1,72 @@
 extends SceneTree
 
-# Renders the interactive_match scene to a PNG, scripting a Boost + advancing to a
-# DRS decision so the shot shows a real interactive moment. Run WITH rendering
-# (no --headless): inject in _process frame 2 because @onready isn't resolved in a
-# -s script's _initialize. Spec §8.
+# Renders the v4 in-match scene to PNGs (auto-sim, key-moment, result) so the build
+# can be eyeballed against docs/design-inbox/in-match-reference.png. Run WITH
+# rendering (no --headless); inject in _process frame 2 (@onready not resolved in a
+# -s script's _initialize).
 #   /Applications/Godot.app/Contents/MacOS/Godot --path . -s tools/preview_interactive_match.gd
-
-const OUT := "res://docs/mockups/interactive-match-built-v1.png"
+const OUT_LATEST := "res://docs/mockups/latest/in-match.png"
+const OUT_AUTOSIM := "res://docs/mockups/in-match-hifi-built-autosim.png"
+const OUT_KM := "res://docs/mockups/in-match-hifi-built-keymoment.png"
+const OUT_RESULT := "res://docs/mockups/in-match-hifi-built-result.png"
 
 var _scene
 var _session
-var _team_name := ""
+var _team: Team
+var _opp: Team
 var _frames := 0
-var _injected := false
+var _km_cursor := -1
 
 func _initialize() -> void:
 	var a := Attributes.new()
 	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
 	var career := CareerResolver.start_career(0)
-	var team: Team = career.teams[career.current_team_index]
-	var opp: Team = career.opponents_of_current()[0]
+	_team = career.teams[career.current_team_index]
+	_opp = career.opponents_of_current()[0]
 	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
-	_session = MatchSession.start(a, team, opp, tour, 20260615, 1)
-	# SHOWCASE (scripted for the shot): a Boost on over 5 of the batting innings.
-	_session.decide_boost(1, 5)
-	_team_name = team.team_name
+	_session = MatchSession.start(a, _team, _opp, tour, 20260615, 1)
 	get_root().size = Vector2i(390, 844)
 	_scene = load("res://scenes/interactive_match/interactive_match.tscn").instantiate()
 	get_root().add_child(_scene)
 
+func _save(path: String) -> void:
+	var img := get_root().get_viewport().get_texture().get_image()
+	img.save_png(path)
+	print("PREVIEW_SAVED ", path)
+
+func _find_km() -> int:
+	for c in range(_session.events().size()):
+		if not _session.key_moment_offer(c).is_empty():
+			return c
+	return -1
+
+# Step to a mid-innings cursor that does NOT pop an overlay (clean auto-sim shot).
+func _autosim_cursor() -> int:
+	var ev: Array = _session.events()
+	for c in range(ev.size()):
+		var e: Dictionary = ev[c]
+		if e["type"] == "ball" and e.get("innings", 1) == 1 and e.get("over", 0) >= 9:
+			if _session.key_moment_offer(c).is_empty() and _session.review_offer(c).is_empty():
+				return c
+	return mini(20, ev.size() - 1)
+
 func _process(_d: float) -> bool:
 	_frames += 1
-	if _frames == 2 and not _injected:
-		_scene.set_session(_session, _team_name, "Opponent")
-		_scene.boot()
-		# advance to the first Player dismissal so the DRS overlay is on screen
-		var ev: Array = _session.events()
-		var c := -1
-		for i in range(ev.size()):
-			if ev[i]["type"] == "ball" and ev[i].get("player_batting", false) and ev[i]["wicket"]:
-				c = i; break
-		if c > -1:
-			_scene.seek_to(c)
-		else:
-			for i in range(14): _scene.step(1)
-		_injected = true
-	if _frames >= 8:
-		var img := get_root().get_viewport().get_texture().get_image()
-		img.save_png(OUT)
-		print("PREVIEW_SAVED ", OUT)
-		quit()
-		return true
+	match _frames:
+		2:
+			_scene.set_session(_session, _team.team_name, _opp.team_name,
+				_team.stars, _opp.stars, Country.Code.SA, Country.Code.AUS)
+			_scene.boot()
+			_scene.seek_to(_autosim_cursor())
+		4:
+			_save(OUT_AUTOSIM); _save(OUT_LATEST)
+			_km_cursor = _find_km()
+			if _km_cursor > -1: _scene.seek_to(_km_cursor)
+		6:
+			_save(OUT_KM)
+			_scene.seek_to(_session.events().size())   # to the result
+		8:
+			_save(OUT_RESULT)
+			quit()
+			return true
 	return false
