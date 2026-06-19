@@ -49,7 +49,7 @@ var _boost_btn: Button; var _boost_badge: Label
 var _result_box: VBoxContainer
 var _overlay: Control; var _ov_banner: Label; var _ov_prompt: Label
 var _ov_yes: Button; var _ov_no: Button; var _ov_ok: Button
-var _km_overlay: Control; var _km_banner: Label; var _km_title: Label; var _km_prompt: Label; var _km_a: Button; var _km_b: Button
+var _km_overlay: Control; var _km_banner: Label; var _km_body: VBoxContainer
 var _tick: Timer; var _flash_timer: Timer
 
 # ---------------------------------------------------------------- build helpers
@@ -148,9 +148,14 @@ func _build_bowler_row() -> void:
 	_bowl_lbl = _lbl("BOWL", 9, Palette.country_set(_opp_code).accent)
 	_bowl_name = _lbl("—", 13, Palette.country_set(_opp_code).accent)
 	_bowl_stat = _lbl("", 10, Palette.WHITE_MID)
-	_bowl_fig = _lbl("", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	# Right side = the real ECON, labelled (no fabricated per-bowler wkts/runs).
+	var econ_box := VBoxContainer.new()
+	econ_box.alignment = BoxContainer.ALIGNMENT_END
+	var econ_cap := _lbl("ECON", 8, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT)
+	_bowl_fig = _lbl("0.0", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	econ_box.add_child(econ_cap); econ_box.add_child(_bowl_fig)
 	h.add_child(_bowl_lbl); h.add_child(_bowl_name); h.add_child(_bowl_stat)
-	h.add_child(_spacer()); h.add_child(_bowl_fig)
+	h.add_child(_spacer()); h.add_child(econ_box)
 	_bowler_row.add_child(h)
 	_root.add_child(_bowler_row)
 
@@ -301,18 +306,9 @@ func _build_overlays() -> void:
 
 	_km_overlay = _make_overlay_root()
 	add_child(_km_overlay)
-	var kcard := _km_overlay.get_node("Center/Card") as PanelContainer
-	var kv := kcard.get_node("V") as VBoxContainer
+	_km_body = _km_overlay.get_node("Center/Card/V") as VBoxContainer
+	_km_body.add_theme_constant_override("separation", 0)
 	_km_banner = _km_overlay.get_node("Center/Banner") as Label
-	_km_title = _lbl("", 17, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
-	_km_prompt = _lbl("", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
-	_km_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD
-	kv.add_child(_km_title); kv.add_child(_km_prompt)
-	var kbtns := HBoxContainer.new(); kbtns.add_theme_constant_override("separation", 8)
-	_km_a = _choice("A", Palette.BLUE); _km_a.pressed.connect(func(): km_press(0))
-	_km_b = _choice("B", Palette.RED); _km_b.pressed.connect(func(): km_press(1))
-	kbtns.add_child(_km_a); kbtns.add_child(_km_b)
-	kv.add_child(kbtns)
 	_km_overlay.visible = false
 
 func _make_overlay_root() -> Control:
@@ -545,15 +541,124 @@ func _resume_play_after_decision() -> void:
 
 func _show_km_overlay(km: Dictionary) -> void:
 	var lever: String = km.get("lever", "intent")
-	var kind := "boost" if lever == "bowling" else "moment"
 	_km_banner.text = "🎯 KEY MOMENT" if lever == "bowling" else "⚡ KEY MOMENT ⚡"
 	_km_banner.add_theme_stylebox_override("normal", UIStyle.banner("moment"))
 	_km_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("moment"))
-	_km_title.text = km["title"]
-	_km_prompt.text = km["prompt"]
-	_km_a.text = km["choices"][0]["label"]
-	_km_b.text = km["choices"][1]["label"]
+	_build_km_body(km, lever)
 	_km_overlay.visible = true
+
+# The enriched card body (in-match v2 amendment): ctx → actor mini-card → scene
+# glyph (expand row) → narration → two choices with stake sublabels. Rebuilt each show.
+func _build_km_body(km: Dictionary, lever: String) -> void:
+	for c in _km_body.get_children(): c.queue_free()
+	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
+		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
+	var ct := _km_content(km, lever)
+	var from_over: int = km.get("from_over", 7)
+	# Ctx
+	var ctx := _lbl("%s · %d OVERS LEFT · %s" % [v.score_big, maxi(21 - from_over, 0), ct["phase"]],
+		10, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
+	_km_body.add_child(ctx)
+	# Actor mini-card
+	_km_body.add_child(_km_actor(v, lever, ct["job"]))
+	# Scene glyph — the only expanding row (eats the slack, no dead gap)
+	var glyph := _lbl(ct["glyph"], 42, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	glyph.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_km_body.add_child(glyph)
+	# Narration (RichText so the named options highlight gold)
+	var narr := RichTextLabel.new()
+	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
+	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
+	narr.add_theme_font_size_override("normal_font_size", 13)
+	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
+	narr.text = "[center]%s[/center]" % ct["narr"]
+	_km_body.add_child(narr)
+	# Choices
+	var ch := HBoxContainer.new(); ch.add_theme_constant_override("separation", 8)
+	ch.add_child(_km_choice(ct["verbs"][0], ct["stakes"][0], Palette.BLUE, 0))
+	ch.add_child(_km_choice(ct["verbs"][1], ct["stakes"][1], Palette.RED, 1))
+	_km_body.add_child(ch)
+
+# The actor mini-card: portrait ring (real ★ tier) + name + job tag + real stats.
+func _km_actor(v: MatchView, lever: String, job: String) -> PanelContainer:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0, 0, 0, 0.45); sb.set_corner_radius_all(9)
+	sb.content_margin_left = 10; sb.content_margin_right = 10
+	sb.content_margin_top = 10; sb.content_margin_bottom = 10
+	var p := _panel(sb)
+	var actor: Dictionary = v.bowler if lever == "bowling" else v.striker
+	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 12)
+	var ring := _panel(UIStyle.portrait_ring(Palette.skill_ring(actor.get("stars", 2.5))))
+	ring.custom_minimum_size = Vector2(62, 78)
+	var ini := _lbl(actor.get("badge", ""), 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ring.add_child(ini)
+	var vb := VBoxContainer.new(); vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.add_child(_lbl(actor.get("name", "—"), 17, Palette.GOLD))
+	vb.add_child(_lbl(job, 10, Palette.WHITE_MID))
+	var stats: String = ("econ %s" % actor.get("econ", "0.0")) if lever == "bowling" \
+		else "%d (%d)" % [actor.get("runs", 0), actor.get("balls", 0)]
+	vb.add_child(_lbl(stats, 9, Palette.WHITE_DIM))
+	h.add_child(ring); h.add_child(vb)
+	p.add_child(h)
+	return p
+
+# A two-line choice (verb + stake) on a moment card; the whole tile is the tap target.
+func _km_choice(verb: String, stake: String, accent: Color, idx: int) -> Button:
+	var b := Button.new()
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 54)
+	b.add_theme_stylebox_override("normal", UIStyle.choice_btn(accent))
+	b.add_theme_stylebox_override("hover", UIStyle.choice_btn(accent))
+	b.add_theme_stylebox_override("pressed", UIStyle.choice_btn(accent))
+	b.pressed.connect(func(): km_press(idx))
+	var vb := VBoxContainer.new()
+	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	vb.alignment = BoxContainer.ALIGNMENT_CENTER
+	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var verb_l := _lbl(verb, 14, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	verb_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var stake_l := _lbl(stake, 9, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_CENTER)
+	stake_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vb.add_child(verb_l); vb.add_child(stake_l)
+	b.add_child(vb)
+	return b
+
+# Card copy per moment type. Batting verbs/stakes are design's v2 copy (the mechanic
+# = intent band, so the label is free to change). Bowling keeps the REAL pace/spin
+# labels (the lever that re-sims) — design's attack/contain framing is a different
+# mechanic, flagged in the review, not a label swap.
+func _km_content(km: Dictionary, lever: String) -> Dictionary:
+	var title: String = km["title"]
+	var glyph := title.substr(0, title.find(" ")) if title.find(" ") > 0 else "⚡"
+	if lever == "bowling":
+		return {
+			"glyph": glyph, "phase": "BOWLING", "job": "Your over",
+			"narr": km.get("prompt", ""),
+			"verbs": [str(km["choices"][0]["label"]).to_upper(), str(km["choices"][1]["label"]).to_upper()],
+			"stakes": [_kind_stake(km["choices"][0]), _kind_stake(km["choices"][1])],
+		}
+	if "Wicket Crisis" in title:
+		return {
+			"glyph": glyph, "phase": "REBUILD", "job": "On strike · steady the ship",
+			"narr": "Wicket down. [color=#ffd166]Rebuild[/color] and protect the innings, or [color=#ffd166]counter-attack[/color] and seize the momentum?",
+			"verbs": ["REBUILD", "COUNTER →"], "stakes": ["Protect wickets", "Seize momentum"],
+		}
+	if "Death Plan" in title:
+		return {
+			"glyph": glyph, "phase": "DEATH", "job": "On strike · time to accelerate",
+			"narr": "Death overs. [color=#ffd166]Twos & fours[/color] for a reliable 50+, or [color=#ffd166]six-or-bust[/color] and go boom-or-bust?",
+			"verbs": ["2s & 4s", "BIG HITS →"], "stakes": ["Reliable 50+", "Boom or bust"],
+		}
+	return {
+		"glyph": glyph, "phase": "MIDDLE", "job": "On strike · set the tempo",
+		"narr": "Powerplay's done. [color=#ffd166]Anchor[/color] and build a platform, or [color=#ffd166]hunt[/color] and keep the rate climbing?",
+		"verbs": ["ANCHOR", "HUNT →"], "stakes": ["Build a platform", "Chase the rate"],
+	}
+
+func _kind_stake(choice: Dictionary) -> String:
+	return "Grip & turn" if choice.get("kind", -1) == BowlingPlan.Kind.SPIN else "Hit the deck"
 
 func km_press(i: int) -> void:
 	_km_overlay.visible = false
@@ -604,7 +709,7 @@ func _render() -> void:
 	if v.bowler:
 		_bowl_name.text = v.bowler.get("name", "—")
 		_bowl_stat.text = _stars_str(v.bowler.get("stars", 2.5))
-		_bowl_fig.text = "econ %s" % v.bowler.get("econ", "0.0")
+		_bowl_fig.text = v.bowler.get("econ", "0.0")
 	# Commentary
 	_comm_chip.text = v.lang
 	_comm_lbl.text = v.commentary
