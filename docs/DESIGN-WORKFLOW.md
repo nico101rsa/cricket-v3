@@ -26,8 +26,12 @@ The design chat can't touch the build, so it can't "see Godot and change it" —
                         into claude.ai, or paste its raw URL)
 ```
 
+### Build → design requests go in the repo too (standing rule)
+When **Claude Code** needs to ask design for something (a brief, a translation of an existing mockup, an amendment), it **always commits that request into the repo** as `docs/design-inbox/<screen>-REQUEST.md` — design reads it via the GitHub connector. Nico never copy-pastes a request into the chat. (Set 2026-06-19: the repo is the channel *both* ways, not just design → build.)
+
 ### Where things live (the agreed paths)
 - **Design drops specs here:** `docs/design-inbox/<screen>.md` (the raw "GODOT-AI-PROMPT"-style brief + any reference image alongside).
+- **Claude Code drops requests-to-design here:** `docs/design-inbox/<screen>-REQUEST.md`.
 - **Claude Code renders here (stable, always-newest):** `docs/mockups/latest/<screen>.png` — design always reviews this path, no version chasing.
 - Versioned build proofs also live in `docs/mockups/` (e.g. `season-hub-hifi-v2-built.png`); canonical specs get reconciled into `docs/superpowers/specs/`.
 
