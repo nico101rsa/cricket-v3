@@ -53,12 +53,17 @@ var _tick: Timer; var _flash_timer: Timer
 
 # ---------------------------------------------------------------- build helpers
 
-func _lbl(txt: String, size: int, col: Color, halign: int = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
+# Default weight is Barlow Bold (/800) — design's dominant face for this scoreboard
+# (scores, names, figures, verbs, micro-labels). Pass a lighter `weight` for body /
+# meta / panel labels, and `tabular` for numbers so they don't jiggle while ticking.
+func _lbl(txt: String, size: int, col: Color, halign: int = HORIZONTAL_ALIGNMENT_LEFT,
+		weight: int = Fonts.W_BOLD, tabular: bool = false) -> Label:
 	var l := Label.new()
 	l.text = txt
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", col)
 	l.horizontal_alignment = halign
+	Fonts.weigh(l, weight, tabular)
 	return l
 
 func _spacer() -> Control:
@@ -117,7 +122,7 @@ func _build_header() -> void:
 	_opp_name_lbl = _lbl("OPPONENT", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_RIGHT)
 	_opp_badge = _badge("OP", Color(0, 0, 0, 0.28), Palette.country_set(_opp_code).accent)
 	h.add_child(_bat_badge); h.add_child(_bat_name)
-	h.add_child(_lbl("vs", 11, Palette.WHITE_MID))
+	h.add_child(_lbl("vs", 11, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_MEDIUM))
 	h.add_child(_spacer())
 	h.add_child(_opp_name_lbl); h.add_child(_opp_badge)
 	_header.add_child(h)
@@ -129,12 +134,12 @@ func _build_scorebar() -> void:
 	var p := _panel(sb)
 	var h := HBoxContainer.new()
 	var left := VBoxContainer.new()
-	_score_big = _lbl("0/0", 30, Palette.GOLD)
-	_score_meta = _lbl("0.0 OV · CRR 0.0", 11, Palette.WHITE_MID)
+	_score_big = _lbl("0/0", 30, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_BOLD, true)
+	_score_meta = _lbl("0.0 OV · CRR 0.0", 11, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_MEDIUM, true)
 	left.add_child(_score_big); left.add_child(_score_meta)
 	var right := VBoxContainer.new()
 	_tag_sub = _lbl("1ST INNINGS", 10, Palette.COUNTRY_ACCENT_SA, HORIZONTAL_ALIGNMENT_RIGHT)
-	_target_big = _lbl("", 19, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	_target_big = _lbl("", 19, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
 	_target_sub = _lbl("", 10, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT)
 	right.add_child(_tag_sub); right.add_child(_target_big); right.add_child(_target_sub)
 	h.add_child(left); h.add_child(_spacer()); h.add_child(right)
@@ -150,8 +155,8 @@ func _build_bowler_row() -> void:
 	# Right side = the real ECON, labelled (no fabricated per-bowler wkts/runs).
 	var econ_box := VBoxContainer.new()
 	econ_box.alignment = BoxContainer.ALIGNMENT_END
-	var econ_cap := _lbl("ECON", 8, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT)
-	_bowl_fig = _lbl("0.0", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT)
+	var econ_cap := _lbl("ECON", 8, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_LABEL)
+	_bowl_fig = _lbl("0.0", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
 	econ_box.add_child(econ_cap); econ_box.add_child(_bowl_fig)
 	h.add_child(_bowl_lbl); h.add_child(_bowl_name); h.add_child(_bowl_stat)
 	h.add_child(_spacer()); h.add_child(econ_box)
@@ -165,7 +170,7 @@ func _build_commentary() -> void:
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
 	_comm_chip = _lbl("ZU", 8, Color(0, 0, 0))
 	_comm_chip.add_theme_stylebox_override("normal", UIStyle.pill(Palette.GOLD_WARN))
-	_comm_lbl = _lbl("", 11, Palette.WHITE_SOFT)
+	_comm_lbl = _lbl("", 11, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_BODY)
 	h.add_child(_comm_chip); h.add_child(_comm_lbl)
 	p.add_child(h)
 	_root.add_child(p)
@@ -182,10 +187,10 @@ func _build_body() -> void:
 	# Run rate viz
 	var rr := _panel(UIStyle.panel())
 	var rv := VBoxContainer.new()
-	rv.add_child(_lbl("RUN RATE", 9, Palette.WHITE_DIM))
+	rv.add_child(_lbl("RUN RATE", 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_LABEL))
 	var rrh := HBoxContainer.new()
-	_crr_big = _lbl("0.0", 34, Palette.GOLD)
-	_req_big = _lbl("", 21, Palette.RED, HORIZONTAL_ALIGNMENT_RIGHT)
+	_crr_big = _lbl("0.0", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_BOLD, true)
+	_req_big = _lbl("", 21, Palette.RED, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
 	rrh.add_child(_crr_big); rrh.add_child(_spacer()); rrh.add_child(_req_big)
 	rv.add_child(rrh)
 	rr.add_child(rv)
@@ -194,7 +199,7 @@ func _build_body() -> void:
 	# This over viz
 	var to := _panel(UIStyle.panel())
 	var tv := VBoxContainer.new()
-	tv.add_child(_lbl("THIS OVER", 9, Palette.WHITE_DIM))
+	tv.add_child(_lbl("THIS OVER", 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_LABEL))
 	_over_grid = GridContainer.new(); _over_grid.columns = 6
 	_over_grid.add_theme_constant_override("h_separation", 6)
 	tv.add_child(_over_grid)
@@ -204,10 +209,10 @@ func _build_body() -> void:
 	# Partnership viz
 	var pp := _panel(UIStyle.panel())
 	var pv := VBoxContainer.new()
-	pv.add_child(_lbl("PARTNERSHIP", 9, Palette.WHITE_DIM))
+	pv.add_child(_lbl("PARTNERSHIP", 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_LABEL))
 	var ph := HBoxContainer.new()
 	_pship_names = _lbl("—", 12, Palette.WHITE_SOFT)
-	_pship_runs = _lbl("", 12, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT)
+	_pship_runs = _lbl("", 12, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
 	ph.add_child(_pship_names); ph.add_child(_spacer()); ph.add_child(_pship_runs)
 	pv.add_child(ph)
 	_pship_bar = _mk_bar(Palette.COUNTRY_ACCENT_SA)
@@ -261,6 +266,7 @@ func _build_dock() -> void:
 	_boost_btn.text = "⚡\nBOOST"
 	_boost_btn.add_theme_font_size_override("font_size", 9)
 	_boost_btn.add_theme_color_override("font_color", Palette.WHITE)
+	Fonts.weigh(_boost_btn, Fonts.W_BOLD)
 	_boost_btn.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_boost_btn.add_theme_stylebox_override("normal", UIStyle.boost_button())
 	_boost_btn.add_theme_stylebox_override("hover", UIStyle.boost_button())
@@ -332,6 +338,7 @@ func _choice(txt: String, accent: Color) -> Button:
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.add_theme_font_size_override("font_size", 14)
 	b.add_theme_color_override("font_color", Palette.WHITE)
+	Fonts.weigh(b, Fonts.W_BOLD)
 	b.add_theme_stylebox_override("normal", UIStyle.choice_btn(accent))
 	b.add_theme_stylebox_override("hover", UIStyle.choice_btn(accent))
 	b.add_theme_stylebox_override("pressed", UIStyle.choice_btn(accent))
@@ -514,6 +521,7 @@ func _build_drs_body() -> void:
 	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
 	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
 	narr.add_theme_font_size_override("normal_font_size", 13)
+	narr.add_theme_font_override("normal_font", Fonts.italic())  # narration = body italic
 	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
 	narr.text = "[center]Umpire's given you [color=#ffd166]out[/color]. Take the walk, or burn a [color=#ffd166]review[/color] and send it upstairs?[/center]"
 	_ov_body.add_child(narr)
@@ -599,6 +607,7 @@ func _build_km_body(km: Dictionary, lever: String) -> void:
 	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
 	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
 	narr.add_theme_font_size_override("normal_font_size", 13)
+	narr.add_theme_font_override("normal_font", Fonts.italic())  # narration = body italic
 	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
 	narr.text = "[center]%s[/center]" % ct["narr"]
 	_km_body.add_child(narr)
@@ -800,7 +809,7 @@ func _batter_chip(b: Dictionary) -> PanelContainer:
 	ring.add_child(ini)
 	var vb := VBoxContainer.new()
 	var nm := _lbl(b.get("name", "—"), 13, Palette.GOLD if on else Palette.WHITE)
-	var rn := _lbl("%s%d* (%d)" % ["★ " if on else "", b.get("runs", 0), b.get("balls", 0)], 11, Palette.WHITE_MID)
+	var rn := _lbl("%s%d* (%d)" % ["★ " if on else "", b.get("runs", 0), b.get("balls", 0)], 11, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_BOLD, true)
 	vb.add_child(nm); vb.add_child(rn)
 	h.add_child(ring); h.add_child(vb)
 	p.add_child(h)
@@ -810,7 +819,7 @@ func _ball_cell(cell: Dictionary) -> Control:
 	var kind: String = cell.get("kind", "dot")
 	var p := _panel(UIStyle.ball_cell(kind))
 	p.custom_minimum_size = Vector2(38, 38)
-	var l := _lbl(cell.get("label", "·"), 14, UIStyle.ball_cell_text(kind), HORIZONTAL_ALIGNMENT_CENTER)
+	var l := _lbl(cell.get("label", "·"), 14, UIStyle.ball_cell_text(kind), HORIZONTAL_ALIGNMENT_CENTER, Fonts.W_BOLD, true)
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	p.add_child(l)
 	return p
@@ -826,7 +835,7 @@ func _render_result(v: MatchView) -> void:
 	_target_sub.text = "LEAGUE POINT" if v.won else ""
 	_comm_lbl.text = v.commentary
 
-	var head := _lbl(v.result_text, 22, Palette.GREEN if v.won else Palette.RED, HORIZONTAL_ALIGNMENT_CENTER)
+	var head := _lbl(v.result_text, 22, Palette.GREEN if v.won else Palette.RED, HORIZONTAL_ALIGNMENT_CENTER, Fonts.W_HEADLINE)
 	head.autowrap_mode = TextServer.AUTOWRAP_WORD
 	head.size_flags_horizontal = Control.SIZE_FILL
 	_result_box.add_child(head)
