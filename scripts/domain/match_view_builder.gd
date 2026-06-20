@@ -250,6 +250,14 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 			"runs": pr, "balls": pb, "frac": clampf(float(pr) / maxf(total, 1.0), 0.0, 1.0),
 		}
 
+	# The Player's own batting line (DRS actor = the dismissed player).
+	if player_pos != -1:
+		v.player_bat = {
+			"name": "YOU", "badge": "YOU",
+			"runs": runs.get(player_pos, 0), "balls": faced.get(player_pos, 0),
+			"ovr": ovr_by_pos.get(player_pos, 0), "stars": bat_stars,
+		}
+
 	# Run rate (real) + the bowler row (flavour name, real ★/economy).
 	var crr_f := (total * 6.0 / n) if n > 0 else 0.0
 	v.crr = "%.1f" % crr_f

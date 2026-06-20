@@ -9,6 +9,7 @@ const OUT_LATEST := "res://docs/mockups/latest/in-match.png"
 const OUT_AUTOSIM := "res://docs/mockups/in-match-hifi-built-autosim.png"
 const OUT_KM := "res://docs/mockups/in-match-hifi-built-keymoment.png"
 const OUT_KM_BOWL := "res://docs/mockups/in-match-hifi-built-keymoment-bowling.png"
+const OUT_DRS := "res://docs/mockups/in-match-hifi-built-drs.png"
 const OUT_RESULT := "res://docs/mockups/in-match-hifi-built-result.png"
 
 var _scene
@@ -84,6 +85,17 @@ func _process(_d: float) -> bool:
 					_scene.seek_to(c); break
 		10:
 			_save(OUT_KM_BOWL)
+			# Back to the batting session, seek to the first Player dismissal (DRS card).
+			_scene.set_session(_session, _team.team_name, _opp.team_name,
+				_team.stars, _opp.stars, Country.Code.SA, Country.Code.AUS)
+			_scene.boot()
+			var ev: Array = _session.events()
+			for i in range(ev.size()):
+				var e: Dictionary = ev[i]
+				if e["type"] == "ball" and e.get("player_batting", false) and e["wicket"]:
+					_scene.seek_to(i); break
+		12:
+			_save(OUT_DRS)
 			quit()
 			return true
 	return false

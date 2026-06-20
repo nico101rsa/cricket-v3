@@ -47,8 +47,7 @@ var _pship_names: Label; var _pship_runs: Label; var _pship_bar: ProgressBar
 var _autosim_bar: Button; var _play_lbl: Label; var _speed_lbl: Label; var _sim_progress: ProgressBar
 var _boost_btn: Button; var _boost_badge: Label
 var _result_box: VBoxContainer
-var _overlay: Control; var _ov_banner: Label; var _ov_prompt: Label
-var _ov_yes: Button; var _ov_no: Button; var _ov_ok: Button
+var _overlay: Control; var _ov_banner: Label; var _ov_body: VBoxContainer; var _ov_ok_shown := false
 var _km_overlay: Control; var _km_banner: Label; var _km_body: VBoxContainer
 var _tick: Timer; var _flash_timer: Timer
 
@@ -289,19 +288,9 @@ func _build_result_box() -> void:
 func _build_overlays() -> void:
 	_overlay = _make_overlay_root()
 	add_child(_overlay)
-	var card := _overlay.get_node("Center/Card") as PanelContainer
-	var cv := card.get_node("V") as VBoxContainer
+	_ov_body = _overlay.get_node("Center/Card/V") as VBoxContainer
+	_ov_body.add_theme_constant_override("separation", 0)
 	_ov_banner = _overlay.get_node("Center/Banner") as Label
-	_ov_prompt = _lbl("Review?", 13, Palette.WHITE_SOFT, HORIZONTAL_ALIGNMENT_CENTER)
-	_ov_prompt.autowrap_mode = TextServer.AUTOWRAP_WORD
-	cv.add_child(_ov_prompt)
-	var btns := HBoxContainer.new(); btns.add_theme_constant_override("separation", 8)
-	_ov_yes = _choice("REVIEW ↑", Palette.BLUE); _ov_yes.pressed.connect(review_yes)
-	_ov_no = _choice("✗ ACCEPT", Palette.RED); _ov_no.pressed.connect(review_no)
-	btns.add_child(_ov_no); btns.add_child(_ov_yes)
-	cv.add_child(btns)
-	_ov_ok = _choice("OK", Palette.SURFACE_2); _ov_ok.visible = false; _ov_ok.pressed.connect(review_ok)
-	cv.add_child(_ov_ok)
 	_overlay.visible = false
 
 	_km_overlay = _make_overlay_root()
@@ -378,7 +367,7 @@ func boost_enabled() -> bool:
 	return not _boost_btn.disabled
 
 func review_ok_visible() -> bool:
-	return _ov_ok.visible
+	return _ov_ok_shown
 
 func flash_text() -> String:
 	return _flash
@@ -500,13 +489,49 @@ func _update_boost_button() -> void:
 
 # ---------------------------------------------------------------- DRS overlay
 
+# DRS card (v4): reuses the Key Moment skeleton (ctx → actor → glyph → narr →
+# choices), blue banner, actor = the dismissed player, accept=RED / review=BLUE.
 func _show_overlay(_offer: Dictionary) -> void:
-	_ov_banner.text = "⚖ DRS · REVIEW?"
+	_ov_ok_shown = false
+	_ov_banner.text = "📺 DRS REVIEW"
 	_ov_banner.add_theme_stylebox_override("normal", UIStyle.banner("drs"))
 	_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("drs"))
-	_ov_prompt.text = "You're given out — Review? (%d left)" % _session.reviews_left()
-	_ov_yes.visible = true; _ov_no.visible = true; _ov_ok.visible = false
+	_build_drs_body()
 	_overlay.visible = true
+
+func _build_drs_body() -> void:
+	for c in _ov_body.get_children(): c.queue_free()
+	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
+		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
+	var reviews := _session.reviews_left()
+	_ov_body.add_child(_lbl("%s · DRS REVIEW" % v.score_big, 10, Palette.BLUE, HORIZONTAL_ALIGNMENT_CENTER))
+	_ov_body.add_child(_actor_card(v.player_bat, "Given out"))
+	var glyph := _lbl("📺", 42, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
+	glyph.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ov_body.add_child(glyph)
+	var narr := RichTextLabel.new()
+	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
+	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
+	narr.add_theme_font_size_override("normal_font_size", 13)
+	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
+	narr.text = "[center]Umpire's given you [color=#ffd166]out[/color]. Take the walk, or burn a [color=#ffd166]review[/color] and send it upstairs?[/center]"
+	_ov_body.add_child(narr)
+	var ch := HBoxContainer.new(); ch.add_theme_constant_override("separation", 8)
+	ch.add_child(_two_line_btn("ACCEPT", "Take the walk", Palette.RED, review_no))
+	var stake := ("%d review%s left" % [reviews, "" if reviews == 1 else "s"]) if reviews > 0 else "No reviews left"
+	var review_btn := _two_line_btn("REVIEW", stake, Palette.BLUE, review_yes)
+	review_btn.disabled = reviews <= 0
+	ch.add_child(review_btn)
+	_ov_body.add_child(ch)
+
+func _build_drs_outcome(msg: String, success: bool, detail: String) -> void:
+	for c in _ov_body.get_children(): c.queue_free()
+	_ov_body.add_child(_spacer())
+	_ov_body.add_child(_lbl(msg, 24, Palette.GREEN if success else Palette.RED, HORIZONTAL_ALIGNMENT_CENTER))
+	_ov_body.add_child(_lbl(detail, 11, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_CENTER))
+	_ov_body.add_child(_spacer())
+	_ov_body.add_child(_two_line_btn("OK", "", Palette.SURFACE_2, review_ok))
 
 func review_yes() -> void:
 	if not _pending_review.is_empty():
@@ -514,9 +539,11 @@ func review_yes() -> void:
 		_session.decide_review(bid)
 		_event_count = _session.events().size()
 		var success := not _session.ball_is_wicket(bid)
-		_ov_prompt.text = ("✅ Review successful — NOT OUT" if success
-			else "❌ Review lost — still OUT (%d left)" % _session.reviews_left())
-		_ov_yes.visible = false; _ov_no.visible = false; _ov_ok.visible = true
+		var msg := "✅ NOT OUT" if success else "❌ STILL OUT"
+		var detail := ("Ultra-edge: no contact · review retained" if success
+			else "Umpire's call stands — %d review%s left" % [_session.reviews_left(), "" if _session.reviews_left() == 1 else "s"])
+		_build_drs_outcome(msg, success, detail)
+		_ov_ok_shown = true
 	_pending_review = {}
 	_render()
 
@@ -528,7 +555,7 @@ func review_no() -> void:
 
 func review_ok() -> void:
 	_overlay.visible = false
-	_ov_yes.visible = true; _ov_no.visible = true; _ov_ok.visible = false
+	_ov_ok_shown = false
 	_render()
 	_resume_play_after_decision()
 
@@ -559,8 +586,9 @@ func _build_km_body(km: Dictionary, lever: String) -> void:
 	var ctx := _lbl("%s · %d OVERS LEFT · %s" % [v.score_big, maxi(21 - from_over, 0), ct["phase"]],
 		10, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER)
 	_km_body.add_child(ctx)
-	# Actor mini-card
-	_km_body.add_child(_km_actor(v, lever, ct["job"]))
+	# Actor mini-card (bowler for bowling moments, on-strike batter otherwise)
+	var actor: Dictionary = v.bowler if lever == "bowling" else v.striker
+	_km_body.add_child(_actor_card(actor, ct["job"]))
 	# Scene glyph — the only expanding row (eats the slack, no dead gap)
 	var glyph := _lbl(ct["glyph"], 42, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	glyph.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -578,17 +606,18 @@ func _build_km_body(km: Dictionary, lever: String) -> void:
 	# offer order — bowling always shows PACE-left / SPIN-right regardless of offer order)
 	var ch := HBoxContainer.new(); ch.add_theme_constant_override("separation", 8)
 	for cc in ct["choices"]:
-		ch.add_child(_km_choice(cc["verb"], cc["stake"], cc["accent"], cc["idx"]))
+		var idx: int = cc["idx"]
+		ch.add_child(_two_line_btn(cc["verb"], cc["stake"], cc["accent"], func(): km_press(idx)))
 	_km_body.add_child(ch)
 
 # The actor mini-card: portrait ring (real ★ tier) + name + job tag + real stats.
-func _km_actor(v: MatchView, lever: String, job: String) -> PanelContainer:
+# Works for any actor dict (batter → runs/balls, bowler → econ); shared by KM + DRS.
+func _actor_card(actor: Dictionary, job: String) -> PanelContainer:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0, 0, 0, 0.45); sb.set_corner_radius_all(9)
 	sb.content_margin_left = 10; sb.content_margin_right = 10
 	sb.content_margin_top = 10; sb.content_margin_bottom = 10
 	var p := _panel(sb)
-	var actor: Dictionary = v.bowler if lever == "bowling" else v.striker
 	var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 12)
 	var ring := _panel(UIStyle.portrait_ring(Palette.skill_ring(actor.get("stars", 2.5))))
 	ring.custom_minimum_size = Vector2(62, 78)
@@ -598,31 +627,34 @@ func _km_actor(v: MatchView, lever: String, job: String) -> PanelContainer:
 	var vb := VBoxContainer.new(); vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_child(_lbl(actor.get("name", "—"), 17, Palette.GOLD))
 	vb.add_child(_lbl(job, 10, Palette.WHITE_MID))
-	var stats: String = ("econ %s · OVR %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if lever == "bowling" \
+	var stats: String = ("econ %s · OVR %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if actor.has("econ") \
 		else "%d (%d) · OVR %d" % [actor.get("runs", 0), actor.get("balls", 0), actor.get("ovr", 0)]
 	vb.add_child(_lbl(stats, 9, Palette.WHITE_DIM))
 	h.add_child(ring); h.add_child(vb)
 	p.add_child(h)
 	return p
 
-# A two-line choice (verb + stake) on a moment card; the whole tile is the tap target.
-func _km_choice(verb: String, stake: String, accent: Color, idx: int) -> Button:
+# A two-line choice tile (verb + stake); the whole tile is the tap target. Shared
+# by KM choices and DRS accept/review.
+func _two_line_btn(verb: String, stake: String, accent: Color, on_press: Callable) -> Button:
 	var b := Button.new()
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	b.custom_minimum_size = Vector2(0, 54)
 	b.add_theme_stylebox_override("normal", UIStyle.choice_btn(accent))
 	b.add_theme_stylebox_override("hover", UIStyle.choice_btn(accent))
 	b.add_theme_stylebox_override("pressed", UIStyle.choice_btn(accent))
-	b.pressed.connect(func(): km_press(idx))
+	b.pressed.connect(on_press)
 	var vb := VBoxContainer.new()
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var verb_l := _lbl(verb, 14, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	verb_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var stake_l := _lbl(stake, 9, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_CENTER)
-	stake_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	vb.add_child(verb_l); vb.add_child(stake_l)
+	vb.add_child(verb_l)
+	if stake != "":
+		var stake_l := _lbl(stake, 9, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_CENTER)
+		stake_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		vb.add_child(stake_l)
 	b.add_child(vb)
 	return b
 
