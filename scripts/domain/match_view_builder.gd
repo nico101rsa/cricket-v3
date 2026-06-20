@@ -174,6 +174,12 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 	var log: Array = mr.ball_log_innings1 if innings_no == 1 else mr.ball_log_innings2
 	var n: int = mini(balls_into, log.size())
 
+	# Per-position OVR from the REAL batting card (power+composure on the /100 scale).
+	var card_batters: Array = mr.innings1.batters if innings_no == 1 else mr.innings2.batters
+	var ovr_by_pos := {}
+	for cb in card_batters:
+		ovr_by_pos[cb["position"]] = int(round((cb["power"] + cb["composure"]) / 2.0))
+
 	# Walk the innings to the cursor: per-position runs/balls/out, last partnership break.
 	var runs := {}
 	var faced := {}
@@ -215,6 +221,7 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 			"badge": "YOU" if pos == player_pos else PlayerNames.badge(PlayerNames.for_position(v.bat_team, bat_code, pos)),
 			"runs": runs.get(pos, 0), "balls": faced.get(pos, 0),
 			"on_strike": pos == on_strike, "stars": bat_stars, "out": false,
+			"ovr": ovr_by_pos.get(pos, 0),
 		})
 	if not chips.is_empty():
 		# striker first
@@ -250,6 +257,7 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 		"name": PlayerNames.upper(v.bowl_team, bowl_code, 7 + (cur_over % 5)),
 		"badge": PlayerNames.badge(PlayerNames.for_position(v.bowl_team, bowl_code, 7 + (cur_over % 5))),
 		"stars": bowl_stars, "econ": "%.1f" % crr_f,
+		"ovr": int(round(bowl_stars * 20.0)),   # bowler card not tracked → team-★ derived
 	}
 
 	# Scorebar + innings tag + chase/target lines.

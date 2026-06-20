@@ -574,10 +574,11 @@ func _build_km_body(km: Dictionary, lever: String) -> void:
 	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
 	narr.text = "[center]%s[/center]" % ct["narr"]
 	_km_body.add_child(narr)
-	# Choices
+	# Choices (each carries its real offer index so display order can differ from the
+	# offer order — bowling always shows PACE-left / SPIN-right regardless of offer order)
 	var ch := HBoxContainer.new(); ch.add_theme_constant_override("separation", 8)
-	ch.add_child(_km_choice(ct["verbs"][0], ct["stakes"][0], Palette.BLUE, 0))
-	ch.add_child(_km_choice(ct["verbs"][1], ct["stakes"][1], Palette.RED, 1))
+	for cc in ct["choices"]:
+		ch.add_child(_km_choice(cc["verb"], cc["stake"], cc["accent"], cc["idx"]))
 	_km_body.add_child(ch)
 
 # The actor mini-card: portrait ring (real ★ tier) + name + job tag + real stats.
@@ -597,8 +598,8 @@ func _km_actor(v: MatchView, lever: String, job: String) -> PanelContainer:
 	var vb := VBoxContainer.new(); vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_child(_lbl(actor.get("name", "—"), 17, Palette.GOLD))
 	vb.add_child(_lbl(job, 10, Palette.WHITE_MID))
-	var stats: String = ("econ %s" % actor.get("econ", "0.0")) if lever == "bowling" \
-		else "%d (%d)" % [actor.get("runs", 0), actor.get("balls", 0)]
+	var stats: String = ("econ %s · OVR %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if lever == "bowling" \
+		else "%d (%d) · OVR %d" % [actor.get("runs", 0), actor.get("balls", 0), actor.get("ovr", 0)]
 	vb.add_child(_lbl(stats, 9, Palette.WHITE_DIM))
 	h.add_child(ring); h.add_child(vb)
 	p.add_child(h)
@@ -632,33 +633,48 @@ func _km_choice(verb: String, stake: String, accent: Color, idx: int) -> Button:
 func _km_content(km: Dictionary, lever: String) -> Dictionary:
 	var title: String = km["title"]
 	var glyph := title.substr(0, title.find(" ")) if title.find(" ") > 0 else "⚡"
+	const G := "[color=#ffd166]%s[/color]"
 	if lever == "bowling":
-		return {
-			"glyph": glyph, "phase": "BOWLING", "job": "Your over",
-			"narr": km.get("prompt", ""),
-			"verbs": [str(km["choices"][0]["label"]).to_upper(), str(km["choices"][1]["label"]).to_upper()],
-			"stakes": [_kind_stake(km["choices"][0]), _kind_stake(km["choices"][1])],
-		}
+		return _bowling_content(km, glyph, title)
+	var verbs: Array; var stakes: Array; var phase: String; var job: String; var narr: String
 	if "Wicket Crisis" in title:
-		return {
-			"glyph": glyph, "phase": "REBUILD", "job": "On strike · steady the ship",
-			"narr": "Wicket down. [color=#ffd166]Rebuild[/color] and protect the innings, or [color=#ffd166]counter-attack[/color] and seize the momentum?",
-			"verbs": ["REBUILD", "COUNTER →"], "stakes": ["Protect wickets", "Seize momentum"],
-		}
-	if "Death Plan" in title:
-		return {
-			"glyph": glyph, "phase": "DEATH", "job": "On strike · time to accelerate",
-			"narr": "Death overs. [color=#ffd166]Twos & fours[/color] for a reliable 50+, or [color=#ffd166]six-or-bust[/color] and go boom-or-bust?",
-			"verbs": ["2s & 4s", "BIG HITS →"], "stakes": ["Reliable 50+", "Boom or bust"],
-		}
-	return {
-		"glyph": glyph, "phase": "MIDDLE", "job": "On strike · set the tempo",
-		"narr": "Powerplay's done. [color=#ffd166]Anchor[/color] and build a platform, or [color=#ffd166]hunt[/color] and keep the rate climbing?",
-		"verbs": ["ANCHOR", "HUNT →"], "stakes": ["Build a platform", "Chase the rate"],
-	}
+		phase = "REBUILD"; job = "On strike · steady the ship"
+		narr = "Wicket down. %s and protect the innings, or %s and seize the momentum?" % [G % "Rebuild", G % "counter-attack"]
+		verbs = ["REBUILD", "COUNTER →"]; stakes = ["Protect wickets", "Seize momentum"]
+	elif "Death Plan" in title:
+		phase = "DEATH"; job = "On strike · time to accelerate"
+		narr = "Death overs. %s for a reliable 50+, or %s and go boom-or-bust?" % [G % "Twos & fours", G % "six-or-bust"]
+		verbs = ["2s & 4s", "BIG HITS →"]; stakes = ["Reliable 50+", "Boom or bust"]
+	else:
+		phase = "MIDDLE"; job = "On strike · set the tempo"
+		narr = "Powerplay's done. %s and build a platform, or %s and keep the rate climbing?" % [G % "Anchor", G % "hunt"]
+		verbs = ["ANCHOR", "HUNT →"]; stakes = ["Build a platform", "Chase the rate"]
+	return {"glyph": glyph, "phase": phase, "job": job, "narr": narr, "choices": [
+		{"verb": verbs[0], "stake": stakes[0], "accent": Palette.BLUE, "idx": 0},
+		{"verb": verbs[1], "stake": stakes[1], "accent": Palette.RED, "idx": 1}]}
 
-func _kind_stake(choice: Dictionary) -> String:
-	return "Grip & turn" if choice.get("kind", -1) == BowlingPlan.Kind.SPIN else "Hit the deck"
+# Bowling KM (v3.1): the real lever is Pace vs Spin. Display PACE-left (blue) /
+# SPIN-right (red) regardless of the offer's internal order, mapping each tile to its
+# true offer index by kind so the press selects the right mechanic.
+func _bowling_content(km: Dictionary, glyph: String, title: String) -> Dictionary:
+	var pace_idx := 0; var spin_idx := 1
+	for i in range(km["choices"].size()):
+		if km["choices"][i].get("kind", -1) == BowlingPlan.Kind.SPIN: spin_idx = i
+		else: pace_idx = i
+	const G := "[color=#ffd166]%s[/color]"
+	var narr: String; var pace_stake: String; var spin_stake: String
+	if "New Batsman" in title:
+		narr = "New man in. Test him with %s and bounce, or %s to tie him down early?" % [G % "pace", G % "spin"]
+		pace_stake = "Test with bounce"; spin_stake = "Tie him down"
+	elif "Death Defence" in title:
+		narr = "Defending at the death. Back your %s for yorkers, or %s to take the pace off?" % [G % "pace", G % "spin"]
+		pace_stake = "Yorkers"; spin_stake = "Take pace off"
+	else:
+		narr = "Powerplay over. Bang in %s and hit the deck, or bring %s to choke the middle?" % [G % "pace", G % "spin"]
+		pace_stake = "Hit the deck"; spin_stake = "Choke the middle"
+	return {"glyph": glyph, "phase": "BOWLING", "job": "Your over · set the plan", "narr": narr, "choices": [
+		{"verb": "PACE", "stake": pace_stake, "accent": Palette.BLUE, "idx": pace_idx},
+		{"verb": "SPIN →", "stake": spin_stake, "accent": Palette.RED, "idx": spin_idx}]}
 
 func km_press(i: int) -> void:
 	_km_overlay.visible = false

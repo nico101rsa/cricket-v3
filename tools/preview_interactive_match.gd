@@ -8,12 +8,15 @@ extends SceneTree
 const OUT_LATEST := "res://docs/mockups/latest/in-match.png"
 const OUT_AUTOSIM := "res://docs/mockups/in-match-hifi-built-autosim.png"
 const OUT_KM := "res://docs/mockups/in-match-hifi-built-keymoment.png"
+const OUT_KM_BOWL := "res://docs/mockups/in-match-hifi-built-keymoment-bowling.png"
 const OUT_RESULT := "res://docs/mockups/in-match-hifi-built-result.png"
 
 var _scene
 var _session
+var _bowl_session
 var _team: Team
 var _opp: Team
+var _bowl_opp: Team
 var _frames := 0
 var _km_cursor := -1
 
@@ -25,6 +28,10 @@ func _initialize() -> void:
 	_opp = career.opponents_of_current()[0]
 	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
 	_session = MatchSession.start(a, _team, _opp, tour, 20260615, 1)
+	# A second session with rotation ON so bowling Key Moments fire (for the bowling shot).
+	_bowl_opp = career.opponents_of_current()[6]
+	var spec := TourSpec.new(); spec.brain_tier = TourSpec.Tier.ADAPTIVE; spec.blend = 1.0
+	_bowl_session = MatchSession.start(a, _team, _bowl_opp, tour, 20260615, 0, null, null, spec)
 	get_root().size = Vector2i(390, 844)
 	_scene = load("res://scenes/interactive_match/interactive_match.tscn").instantiate()
 	get_root().add_child(_scene)
@@ -67,6 +74,16 @@ func _process(_d: float) -> bool:
 			_scene.seek_to(_session.events().size())   # to the result
 		8:
 			_save(OUT_RESULT)
+			# Swap to the rotation-on session + seek to a bowling Key Moment.
+			_scene.set_session(_bowl_session, _team.team_name, _bowl_opp.team_name,
+				_team.stars, _bowl_opp.stars, Country.Code.SA, Country.Code.AUS)
+			_scene.boot()
+			for c in range(_bowl_session.events().size()):
+				var o: Dictionary = _bowl_session.key_moment_offer(c)
+				if not o.is_empty() and o.get("lever", "") == "bowling":
+					_scene.seek_to(c); break
+		10:
+			_save(OUT_KM_BOWL)
 			quit()
 			return true
 	return false
