@@ -59,15 +59,18 @@ func _style_static() -> void:
 	var gcap: Label = _root.get_node("SeasonGoal/GoalRow/GoalCol/GoalCap")
 	gcap.add_theme_color_override("font_color", Palette.GOLD)
 	gcap.add_theme_font_size_override("font_size", 9)
+	Fonts.weigh(gcap, Fonts.W_BOLD)
 	_root.get_node("SeasonGoal/GoalRow/GoalCol/GoalText").add_theme_color_override("font_color", Palette.WHITE_SOFT)
 	_root.get_node("SeasonGoal/GoalRow/GoalCol/GoalText").add_theme_font_size_override("font_size", 12)
 	_root.get_node("SeasonGoal/GoalRow/GoalIcon").add_theme_font_size_override("font_size", 18)
 	var tnum: Label = _root.get_node("SeasonGoal/GoalRow/TargetPill/TargetCol/TargetNum")
 	tnum.add_theme_color_override("font_color", Palette.WHITE)
 	tnum.add_theme_font_size_override("font_size", 14)
+	Fonts.weigh(tnum, Fonts.W_BOLD, true)
 	var tcap: Label = _root.get_node("SeasonGoal/GoalRow/TargetPill/TargetCol/TargetCap")
 	tcap.add_theme_color_override("font_color", Palette.GOLD)
 	tcap.add_theme_font_size_override("font_size", 8)
+	Fonts.weigh(tcap, Fonts.W_BOLD)
 	_root.get_node("CardPanel/PlayerCard/CardInfo/OvrFormRow/OvrTile").add_theme_stylebox_override("panel", UIStyle.ovr_tile())
 	_root.get_node("CardPanel/PlayerCard/CardInfo/CareerArea/EmptyState").add_theme_stylebox_override("panel", UIStyle.joker_slot(false))
 	# uppercase dim section labels
@@ -78,21 +81,26 @@ func _style_static() -> void:
 		var l: Label = _root.get_node(path)
 		l.add_theme_color_override("font_color", Palette.WHITE_DIM)
 		l.add_theme_font_size_override("font_size", 9)
+		Fonts.weigh(l, Fonts.W_BOLD)  # uppercase micro-labels (hub spec: weight 800)
 	# big ₸ value
 	var tons: Label = _root.get_node("TonsPanel/TonsRow/TonsCol/TonsChip")
 	tons.add_theme_color_override("font_color", Palette.GOLD)
 	tons.add_theme_font_size_override("font_size", 24)
+	Fonts.weigh(tons, Fonts.W_BOLD, true)
 	# OVR tile text (dark on gold)
 	var ovrn: Label = _root.get_node("CardPanel/PlayerCard/CardInfo/OvrFormRow/OvrTile/OvrCol/OvrNum")
 	ovrn.add_theme_color_override("font_color", Palette.BG)
 	ovrn.add_theme_font_size_override("font_size", 17)
+	Fonts.weigh(ovrn, Fonts.W_BOLD, true)
 	var ovrc: Label = _root.get_node("CardPanel/PlayerCard/CardInfo/OvrFormRow/OvrTile/OvrCol/OvrCap")
 	ovrc.add_theme_color_override("font_color", Palette.BG)
 	ovrc.add_theme_font_size_override("font_size", 8)
-	# name
+	Fonts.weigh(ovrc, Fonts.W_BOLD)
+	# name — hub spec: names weight 900 → ExtraBold
 	var nm: Label = _root.get_node("CardPanel/PlayerCard/CardInfo/NameLabel")
 	nm.add_theme_color_override("font_color", Palette.WHITE)
 	nm.add_theme_font_size_override("font_size", 15)
+	Fonts.weigh(nm, Fonts.W_HEADLINE)
 	# empty-state + stat strip text
 	var empty_lbl: Label = _root.get_node("CardPanel/PlayerCard/CardInfo/CareerArea/EmptyState/EmptyLabel")
 	empty_lbl.add_theme_color_override("font_color", Palette.WHITE_MID)
@@ -101,16 +109,20 @@ func _style_static() -> void:
 	var nextb: Label = _root.get_node("AffinityPanel/AffinityRow/AffinityCol/AffinityTop/NextBonus")
 	nextb.add_theme_color_override("font_color", Palette.GOLD)
 	nextb.add_theme_font_size_override("font_size", 9)
+	Fonts.weigh(nextb, Fonts.W_BOLD)
 	_root.get_node("TonsPanel/TonsRow/ContextCol/ProgressLabel").add_theme_color_override("font_color", Palette.WHITE_MID)
 	# portrait art + affinity track
 	_root.get_node("CardPanel/PlayerCard/Portrait/PortraitTex").texture = HERO_CAP
 	_root.get_node("AffinityPanel/AffinityRow/AffinityCol/AffinityBar").add_theme_stylebox_override("background", UIStyle.bar_track())
 	# CTA text colours (dark on gold)
-	_root.get_node("CTA/CtaCenter/CtaLines/CtaBig").add_theme_color_override("font_color", Palette.BG)
-	_root.get_node("CTA/CtaCenter/CtaLines/CtaBig").add_theme_font_size_override("font_size", 16)
+	var ctab: Label = _root.get_node("CTA/CtaCenter/CtaLines/CtaBig")
+	ctab.add_theme_color_override("font_color", Palette.BG)
+	ctab.add_theme_font_size_override("font_size", 16)
+	Fonts.weigh(ctab, Fonts.W_BOLD)
 	var ctas: Label = _root.get_node("CTA/CtaCenter/CtaLines/CtaSmall")
 	ctas.add_theme_color_override("font_color", Color(0, 0, 0, 0.6))
 	ctas.add_theme_font_size_override("font_size", 9)
+	Fonts.weigh(ctas, Fonts.W_MEDIUM)
 
 # --- Production boot ---
 
@@ -193,10 +205,12 @@ func _render_topbar(cset: Dictionary) -> void:
 	badge.text = _initials(_view.team_name)
 	badge.add_theme_stylebox_override("normal", UIStyle.pill(cset["grad1"].darkened(0.2)))
 	badge.add_theme_color_override("font_color", Palette.WHITE)
+	Fonts.weigh(badge, Fonts.W_BOLD)
 	var title: Label = _root.get_node("TopbarPanel/Header/TeamId/TitleLabel")
 	title.text = _view.team_name
 	title.add_theme_color_override("font_color", Palette.WHITE)
 	title.add_theme_font_size_override("font_size", 15)
+	Fonts.weigh(title, Fonts.W_HEADLINE)  # hub spec: names weight 900
 	var stars: Label = _root.get_node("TopbarPanel/Header/TeamId/MetaRow/StarsLabel")
 	stars.text = _stars_str(_view.team_stars)
 	stars.add_theme_color_override("font_color", Palette.GOLD)
@@ -205,6 +219,7 @@ func _render_topbar(cset: Dictionary) -> void:
 	chip.add_theme_stylebox_override("normal", UIStyle.pill(Color(0, 0, 0, 0.25)))
 	chip.add_theme_color_override("font_color", Palette.WHITE_SOFT)
 	chip.add_theme_font_size_override("font_size", 9)
+	Fonts.weigh(chip, Fonts.W_BOLD)
 	# position pill — "—" / 0 PTS until a result exists (no fake "1st"); dark bg so
 	# the dash never floats bare on the green header.
 	var posn: Label = _root.get_node("TopbarPanel/Header/PosPill/PosCol/PosNum")
@@ -217,8 +232,10 @@ func _render_topbar(cset: Dictionary) -> void:
 		pospts.text = "%d PTS" % _player_points()
 	posn.add_theme_color_override("font_color", Palette.WHITE)
 	posn.add_theme_font_size_override("font_size", 17)
+	Fonts.weigh(posn, Fonts.W_BOLD, true)
 	pospts.add_theme_color_override("font_color", Palette.WHITE_MID)
 	pospts.add_theme_font_size_override("font_size", 8)
+	Fonts.weigh(pospts, Fonts.W_BOLD)
 	var pp := UIStyle.pill(Color(0, 0, 0, 0.35))
 	pp.set_border_width_all(1)
 	pp.border_color = Palette.BORDER
@@ -269,6 +286,7 @@ func _render_fixtures(cset: Dictionary) -> void:
 		dot.add_theme_color_override("font_color", fg)
 		dot.add_theme_color_override("font_color_hover", fg)
 		dot.add_theme_font_size_override("font_size", 9)
+		Fonts.weigh(dot, Fonts.W_BOLD)
 		entry.add_child(dot)
 		var cap := Label.new()
 		cap.text = _cap(f["opponent_name"])
@@ -292,6 +310,7 @@ func _render_fixtures(cset: Dictionary) -> void:
 		chip.add_theme_stylebox_override("normal", UIStyle.pill(Palette.GOLD_DEEP))
 		chip.add_theme_color_override("font_color", Palette.BG)
 		chip.add_theme_font_size_override("font_size", 9)
+		Fonts.weigh(chip, Fonts.W_BOLD)
 		entry.add_child(chip)
 		var cap := Label.new()
 		cap.text = s[1]
@@ -309,6 +328,7 @@ func _render_card() -> void:
 	corner.text = _stars_str(_view.team_stars)
 	corner.add_theme_color_override("font_color", Palette.GOLD)
 	corner.add_theme_font_size_override("font_size", 11)
+	Fonts.weigh(corner, Fonts.W_BOLD)
 	var num: Label = _root.get_node("CardPanel/PlayerCard/Portrait/NumLabel")
 	num.text = "—"
 	num.add_theme_color_override("font_color", Palette.WHITE_SOFT)
@@ -321,6 +341,7 @@ func _render_card() -> void:
 	form_chip.add_theme_stylebox_override("normal", UIStyle.pill(Palette.SURFACE_2))
 	form_chip.add_theme_color_override("font_color", Palette.form_glow(_view.form))
 	form_chip.add_theme_font_size_override("font_size", 10)
+	Fonts.weigh(form_chip, Fonts.W_BOLD)
 	# career area: empty-state until matches exist (NEVER raw PWR/COM/ATT/CON)
 	var empty: PanelContainer = _root.get_node("CardPanel/PlayerCard/CardInfo/CareerArea/EmptyState")
 	var strip: Label = _root.get_node("CardPanel/PlayerCard/CardInfo/CareerArea/StatStrip")
@@ -348,6 +369,7 @@ func _render_jokers() -> void:
 		slot.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		slot.add_theme_font_size_override("font_size", 9)
+		Fonts.weigh(slot, Fonts.W_BOLD)
 		if i < _view.jokers.size():
 			var j: Dictionary = _view.jokers[i]
 			slot.text = j["name"]
