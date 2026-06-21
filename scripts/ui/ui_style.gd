@@ -207,3 +207,67 @@ static func choice_btn(accent: Color) -> StyleBoxFlat:
 	sb.content_margin_left = 11; sb.content_margin_right = 11
 	sb.content_margin_top = 11; sb.content_margin_bottom = 11
 	return sb
+
+# --- Player-creation Build scene tokens (player-creation-v2.html "Build" band) -
+
+# Points bar / attribute group: a flat surface panel, faint border, snug padding.
+static func attr_group() -> StyleBoxFlat:
+	var sb := _box(Palette.SURFACE, PANEL_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Palette.BORDER
+	sb.content_margin_left = 12; sb.content_margin_right = 12
+	sb.content_margin_top = 11; sb.content_margin_bottom = 12
+	return sb
+
+static func points_bar() -> StyleBoxFlat:
+	var sb := attr_group()
+	sb.content_margin_top = 10; sb.content_margin_bottom = 10
+	return sb
+
+# Classifier panel: faint accent-tinted surface, accent border, a soft accent
+# glow (StyleBoxFlat shadow is outer — reads as the "inner glow" halo here).
+static func classifier_panel(accent: Color) -> StyleBoxFlat:
+	var sb := _box(Color(accent.r, accent.g, accent.b, 0.07), 12)
+	sb.set_border_width_all(1)
+	sb.border_color = accent
+	sb.shadow_color = Color(accent.r, accent.g, accent.b, 0.22)
+	sb.shadow_size = 8
+	sb.content_margin_left = 14; sb.content_margin_right = 14
+	sb.content_margin_top = 12; sb.content_margin_bottom = 12
+	return sb
+
+# Custom HSlider groove + fill. The groove is a grey rounded 8px bar; the fill
+# (the "grabber_area" slot) is the country-gradient accent left of the thumb.
+# Both carry 4px top/bottom content margin so the 8px bars line up vertically.
+static func slider_track() -> StyleBoxFlat:
+	var sb := _box(Palette.SURFACE_3, 5)
+	sb.content_margin_top = 4; sb.content_margin_bottom = 4
+	return sb
+
+static func slider_fill(accent: Color) -> StyleBoxFlat:
+	var sb := _box(accent, 5)
+	sb.content_margin_top = 4; sb.content_margin_bottom = 4
+	return sb
+
+# Circular HSlider thumb: white fill, 3px accent ring, generated as a texture
+# (the grabber theme slot is an icon, not a stylebox). 22px reads crisp at the
+# 390-wide design size.
+static func slider_grabber(accent: Color) -> ImageTexture:
+	var d := 22
+	var img := Image.create(d, d, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c := (d - 1) / 2.0
+	var r_out := d / 2.0
+	var r_in := r_out - 3.0
+	for y in d:
+		for x in d:
+			var dist := Vector2(x - c, y - c).length()
+			if dist <= r_in:
+				img.set_pixel(x, y, Color(1, 1, 1, 1))
+			elif dist <= r_out:
+				img.set_pixel(x, y, accent)
+	return ImageTexture.create_from_image(img)
+
+# Small rounded group icon (gold for batting, blue for bowling) — a filled chip.
+static func group_icon(col: Color) -> StyleBoxFlat:
+	return _box(col, 4)
