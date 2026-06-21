@@ -221,3 +221,48 @@ func test_playoff_determinism() -> void:
 	_play_league(b); _play_player_knockouts(b)
 	assert_eq(a.season_result().final_order, b.season_result().final_order,
 		"same seed + same (no-decision) play -> same finishing order")
+
+# --- Slice 3: ₸ pay banking on the live path ---
+# Mirrors CareerResolver._settle_matches: each played match banks match_pay +
+# match_win_prize (on a win); season_prizes added once at season end. Disabled
+# until enable_pay() is called -> byte-identical to the pre-pay live path.
+
+func test_pay_disabled_by_default() -> void:
+	var sp := _start_strong()
+	_play_league(sp)
+	assert_eq(sp.pay_so_far(), 0, "no pay tracked unless enable_pay() is called")
+
+func test_pay_banks_into_player_balance() -> void:
+	var sp := _start_strong()
+	var p := Player.new()
+	sp.enable_pay(p, EconomyTuning.new(), 4.5, 0, 0)
+	_play_league(sp)
+	assert_gt(sp.pay_so_far(), 0, "league pay accrued")
+	assert_eq(p.tons_balance, sp.pay_so_far(), "player balance == pay tally")
+
+func test_season_prizes_added_on_finish() -> void:
+	var sp := _start_strong()
+	var p := Player.new()
+	sp.enable_pay(p, EconomyTuning.new(), 4.5, 0, 0)
+	_play_league(sp)
+	var after_league := sp.pay_so_far()
+	_play_player_knockouts(sp)
+	assert_true(sp.season_done(), "season done")
+	assert_gt(sp.pay_so_far(), after_league, "playoff pay + season prizes added at the end")
+	assert_eq(p.tons_balance, sp.pay_so_far(), "balance stays in sync through the playoffs")
+
+func test_season_wins_counted() -> void:
+	var sp := _start_strong()
+	sp.enable_pay(Player.new(), EconomyTuning.new(), 4.5, 0, 0)
+	_play_league(sp)
+	_play_player_knockouts(sp)
+	assert_gt(sp.season_wins(), 0, "a strong player wins games")
+
+func test_weak_player_still_banks_league_pay() -> void:
+	var sp := _start_weak()
+	var p := Player.new()
+	sp.enable_pay(p, EconomyTuning.new(), 1.5, 0, 0)
+	_play_league(sp)
+	assert_true(sp.season_done(), "auto-resolved (out of top-4)")
+	assert_gt(sp.pay_so_far(), 0, "still earns the game fee + performance pay")
+	assert_eq(p.tons_balance, sp.pay_so_far(), "balance in sync")

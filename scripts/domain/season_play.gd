@@ -40,6 +40,17 @@ var _third: Dictionary = {}      # the two semi losers
 var _po_rng: RandomNumberGenerator = null   # one stream for all auto-resolved knockouts
 var _season_result: SeasonResult = null     # complete outcome once season_done()
 
+# --- ₸ pay (Slice 3) — disabled until enable_pay(); then mirrors
+# CareerResolver._settle_matches: each played match banks match_pay +
+# match_win_prize (on a win); season_prizes added once at season end. ---
+var _pay_player: Player = null
+var _etun: EconomyTuning = null
+var _pay_stars: float = 0.0
+var _pay_level: int = 0
+var _pay_tour: int = 0
+var _pay_total: int = 0
+var _wins: int = 0
+
 static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 		tour: TourDistribution, tuning: BallTuning, itun: InningsTuning,
 		seed: int, opp_spec: TourSpec = null) -> SeasonPlay:
@@ -243,15 +254,48 @@ func commit_player_result(result: MatchResult) -> void:
 		if league_done():
 			return
 		_player_results.append(result)
+		_settle(result)
 		if played_count() >= PLAYER_FIXTURES:
 			_start_playoffs()
 	elif _phase == Phase.PLAYOFFS:
+		_settle(result)
 		_record_playoff_result(result)
 	# DONE: ignore.
 
 # The complete Season outcome (league + playoffs), or null until season_done().
 func season_result() -> SeasonResult:
 	return _season_result
+
+# --- ₸ pay (Slice 3) ---
+
+# Turn on pay banking for this live Season. stars_at_play / level / tour_index are
+# the career-cell context the prizes scale with (DC8-DC10, DV7-DV9). Off until
+# called -> the pre-pay live path is byte-identical (all existing tests).
+func enable_pay(player: Player, etun: EconomyTuning, stars_at_play: float,
+		level: int, tour_index: int) -> void:
+	_pay_player = player
+	_etun = etun
+	_pay_stars = stars_at_play
+	_pay_level = level
+	_pay_tour = tour_index
+
+func pay_so_far() -> int:
+	return _pay_total
+
+func season_wins() -> int:
+	return _wins
+
+# Bank one played Player match (mirrors CareerResolver._settle_matches).
+func _settle(result: MatchResult) -> void:
+	if _etun == null:
+		return
+	var p: int = Economy.match_pay(result, _pay_stars, _etun)["total"]
+	if result.outcome == MatchResult.Outcome.PLAYER_WIN:
+		_wins += 1
+		p += Economy.match_win_prize(_pay_level, _pay_tour, _etun)
+	_pay_total += p
+	if _pay_player != null:
+		_pay_player.tons_balance += p
 
 # --- Playoff bracket (Slice 1) ---
 
@@ -373,3 +417,10 @@ func _finish_season() -> void:
 	sr.beat = sr.player_final_position <= 3
 	sr.won_final = sr.player_final_position == 1
 	_season_result = sr
+	# Season-level prizes (DV9) — once, on the final table position.
+	if _etun != null:
+		var sp_prize := Economy.season_prizes(
+			sr.player_final_position, sr.won_final, _pay_level, _pay_tour, _etun)
+		_pay_total += sp_prize
+		if _pay_player != null:
+			_pay_player.tons_balance += sp_prize
