@@ -13,6 +13,10 @@ extends Control
 signal back_pressed(draft: PlayerCreationDraft)
 signal confirmed(player: Player)
 
+# Balanced-state mark on the points chip. Verified to render in Barlow (it's a
+# dingbat, not an emoji); if a future face tofus it, drop to plain text.
+const _BALANCED_MARK := "✓"
+
 # Flavour blurbs, keyed by the 4 real ClassifierLabel.Kind values. Display-only —
 # zero impact on the sim (mirrors PlayerNames flavour). Honest, generic one-liners.
 const BLURBS := {
@@ -29,7 +33,6 @@ var _accent: Color = Palette.COUNTRY_ACCENT_SA
 var _kicker_label: Label
 var _title_label: Label
 var _points_value: Label
-var _budget_bar: ProgressBar
 var _power_slider: HSlider
 var _composure_slider: HSlider
 var _attack_slider: HSlider
@@ -115,7 +118,7 @@ func _build_header() -> Control:
 
 	_back_btn = Button.new()
 	_back_btn.text = "←"
-	_back_btn.custom_minimum_size = Vector2(30, 30)
+	_back_btn.custom_minimum_size = Vector2(26, 26)  # match the hub's ⓘ/⚙ corner family
 	_back_btn.add_theme_stylebox_override("normal", UIStyle.corner_btn())
 	_back_btn.add_theme_stylebox_override("hover", UIStyle.corner_btn())
 	_back_btn.add_theme_stylebox_override("pressed", UIStyle.corner_btn())
@@ -141,29 +144,23 @@ func _build_header() -> Control:
 	row.add_child(dots)
 	return panel
 
+# Design review #2: the global "spent" progress bar was always full on a valid
+# build (every build sums to exactly 44), so it carried no info and read wrong
+# ("full" usually = done, here full = correct). Reframed as a balance-status
+# chip — the per-slider fills carry "where my points went"; this only shouts when
+# the build is invalid. POINTS microlabel + a state-coloured `<sum> / 44` value.
 func _build_points_bar() -> Control:
 	var panel := PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", UIStyle.points_bar())
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 10)
 	panel.add_child(row)
-
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 1)
-	col.add_child(_lbl("POINTS SPENT", 9, Palette.WHITE_DIM, Fonts.W_LABEL))
-	_points_value = _lbl("", 17, Palette.WHITE, Fonts.W_HEADLINE, true)
-	col.add_child(_points_value)
-	row.add_child(col)
-
-	_budget_bar = ProgressBar.new()
-	_budget_bar.show_percentage = false
-	_budget_bar.custom_minimum_size = Vector2(0, 7)
-	_budget_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_budget_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_budget_bar.add_theme_stylebox_override("background", UIStyle.bar_track())
-	_budget_bar.add_theme_stylebox_override("fill", UIStyle.bar_fill(_accent))
-	_budget_bar.max_value = Attributes.CREATION_TOTAL
-	row.add_child(_budget_bar)
+	var lbl := _lbl("POINTS", 9, Palette.WHITE_DIM, Fonts.W_LABEL)
+	lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(lbl)
+	_points_value = _lbl("", 16, Palette.GREEN, Fonts.W_HEADLINE, true, HORIZONTAL_ALIGNMENT_RIGHT)
+	_points_value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_points_value)
 	return panel
 
 func _build_group(title: String, icon_col: Color, rows: Array) -> Control:
@@ -286,11 +283,21 @@ func _refresh() -> void:
 	_attack_readout.text    = str(Display.to_card_round(_draft.attributes.attack))
 	_control_readout.text   = str(Display.to_card_round(_draft.attributes.control))
 
-	var spent := _draft.attributes.sum()
+	# Balance-status chip (design review #2): GREEN balanced · RED over · GOLD under.
+	# Colour via modulate so the whole "<sum> / 44 …" line reads as one state.
+	var spent := int(round(_draft.attributes.sum()))
+	var total := int(round(Attributes.CREATION_TOTAL))
 	var valid := _draft.attributes.is_valid_creation_distribution()
-	_points_value.text = "%d / %d" % [int(round(spent)), int(round(Attributes.CREATION_TOTAL))]
-	_points_value.modulate = Color.WHITE if valid else Color(1, 0.3, 0.3)
-	_budget_bar.value = clampf(spent, 0.0, Attributes.CREATION_TOTAL)
+	var base := "%d / %d" % [spent, total]
+	if valid:
+		_points_value.text = "%s  %s" % [base, _BALANCED_MARK]
+		_points_value.modulate = Palette.GREEN
+	elif spent > total:
+		_points_value.text = "%s · %d over" % [base, spent - total]
+		_points_value.modulate = Palette.RED
+	else:
+		_points_value.text = "%s · %d to spend" % [base, total - spent]
+		_points_value.modulate = Palette.GOLD
 
 	var kind := Classifier.classify(_draft.attributes)
 	_classifier_label.text = ClassifierLabel.display_name(kind)
