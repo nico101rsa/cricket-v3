@@ -285,6 +285,11 @@ func pay_so_far() -> int:
 func season_wins() -> int:
 	return _wins
 
+# The Player object pay is banked into (bound by enable_pay), so the UI can
+# persist it after each committed match. null until enable_pay() is called.
+func pay_player() -> Player:
+	return _pay_player
+
 # Bank one played Player match (mirrors CareerResolver._settle_matches).
 func _settle(result: MatchResult) -> void:
 	if _etun == null:

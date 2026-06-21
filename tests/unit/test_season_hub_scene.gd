@@ -123,6 +123,32 @@ func test_live_play_shows_played_fixture_and_play_control() -> void:
 		"progress reflects 1 played (about to play match 2)")
 	assert_ne(root.get_node("TopbarPanel/Header/PosPill/PosCol/PosNum").text, "—", "a result exists → real position")
 
+# Slice 2: after the league, a top-4 player's hub surfaces the playoff knockout
+# as the PLAY control (CTA names the stage), not a dead "season complete".
+func test_playoffs_phase_surfaces_knockout_play_control() -> void:
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	var career := CareerResolver.start_career(0)
+	var player := _player()
+	# A strong team vs weak opponents reaches top-4 deterministically at this seed
+	# (mirrors test_season_play.gd's _start_strong / seed 20260616).
+	var team := Team.new(); team.team_name = "Strong XI"; team.stars = 4.5
+	var opps: Array = []
+	for k in range(7):
+		var o := Team.new(); o.team_name = "Opp %d" % (k + 1); o.stars = 1.5
+		opps.append(o)
+	var sp := SeasonPlay.start(player.attributes, team, opps,
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), 20260616)
+	for k in range(7):
+		sp.commit_player_result(sp.make_session().result())
+	assert_eq(sp.phase(), "playoffs", "precondition: strong player is in the playoffs")
+	hub.set_play(player, career, sp)
+	await get_tree().process_frame
+	assert_true(hub.has_play_control(), "playoff knockout is a pending play control")
+	var big: String = hub.get_node("Margin/Root/CTA/CtaCenter/CtaLines/CtaBig").text
+	assert_true(big.contains("SEMI-FINAL") or big.contains("FINAL") or big.contains("3RD"),
+		"CTA names the knockout stage, got '%s'" % big)
+
 func test_boots_a_real_season_when_player_saved() -> void:
 	var p := _player()
 	SaveManager.save_player(p)
