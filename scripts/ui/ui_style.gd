@@ -271,3 +271,44 @@ static func slider_grabber(accent: Color) -> ImageTexture:
 # Small rounded group icon (gold for batting, blue for bowling) — a filled chip.
 static func group_icon(col: Color) -> StyleBoxFlat:
 	return _box(col, 4)
+
+# --- Player-creation Identity scene tokens (player-creation-v2.html "Identity") -
+
+# Hero portrait backing: country-gradient fill, accent ring (3px), country glow.
+# The portrait TextureRect sits inside; this frames + lights it.
+static func hero_panel(grad1: Color, grad2: Color, glow: Color, accent: Color) -> StyleBoxFlat:
+	var sb := _box(grad1.lerp(grad2, 0.45), PANEL_RADIUS)
+	sb.set_border_width_all(3)
+	sb.border_color = accent
+	sb.shadow_color = glow
+	sb.shadow_size = 12
+	sb.content_margin_left = 8; sb.content_margin_right = 8
+	sb.content_margin_top = 8; sb.content_margin_bottom = 8
+	return sb
+
+# City field pill: rounded surface-2 with a faint strong border, comfy tap height.
+static func field_pill() -> StyleBoxFlat:
+	var sb := _box(Palette.SURFACE_2, BTN_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Palette.BORDER_STRONG
+	sb.content_margin_left = 12; sb.content_margin_right = 12
+	sb.content_margin_top = 9; sb.content_margin_bottom = 9
+	return sb
+
+# Country toggle — selected segment: country-gradient fill + accent border.
+static func seg_btn_on(grad1: Color, grad2: Color, accent: Color) -> StyleBoxFlat:
+	var sb := _box(grad1.lerp(grad2, 0.45), BTN_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = accent
+	sb.content_margin_top = 9; sb.content_margin_bottom = 9
+	sb.content_margin_left = 8; sb.content_margin_right = 8
+	return sb
+
+# Country toggle — unselected segment: flat surface, faint border.
+static func seg_btn_off() -> StyleBoxFlat:
+	var sb := _box(Palette.SURFACE, BTN_RADIUS)
+	sb.set_border_width_all(1)
+	sb.border_color = Palette.BORDER
+	sb.content_margin_top = 9; sb.content_margin_bottom = 9
+	sb.content_margin_left = 8; sb.content_margin_right = 8
+	return sb

@@ -7,6 +7,11 @@ signal appearance_selected(bucket: int)
 var _selected: int = -1
 var _buttons: Dictionary = {}  # bucket -> Button
 
+# Hi-fi restyle knobs (set by apply_hifi from the Identity screen). Default to the
+# original look (square tiles, brand-gold ring) so the low-fi/test paths are unchanged.
+var _ring_color: Color = Color(0.66, 0.43, 0.0)  # brand gold
+var _corner_radius: int = 0
+
 func _ready() -> void:
 	add_theme_constant_override("separation", 12)
 	for bucket in Appearance.all():
@@ -32,10 +37,26 @@ func _ready() -> void:
 func _make_tile_style(tint: Color, selected: bool, dim: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = (tint.darkened(0.55) if dim else tint)
+	sb.set_corner_radius_all(_corner_radius)
 	if selected:
 		sb.set_border_width_all(4)
-		sb.border_color = Color(0.66, 0.43, 0.0)  # brand gold ring
+		sb.border_color = _ring_color
 	return sb
+
+# Hi-fi restyle (Identity screen): rounded tiles + a country-accent selection ring.
+# Visuals only — selection/enable behaviour is untouched. Safe to call before or
+# after _ready (re-applies the styleboxes on whatever buttons exist).
+func apply_hifi(accent: Color) -> void:
+	_ring_color = accent
+	_corner_radius = 9
+	for bucket in _buttons.keys():
+		var btn := _buttons[bucket] as Button
+		var tint := placeholder_tint(bucket)
+		btn.add_theme_stylebox_override("normal", _make_tile_style(tint, false, false))
+		btn.add_theme_stylebox_override("hover", _make_tile_style(tint, false, false))
+		btn.add_theme_stylebox_override("pressed", _make_tile_style(tint, true, false))
+		btn.add_theme_stylebox_override("focus", _make_tile_style(tint, true, false))
+		btn.add_theme_stylebox_override("disabled", _make_tile_style(tint, false, true))
 
 func selected_bucket() -> int:
 	return _selected

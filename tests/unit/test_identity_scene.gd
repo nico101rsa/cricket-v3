@@ -70,6 +70,34 @@ func test_set_draft_hydrates_ui_and_preserves_name():
 	assert_eq(fresh._name_label.text, "PAT STUMPS", "name preserved, NOT re-rolled")
 	assert_false(fresh._next_btn.disabled, "all picks present → Next enabled")
 
+func test_hifi_header_and_cta_text():
+	# The hi-fi screen carries the design copy and a real CTA, all visible in-tree.
+	assert_eq(identity._kicker_label.text, "NEW PLAYER")
+	assert_eq(identity._title_label.text, "Who are you?")
+	assert_true("Build your game" in identity._next_btn.text, "CTA names the next step")
+	assert_true(identity._next_btn.is_visible_in_tree(), "CTA is actually visible")
+
+func test_hifi_hero_portrait_present_and_sized():
+	# Portrait art is wired (placeholder hero-cap.png) and renders at a real size.
+	assert_not_null(identity._hero_portrait.texture, "hero portrait has art")
+	assert_true(identity._hero_portrait.is_visible_in_tree())
+	assert_gt(identity._hero_portrait.custom_minimum_size.y, 0.0, "portrait reserves height")
+
+func test_hifi_country_toggle_is_text_no_emoji():
+	# Barlow has no emoji glyphs (flags would tofu) → text-only segments.
+	assert_eq(identity._country_sa_btn.text, "SOUTH AFRICA")
+	assert_eq(identity._country_aus_btn.text, "AUSTRALIA")
+	assert_true(identity._country_sa_btn.toggle_mode and identity._country_aus_btn.toggle_mode)
+
+func test_hifi_name_sub_shows_city_and_country():
+	identity._on_country_pressed(Country.Code.SA)
+	identity._on_appearance_selected(Appearance.Bucket.WHITE)
+	identity._city_dropdown.select(1)
+	identity._on_city_selected(1)
+	# Sub reads "City · Country" once a city is chosen.
+	assert_true(" · South Africa" in identity._name_sub.text, "sub names the country")
+	assert_false(identity._name_sub.text.is_empty(), "sub populated with a city")
+
 func test_reroll_button_state_and_action():
 	# Initially no Country/Appearance → re-roll disabled, name unset.
 	assert_true(identity._reroll_btn.disabled, "re-roll disabled before name exists")
