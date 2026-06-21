@@ -1,54 +1,7 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scenes/player_creation/identity.gd" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/player_creation/appearance_picker.tscn" id="2"]
+[ext_resource type="Script" uid="uid://dt372pbp76wk6" path="res://scenes/player_creation/identity.gd" id="1"]
 
 [node name="Identity" type="Control"]
 anchors_preset = 15
 script = ExtResource("1")
-
-[node name="Layout" type="VBoxContainer" parent="."]
-anchors_preset = 15
-offset_left = 16.0
-offset_top = 32.0
-offset_right = -16.0
-offset_bottom = -32.0
-
-[node name="Header" type="Label" parent="Layout"]
-text = "1 / 2 · IDENTITY"
-
-[node name="CountryRow" type="HBoxContainer" parent="Layout"]
-
-[node name="SaBtn" type="Button" parent="Layout/CountryRow"]
-text = "🇿🇦 SOUTH AFRICA"
-toggle_mode = true
-
-[node name="AusBtn" type="Button" parent="Layout/CountryRow"]
-text = "🇦🇺 AUSTRALIA"
-toggle_mode = true
-
-[node name="CityRow" type="HBoxContainer" parent="Layout"]
-
-[node name="CityLabel" type="Label" parent="Layout/CityRow"]
-text = "CITY"
-
-[node name="CityDropdown" type="OptionButton" parent="Layout/CityRow"]
-
-[node name="PortraitPreview" type="ColorRect" parent="Layout"]
-custom_minimum_size = Vector2(180, 220)
-color = Color(0.2, 0.2, 0.2, 1)
-
-[node name="AppearancePicker" parent="Layout" instance=ExtResource("2")]
-
-[node name="NameRow" type="HBoxContainer" parent="Layout"]
-
-[node name="NameLabel" type="Label" parent="Layout/NameRow"]
-text = "—"
-
-[node name="RerollBtn" type="Button" parent="Layout/NameRow"]
-text = "🔄"
-disabled = true
-
-[node name="NextBtn" type="Button" parent="Layout"]
-text = "NEXT ▶"
-disabled = true
