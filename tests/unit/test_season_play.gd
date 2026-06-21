@@ -72,7 +72,7 @@ func test_full_league_finishes() -> void:
 	for k in range(7):
 		sp.commit_player_result(sp.make_session().result())
 	assert_true(sp.league_done(), "league done after 7 games")
-	assert_eq(sp.next_player_opponent(), {}, "no next fixture")
+	assert_ne(sp.phase(), "league", "moved past the league phase (into playoffs or done)")
 	assert_eq(sp.live_league().standings.size(), 8, "final table intact")
 
 func test_determinism_same_seed_same_table() -> void:
@@ -119,3 +119,105 @@ func test_interactive_opponent_keeps_higher_tier_scaling() -> void:
 
 func test_floored_spec_passes_through_null() -> void:
 	assert_null(SeasonPlay._floored_spec(null), "no spec -> no brain (unchanged)")
+
+# --- Slice 1: live playoffs (spec 2026-06-22-live-season-loop-finish) ---
+# Strong player (4.5★ team vs 1.5★ opponents) makes top-4 and plays knockouts;
+# weak player (1.5★ vs 4.5★) misses the cut and the bracket auto-resolves.
+
+func _team(name: String, stars: float) -> Team:
+	var t := Team.new()
+	t.team_name = name
+	t.stars = stars
+	return t
+
+func _opps_at(stars: float) -> Array:
+	var out: Array = []
+	for k in range(7):
+		out.append(_team("Opp %d" % (k + 1), stars))
+	return out
+
+func _start_strong() -> SeasonPlay:
+	return SeasonPlay.start(Attributes.new(), _team("My XI", 4.5), _opps_at(1.5),
+		_tour(), BallTuning.new(), InningsTuning.new(), 20260616)
+
+func _start_weak() -> SeasonPlay:
+	return SeasonPlay.start(Attributes.new(), _team("My XI", 1.5), _opps_at(4.5),
+		_tour(), BallTuning.new(), InningsTuning.new(), 20260616)
+
+func _play_league(sp: SeasonPlay) -> void:
+	for k in range(7):
+		sp.commit_player_result(sp.make_session().result())
+
+func _play_player_knockouts(sp: SeasonPlay) -> void:
+	while not sp.season_done() and not sp.next_player_opponent().is_empty():
+		sp.commit_player_result(sp.make_session().result())
+
+func test_league_phase_at_start() -> void:
+	assert_eq(_start().phase(), "league", "starts in the league phase")
+
+func test_strong_player_enters_playoffs_with_semi() -> void:
+	var sp := _start_strong()
+	_play_league(sp)
+	assert_true(sp.league_done(), "league done after 7")
+	assert_true(sp.live_league().made_playoffs, "strong player should make top-4")
+	assert_eq(sp.phase(), "playoffs", "enters playoffs")
+	var nxt := sp.next_player_opponent()
+	assert_eq(nxt.get("stage", ""), "semi", "first knockout is the semi-final")
+	assert_true(nxt.has("team_index"), "names a bracket opponent")
+
+func test_semi_advances_to_final_or_third() -> void:
+	var sp := _start_strong()
+	_play_league(sp)
+	assert_true(sp.live_league().made_playoffs, "precondition: in playoffs")
+	var r := sp.make_session().result()
+	sp.commit_player_result(r)
+	var won := r.outcome == MatchResult.Outcome.PLAYER_WIN
+	var stage: String = sp.next_player_opponent().get("stage", "")
+	assert_eq(stage, "final" if won else "third",
+		"won SF -> Final, lost SF -> 3rd-place playoff")
+
+func test_strong_player_completes_season() -> void:
+	var sp := _start_strong()
+	_play_league(sp)
+	_play_player_knockouts(sp)
+	assert_true(sp.season_done(), "season done after both player knockouts")
+	assert_eq(sp.phase(), "done", "phase is done")
+	assert_eq(sp.next_player_opponent(), {}, "nothing left to play")
+
+func test_weak_player_auto_resolves_after_league() -> void:
+	var sp := _start_weak()
+	_play_league(sp)
+	assert_true(sp.league_done(), "league done")
+	assert_false(sp.live_league().made_playoffs, "weak player misses top-4")
+	assert_true(sp.season_done(), "bracket auto-resolves immediately")
+	assert_eq(sp.phase(), "done", "straight to done")
+	assert_eq(sp.next_player_opponent(), {}, "no playoff to play")
+	var pos := sp.season_result().player_final_position
+	assert_true(pos >= 5 and pos <= 8, "finished 5th-8th, got %d" % pos)
+
+func test_season_result_is_complete() -> void:
+	var sp := _start_strong()
+	_play_league(sp)
+	_play_player_knockouts(sp)
+	var sr := sp.season_result()
+	assert_not_null(sr.semi1, "semi1 present")
+	assert_not_null(sr.semi2, "semi2 present")
+	assert_not_null(sr.final_match, "final present")
+	assert_not_null(sr.third_place, "third-place present")
+	assert_eq(sr.final_order.size(), 8, "8 finishing positions")
+	var seen := {}
+	for x in sr.final_order:
+		seen[x] = true
+	assert_eq(seen.size(), 8, "all 8 teams distinct in the order")
+	var pos := sr.player_final_position
+	assert_true(pos >= 1 and pos <= 8, "player placed 1-8")
+	assert_eq(sr.beat, pos <= 3, "beat == top-3 finish")
+	assert_eq(sr.won_final, pos == 1, "won_final == 1st")
+
+func test_playoff_determinism() -> void:
+	var a := _start_strong()
+	var b := _start_strong()
+	_play_league(a); _play_player_knockouts(a)
+	_play_league(b); _play_player_knockouts(b)
+	assert_eq(a.season_result().final_order, b.season_result().final_order,
+		"same seed + same (no-decision) play -> same finishing order")

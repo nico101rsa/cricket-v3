@@ -12,6 +12,8 @@ const NUM_TEAMS := 8
 const PLAYER_FIXTURES := 7
 const AI_PER_PLAYER_GAME := 3   # 21 AI fixtures / 7 player games (DS1 reveal cadence)
 
+enum Phase { LEAGUE, PLAYOFFS, DONE }
+
 var _attrs: Attributes
 var _teams: Array            # [player_team] + opponents, index-aligned with the table
 var _tour: TourDistribution
@@ -24,6 +26,19 @@ var _bat: Array = []         # held per-team batting strength (ADR 0009), index-
 var _bowl: Array = []        # held per-team bowling strength
 var _ai_fixtures: Array = [] # resolved AI-vs-AI completed records (see _completed)
 var _player_results: Array = []   # committed MatchResult, one per played player game
+
+# --- Playoffs (Slice 1, spec 2026-06-22-live-season-loop-finish) ---
+var _phase: int = Phase.LEAGUE
+var _seeds: Array = []           # [s1,s2,s3,s4] team indices = league positions 1-4
+var _player_seed: int = 0        # 1..4 if the Player made top-4, else 0
+var _player_semi: String = ""    # "sf1" (seeds 1&4) or "sf2" (seeds 2&3)
+var _pending_stage: String = ""  # "semi" | "final" | "third" | "" (player's next knockout)
+var _sf1: Dictionary = {}        # {winner, loser, result} — seed1 v seed4
+var _sf2: Dictionary = {}        # seed2 v seed3
+var _final: Dictionary = {}      # the two semi winners
+var _third: Dictionary = {}      # the two semi losers
+var _po_rng: RandomNumberGenerator = null   # one stream for all auto-resolved knockouts
+var _season_result: SeasonResult = null     # complete outcome once season_done()
 
 static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 		tour: TourDistribution, tuning: BallTuning, itun: InningsTuning,
@@ -71,14 +86,32 @@ func played_count() -> int:
 func league_done() -> bool:
 	return played_count() >= PLAYER_FIXTURES
 
-# {name, team_index} of the next unplayed opponent, or {} when the league is done.
-# Player game k (0-based played_count()) is the fixture vs _teams[k+1].
+# "league" | "playoffs" | "done" — the live Season's lifecycle (Slice 1).
+func phase() -> String:
+	match _phase:
+		Phase.LEAGUE: return "league"
+		Phase.PLAYOFFS: return "playoffs"
+		_: return "done"
+
+func season_done() -> bool:
+	return _phase == Phase.DONE
+
+# {name, team_index} of the next opponent the Player must play, or {} when there
+# is nothing pending. League: the next of the 7 fixtures. Playoffs: the Player's
+# pending knockout, with a "stage" key ("semi"/"final"/"third").
 func next_player_opponent() -> Dictionary:
-	if league_done():
-		return {}
-	var idx := played_count() + 1
-	var opp: Team = _teams[idx]
-	return {"name": opp.team_name, "team_index": idx}
+	if _phase == Phase.LEAGUE:
+		if league_done():
+			return {}
+		var idx := played_count() + 1
+		var opp: Team = _teams[idx]
+		return {"name": opp.team_name, "team_index": idx}
+	if _phase == Phase.PLAYOFFS:
+		var opp_idx := _pending_opponent_index()
+		if opp_idx < 0:
+			return {}
+		return {"name": _teams[opp_idx].team_name, "team_index": opp_idx, "stage": _pending_stage}
+	return {}
 
 # --- internals ---
 
@@ -182,19 +215,161 @@ func live_season() -> SeasonResult:
 	sr.player_final_position = sr.league.player_position
 	return sr
 
-# An interactive MatchSession for the current (next unplayed) player fixture.
-# Derived per-fixture seed so each game diverges only on its own decisions.
+# An interactive MatchSession for the Player's pending match (league fixture or
+# playoff knockout). Derived per-match seed so each game diverges only on its own
+# decisions. null when nothing is pending.
 func make_session() -> MatchSession:
-	if league_done():
-		return null
-	var opp: Team = _teams[played_count() + 1]
-	var fixture_seed := _seed + 100 + played_count()
-	return MatchSession.start(_attrs, _teams[0], opp, _tour, fixture_seed,
-		-1, _tuning, _itun, _opp_spec)
+	if _phase == Phase.LEAGUE:
+		if league_done():
+			return null
+		var opp: Team = _teams[played_count() + 1]
+		var fixture_seed := _seed + 100 + played_count()
+		return MatchSession.start(_attrs, _teams[0], opp, _tour, fixture_seed,
+			-1, _tuning, _itun, _opp_spec)
+	if _phase == Phase.PLAYOFFS:
+		var opp_idx := _pending_opponent_index()
+		if opp_idx < 0:
+			return null
+		var offset: int = {"semi": 0, "final": 1, "third": 2}[_pending_stage]
+		var po_seed: int = _seed + 200 + offset
+		return MatchSession.start(_attrs, _teams[0], _teams[opp_idx], _tour, po_seed,
+			-1, _tuning, _itun, _opp_spec)
+	return null
 
-# Fold a finished player match into the league + advance. Caller passes the
-# MatchSession's result (after the player's Boost/DRS decisions).
+# Fold a finished player match into the live Season + advance. Caller passes the
+# MatchSession's result (after the player's Boost/DRS/Key-Moment decisions).
 func commit_player_result(result: MatchResult) -> void:
-	if league_done():
+	if _phase == Phase.LEAGUE:
+		if league_done():
+			return
+		_player_results.append(result)
+		if played_count() >= PLAYER_FIXTURES:
+			_start_playoffs()
+	elif _phase == Phase.PLAYOFFS:
+		_record_playoff_result(result)
+	# DONE: ignore.
+
+# The complete Season outcome (league + playoffs), or null until season_done().
+func season_result() -> SeasonResult:
+	return _season_result
+
+# --- Playoff bracket (Slice 1) ---
+
+# League just finished: seed the top-4 bracket (1v4, 2v3), then either auto-resolve
+# the whole bracket (Player out of top-4) or set up the Player's interactive semi.
+func _start_playoffs() -> void:
+	var st: Array = live_league().standings
+	_seeds = [st[0].team_index, st[1].team_index, st[2].team_index, st[3].team_index]
+	_player_seed = _seeds.find(0) + 1   # 0 if the Player is not seeded
+	_po_rng = RandomNumberGenerator.new()
+	_po_rng.seed = _seed + 2            # distinct from strength (_seed) + AI (_seed+1)
+
+	if _player_seed == 0:
+		# Nothing for the Player to play — resolve everything and finish.
+		_sf1 = _auto_knockout(_seeds[0], 1, _seeds[3], 4)
+		_sf2 = _auto_knockout(_seeds[1], 2, _seeds[2], 3)
+		_final = _auto_knockout(_sf1["winner"], _seed_of(_sf1["winner"]),
+			_sf2["winner"], _seed_of(_sf2["winner"]))
+		_third = _auto_knockout(_sf1["loser"], _seed_of(_sf1["loser"]),
+			_sf2["loser"], _seed_of(_sf2["loser"]))
+		_finish_season()
 		return
-	_player_results.append(result)
+
+	# Player is seeded: auto-resolve the OTHER semi now; the Player plays theirs.
+	_phase = Phase.PLAYOFFS
+	if _player_seed == 1 or _player_seed == 4:
+		_player_semi = "sf1"
+		_sf2 = _auto_knockout(_seeds[1], 2, _seeds[2], 3)
+	else:
+		_player_semi = "sf2"
+		_sf1 = _auto_knockout(_seeds[0], 1, _seeds[3], 4)
+	_pending_stage = "semi"
+
+# Record the Player's just-played knockout, advance the bracket, auto-resolve the
+# now-determined non-player match, and finish when both player knockouts are in.
+func _record_playoff_result(result: MatchResult) -> void:
+	var opp_idx := _pending_opponent_index()
+	var won := _player_won(result, opp_idx)
+	var kn := {"winner": 0 if won else opp_idx, "loser": opp_idx if won else 0, "result": result}
+	if _pending_stage == "semi":
+		if _player_semi == "sf1":
+			_sf1 = kn
+		else:
+			_sf2 = kn
+		_pending_stage = "final" if won else "third"
+	elif _pending_stage == "final":
+		_final = kn
+		# The Player won their semi, so both semi losers are non-player teams.
+		_third = _auto_knockout(_sf1["loser"], _seed_of(_sf1["loser"]),
+			_sf2["loser"], _seed_of(_sf2["loser"]))
+		_finish_season()
+	elif _pending_stage == "third":
+		_third = kn
+		# The Player lost their semi, so both semi winners are non-player teams.
+		_final = _auto_knockout(_sf1["winner"], _seed_of(_sf1["winner"]),
+			_sf2["winner"], _seed_of(_sf2["winner"]))
+		_finish_season()
+
+# team_index the Player faces in the current pending stage, or -1.
+func _pending_opponent_index() -> int:
+	if _phase != Phase.PLAYOFFS:
+		return -1
+	match _pending_stage:
+		"semi": return _player_semi_opponent()
+		"final": return _other_semi()["winner"]
+		"third": return _other_semi()["loser"]
+	return -1
+
+func _player_semi_opponent() -> int:
+	if _player_semi == "sf1":
+		return _seeds[3] if _player_seed == 1 else _seeds[0]
+	return _seeds[2] if _player_seed == 2 else _seeds[1]
+
+func _other_semi() -> Dictionary:
+	return _sf2 if _player_semi == "sf1" else _sf1
+
+func _seed_of(team_index: int) -> int:
+	return _seeds.find(team_index) + 1
+
+# Player win, with a tie broken by the better seed advancing (knockout rule).
+func _player_won(result: MatchResult, opp_idx: int) -> bool:
+	if result.outcome == MatchResult.Outcome.TIE:
+		return _player_seed < _seed_of(opp_idx)
+	return result.outcome == MatchResult.Outcome.PLAYER_WIN
+
+# Auto-resolve one non-player knockout on the held strengths (the league's derived
+# AI path). Team a is the simulate_match "player slot" (PLAYER_WIN = a won); a tie
+# goes to the better (lower) seed.
+func _auto_knockout(a_idx: int, a_seed: int, b_idx: int, b_seed: int) -> Dictionary:
+	var a_bats_first := MatchResolver._resolve_toss(_po_rng)
+	var m := MatchResolver.simulate_match(
+		null, _bat[a_idx], _bowl[a_idx], _bowl[a_idx],
+		_bat[b_idx], _bowl[b_idx], _bowl[b_idx],
+		a_bats_first, _tuning, _itun, _po_rng)
+	var a_won: bool
+	if m.outcome == MatchResult.Outcome.TIE:
+		a_won = a_seed < b_seed
+	else:
+		a_won = m.outcome == MatchResult.Outcome.PLAYER_WIN
+	return {"winner": a_idx if a_won else b_idx, "loser": b_idx if a_won else a_idx, "result": m}
+
+# Assemble the complete SeasonResult and mark the Season done.
+func _finish_season() -> void:
+	_phase = Phase.DONE
+	var sr := SeasonResult.new()
+	sr.league = live_league()
+	sr.semi1 = _sf1["result"]
+	sr.semi2 = _sf2["result"]
+	sr.final_match = _final["result"]
+	sr.third_place = _third["result"]
+	var order: Array = [_final["winner"], _final["loser"], _third["winner"], _third["loser"]]
+	for k in range(4, NUM_TEAMS):
+		order.append(sr.league.standings[k].team_index)
+	sr.final_order = order
+	for pos in range(order.size()):
+		if order[pos] == 0:
+			sr.player_final_position = pos + 1
+			break
+	sr.beat = sr.player_final_position <= 3
+	sr.won_final = sr.player_final_position == 1
+	_season_result = sr
