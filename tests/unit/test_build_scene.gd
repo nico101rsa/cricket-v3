@@ -36,9 +36,25 @@ func test_unbalanced_sliders_disable_confirm():
 	build._on_slider_changed(8.0)
 	assert_ne(build._draft.attributes.sum(), 44.0)
 	assert_true(build._confirm_btn.disabled)
-	# Points value is the live "<sum> / 44" budget meter, tinted invalid (red) here.
+	# Points chip is the live "<sum> / 44 …" balance meter; under-budget here.
 	assert_string_contains(build._points_value.text, "/ 44")
-	assert_gt(build._points_value.modulate.r, build._points_value.modulate.g)
+	assert_string_contains(build._points_value.text, "to spend")
+
+func test_points_chip_states():
+	# Balance-status chip (design review #2): GREEN balanced · RED over · GOLD under.
+	var build = _mount()
+	await get_tree().process_frame
+	# Balanced (default 11/11/11/11 = 44).
+	assert_string_contains(build._points_value.text, "44 / 44")
+	assert_gt(build._points_value.modulate.g, build._points_value.modulate.r, "balanced reads green")
+	# Over-budget — push one slider up.
+	build._power_slider.value = 25; build._on_slider_changed(25.0)
+	assert_string_contains(build._points_value.text, "over")
+	assert_gt(build._points_value.modulate.r, build._points_value.modulate.b, "over reads red")
+	# Under-budget — drop one slider low.
+	build._power_slider.value = 3; build._on_slider_changed(3.0)
+	assert_string_contains(build._points_value.text, "to spend")
+	assert_gt(build._points_value.modulate.r, build._points_value.modulate.b, "under reads gold")
 
 func test_confirm_persists_player_and_emits_signal():
 	var original_path = SaveManager.player_save_path
