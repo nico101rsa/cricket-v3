@@ -57,25 +57,35 @@ func _x(plot: Rect2, over: int) -> float:
 	return plot.position.x + (over - 0.5) * slot_w
 
 func _draw_backdrop(w: float, h: float) -> void:
-	# sky → grass gradient as three stacked bands (cheap, no texture).
 	var horizon := h * 0.62
-	draw_rect(Rect2(0, 0, w, horizon * 0.5), SKY_TOP)
-	draw_rect(Rect2(0, horizon * 0.5, w, horizon * 0.5), SKY_BOT)
-	draw_rect(Rect2(0, horizon, w, h - horizon), GRASS)
+	# Smooth sky gradient (SKY_TOP → SKY_BOT) as thin strips — avoids visible banding.
+	var strips := 24
+	for i in range(strips):
+		var t := float(i) / float(strips - 1)
+		var y0 := horizon * (float(i) / strips)
+		var y1 := horizon * (float(i + 1) / strips)
+		draw_rect(Rect2(0, y0, w, y1 - y0 + 1.0), SKY_TOP.lerp(SKY_BOT, t))
+	# Grass (slight darkening toward the foot).
+	for i in range(8):
+		var t := float(i) / 7.0
+		var y0 := horizon + (h - horizon) * (float(i) / 8.0)
+		var y1 := horizon + (h - horizon) * (float(i + 1) / 8.0)
+		draw_rect(Rect2(0, y0, w, y1 - y0 + 1.0), GRASS.lerp(GRASS.darkened(0.4), t))
 	# moon, upper-right
-	draw_circle(Vector2(w * 0.72, h * 0.22), 9.0, MOON)
-	draw_circle(Vector2(w * 0.72, h * 0.22), 14.0, Color(1, 1, 1, 0.10))
-	# two floodlight poles + glow
+	draw_circle(Vector2(w * 0.72, h * 0.20), 8.0, MOON)
+	draw_circle(Vector2(w * 0.72, h * 0.20), 13.0, Color(1, 1, 1, 0.08))
+	# two floodlight poles + lamp glow
 	for fx in [w * 0.10, w * 0.90]:
-		draw_line(Vector2(fx, horizon), Vector2(fx, h * 0.10), Color(1, 1, 1, 0.18), 1.5)
-		draw_rect(Rect2(fx - 6, h * 0.06, 12, 5), Color(1, 1, 1, 0.25))
-		draw_circle(Vector2(fx, h * 0.085), 10.0, Color(1, 1, 0.85, 0.08))
-	# sparse crowd silhouette strip just above the horizon
-	var cy := horizon - 4.0
-	var x := 6.0
-	while x < w - 6.0:
-		draw_circle(Vector2(x, cy), 2.0, Color(0, 0, 0, 0.30))
-		x += 9.0
+		draw_line(Vector2(fx, horizon), Vector2(fx, h * 0.10), Color(1, 1, 1, 0.14), 1.5)
+		draw_rect(Rect2(fx - 5, h * 0.06, 10, 4), Color(1, 1, 1, 0.30))
+		draw_circle(Vector2(fx, h * 0.08), 9.0, Color(1, 1, 0.85, 0.07))
+	# Stand/crowd: a slim dark band hugging the horizon (reads as the far stand, not
+	# a gridline) with a few subtle lighter speckles for texture.
+	draw_rect(Rect2(0, horizon - 5.0, w, 5.0), Color(0, 0, 0, 0.30))
+	var x := 5.0
+	while x < w - 4.0:
+		draw_rect(Rect2(x, horizon - 4.0, 1.0, 2.0), Color(1, 1, 1, 0.05))
+		x += 7.0
 
 func _draw_bars(plot: Rect2, overs: Array, y_max: float) -> void:
 	var slot_w := plot.size.x / 20.0
