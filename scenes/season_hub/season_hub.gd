@@ -137,6 +137,12 @@ func boot() -> void:
 	var player := SaveManager.load_player()
 	var career: CareerState = SaveManager.load_career() if SaveManager.has_career() \
 		else CareerResolver.start_career(0)
+	# Cross-session resume (spec 2026-06-23): if a live season is saved, rebuild it by
+	# replaying the saved decisions (lossless) instead of starting a fresh one.
+	if SaveManager.has_live_season():
+		var play := SeasonPlay.from_state(SaveManager.load_live_season(), player, career)
+		set_play(player, career, play)
+		return
 	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
 	var team: Team = career.teams[career.current_team_index]
 	var play := SeasonPlay.start(

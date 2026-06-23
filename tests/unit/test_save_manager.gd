@@ -6,6 +6,7 @@ const PlayerCreationDraft = preload("res://scripts/data/player_creation_draft.gd
 const NamePair = preload("res://scripts/data/name_pair.gd")
 const LegendsArchive = preload("res://scripts/data/legends_archive.gd")
 const LegendEntry = preload("res://scripts/data/legend_entry.gd")
+const LiveSeasonState = preload("res://scripts/data/live_season_state.gd")
 
 var sm
 
@@ -14,14 +15,17 @@ func before_each() -> void:
 	sm.player_save_path = "user://_test_player.tres"
 	sm.legends_save_path = "user://_test_legends.tres"
 	sm.career_save_path = "user://_test_career.tres"
+	sm.live_season_save_path = "user://_test_live_season.tres"
 	sm.clear_player()
 	sm.clear_legends()
 	sm.clear_career()
+	sm.clear_live_season()
 
 func after_each() -> void:
 	sm.clear_player()
 	sm.clear_legends()
 	sm.clear_career()
+	sm.clear_live_season()
 	# sm is a bare Node (never added to the tree), so free() it directly to avoid
 	# leaking one orphaned instance per test. queue_free() is only for tree nodes.
 	sm.free()
@@ -159,3 +163,47 @@ func test_clear_career_removes_save():
 	sm.clear_career()
 	assert_false(sm.has_career())
 	assert_null(sm.load_career())
+
+# --- Live-season round-trip (cross-session save, spec 2026-06-23) ---
+
+func _make_live_state() -> LiveSeasonState:
+	var s := LiveSeasonState.new()
+	s.seed = 20260623
+	s.level = 0
+	s.tour_index = 0
+	s.pay_total = 517
+	s.wins = 5
+	s.decisions = [
+		{"presses": [[1, 3]], "review_balls": [[5, 2]],
+			"km": [{"from_over": 7, "band": 2}], "bowl_km": []},
+		{"presses": [], "review_balls": [], "km": [], "bowl_km": [{"from_over": 16, "kind": 1}]},
+	]
+	return s
+
+func test_load_live_season_returns_null_when_no_save_exists():
+	assert_null(sm.load_live_season())
+	assert_false(sm.has_live_season(), "no save -> has_live_season false")
+
+func test_save_then_load_live_season_round_trips_scalars():
+	sm.save_live_season(_make_live_state())
+	assert_true(sm.has_live_season(), "save creates the file")
+	var loaded = sm.load_live_season()
+	assert_not_null(loaded)
+	assert_eq(loaded.seed, 20260623, "seed survives")
+	assert_eq(loaded.level, 0, "level survives")
+	assert_eq(loaded.pay_total, 517, "pay tally survives")
+	assert_eq(loaded.wins, 5, "win count survives")
+
+func test_live_season_preserves_nested_decisions():
+	sm.save_live_season(_make_live_state())
+	var loaded = sm.load_live_season()
+	assert_eq(loaded.decisions.size(), 2, "both match entries survive")
+	assert_eq(loaded.decisions[0]["presses"], [[1, 3]], "presses preserved")
+	assert_eq(loaded.decisions[0]["km"], [{"from_over": 7, "band": 2}], "km override preserved")
+	assert_eq(loaded.decisions[1]["bowl_km"], [{"from_over": 16, "kind": 1}], "bowl-km preserved")
+
+func test_clear_live_season_removes_save():
+	sm.save_live_season(_make_live_state())
+	assert_true(sm.has_live_season())
+	sm.clear_live_season()
+	assert_false(sm.has_live_season(), "cleared -> gone")
