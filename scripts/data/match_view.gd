@@ -40,3 +40,4 @@ var lang: String = "ZU"            # locale tag chip
 var innings_lines: Array = []      # Result: ["KAROO KINGS 1st", "162/5 (20)"] pairs
 var won: bool = false              # Result: player won
 var player_bat: Dictionary = {}    # the Player's own batting line {name,badge,runs,balls,ovr,stars} (DRS actor)
+var chart: Dictionary = {}         # run-rate chart read-model (see MatchViewBuilder._build_chart)
