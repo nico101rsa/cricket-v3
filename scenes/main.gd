@@ -87,15 +87,20 @@ func _play_next(team_index: int) -> void:
 	screen.boot()
 
 func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState) -> void:
-	play.commit_player_result(session.result())
+	# Commit WITH the session's decisions so the live season can be replayed after a
+	# restart (cross-session save, spec 2026-06-23).
+	play.commit_player_result(session.result(), session.export_decisions())
 	# Persist the ₸ banked into the player by this match (enable_pay bound it).
 	var player: Player = play.pay_player()
 	if player != null:
 		SaveManager.save_player(player)
-	# Season over (playoffs resolved) → outcome screen; otherwise back to the hub.
+	# Season over (playoffs resolved) → clear the live save (a done season must not
+	# resume) + outcome screen; otherwise persist the in-progress season + back to the hub.
 	if play.season_done():
+		SaveManager.clear_live_season()
 		_show_outcome(play, career)
 	else:
+		SaveManager.save_live_season(play.to_state(career.current_level(), 0))
 		_show_live_hub(play, career)
 
 # The end-of-season outcome (where you finished + ₸ banked). Continue starts a

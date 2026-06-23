@@ -26,6 +26,9 @@ var _bat: Array = []         # held per-team batting strength (ADR 0009), index-
 var _bowl: Array = []        # held per-team bowling strength
 var _ai_fixtures: Array = [] # resolved AI-vs-AI completed records (see _completed)
 var _player_results: Array = []   # committed MatchResult, one per played player game
+var _decisions: Array = []        # one decision Dictionary per committed player match
+                                  # (cross-session save, spec 2026-06-23): the season
+                                  # replays losslessly from the seed + this small log.
 
 # --- Playoffs (Slice 1, spec 2026-06-22-live-season-loop-finish) ---
 var _phase: int = Phase.LEAGUE
@@ -248,16 +251,21 @@ func make_session() -> MatchSession:
 	return null
 
 # Fold a finished player match into the live Season + advance. Caller passes the
-# MatchSession's result (after the player's Boost/DRS/Key-Moment decisions).
-func commit_player_result(result: MatchResult) -> void:
+# MatchSession's result (after the player's Boost/DRS/Key-Moment decisions) and,
+# for the save system, the session's decisions (export_decisions()); the default
+# empty dict keeps the pre-save callers byte-identical. One log entry per committed
+# match keeps the log index-aligned with the matches it reproduces (spec 2026-06-23).
+func commit_player_result(result: MatchResult, decisions: Dictionary = {}) -> void:
 	if _phase == Phase.LEAGUE:
 		if league_done():
 			return
+		_decisions.append(decisions)
 		_player_results.append(result)
 		_settle(result)
 		if played_count() >= PLAYER_FIXTURES:
 			_start_playoffs()
 	elif _phase == Phase.PLAYOFFS:
+		_decisions.append(decisions)
 		_settle(result)
 		_record_playoff_result(result)
 	# DONE: ignore.
@@ -265,6 +273,65 @@ func commit_player_result(result: MatchResult) -> void:
 # The complete Season outcome (league + playoffs), or null until season_done().
 func season_result() -> SeasonResult:
 	return _season_result
+
+# --- Cross-session save: replay-from-decisions (spec 2026-06-23) ---
+
+func seed() -> int:
+	return _seed
+
+# The per-match decision log (one entry per committed player match, in order).
+func decisions_log() -> Array:
+	return _decisions
+
+# Restore the running pay tally after a replay (which runs pay-off so it can't
+# double-bank the already-persisted Player.tons_balance — see spec "Pay").
+func restore_pay_tally(total: int, wins: int) -> void:
+	_pay_total = total
+	_wins = wins
+
+# Rebuild an identical SeasonPlay by replaying a saved decision log. Same start
+# inputs + same seed + same per-match decisions => byte-identical results, so the
+# driver lands at the same phase / progress it was saved at. Pay is intentionally
+# left off here (the caller restores the tally) to avoid re-banking.
+static func replay(player_attrs: Attributes, player_team: Team, opponents: Array,
+		tour: TourDistribution, tuning: BallTuning, itun: InningsTuning,
+		seed_value: int, opp_spec: TourSpec, decisions_log_in: Array) -> SeasonPlay:
+	var sp := SeasonPlay.start(player_attrs, player_team, opponents, tour,
+		tuning, itun, seed_value, opp_spec)
+	for entry in decisions_log_in:
+		if sp.season_done():
+			break
+		var sess := sp.make_session()
+		if sess == null:
+			break
+		sess.apply_decisions(entry)
+		sp.commit_player_result(sess.result(), entry)
+	return sp
+
+# Pack the current progress into a serialisable LiveSeasonState (level/tour_index =
+# the career cell this season is being played at, pinned so the save is self-describing).
+func to_state(level_at: int, tour_index_at: int) -> LiveSeasonState:
+	var s := LiveSeasonState.new()
+	s.seed = _seed
+	s.level = level_at
+	s.tour_index = tour_index_at
+	s.pay_total = _pay_total
+	s.wins = _wins
+	s.decisions = _decisions.duplicate(true)
+	return s
+
+# Resume an in-progress season from a saved LiveSeasonState. Rebuilds the difficulty
+# cell from the pinned level/tour_index, replays the decision log against the (still
+# separately-persisted) Player + CareerState, and restores the pay tally. The result
+# is a SeasonPlay at exactly the phase/progress it was saved at; the caller (hub) then
+# binds enable_pay for the matches still to come.
+static func from_state(state: LiveSeasonState, player: Player, career: CareerState) -> SeasonPlay:
+	var spec := DifficultyLadder.spec_for(state.level, state.tour_index)
+	var team: Team = career.teams[career.current_team_index]
+	var sp := SeasonPlay.replay(player.attributes, team, career.opponents_of_current(),
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), state.seed, spec, state.decisions)
+	sp.restore_pay_tally(state.pay_total, state.wins)
+	return sp
 
 # --- ₸ pay (Slice 3) ---
 

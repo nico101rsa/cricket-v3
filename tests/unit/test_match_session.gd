@@ -308,3 +308,45 @@ func test_bowling_offer_clears_after_decision():
 	var c := _bowl_km_cursor(s, "Powerplay")
 	s.decide_bowling_key_moment(7, BowlingPlan.Kind.SPIN)
 	assert_true(s.key_moment_offer(c).is_empty(), "a decided bowling moment no longer offers")
+
+# -- export / apply decisions (cross-session save, spec 2026-06-23) ----------
+# A MatchSession is replayable from the small set of player decisions it holds.
+# export_decisions() snapshots them; apply_decisions() on a fresh same-seed session
+# reproduces the decided result (the determinism the save system relies on).
+
+func _result_signature(r: MatchResult) -> Array:
+	return [r.outcome, r.player_bats_first, r.innings1.total, r.innings1.wickets,
+		r.innings2.total, r.innings2.wickets]
+
+func test_export_apply_reproduces_a_decided_match():
+	var a := _session()
+	a.decide_boost(1, 3)
+	a.decide_key_moment(7, BallResolver.Intent.AGGRESSIVE)
+	var d := a.export_decisions()
+	# A fresh session on the SAME seed, replayed from the exported decisions.
+	var b := _session()
+	b.apply_decisions(d)
+	assert_eq(_result_signature(b.result()), _result_signature(a.result()),
+		"apply(export) reproduces the decided result")
+	assert_eq(b.events().size(), a.events().size(), "and the same event stream")
+	assert_eq(b.result().ball_log_innings1, a.result().ball_log_innings1,
+		"byte-identical batting innings")
+
+func test_apply_empty_decisions_is_a_noop():
+	var s := _session()
+	var before := s.result().ball_log_innings1.duplicate(true)
+	s.apply_decisions({})
+	assert_eq(s.result().ball_log_innings1, before, "empty decisions leave the match unchanged")
+
+func test_apply_then_export_round_trips_all_four_channels():
+	var s := _session()
+	var d := {
+		"presses": [[1, 4]],
+		"review_balls": [[5, 2]],
+		"km": [{"from_over": 7, "band": BallResolver.Intent.DEFENSIVE}],
+		"bowl_km": [{"from_over": 16, "kind": BowlingPlan.Kind.SPIN}],
+	}
+	s.apply_decisions(d)
+	assert_eq(s.export_decisions(), d, "apply then export returns the same decision record")
+	assert_eq(s.reviews_left(), MatchSession.REVIEW_BUDGET - 1,
+		"applied review_balls count against the budget")

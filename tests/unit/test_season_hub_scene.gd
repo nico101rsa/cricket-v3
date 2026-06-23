@@ -10,6 +10,8 @@ var _had_player := false
 var _saved_player: Player = null
 var _had_career := false
 var _saved_career: CareerState = null
+var _had_live := false
+var _saved_live: LiveSeasonState = null
 
 func before_all() -> void:
 	_had_player = SaveManager.has_player()
@@ -18,8 +20,12 @@ func before_all() -> void:
 	_had_career = SaveManager.has_career()
 	if _had_career:
 		_saved_career = SaveManager.load_career()
+	_had_live = SaveManager.has_live_season()
+	if _had_live:
+		_saved_live = SaveManager.load_live_season()
 	SaveManager.clear_player()
 	SaveManager.clear_career()
+	SaveManager.clear_live_season()
 
 func after_all() -> void:
 	if _had_player and _saved_player != null:
@@ -30,6 +36,10 @@ func after_all() -> void:
 		SaveManager.save_career(_saved_career)
 	else:
 		SaveManager.clear_career()
+	if _had_live and _saved_live != null:
+		SaveManager.save_live_season(_saved_live)
+	else:
+		SaveManager.clear_live_season()
 
 func _player() -> Player:
 	var p := Player.new()
@@ -158,4 +168,30 @@ func test_boots_a_real_season_when_player_saved() -> void:
 	assert_not_null(hub._view, "boot built a view")
 	assert_eq(hub._view.fixtures.size(), 7)
 	assert_false(hub._view.team_name.is_empty())
+	SaveManager.clear_player()
+
+# Cross-session save (spec 2026-06-23): boot() resumes an in-progress live season
+# (saved as a decision log) instead of starting fresh — the "quit and relaunch" path.
+func test_boot_resumes_an_in_progress_live_season() -> void:
+	var player := _player()
+	SaveManager.save_player(player)
+	# Build + partially play a live season the same way the hub boots one (DifficultyLadder
+	# cell), then persist it.
+	var career := CareerResolver.start_career(0)
+	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
+	var team: Team = career.teams[career.current_team_index]
+	var sp := SeasonPlay.start(player.attributes, team, career.opponents_of_current(),
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), 4242, spec)
+	for i in range(3):
+		sp.commit_player_result(sp.make_session().result(), {})
+	SaveManager.save_live_season(sp.to_state(career.current_level(), 0))
+
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	hub.boot()
+	await get_tree().process_frame
+	var resumed: SeasonPlay = hub.live_play()
+	assert_not_null(resumed, "boot resumed a live season")
+	assert_eq(resumed.played_count(), 3, "resumed mid-season at game 3, not a fresh start")
+	SaveManager.clear_live_season()
 	SaveManager.clear_player()

@@ -266,3 +266,118 @@ func test_weak_player_still_banks_league_pay() -> void:
 	assert_true(sp.season_done(), "auto-resolved (out of top-4)")
 	assert_gt(sp.pay_so_far(), 0, "still earns the game fee + performance pay")
 	assert_eq(p.tons_balance, sp.pay_so_far(), "balance in sync")
+
+# --- Slice 4: replay-from-decisions (cross-session save, spec 2026-06-23) ---
+# The whole season is reproducible from the seed + the per-match player decisions.
+# decisions_log() records one entry per committed player match; replay() rebuilds an
+# identical SeasonPlay from that log (the determinism the save system relies on).
+
+func _cell_inputs() -> Dictionary:
+	var career := CareerResolver.start_career(0)
+	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
+	var a := Attributes.new()
+	a.power = 60.0; a.composure = 50.0; a.attack = 30.0; a.control = 25.0
+	return {
+		"attrs": a,
+		"team": career.teams[career.current_team_index],
+		"opps": career.opponents_of_current(),
+		"tour": spec.make_tour(),
+		"spec": spec,
+		"level": career.current_level(),
+	}
+
+func _drive_with_decisions(sp: SeasonPlay) -> void:
+	while not sp.season_done() and not sp.next_player_opponent().is_empty():
+		var sess := sp.make_session()
+		sess.decide_boost(1, 3)
+		sess.decide_key_moment(7, BallResolver.Intent.AGGRESSIVE)
+		sp.commit_player_result(sess.result(), sess.export_decisions())
+
+func test_decisions_log_records_one_entry_per_player_match() -> void:
+	var sp := _start()
+	sp.commit_player_result(sp.make_session().result(), {"presses": [[1, 3]]})
+	sp.commit_player_result(sp.make_session().result(), {"presses": [[1, 5]]})
+	assert_eq(sp.decisions_log().size(), 2, "one decision entry per committed match")
+	assert_eq(sp.decisions_log()[0]["presses"], [[1, 3]], "entries kept in commit order")
+
+func test_seed_accessor_exposes_the_season_seed() -> void:
+	assert_eq(_start().seed(), 20260616, "the season's base seed")
+
+func test_restore_pay_tally_sets_running_totals() -> void:
+	var sp := _start()
+	sp.restore_pay_tally(517, 4)
+	assert_eq(sp.pay_so_far(), 517, "pay tally restored")
+	assert_eq(sp.season_wins(), 4, "win count restored")
+
+func test_replay_from_decisions_reproduces_the_whole_season() -> void:
+	var c := _cell_inputs()
+	var seed := 20260616
+	var sp := SeasonPlay.start(c["attrs"], c["team"], c["opps"], c["tour"],
+		BallTuning.new(), InningsTuning.new(), seed, c["spec"])
+	sp.enable_pay(Player.new(), EconomyTuning.new(), c["team"].stars, c["level"], 0)
+	_drive_with_decisions(sp)
+	assert_true(sp.season_done(), "the driven season finished")
+
+	var sp2 := SeasonPlay.replay(c["attrs"], c["team"], c["opps"], c["tour"],
+		BallTuning.new(), InningsTuning.new(), seed, c["spec"], sp.decisions_log())
+	sp2.restore_pay_tally(sp.pay_so_far(), sp.season_wins())
+
+	assert_eq(sp2.phase(), "done", "replay reaches the same phase")
+	assert_eq(sp2.season_result().final_order, sp.season_result().final_order,
+		"replay reconstructs the identical final order")
+	assert_eq(sp2.season_result().player_final_position,
+		sp.season_result().player_final_position, "and the same finishing position")
+	assert_eq(sp2.pay_so_far(), sp.pay_so_far(), "and the same banked ₸")
+	assert_eq(sp2.season_wins(), sp.season_wins(), "and the same win count")
+
+func test_replay_without_decisions_matches_a_bare_season() -> void:
+	# An empty-decisions drive replayed from its log == the same bare season.
+	var c := _cell_inputs()
+	var seed := 314159
+	var sp := SeasonPlay.start(c["attrs"], c["team"], c["opps"], c["tour"],
+		BallTuning.new(), InningsTuning.new(), seed, c["spec"])
+	while not sp.season_done() and not sp.next_player_opponent().is_empty():
+		sp.commit_player_result(sp.make_session().result(), {})
+	var sp2 := SeasonPlay.replay(c["attrs"], c["team"], c["opps"], c["tour"],
+		BallTuning.new(), InningsTuning.new(), seed, c["spec"], sp.decisions_log())
+	assert_eq(sp2.season_result().final_order, sp.season_result().final_order,
+		"a no-decision season replays identically too")
+
+# Full cross-session resume through disk: drive a season with a real Player +
+# CareerState, to_state -> SaveManager save -> load -> from_state, and prove the
+# resumed driver is identical. This is the end-to-end "quit and relaunch" path.
+const _SaveManagerScript = preload("res://scripts/services/save_manager.gd")
+
+func test_full_disk_resume_reproduces_the_season() -> void:
+	var career := CareerResolver.start_career(0)
+	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
+	var team: Team = career.teams[career.current_team_index]
+	var player := Player.new()
+	player.attributes = Attributes.new()
+	player.attributes.power = 60.0; player.attributes.composure = 50.0
+	player.attributes.attack = 30.0; player.attributes.control = 25.0
+	var seed := 20260616
+
+	var sp := SeasonPlay.start(player.attributes, team, career.opponents_of_current(),
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), seed, spec)
+	sp.enable_pay(player, EconomyTuning.new(), team.stars, career.current_level(), 0)
+	_drive_with_decisions(sp)
+	assert_true(sp.season_done(), "driven season finished")
+
+	# Persist the in-progress state to disk and read it back fresh.
+	var sm = _SaveManagerScript.new()
+	sm.live_season_save_path = "user://_test_resume_live_season.tres"
+	sm.clear_live_season()
+	sm.save_live_season(sp.to_state(career.current_level(), 0))
+	var state = sm.load_live_season()
+	assert_not_null(state, "state read back from disk")
+
+	# Resume against the same Player + CareerState (which are persisted separately).
+	var resumed := SeasonPlay.from_state(state, player, career)
+	assert_eq(resumed.season_result().final_order, sp.season_result().final_order,
+		"a disk round-trip resumes the identical season")
+	assert_eq(resumed.pay_so_far(), sp.pay_so_far(), "and the same banked ₸")
+	assert_eq(resumed.season_wins(), sp.season_wins(), "and the same win count")
+
+	sm.clear_live_season()
+	sm.free()

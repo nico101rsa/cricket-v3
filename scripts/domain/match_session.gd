@@ -274,3 +274,28 @@ func decide_bowling_key_moment(from_over: int, kind: int) -> void:
 		return
 	_bowl_km_plan.overrides.append({"from_over": from_over, "kind": kind})
 	_resim()
+
+# -- Cross-session save: replay-from-decisions (spec 2026-06-23) -------------
+# The match is fully reproducible from the seed + this small set of player decisions
+# (the determinism contract). export_decisions() snapshots them as plain serialisable
+# data; apply_decisions() rebuilds the internal plans and re-sims once, so a fresh
+# same-seed session reaches the identical result. Deep-duplicated so the caller can
+# serialise/mutate the snapshot without aliasing the live session.
+
+func export_decisions() -> Dictionary:
+	return {
+		"presses": _presses.duplicate(true),
+		"review_balls": _review_balls.duplicate(true),
+		"km": _km_plan.overrides.duplicate(true),
+		"bowl_km": _bowl_km_plan.overrides.duplicate(true),
+	}
+
+func apply_decisions(d: Dictionary) -> void:
+	_presses = (d.get("presses", []) as Array).duplicate(true)
+	_review_balls = (d.get("review_balls", []) as Array).duplicate(true)
+	_reviews_used = _review_balls.size()
+	_km_plan = KeyMomentPlan.new()
+	_km_plan.overrides = (d.get("km", []) as Array).duplicate(true)
+	_bowl_km_plan = BowlingKeyMomentPlan.new()
+	_bowl_km_plan.overrides = (d.get("bowl_km", []) as Array).duplicate(true)
+	_resim()

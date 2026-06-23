@@ -7,6 +7,7 @@ extends Node
 @export var player_save_path: String = "user://player.tres"
 @export var legends_save_path: String = "user://legends.tres"
 @export var career_save_path: String = "user://career.tres"
+@export var live_season_save_path: String = "user://live_season.tres"
 
 # --- Card-rescale migration (spec 2026-06-11-card-rescale-100, DR12) ---
 # Legacy saves carry 20-point 1-8 builds; /100 builds sum 125. Anything summing
@@ -73,6 +74,29 @@ func load_career() -> CareerState:
 func clear_career() -> void:
 	if has_career():
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(career_save_path))
+
+# --- Live season (cross-session save, spec 2026-06-23) ---
+# A LiveSeasonState holds the seed + per-match decisions to replay an in-progress
+# season after a restart. Cleared the moment a season finishes (a done season must
+# never resume — SL5).
+
+func has_live_season() -> bool:
+	return FileAccess.file_exists(live_season_save_path)
+
+func save_live_season(s: LiveSeasonState) -> void:
+	var err := ResourceSaver.save(s, live_season_save_path)
+	if err != OK:
+		push_error("SaveManager: failed to save live season (err=%d)" % err)
+
+func load_live_season() -> LiveSeasonState:
+	if not has_live_season():
+		return null
+	# CACHE_MODE_IGNORE for the same fresh-read reason as load_player above.
+	return ResourceLoader.load(live_season_save_path, "", ResourceLoader.CACHE_MODE_IGNORE) as LiveSeasonState
+
+func clear_live_season() -> void:
+	if has_live_season():
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(live_season_save_path))
 
 # --- Legends ---
 
