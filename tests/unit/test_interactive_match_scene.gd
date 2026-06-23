@@ -23,6 +23,10 @@ func test_boots_and_renders():
 	_scene.set_session(s, "Karoo Kings", "Opponent")
 	_scene.boot()
 	assert_gt(_scene.event_count(), 0, "event stream loaded")
+	# Run-rate chart present + visible (the numeric placeholder is replaced).
+	var chart: Node = _scene.find_child("RunRateChart", true, false)
+	assert_not_null(chart, "run-rate chart mounted in the match screen")
+	assert_gt(chart.size.y, 0.0, "chart not collapsed")
 
 func test_overlay_appears_at_a_dismissal():
 	var s := _make_session()
