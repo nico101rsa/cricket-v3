@@ -41,7 +41,7 @@ var _batters: HBoxContainer
 var _bowler_row: PanelContainer; var _bowl_lbl: Label; var _bowl_name: Label; var _bowl_stat: Label; var _bowl_fig: Label
 var _comm_chip: Label; var _comm_lbl: Label
 var _body: Control; var _body_vbox: VBoxContainer
-var _crr_big: Label; var _req_big: Label
+var _chart: RunRateChart
 var _over_grid: GridContainer
 var _pship_names: Label; var _pship_runs: Label; var _pship_bar: ProgressBar
 var _autosim_bar: Button; var _play_lbl: Label; var _speed_lbl: Label; var _sim_progress: ProgressBar
@@ -184,15 +184,16 @@ func _build_body() -> void:
 	_body_vbox.add_theme_constant_override("separation", 7)
 	_body.add_child(_body_vbox)
 
-	# Run rate viz
+	# Run-rate chart (hero viz) — replaces the old numeric run-rate panel. The CRR
+	# number still lives in the scorebar meta (v.score_meta "… CRR x.x").
 	var rr := _panel(UIStyle.panel())
 	var rv := VBoxContainer.new()
 	rv.add_child(_lbl("RUN RATE", 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_LABEL))
-	var rrh := HBoxContainer.new()
-	_crr_big = _lbl("0.0", 34, Palette.GOLD, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_BOLD, true)
-	_req_big = _lbl("", 21, Palette.RED, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
-	rrh.add_child(_crr_big); rrh.add_child(_spacer()); rrh.add_child(_req_big)
-	rv.add_child(rrh)
+	_chart = RunRateChart.new()
+	_chart.name = "RunRateChart"
+	_chart.custom_minimum_size = Vector2(0, 180)
+	_chart.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rv.add_child(_chart)
 	rr.add_child(rv)
 	_body_vbox.add_child(rr)
 
@@ -770,10 +771,9 @@ func _render() -> void:
 	# Commentary
 	_comm_chip.text = v.lang
 	_comm_lbl.text = v.commentary
-	# Run rate
-	_crr_big.text = v.crr
-	_req_big.text = v.req_value
-	_req_big.add_theme_color_override("font_color", Palette.RED if v.innings_tag == "CHASING" else Palette.WHITE_DIM)
+	# Run-rate chart
+	var chart_accent: Color = Palette.country_set(v.my_code)["accent"]
+	_chart.set_data(v.chart, chart_accent)
 	# This over
 	for c in _over_grid.get_children(): c.queue_free()
 	for cell in v.this_over:

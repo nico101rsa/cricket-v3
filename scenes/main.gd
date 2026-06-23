@@ -9,6 +9,7 @@ const SEASON_HUB := preload("res://scenes/season_hub/season_hub.tscn")
 const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 const MATCH_VIEW := preload("res://scenes/match_view/match_view.tscn")
 const INTERACTIVE_MATCH := preload("res://scenes/interactive_match/interactive_match.tscn")
+const OUTCOME := preload("res://scenes/outcome/outcome.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -68,11 +69,14 @@ func _show_live_hub(play: SeasonPlay, career: CareerState) -> void:
 func _play_next(team_index: int) -> void:
 	var hub = _slot.get_child(0)
 	var play: SeasonPlay = hub.live_play()
-	if play == null or play.league_done():
+	# A match is pending in the league phase OR the playoffs (knockout); bail only
+	# when the driver has nothing left to play.
+	if play == null or play.next_player_opponent().is_empty():
 		return
 	var career: CareerState = hub.current_career()
-	var player := SaveManager.load_player()
 	var team: Team = career.teams[career.current_team_index]
+	# team_index is the live driver's _teams index (1..7) for both a league fixture
+	# and a playoff opponent → opponents_of_current()[team_index - 1] resolves both.
 	var opp: Team = career.opponents_of_current()[team_index - 1]
 	var session := play.make_session()
 	var screen := INTERACTIVE_MATCH.instantiate()
@@ -84,7 +88,23 @@ func _play_next(team_index: int) -> void:
 
 func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState) -> void:
 	play.commit_player_result(session.result())
-	_show_live_hub(play, career)
+	# Persist the ₸ banked into the player by this match (enable_pay bound it).
+	var player: Player = play.pay_player()
+	if player != null:
+		SaveManager.save_player(player)
+	# Season over (playoffs resolved) → outcome screen; otherwise back to the hub.
+	if play.season_done():
+		_show_outcome(play, career)
+	else:
+		_show_live_hub(play, career)
+
+# The end-of-season outcome (where you finished + ₸ banked). Continue starts a
+# fresh season hub. A hi-fi outcome / offers screen is a later presentation rung.
+func _show_outcome(play: SeasonPlay, _career: CareerState) -> void:
+	var screen := OUTCOME.instantiate()
+	screen.continue_pressed.connect(_push_hub)
+	_push(screen)
+	screen.set_outcome(play.season_result(), play.pay_so_far(), play.season_wins())
 
 # Tap a played fixture → watch that match's ball-by-ball replay (watch-only). On
 # the live path the played matches live in the SeasonPlay; back returns to the

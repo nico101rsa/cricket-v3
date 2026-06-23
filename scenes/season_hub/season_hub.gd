@@ -39,9 +39,12 @@ func _ready() -> void:
 	_style_static()
 
 func _on_cta() -> void:
-	if _play == null or _play.league_done():
+	if _play == null:
 		return
-	play_next.emit(_play.next_player_opponent()["team_index"])
+	var nxt := _play.next_player_opponent()
+	if nxt.is_empty():
+		return
+	play_next.emit(nxt["team_index"])
 
 # Static chrome + label styling applied once. _render only sets text + colours
 # that depend on the live data / country.
@@ -149,11 +152,19 @@ func set_source(player: Player, career: CareerState, season: SeasonResult) -> vo
 
 func set_play(player: Player, career: CareerState, play: SeasonPlay) -> void:
 	_player = player; _career = career; _play = play
+	# Bank ₸ on the live path (Slice 3 logic, wired here). Re-bound each set_play to
+	# the freshly-loaded player (main saves it after each match), so the balance
+	# accrues correctly across the season; the running tally lives on the play.
+	var team: Team = career.teams[career.current_team_index]
+	play.enable_pay(player, EconomyTuning.new(), team.stars, career.current_level(), 0)
 	set_view(SeasonViewBuilder.build(player, career, play.live_season(), play.played_count()))
 
 func live_play() -> SeasonPlay: return _play
 func current_career() -> CareerState: return _career
-func has_play_control() -> bool: return _play != null and not _play.league_done()
+# A player match is pending whenever the live driver names a next opponent —
+# league fixture OR playoff knockout (league_done() alone would hide the playoffs).
+func has_play_control() -> bool:
+	return _play != null and not _play.next_player_opponent().is_empty()
 
 func _rebuild(index: int) -> void:
 	if _player == null or _career == null or _season == null:
@@ -295,11 +306,16 @@ func _render_fixtures(cset: Dictionary) -> void:
 		cap.add_theme_font_size_override("font_size", 8)
 		entry.add_child(cap)
 		box.add_child(entry)
-	# stage chips (SF + final) — inert this rung
+	# stage chips (SF + final) — the Player's pending knockout lights up in the
+	# playoffs phase (gold + accent ring), otherwise they're a dim "what's next" hint.
 	var stage: HBoxContainer = _root.get_node("FixturesPanel/FixturesWrap/FixturesRow/StageBox")
 	for c in stage.get_children():
 		c.queue_free()
+	var active_stage := ""
+	if _play != null and _play.phase() == "playoffs":
+		active_stage = _play.next_player_opponent().get("stage", "")
 	for s in [["SF", "semi"], ["🏆", "final"]]:
+		var is_active: bool = s[1] == active_stage or (active_stage == "third" and s[1] == "final")
 		var entry := VBoxContainer.new()
 		entry.add_theme_constant_override("separation", 2)
 		var chip := Label.new()
@@ -307,15 +323,18 @@ func _render_fixtures(cset: Dictionary) -> void:
 		chip.custom_minimum_size = Vector2(28, 26)
 		chip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		chip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		chip.add_theme_stylebox_override("normal", UIStyle.pill(Palette.GOLD_DEEP))
+		var chip_box := UIStyle.pill(Palette.GOLD if is_active else Palette.GOLD_DEEP)
+		if is_active:
+			chip_box.set_border_width_all(2); chip_box.border_color = cset["accent"]
+		chip.add_theme_stylebox_override("normal", chip_box)
 		chip.add_theme_color_override("font_color", Palette.BG)
 		chip.add_theme_font_size_override("font_size", 9)
 		Fonts.weigh(chip, Fonts.W_BOLD)
 		entry.add_child(chip)
 		var cap := Label.new()
-		cap.text = s[1]
+		cap.text = ("third" if (active_stage == "third" and s[1] == "final") else s[1])
 		cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cap.add_theme_color_override("font_color", Palette.WHITE_DIM)
+		cap.add_theme_color_override("font_color", cset["accent"] if is_active else Palette.WHITE_DIM)
 		cap.add_theme_font_size_override("font_size", 8)
 		entry.add_child(cap)
 		stage.add_child(entry)
@@ -404,6 +423,15 @@ func _render_cta(cset: Dictionary) -> void:
 	_root.get_node("CTA").add_theme_stylebox_override("pressed", UIStyle.cta(Palette.GOLD_DEEP))
 	var big: Label = _root.get_node("CTA/CtaCenter/CtaLines/CtaBig")
 	var small: Label = _root.get_node("CTA/CtaCenter/CtaLines/CtaSmall")
+	# Playoffs: the CTA names the knockout (semi/final/3rd-place) instead of a fixture.
+	if _play != null and _play.phase() == "playoffs":
+		var nxt := _play.next_player_opponent()
+		var stage: String = nxt.get("stage", "")
+		big.text = {
+			"semi": "SEMI-FINAL  ▶", "final": "THE FINAL  ▶", "third": "3RD-PLACE  ▶",
+		}.get(stage, "PLAYOFF  ▶")
+		small.text = "v %s · knockout" % nxt.get("name", "")
+		return
 	big.text = ("FIRST MATCH  ▶" if _played() == 0 else "NEXT MATCH  ▶")
 	var opp := ""
 	if _play != null and not _play.league_done():

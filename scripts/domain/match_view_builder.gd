@@ -6,6 +6,10 @@ extends RefCounted
 # playback list; build() folds that list up to a cursor into a MatchView. No sim
 # calls, no RNG — same purity contract as SeasonViewBuilder. Spec §3-§4.
 
+const PAR_RR := 8.0   # 1st-innings benchmark RR (no chase yet) — anchored to the
+                      # sim's real-T20 scoring env (~RR 8.1). 2nd innings uses the
+                      # real chase RR instead.
+
 # A ball is "player-involved" if the Player faced it (batting) or bowled it.
 static func _involved(b: Dictionary) -> bool:
 	return b["is_player"] or b["player_bowling"]
@@ -261,6 +265,7 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 	# Run rate (real) + the bowler row (flavour name, real ★/economy).
 	var crr_f := (total * 6.0 / n) if n > 0 else 0.0
 	v.crr = "%.1f" % crr_f
+	v.chart = _build_chart(log, n, innings_no, mr.innings1.total)
 	v.bowler = {
 		"name": PlayerNames.upper(v.bowl_team, bowl_code, 7 + (cur_over % 5)),
 		"badge": PlayerNames.badge(PlayerNames.for_position(v.bowl_team, bowl_code, 7 + (cur_over % 5))),
@@ -301,6 +306,55 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 				"score": "%d/%d (%s)" % [mr.innings2.total, mr.innings2.wickets, _overs_from_balls(mr.innings2.balls)]},
 		]
 	return v
+
+# Pure run-rate chart read-model: walk the active innings' ball-log up to `n`
+# legal balls into per-over bars + a cumulative-CRR worm + the target/par line.
+# innings_no 1 → par line (PAR_RR); 2 → chase RR from first_total. Used by build_rich.
+static func _build_chart(log: Array, n: int, innings_no: int, first_total: int) -> Dictionary:
+	var overs: Array = []
+	var cur_over := 0
+	var over_runs := 0
+	var over_boundary := false
+	var over_wicket := false
+	var max_over_rr := 0.0
+	var count: int = mini(n, log.size())
+	for i in range(count):
+		var b: Dictionary = log[i]
+		var o: int = b["over"]
+		if o != cur_over:
+			if cur_over != 0:
+				overs.append(_close_over(cur_over, over_runs, over_boundary, over_wicket,
+					log[i - 1]["total"], i, false))
+				max_over_rr = maxf(max_over_rr, overs[overs.size() - 1]["bar_rr"])
+			cur_over = o
+			over_runs = 0; over_boundary = false; over_wicket = false
+		over_runs += b["runs"]
+		if b["runs"] == 4 or b["runs"] == 6: over_boundary = true
+		if b["wicket"]: over_wicket = true
+	# flush the last over — `now` true iff it's still in progress (last ball isn't ball 6)
+	if cur_over != 0:
+		var last: Dictionary = log[count - 1]
+		var in_progress: bool = last["ball_in_over"] != 6
+		overs.append(_close_over(cur_over, over_runs, over_boundary, over_wicket,
+			last["total"], count, in_progress))
+		max_over_rr = maxf(max_over_rr, overs[overs.size() - 1]["bar_rr"])
+
+	var target_rr: float = (PAR_RR if innings_no == 1
+		else (first_total + 1) * 6.0 / 120.0)
+	var y_max: float = clampf(maxf(target_rr, max_over_rr) * 1.15, 10.0, 18.0)
+	return {"overs": overs, "target_rr": target_rr, "y_max": y_max, "innings": innings_no}
+
+# One over's chart entry. balls_so_far = legal balls bowled in the innings up to and
+# including this over's last counted ball → cumulative CRR. bar_rr = this over's RR.
+static func _close_over(over: int, runs: int, boundary: bool, wicket: bool,
+		cum_total: int, balls_so_far: int, now: bool) -> Dictionary:
+	var balls_in_over: int = balls_so_far - (over - 1) * 6
+	return {
+		"over": over, "runs": runs,
+		"crr": (cum_total * 6.0 / balls_so_far) if balls_so_far > 0 else 0.0,
+		"bar_rr": (runs * 6.0 / balls_in_over) if balls_in_over > 0 else 0.0,
+		"has_boundary": boundary, "has_wicket": wicket, "now": now,
+	}
 
 # Ball outcome → {kind, label} for the this-over grid.
 static func _ball_kind(runs: int, wicket: bool) -> Dictionary:
