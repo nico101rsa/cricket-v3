@@ -8,7 +8,8 @@ extends Control
 
 signal continue_pressed()
 
-func set_outcome(result: SeasonResult, pay: int, wins: int, _career: CareerState = null) -> void:
+func set_outcome(result: SeasonResult, pay: int, wins: int,
+		_career: CareerState = null, transition: Dictionary = {}) -> void:
 	var pos := result.player_final_position
 	var made_playoffs := pos <= 4
 	var games := 7 + (2 if made_playoffs else 0)
@@ -48,6 +49,20 @@ func set_outcome(result: SeasonResult, pay: int, wins: int, _career: CareerState
 	Fonts.weigh(head, Fonts.W_HEADLINE)
 	col.add_child(head)
 
+	# Transition banner — the central "what just happened to the career" line
+	# (cleared a tour / promoted a Level / champion / a not-beaten retry). Gold when
+	# you advanced. No emoji — Barlow Semi Condensed tofus them.
+	var b := _banner_for(transition)
+	var banner := Label.new()
+	banner.name = "Banner"
+	banner.text = b["text"]
+	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	banner.add_theme_color_override("font_color", b["color"])
+	banner.add_theme_font_size_override("font_size", 15)
+	Fonts.weigh(banner, Fonts.W_BOLD)
+	col.add_child(banner)
+
 	# Stats panel: final position, record, ₸ banked.
 	var panel := PanelContainer.new()
 	panel.name = "StatsPanel"
@@ -60,10 +75,20 @@ func set_outcome(result: SeasonResult, pay: int, wins: int, _career: CareerState
 	rows.add_child(_stat_row("RECORD", "%d of %d won" % [wins, games], Palette.WHITE))
 	rows.add_child(_stat_row("₸ BANKED", "₸ %d" % pay, Palette.GOLD))
 
+	# Next-up chip — where Continue takes you (next cell, or the Hall of Fame).
+	var nextup := Label.new()
+	nextup.name = "NextUp"
+	nextup.text = _next_up_text(transition)
+	nextup.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nextup.add_theme_color_override("font_color", Palette.WHITE_DIM)
+	nextup.add_theme_font_size_override("font_size", 11)
+	Fonts.weigh(nextup, Fonts.W_MEDIUM)
+	col.add_child(nextup)
+
 	# Continue CTA.
 	var cta := Button.new()
 	cta.name = "ContinueBtn"
-	cta.text = "CONTINUE  ▶"
+	cta.text = _cta_text(transition)
 	cta.custom_minimum_size = Vector2(0, 52)
 	cta.add_theme_stylebox_override("normal", UIStyle.cta(Palette.GOLD))
 	cta.add_theme_stylebox_override("hover", UIStyle.cta(Palette.GOLD.lightened(0.05)))
@@ -94,11 +119,37 @@ func _stat_row(cap: String, value: String, value_col: Color) -> HBoxContainer:
 
 func _headline(pos: int) -> String:
 	match pos:
-		1: return "🏆 CHAMPIONS"
+		1: return "CHAMPIONS"
 		2: return "RUNNERS-UP"
 		3: return "3RD PLACE"
 		4: return "SEMI-FINAL EXIT"
 		_: return "MISSED THE PLAYOFFS"
+
+# The career-transition banner (spec 2026-06-24). Reads the descriptor returned by
+# CareerResolver.advance_after_live_season. Tours are 1-indexed for display.
+func _banner_for(t: Dictionary) -> Dictionary:
+	if t.get("complete", false):
+		return {"text": "PROVINCE CHAMPIONS · CAREER COMPLETE", "color": Palette.GOLD}
+	if t.get("promoted", false):
+		return {"text": "PROMOTED TO %s" % _level_word(t.get("to_level", 0)).to_upper(),
+			"color": Palette.GOLD}
+	if t.get("beat", false):
+		return {"text": "%s · TOUR %d CLEARED" %
+			[_level_word(t.get("from_level", 0)).to_upper(), int(t.get("tour", 0)) + 1],
+			"color": Palette.WHITE}
+	return {"text": "MISSED OUT · ANOTHER GO", "color": Palette.WHITE_DIM}
+
+func _next_up_text(t: Dictionary) -> String:
+	if t.get("complete", false):
+		return "NEXT: HALL OF FAME"
+	return "NEXT: %s · TOUR %d" % [
+		_level_word(t.get("next_level", 0)).to_upper(), int(t.get("next_tour", 0)) + 1]
+
+func _cta_text(t: Dictionary) -> String:
+	return "ENTER THE HALL OF FAME  >" if t.get("complete", false) else "CONTINUE  >"
+
+func _level_word(level: int) -> String:
+	return ["Club", "City", "Province"][clampi(level, 0, 2)]
 
 func _ordinal(n: int) -> String:
 	if n <= 0:
