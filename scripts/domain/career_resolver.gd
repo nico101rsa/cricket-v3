@@ -106,6 +106,57 @@ static func stay(_state: CareerState, player: Player) -> void:
 	player.affinity += 1
 
 
+# --- Live loop: rush-climb cell selection + advance (spec 2026-06-24) -----------
+
+# The cell the LIVE loop plays next (rush-climb, DLC3): the lowest unbeaten climb
+# tour at the current Level; if those are exhausted, the Premier. The caller crosses
+# up *before* boot at non-top Levels (so current_level has already advanced and this
+# returns (L+1, 0)) — the Premier is returned only at the top Level, the lone way to
+# complete the Career.
+static func next_live_cell(state: CareerState) -> Dictionary:
+	var level := state.current_level()
+	var t := state.next_climb_tour(level)
+	if t >= 0:
+		return {"level": level, "tour": t}
+	return {"level": level, "tour": CareerState.PREMIER_TOUR}
+
+
+# End-of-Season grid transition for the LIVE loop (DLC4). Mirrors play_season's tail:
+# record the outcome, bump the Season counters, and auto-cross up at a Level boundary
+# (rush model — no Offers UI; accept the cross-up offer the headless resolver would
+# generate). Returns a descriptor the Outcome screen reads. Pure: mutates only `state`
+# + `player`, runs no sim.
+static func advance_after_live_season(
+		state: CareerState, player: Player, result: SeasonResult,
+		level: int, tour: int, rng: RandomNumberGenerator) -> Dictionary:
+	var from_level := level
+	state.record_outcome(level, tour, result.beat, result.won_final)
+	state.seasons_played += 1
+	state.seasons_at_level += 1
+	var promoted := false
+	if not state.complete:
+		var cur := state.current_level()
+		var up := cur + 1
+		if state.next_climb_tour(cur) == -1 and up < CareerState.LEVELS \
+				and state.any_unlocked_at(up):
+			for o in generate_offers(state, result.beat, rng):
+				if o.level == up:
+					accept_offer(state, player, o)
+					promoted = true
+					break
+	var nxt := next_live_cell(state)
+	return {
+		"beat": result.beat,
+		"promoted": promoted,
+		"from_level": from_level,
+		"tour": tour,
+		"to_level": state.current_level(),
+		"complete": state.complete,
+		"next_level": nxt["level"],
+		"next_tour": nxt["tour"],
+	}
+
+
 # --- The Season turn (DC5/DC8/DC9/DC13) ----------------------------------------
 
 # Play one Season at (current Level, tour_index): simulate via SeasonResolver

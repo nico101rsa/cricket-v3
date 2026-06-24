@@ -29,6 +29,8 @@ var _player: Player
 var _career: CareerState
 var _season: SeasonResult
 var _play: SeasonPlay   # live forward-play driver (null on the scrub/test path)
+var _cell_level: int = 0   # the career cell this live Season is being played at
+var _cell_tour: int = 0    # (spec 2026-06-24 — was hardwired to tour 0)
 
 func _ready() -> void:
 	$CornerInfo.pressed.connect(func(): open_info.emit())
@@ -135,19 +137,28 @@ func boot() -> void:
 	if not SaveManager.has_player():
 		return
 	var player := SaveManager.load_player()
-	var career: CareerState = SaveManager.load_career() if SaveManager.has_career() \
+	var fresh := not SaveManager.has_career()
+	var career: CareerState = SaveManager.load_career() if not fresh \
 		else CareerResolver.start_career(0)
+	if fresh:
+		SaveManager.save_career(career)   # the live career is now durable (spec 2026-06-24)
 	# Cross-session resume (spec 2026-06-23): if a live season is saved, rebuild it by
-	# replaying the saved decisions (lossless) instead of starting a fresh one.
+	# replaying the saved decisions (lossless) instead of starting a fresh one. The
+	# saved season is already at next_live_cell(career); set_play re-derives the cell.
 	if SaveManager.has_live_season():
 		var play := SeasonPlay.from_state(SaveManager.load_live_season(), player, career)
 		set_play(player, career, play)
 		return
-	var spec := DifficultyLadder.spec_for(career.current_level(), 0)
+	# Fresh season at the career's next cell (rush-climb), with a seed that varies per
+	# Season so re-attempts and later cells differ (DLC6). seasons_played==0 (a brand-new
+	# career) keeps the original first-game seed → byte-identical to before.
+	var cell := CareerResolver.next_live_cell(career)
+	var spec := DifficultyLadder.spec_for(cell["level"], cell["tour"])
 	var team: Team = career.teams[career.current_team_index]
 	var play := SeasonPlay.start(
 		player.attributes, team, career.opponents_of_current(),
-		spec.make_tour(), BallTuning.new(), InningsTuning.new(), BOOT_SEED, spec)
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(),
+		BOOT_SEED + career.seasons_played, spec)
 	set_play(player, career, play)
 
 # --- Sources ---
@@ -158,15 +169,21 @@ func set_source(player: Player, career: CareerState, season: SeasonResult) -> vo
 
 func set_play(player: Player, career: CareerState, play: SeasonPlay) -> void:
 	_player = player; _career = career; _play = play
+	# The career cell this Season is being played at — stable during a Season (the grid
+	# only advances at Season end), so deriving it here matches what boot started with.
+	var cell := CareerResolver.next_live_cell(career)
+	_cell_level = cell["level"]; _cell_tour = cell["tour"]
 	# Bank ₸ on the live path (Slice 3 logic, wired here). Re-bound each set_play to
 	# the freshly-loaded player (main saves it after each match), so the balance
 	# accrues correctly across the season; the running tally lives on the play.
 	var team: Team = career.teams[career.current_team_index]
-	play.enable_pay(player, EconomyTuning.new(), team.stars, career.current_level(), 0)
+	play.enable_pay(player, EconomyTuning.new(), team.stars, _cell_level, _cell_tour)
 	set_view(SeasonViewBuilder.build(player, career, play.live_season(), play.played_count()))
 
 func live_play() -> SeasonPlay: return _play
 func current_career() -> CareerState: return _career
+# The (level, tour) of the career cell the current live Season is at.
+func current_cell() -> Vector2i: return Vector2i(_cell_level, _cell_tour)
 # A player match is pending whenever the live driver names a next opponent —
 # league fixture OR playoff knockout (league_done() alone would hide the playoffs).
 func has_play_control() -> bool:

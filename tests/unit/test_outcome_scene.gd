@@ -52,3 +52,47 @@ func test_continue_emits() -> void:
 	var cta := screen.find_child("ContinueBtn", true, false)
 	cta.pressed.emit()
 	assert_signal_emitted(screen, "continue_pressed")
+
+
+# --- Career-transition banner / next-up / CTA (live career advance, 2026-06-24) ---
+
+func _show(result: SeasonResult, transition: Dictionary):
+	var screen = OutcomeScene.instantiate()
+	add_child_autofree(screen)
+	screen.set_outcome(result, 60, 4, null, transition)
+	return screen
+
+func test_promoted_banner_visible_and_named() -> void:
+	var s = _show(_result(1), {"promoted": true, "to_level": 1, "complete": false,
+		"next_level": 1, "next_tour": 0, "beat": true, "from_level": 0, "tour": 5})
+	await get_tree().process_frame
+	var banner: Label = s.find_child("Banner", true, false)
+	assert_not_null(banner, "banner present")
+	assert_true(banner.is_visible_in_tree(), "banner visible")
+	assert_gt(banner.size.y, 0.0, "banner not collapsed")
+	assert_true(banner.text.contains("CITY"), "promotion names the new Level")
+
+func test_cleared_banner_names_tour_one_indexed() -> void:
+	var s = _show(_result(2), {"promoted": false, "to_level": 0, "complete": false,
+		"next_level": 0, "next_tour": 5, "beat": true, "from_level": 0, "tour": 4})
+	await get_tree().process_frame
+	var banner: Label = s.find_child("Banner", true, false)
+	assert_true(banner.text.contains("TOUR 5"), "tour 4 displays 1-indexed as TOUR 5")
+
+func test_complete_routes_to_hall_of_fame() -> void:
+	var s = _show(_result(1), {"promoted": false, "to_level": 2, "complete": true,
+		"next_level": 2, "next_tour": 7, "beat": true, "from_level": 2, "tour": 7})
+	await get_tree().process_frame
+	var nextup: Label = s.find_child("NextUp", true, false)
+	assert_true(nextup.text.contains("HALL OF FAME"), "complete points at the Hall of Fame")
+	var cta := s.find_child("ContinueBtn", true, false)
+	assert_true(cta.text.contains("HALL OF FAME"), "CTA reads enter the Hall of Fame")
+
+func test_no_emoji_in_banner() -> void:
+	# Barlow tofus emoji — the banner must stay text-only.
+	var s = _show(_result(1), {"promoted": false, "to_level": 2, "complete": true,
+		"next_level": 2, "next_tour": 7, "beat": true, "from_level": 2, "tour": 7})
+	await get_tree().process_frame
+	var banner: Label = s.find_child("Banner", true, false)
+	for ch in "🏆🏏↑▶":
+		assert_false(banner.text.contains(ch), "no emoji glyphs (Barlow tofu)")
