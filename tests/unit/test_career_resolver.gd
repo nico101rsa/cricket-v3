@@ -318,3 +318,71 @@ func test_carryover_enters_next_season_free() -> void:
 		BallTuning.new(), InningsTuning.new(), EconomyTuning.new(), s["rng"],
 		null, null, policy)
 	assert_true(seen_v0.has("dead_bat"), "carried joker present at V0")
+
+
+# --- Live loop: next_live_cell + advance_after_live_season (spec 2026-06-24) ---
+
+func _season_stub(beat: bool, won_final: bool) -> SeasonResult:
+	var sr := SeasonResult.new()
+	sr.beat = beat
+	sr.won_final = won_final
+	return sr
+
+func test_next_live_cell_fresh() -> void:
+	var s := CareerResolver.start_career(0)
+	assert_eq(CareerResolver.next_live_cell(s), {"level": 0, "tour": 0})
+
+func test_next_live_cell_walks_tours() -> void:
+	var s := CareerResolver.start_career(0)
+	s.mark_beaten(0, 0)
+	assert_eq(CareerResolver.next_live_cell(s), {"level": 0, "tour": 1})
+
+func test_next_live_cell_top_level_premier_when_climb_done() -> void:
+	var s := CareerResolver.start_career(0)
+	s.current_team_index = CareerState.TEAMS_PER_LEVEL * 2   # first Province team
+	for t in range(CareerState.READINESS_TOUR + 1):
+		s.cell_status[s.cell_index(2, t)] = CareerState.CellStatus.BEATEN
+	assert_eq(CareerResolver.next_live_cell(s),
+		{"level": 2, "tour": CareerState.PREMIER_TOUR})
+
+func test_advance_marks_beaten_and_bumps_counters() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	var t := CareerResolver.advance_after_live_season(s, p, _season_stub(true, false), 0, 0, _rng(1))
+	assert_eq(s.status_of(0, 0), CareerState.CellStatus.BEATEN)
+	assert_eq(s.status_of(0, 1), CareerState.CellStatus.UNLOCKED, "next tour unlocked")
+	assert_eq(s.seasons_played, 1)
+	assert_eq(s.seasons_at_level, 1)
+	assert_false(t["promoted"])
+	assert_eq(t["next_tour"], 1)
+
+func test_advance_not_beaten_is_grid_noop_same_cell() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	var t := CareerResolver.advance_after_live_season(s, p, _season_stub(false, false), 0, 0, _rng(1))
+	assert_eq(s.status_of(0, 0), CareerState.CellStatus.UNLOCKED, "not beaten: still unlocked")
+	assert_eq(s.seasons_played, 1, "counter still bumps")
+	assert_eq(t["next_tour"], 0, "replays the same cell")
+
+func test_advance_auto_crosses_when_readiness_beaten() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	for t0 in range(CareerState.READINESS_TOUR):
+		s.mark_beaten(0, t0)
+	var t := CareerResolver.advance_after_live_season(
+		s, p, _season_stub(true, false), 0, CareerState.READINESS_TOUR, _rng(1))
+	assert_eq(s.current_level(), 1, "auto-crossed up to City")
+	assert_true(t["promoted"])
+	assert_eq(t["to_level"], 1)
+	assert_eq(s.seasons_at_level, 0, "cross resets seasons_at_level")
+	assert_eq(p.affinity, 0, "cross resets affinity")
+
+func test_advance_completes_on_province_premier_win() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	s.current_team_index = CareerState.TEAMS_PER_LEVEL * 2   # Province
+	s.cell_status[s.cell_index(2, CareerState.PREMIER_TOUR)] = CareerState.CellStatus.UNLOCKED
+	var t := CareerResolver.advance_after_live_season(
+		s, p, _season_stub(true, true), 2, CareerState.PREMIER_TOUR, _rng(1))
+	assert_true(s.complete)
+	assert_true(t["complete"])
