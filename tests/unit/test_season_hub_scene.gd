@@ -169,6 +169,22 @@ func test_boots_a_real_season_when_player_saved() -> void:
 	assert_eq(hub._view.fixtures.size(), 7)
 	assert_false(hub._view.team_name.is_empty())
 	SaveManager.clear_player()
+	SaveManager.clear_career()
+
+# Live career advance (spec 2026-06-24): boot persists a fresh career so the grid is
+# durable across the live loop, and boots the career's real next cell.
+func test_boot_persists_a_fresh_career() -> void:
+	SaveManager.clear_career()
+	SaveManager.clear_live_season()
+	SaveManager.save_player(_player())
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	hub.boot()
+	assert_true(SaveManager.has_career(), "fresh career is persisted on boot")
+	assert_eq(hub.current_cell(), Vector2i(0, 0), "fresh career boots at cell (0,0)")
+	SaveManager.clear_career()
+	SaveManager.clear_player()
+	SaveManager.clear_live_season()
 
 # Cross-session save (spec 2026-06-23): boot() resumes an in-progress live season
 # (saved as a decision log) instead of starting fresh — the "quit and relaunch" path.
@@ -195,3 +211,4 @@ func test_boot_resumes_an_in_progress_live_season() -> void:
 	assert_eq(resumed.played_count(), 3, "resumed mid-season at game 3, not a fresh start")
 	SaveManager.clear_live_season()
 	SaveManager.clear_player()
+	SaveManager.clear_career()
