@@ -61,6 +61,16 @@ func playable_cells() -> Array:
 	return out
 
 
+# Lowest unlocked-but-unbeaten tour in [0..READINESS_TOUR] at `level` — the live
+# "rush" climb walks these in order (live-career-advance spec 2026-06-24, DLC3).
+# -1 if none remain (the loop then crosses up, or plays the Premier at the top Level).
+func next_climb_tour(level: int) -> int:
+	for t in range(READINESS_TOUR + 1):
+		if status_of(level, t) == CellStatus.UNLOCKED:
+			return t
+	return -1
+
+
 func roster_of(level: int) -> Array:
 	var out: Array = []
 	for i in range(level * TEAMS_PER_LEVEL, (level + 1) * TEAMS_PER_LEVEL):

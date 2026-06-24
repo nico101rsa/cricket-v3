@@ -142,3 +142,23 @@ func test_offer_is_pure_data() -> void:
 	assert_eq(o.team_index, 9)
 	assert_eq(o.level, 1)
 	assert_eq(o.stars, 3.5)
+
+
+# --- next_climb_tour (live rush-climb cell selection, spec 2026-06-24 DLC3) ---
+
+func test_next_climb_tour_fresh_is_zero() -> void:
+	var s := _state()
+	assert_eq(s.next_climb_tour(0), 0, "fresh state: only (0,0) unlocked")
+
+
+func test_next_climb_tour_advances_after_beat() -> void:
+	var s := _state()
+	s.mark_beaten(0, 0)   # unlocks (0,1)
+	assert_eq(s.next_climb_tour(0), 1, "after beating (0,0): next climb tour is 1")
+
+
+func test_next_climb_tour_minus_one_when_readiness_cleared() -> void:
+	var s := _state()
+	for t in range(CareerState.READINESS_TOUR + 1):
+		s.mark_beaten(0, t)
+	assert_eq(s.next_climb_tour(0), -1, "all climb tours <= READINESS beaten: -1")
