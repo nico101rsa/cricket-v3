@@ -92,24 +92,41 @@ func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerS
 	play.commit_player_result(session.result(), session.export_decisions())
 	# Persist the ₸ banked into the player by this match (enable_pay bound it).
 	var player: Player = play.pay_player()
+	if player == null:
+		player = SaveManager.load_player()
 	if player != null:
 		SaveManager.save_player(player)
-	# Season over (playoffs resolved) → clear the live save (a done season must not
-	# resume) + outcome screen; otherwise persist the in-progress season + back to the hub.
+	# The career cell this Season was played at (the grid hasn't advanced yet — the
+	# hub is already freed here, so re-derive from the career, not hub.current_cell()).
+	var cell := CareerResolver.next_live_cell(career)
 	if play.season_done():
+		# Record the outcome into the career grid (rush-climb advance, spec 2026-06-24),
+		# persist the career, clear the finished live season, then show the Outcome screen.
+		var rng := RandomNumberGenerator.new()
+		rng.seed = play.seed() + 7   # distinct from strength (_seed) / AI (+1) / playoff (+2)
+		var transition := CareerResolver.advance_after_live_season(
+			career, player, play.season_result(), cell["level"], cell["tour"], rng)
+		SaveManager.save_career(career)
 		SaveManager.clear_live_season()
-		_show_outcome(play, career)
+		if player != null:
+			SaveManager.save_player(player)   # affinity reset on a cross-up
+		_show_outcome(play, career, transition)
 	else:
-		SaveManager.save_live_season(play.to_state(career.current_level(), 0))
+		SaveManager.save_live_season(play.to_state(cell["level"], cell["tour"]))
 		_show_live_hub(play, career)
 
-# The end-of-season outcome (where you finished + ₸ banked). Continue starts a
-# fresh season hub. A hi-fi outcome / offers screen is a later presentation rung.
-func _show_outcome(play: SeasonPlay, _career: CareerState) -> void:
+# The end-of-season Outcome (finish + ₸ banked + the career transition). Continue
+# starts the next Season at the new cell, or — when the Career is complete (won the
+# Province Premier) — routes through the Hall of Fame.
+func _show_outcome(play: SeasonPlay, career: CareerState, transition: Dictionary) -> void:
 	var screen := OUTCOME.instantiate()
-	screen.continue_pressed.connect(_push_hub)
+	if transition.get("complete", false):
+		screen.continue_pressed.connect(func(): LifecycleManager.win_out())
+	else:
+		screen.continue_pressed.connect(_push_hub)
 	_push(screen)
-	screen.set_outcome(play.season_result(), play.pay_so_far(), play.season_wins())
+	screen.set_outcome(play.season_result(), play.pay_so_far(), play.season_wins(),
+		career, transition)
 
 # Tap a played fixture → watch that match's ball-by-ball replay (watch-only). On
 # the live path the played matches live in the SeasonPlay; back returns to the
