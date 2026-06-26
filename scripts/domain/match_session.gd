@@ -20,6 +20,7 @@ var _itun: InningsTuning
 var _seed: int
 var _force: int                  # force_player_bats_first (-1 toss / 1 / 0)
 var _opp_spec: TourSpec           # difficulty cell -> OpponentBrain plans; null = brainless (pre-rung)
+var _player_effects: Array = []   # owned-joker effect rows; [] = none (byte-identical)
 
 var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
@@ -35,7 +36,7 @@ var _player := Player.new()      # carries attributes for the builder
 static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistribution,
 		seed: int, force_player_bats_first: int = -1,
 		tuning: BallTuning = null, itun: InningsTuning = null,
-		opp_spec: TourSpec = null) -> MatchSession:
+		opp_spec: TourSpec = null, player_effects: Array = []) -> MatchSession:
 	var s := MatchSession.new()
 	s._attrs = attrs
 	s._team = team
@@ -46,6 +47,7 @@ static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistributi
 	s._tuning = tuning if tuning != null else BallTuning.new()
 	s._itun = itun if itun != null else InningsTuning.new()
 	s._opp_spec = opp_spec
+	s._player_effects = player_effects
 	s._player.attributes = attrs
 	s._resim()
 	return s
@@ -92,11 +94,18 @@ func _resim() -> void:
 	if _opp_spec != null:
 		pbp = BowlingPlan.new()
 		pbp.key_moments = _bowl_km_plan
+	# Player jokers (spec 2026-06-26): fire owned effects in the live match. The field
+	# plan for gated jokers is derived exactly as the headless career does (CF3); boost
+	# stays human-controlled (the player's presses), so boost-role jokers fire only when
+	# the player presses Boost. Empty effects -> null field + [] jokers -> byte-identical.
+	var fld: FieldPlan = null
+	if not _player_effects.is_empty():
+		fld = ShopResolver.plans_for(_player_effects)["field"]
 	var log1: Array = []
 	var log2: Array = []
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
-		ip, pbp, [], null, null, oip,
+		ip, pbp, _player_effects, fld, null, oip,
 		boost, drs, null, null, null, _force, obp, log1, log2)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
