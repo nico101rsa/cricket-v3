@@ -212,3 +212,41 @@ func test_boot_resumes_an_in_progress_live_season() -> void:
 	SaveManager.clear_live_season()
 	SaveManager.clear_player()
 	SaveManager.clear_career()
+
+# Live joker bridge (spec 2026-06-26): the hub seeds the live play's player jokers
+# from the persisted carry-over, so a carried joker fires in live matches.
+func test_boot_seeds_player_jokers_from_carryover() -> void:
+	SaveManager.clear_career(); SaveManager.clear_live_season()
+	var career := CareerResolver.start_career(0)
+	career.carryover_joker_id = "block_the_shine"
+	SaveManager.save_career(career)
+	SaveManager.save_player(_player())
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	hub.boot()
+	var with_runs := _league_runs_sum(hub.live_play())
+
+	SaveManager.clear_career(); SaveManager.clear_live_season()
+	var career2 := CareerResolver.start_career(0)   # no carryover
+	SaveManager.save_career(career2)
+	var hub2 = SeasonHubScene.instantiate()
+	add_child_autofree(hub2)
+	hub2.boot()
+	var without_runs := _league_runs_sum(hub2.live_play())
+
+	# The carry-over joker measurably CHANGES the live league (proving the wire carries
+	# effects). Direction isn't asserted here — block_the_shine only raises totals in
+	# expectation over many seeds (see the MatchSession/SeasonPlay sweeps); boot() is
+	# locked to one seed, so the RNG cascade can net either way.
+	assert_ne(with_runs, without_runs, "carry-over joker alters the live league matches")
+	SaveManager.clear_career(); SaveManager.clear_player(); SaveManager.clear_live_season()
+
+# Sum the player's batting total across all 7 league fixtures (enough innings for the
+# carry-over joker to alter the run of play).
+func _league_runs_sum(sp: SeasonPlay) -> int:
+	var total := 0
+	for i in range(7):
+		var r := sp.make_session().result()
+		total += r.innings1.total if r.player_bats_first else r.innings2.total
+		sp.commit_player_result(r)
+	return total
