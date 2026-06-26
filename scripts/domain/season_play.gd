@@ -21,6 +21,7 @@ var _tuning: BallTuning
 var _itun: InningsTuning
 var _seed: int
 var _opp_spec: TourSpec       # difficulty cell -> the interactive opponent's brain (DL5)
+var _player_effects: Array = []   # owned-joker effect rows passed to every player match
 
 var _bat: Array = []         # held per-team batting strength (ADR 0009), index-aligned
 var _bowl: Array = []        # held per-team bowling strength
@@ -69,6 +70,11 @@ static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 	sp._draw_strengths()
 	sp._resolve_ai_fixtures()
 	return sp
+
+# Owned-joker effect rows that fire in the player's live matches (spec 2026-06-26).
+# [] = none (byte-identical). Seeded by the hub from CareerState.carryover_joker_id.
+func set_player_jokers(effects: Array) -> void:
+	_player_effects = effects
 
 # The marquee interactive opponent always plays at least competent textbook cricket.
 # The difficulty ladder dumbs the entry tours with a sub-textbook NAIVE blend
@@ -239,7 +245,7 @@ func make_session() -> MatchSession:
 		var opp: Team = _teams[played_count() + 1]
 		var fixture_seed := _seed + 100 + played_count()
 		return MatchSession.start(_attrs, _teams[0], opp, _tour, fixture_seed,
-			-1, _tuning, _itun, _opp_spec)
+			-1, _tuning, _itun, _opp_spec, _player_effects)
 	if _phase == Phase.PLAYOFFS:
 		var opp_idx := _pending_opponent_index()
 		if opp_idx < 0:
@@ -247,7 +253,7 @@ func make_session() -> MatchSession:
 		var offset: int = {"semi": 0, "final": 1, "third": 2}[_pending_stage]
 		var po_seed: int = _seed + 200 + offset
 		return MatchSession.start(_attrs, _teams[0], _teams[opp_idx], _tour, po_seed,
-			-1, _tuning, _itun, _opp_spec)
+			-1, _tuning, _itun, _opp_spec, _player_effects)
 	return null
 
 # Fold a finished player match into the live Season + advance. Caller passes the
