@@ -381,3 +381,37 @@ func test_full_disk_resume_reproduces_the_season() -> void:
 
 	sm.clear_live_season()
 	sm.free()
+
+
+# --- Player jokers reach the live driver's matches (spec 2026-06-26, Rung 1) ---
+
+func _season_at(seed: int) -> SeasonPlay:
+	# A modest player vs the Club opponents — weak enough that early wickets fall, so a
+	# powerplay survival joker (block_the_shine) actually bites (a 4.5★ team never loses
+	# early wickets, leaving the wicket-mult inert).
+	var a := Attributes.new()
+	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
+	var career := CareerResolver.start_career(0)
+	return SeasonPlay.start(a, career.teams[career.current_team_index],
+		career.opponents_of_current(),
+		DifficultyLadder.spec_for(0, 0).make_tour(), BallTuning.new(), InningsTuning.new(), seed)
+
+func _player_innings_runs(sp: SeasonPlay) -> int:
+	var r := sp.make_session().result()
+	return r.innings1.total if r.player_bats_first else r.innings2.total
+
+func test_set_player_jokers_lifts_league_batting_total() -> void:
+	var effects := JokerCatalog.effects_of_ids(["block_the_shine"])
+	var sum_base := 0
+	var sum_joker := 0
+	for s in range(8):
+		var base := _season_at(3300 + s)
+		var jk := _season_at(3300 + s)
+		jk.set_player_jokers(effects)
+		for i in range(7):
+			sum_base += _player_innings_runs(base)
+			base.commit_player_result(base.make_session().result())
+		for i in range(7):
+			sum_joker += _player_innings_runs(jk)
+			jk.commit_player_result(jk.make_session().result())
+	assert_gt(sum_joker, sum_base, "owned joker fires across the live league fixtures")

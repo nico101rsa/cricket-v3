@@ -350,3 +350,35 @@ func test_apply_then_export_round_trips_all_four_channels():
 	assert_eq(s.export_decisions(), d, "apply then export returns the same decision record")
 	assert_eq(s.reviews_left(), MatchSession.REVIEW_BUDGET - 1,
 		"applied review_balls count against the budget")
+
+
+# --- Player jokers fire in the live match (spec 2026-06-26, Rung 1) ---
+
+func _fixture() -> Array:
+	var a := Attributes.new()
+	a.power = 55.0; a.composure = 45.0; a.attack = 35.0; a.control = 30.0
+	var career := CareerResolver.start_career(0)
+	var team: Team = career.teams[career.current_team_index]
+	var opp: Team = career.opponents_of_current()[0]
+	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
+	return [a, team, opp, tour]
+
+func test_empty_player_effects_is_byte_identical() -> void:
+	var f := _fixture()
+	var base := MatchSession.start(f[0], f[1], f[2], f[3], 7777, 1)
+	var with_empty := MatchSession.start(f[0], f[1], f[2], f[3], 7777, 1, null, null, null, [])
+	assert_eq(with_empty.result().innings1.total, base.result().innings1.total)
+	assert_eq(with_empty.result().innings2.total, base.result().innings2.total)
+
+func test_block_the_shine_raises_player_batting_total_over_seeds() -> void:
+	var f := _fixture()
+	var effects := JokerCatalog.effects_of_ids(["block_the_shine"])
+	var sum_base := 0
+	var sum_joker := 0
+	for s in range(20):
+		var seed := 4200 + s
+		var base := MatchSession.start(f[0], f[1], f[2], f[3], seed, 1)
+		var jk := MatchSession.start(f[0], f[1], f[2], f[3], seed, 1, null, null, null, effects)
+		sum_base += base.result().innings1.total
+		sum_joker += jk.result().innings1.total
+	assert_gt(sum_joker, sum_base, "block_the_shine (fewer early wickets) lifts the player's total")
