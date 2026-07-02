@@ -78,7 +78,7 @@ func test_hifi_header_and_cta_text():
 	assert_true(identity._next_btn.is_visible_in_tree(), "CTA is actually visible")
 
 func test_hifi_hero_portrait_present_and_sized():
-	# Portrait art is wired (placeholder hero-cap.png) and renders at a real size.
+	# Portrait art is wired (PortraitLibrary face) and renders at a real size.
 	assert_not_null(identity._hero_portrait.texture, "hero portrait has art")
 	assert_true(identity._hero_portrait.is_visible_in_tree())
 	assert_gt(identity._hero_portrait.custom_minimum_size.y, 0.0, "portrait reserves height")
