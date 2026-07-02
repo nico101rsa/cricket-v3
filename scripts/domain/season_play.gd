@@ -554,6 +554,14 @@ func season_wins() -> int:
 func pay_player() -> Player:
 	return _pay_player
 
+# The _settle inputs, read-only — lets the Result screen recompute the pay
+# breakdown for display with the exact ints _settle banked (nav-shell spec
+# 2026-07-03, Slice 2). {} until enable_pay().
+func pay_context() -> Dictionary:
+	if _etun == null:
+		return {}
+	return {"stars": _pay_stars, "level": _pay_level, "tour": _pay_tour, "etun": _etun}
+
 # Bank one played Player match (mirrors CareerResolver._settle_matches).
 func _settle(result: MatchResult) -> void:
 	if _etun == null:
