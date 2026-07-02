@@ -250,3 +250,16 @@ func _league_runs_sum(sp: SeasonPlay) -> int:
 		total += r.innings1.total if r.player_bats_first else r.innings2.total
 		sp.commit_player_result(r)
 	return total
+
+# Rung 2 (spec 2026-07-02): the hub enables the live Kit Room; a fresh boot pends
+# the V0 starter pick.
+func test_boot_enables_shop_with_pending_starter() -> void:
+	SaveManager.clear_career(); SaveManager.clear_live_season()
+	SaveManager.save_player(_player())
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	hub.boot()
+	var play: SeasonPlay = hub.live_play()
+	assert_true(play.shop_enabled(), "shop on for live play")
+	assert_eq(play.pending_shop_visit()["kind"], "starter", "V0 pends on a fresh season")
+	SaveManager.clear_career(); SaveManager.clear_player(); SaveManager.clear_live_season()

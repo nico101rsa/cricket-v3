@@ -10,6 +10,7 @@ const HALL_OF_FAME := preload("res://scenes/hall_of_fame/hall_of_fame.tscn")
 const MATCH_VIEW := preload("res://scenes/match_view/match_view.tscn")
 const INTERACTIVE_MATCH := preload("res://scenes/interactive_match/interactive_match.tscn")
 const OUTCOME := preload("res://scenes/outcome/outcome.tscn")
+const KIT_ROOM := preload("res://scenes/kit_room/kit_room.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -51,6 +52,10 @@ func _push_hub() -> void:
 	hub.play_next.connect(func(team_index: int): _play_next(team_index))
 	_push(hub)
 	hub.boot()
+	# A fresh season pends the V0 Kit Room (starter pick) before anything is played
+	# (spec 2026-07-02); resumed seasons re-pend an unfinished visit the same way.
+	if hub.live_play() != null and not hub.live_play().pending_shop_visit().is_empty():
+		_show_kit_room(hub.live_play(), hub.current_career())
 
 # Re-show a hub for an already-live SeasonPlay (after playing/watching a match).
 # _push frees the old hub, but `play` is RefCounted and held by the caller's
@@ -74,6 +79,11 @@ func _play_next(team_index: int) -> void:
 	if play == null or play.next_player_opponent().is_empty():
 		return
 	var career: CareerState = hub.current_career()
+	# A pending Kit Room visit gates the next match (spec 2026-07-02 — the canon
+	# cadence is visit-then-play; the visit screen loops back to the hub).
+	if not play.pending_shop_visit().is_empty():
+		_show_kit_room(play, career)
+		return
 	var team: Team = career.teams[career.current_team_index]
 	# team_index is the live driver's _teams index (1..7) for both a league fixture
 	# and a playoff opponent → opponents_of_current()[team_index - 1] resolves both.
@@ -100,20 +110,69 @@ func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerS
 	# hub is already freed here, so re-derive from the career, not hub.current_cell()).
 	var cell := CareerResolver.next_live_cell(career)
 	if play.season_done():
-		# Record the outcome into the career grid (rush-climb advance, spec 2026-06-24),
-		# persist the career, clear the finished live season, then show the Outcome screen.
-		var rng := RandomNumberGenerator.new()
-		rng.seed = play.seed() + 7   # distinct from strength (_seed) / AI (+1) / playoff (+2)
-		var transition := CareerResolver.advance_after_live_season(
-			career, player, play.season_result(), cell["level"], cell["tour"], rng)
-		SaveManager.save_career(career)
-		SaveManager.clear_live_season()
-		if player != null:
-			SaveManager.save_player(player)   # affinity reset on a cross-up
-		_show_outcome(play, career, transition)
+		# Carry-over election first (spec 2026-07-02 DK2-6): pick the one joker that
+		# survives into next season, then run the season-end advance.
+		if play.shop_enabled() and not play.shop_owned().is_empty():
+			var screen := KIT_ROOM.instantiate()
+			screen.carryover_elected.connect(func(id: String):
+				career.carryover_joker_id = id
+				_finish_live_season(play, career))
+			_push(screen)
+			screen.set_carryover(play)
+		else:
+			if play.shop_enabled():
+				career.carryover_joker_id = ""   # owned nothing: no carry-over
+			_finish_live_season(play, career)
 	else:
 		SaveManager.save_live_season(play.to_state(cell["level"], cell["tour"]))
+		# A mid-season Kit Room visit (V1/V2 post-match, V3/V4 pre-knockout) gates
+		# the way back to the hub.
+		if play.pending_shop_visit().is_empty():
+			_show_live_hub(play, career)
+		else:
+			_show_kit_room(play, career)
+
+# The season-end advance (extracted for the carry-over flow): record the outcome
+# into the career grid (rush-climb, spec 2026-06-24), persist the career, clear the
+# finished live season, then show the Outcome screen. Derives the played cell FIRST
+# (the grid must not have advanced yet).
+func _finish_live_season(play: SeasonPlay, career: CareerState) -> void:
+	var cell := CareerResolver.next_live_cell(career)
+	var player: Player = play.pay_player()
+	if player == null:
+		player = SaveManager.load_player()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = play.seed() + 7   # distinct from strength (_seed) / AI (+1) / playoff (+2)
+	var transition := CareerResolver.advance_after_live_season(
+		career, player, play.season_result(), cell["level"], cell["tour"], rng)
+	SaveManager.save_career(career)
+	SaveManager.clear_live_season()
+	if player != null:
+		SaveManager.save_player(player)   # affinity reset on a cross-up
+	_show_outcome(play, career, transition)
+
+# A pending Kit Room visit: show the screen; when the visit closes, save progress
+# and loop (another visit may pend) until none — then fall through to the hub.
+func _show_kit_room(play: SeasonPlay, career: CareerState) -> void:
+	var visit: Dictionary = play.pending_shop_visit()
+	if visit.is_empty():
 		_show_live_hub(play, career)
+		return
+	var screen := KIT_ROOM.instantiate()
+	screen.done.connect(func():
+		_save_shop_progress(play, career)
+		_show_kit_room(play, career))
+	_push(screen)
+	screen.set_visit(play, visit)
+
+# Shop actions move ₸/attrs (persisted on the Player) and the shop state (in the
+# live-season save) — write both after each closed visit.
+func _save_shop_progress(play: SeasonPlay, career: CareerState) -> void:
+	var player: Player = play.pay_player()
+	if player != null:
+		SaveManager.save_player(player)
+	var cell := CareerResolver.next_live_cell(career)
+	SaveManager.save_live_season(play.to_state(cell["level"], cell["tour"]))
 
 # The end-of-season Outcome (finish + ₸ banked + the career transition). Continue
 # starts the next Season at the new cell, or — when the Career is complete (won the
