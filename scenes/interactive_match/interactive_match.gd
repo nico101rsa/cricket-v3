@@ -849,7 +849,7 @@ func _render_result(v: MatchView) -> void:
 		h.add_child(_lbl(line.get("score", ""), 13, Palette.GOLD, HORIZONTAL_ALIGNMENT_RIGHT))
 		row.add_child(h)
 		_result_box.add_child(row)
-	var cta := _choice("PLAY AGAIN ▶", Palette.GOLD)
+	var cta := _choice("CONTINUE ▶", Palette.GOLD)
 	cta.add_theme_color_override("font_color", Color("1a1205"))
 	cta.pressed.connect(func(): back.emit())
 	_result_box.add_child(cta)
