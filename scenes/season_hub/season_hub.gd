@@ -178,11 +178,13 @@ func set_play(player: Player, career: CareerState, play: SeasonPlay) -> void:
 	# accrues correctly across the season; the running tally lives on the play.
 	var team: Team = career.teams[career.current_team_index]
 	play.enable_pay(player, EconomyTuning.new(), team.stars, _cell_level, _cell_tour)
-	# Seed the player's live jokers from the persisted carry-over (spec 2026-06-26 — the
-	# bridge to the Kit Room rung). "" until the shop sets one => empty => byte-identical.
-	var cj := career.carryover_joker_id
-	play.set_player_jokers(JokerCatalog.effects_of_ids([cj]) if cj != "" else [])
-	set_view(SeasonViewBuilder.build(player, career, play.live_season(), play.played_count()))
+	# The live Kit Room (spec 2026-07-02, Rung 2): rebind + init-once; the carry-over
+	# joker enters the shop free (V0) and the shop's loadout drives the live jokers
+	# (replaces the Rung-1 direct carry-over seeding).
+	play.enable_shop(player, EconomyTuning.new(), _cell_level, _cell_tour,
+		career.carryover_joker_id)
+	set_view(SeasonViewBuilder.build(player, career, play.live_season(),
+		play.played_count(), play.shop_owned()))
 
 func live_play() -> SeasonPlay: return _play
 func current_career() -> CareerState: return _career

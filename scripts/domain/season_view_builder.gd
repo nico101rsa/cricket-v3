@@ -6,7 +6,8 @@ extends RefCounted
 # the career card; everything else is passthrough/mapping.
 
 static func build(player: Player, career_state: CareerState,
-		season_result: SeasonResult, scrub_index: int) -> SeasonView:
+		season_result: SeasonResult, scrub_index: int,
+		owned_ids: Array = []) -> SeasonView:
 	var v := SeasonView.new()
 	var level := career_state.current_level()
 	var tour_index := 0   # this slice boots the current Level's first cell; real
@@ -115,9 +116,15 @@ static func build(player: Player, career_state: CareerState,
 	if best_w >= 0:
 		v.card_best_bowling = "%d/%d" % [best_w, best_r]
 
-	# Jokers owned this slice = the carry-over joker, if any (§4). Mid-season Shop
-	# acquisitions on the bench arrive with the Shop screen rung.
-	if career_state.carryover_joker_id != "":
+	# Jokers on the bench: the live Kit Room's owned loadout when provided (Rung 2,
+	# spec 2026-07-02 DK2-10); otherwise the carry-over joker (the pre-shop default,
+	# keeps every existing caller untouched).
+	if not owned_ids.is_empty():
+		for oid in owned_ids:
+			var m := _joker_meta(oid)
+			if not m.is_empty():
+				v.jokers.append(m)
+	elif career_state.carryover_joker_id != "":
 		var meta := _joker_meta(career_state.carryover_joker_id)
 		if not meta.is_empty():
 			v.jokers.append(meta)
