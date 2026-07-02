@@ -148,3 +148,12 @@ func test_new_player_button_emits_signal():
 	watch_signals(hof)
 	hof._new_player_btn.pressed.emit()
 	assert_signal_emitted(hof, "begin_new_player")
+
+func test_hero_legend_shows_bucket_portrait():
+	var hof = HallOfFame.instantiate()
+	add_child_autofree(hof)
+	var e := _legend("Sipho", "Mthembu", 40, 30, 20, 10)
+	e.player.appearance = Appearance.Bucket.MIXED
+	hof.render_archive(_archive([e]))
+	var tex: TextureRect = hof.get_node("Layout/Hero/HeroPortrait")
+	assert_eq(tex.texture, PortraitLibrary.texture_for(Appearance.Bucket.MIXED, 0), "hero wears the legend's face")

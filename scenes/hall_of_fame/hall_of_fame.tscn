@@ -26,9 +26,11 @@ text = "0 Legends"
 [node name="Hero" type="VBoxContainer" parent="Layout"]
 theme_override_constants/separation = 6
 
-[node name="HeroPortrait" type="ColorRect" parent="Layout/Hero"]
+[node name="HeroPortrait" type="TextureRect" parent="Layout/Hero"]
 custom_minimum_size = Vector2(120, 120)
-color = Color(0.2, 0.2, 0.2, 1)
+expand_mode = 5
+stretch_mode = 6
+size_flags_horizontal = 4
 
 [node name="Badge" type="Label" parent="Layout/Hero"]
 text = "★ Immortalised"
