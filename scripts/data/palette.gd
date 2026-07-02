@@ -81,9 +81,10 @@ static func skill_ring(stars: float) -> Color:
 	if stars >= 1.5: return SKILL_2
 	return SKILL_1
 
-# Form glow colour from the SeasonView.form int (display-only banding).
+# Form glow colour from the raw form int (banding lives in FormBand -- DP3).
 static func form_glow(form: int) -> Color:
-	if form >= 2: return FORM_HOT
-	if form == 1: return FORM_STEADY
-	if form == 0: return FORM_TIRED
-	return FORM_COLD
+	match FormBand.of(form):
+		FormBand.Band.HOT: return FORM_HOT
+		FormBand.Band.STEADY: return FORM_STEADY
+		FormBand.Band.TIRED: return FORM_TIRED
+		_: return FORM_COLD
