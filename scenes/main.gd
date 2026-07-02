@@ -11,6 +11,7 @@ const MATCH_VIEW := preload("res://scenes/match_view/match_view.tscn")
 const INTERACTIVE_MATCH := preload("res://scenes/interactive_match/interactive_match.tscn")
 const OUTCOME := preload("res://scenes/outcome/outcome.tscn")
 const KIT_ROOM := preload("res://scenes/kit_room/kit_room.tscn")
+const OFFERS := preload("res://scenes/offers/offers.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -132,10 +133,13 @@ func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerS
 		else:
 			_show_kit_room(play, career)
 
-# The season-end advance (extracted for the carry-over flow): record the outcome
-# into the career grid (rush-climb, spec 2026-06-24), persist the career, clear the
-# finished live season, then show the Outcome screen. Derives the played cell FIRST
-# (the grid must not have advanced yet).
+# The season-end advance, now two-phase around the Offers screen (offers spec
+# 2026-07-02, DO1): record the season + draw offers (begin), let the player
+# pick a team or stay, then apply + persist (finish). Derives the played cell
+# FIRST (the grid must not have advanced yet). Career complete -> no offers,
+# straight to the Outcome (DO2). Nothing is saved until the pick lands (DO5),
+# so a quit on the Offers screen resumes from the last live-season save and
+# re-draws the same offers (rng is seeded, offers are its only consumer).
 func _finish_live_season(play: SeasonPlay, career: CareerState) -> void:
 	var cell := CareerResolver.next_live_cell(career)
 	var player: Player = play.pay_player()
@@ -143,12 +147,26 @@ func _finish_live_season(play: SeasonPlay, career: CareerState) -> void:
 		player = SaveManager.load_player()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = play.seed() + 7   # distinct from strength (_seed) / AI (+1) / playoff (+2)
-	var transition := CareerResolver.advance_after_live_season(
-		career, player, play.season_result(), cell["level"], cell["tour"], rng)
+	var begin := CareerResolver.begin_live_advance(
+		career, play.season_result(), cell["level"], cell["tour"], rng)
+	if begin["offers"].is_empty():
+		_apply_offer_pick(play, career, player, begin, null)
+		return
+	var screen := OFFERS.instantiate()
+	screen.offer_picked.connect(func(offer):
+		_apply_offer_pick(play, career, player, begin, offer))
+	_push(screen)
+	screen.set_offers(career, begin["offers"])
+
+# The pick lands: apply it, persist atomically (career + player + the cleared
+# live season), then show the Outcome.
+func _apply_offer_pick(play: SeasonPlay, career: CareerState, player: Player,
+		begin: Dictionary, offer) -> void:
+	var transition := CareerResolver.finish_live_advance(career, player, begin, offer)
 	SaveManager.save_career(career)
 	SaveManager.clear_live_season()
 	if player != null:
-		SaveManager.save_player(player)   # affinity reset on a cross-up
+		SaveManager.save_player(player)   # affinity moved on stay AND accept
 	_show_outcome(play, career, transition)
 
 # A pending Kit Room visit: show the screen; when the visit closes, save progress
