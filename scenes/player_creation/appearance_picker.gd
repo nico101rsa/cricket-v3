@@ -27,6 +27,11 @@ func _ready() -> void:
 		btn.add_theme_stylebox_override("pressed", _make_tile_style(tint, true, false))
 		btn.add_theme_stylebox_override("focus", _make_tile_style(tint, true, false))
 		btn.add_theme_stylebox_override("disabled", _make_tile_style(tint, false, true))
+		# Real face thumbnail (portrait pipeline, DP6) -- the tint stylebox stays
+		# underneath as the selection-ring frame around the opaque face tile.
+		btn.icon = PortraitLibrary.texture_for(bucket, 0)
+		btn.expand_icon = true
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		btn.pressed.connect(_on_pressed.bind(bucket))
 		add_child(btn)
 		_buttons[bucket] = btn
@@ -38,6 +43,11 @@ func _make_tile_style(tint: Color, selected: bool, dim: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = (tint.darkened(0.55) if dim else tint)
 	sb.set_corner_radius_all(_corner_radius)
+	# content margin keeps the ring visible around the opaque face thumbnail
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
 	if selected:
 		sb.set_border_width_all(4)
 		sb.border_color = _ring_color
@@ -60,6 +70,10 @@ func apply_hifi(accent: Color) -> void:
 
 func selected_bucket() -> int:
 	return _selected
+
+# Scene tests + previews reach a tile by bucket.
+func button_for(bucket: int) -> Button:
+	return _buttons.get(bucket)
 
 # Programmatically reflect a selection WITHOUT emitting appearance_selected.
 # Used when re-hydrating the screen from an existing draft (Back navigation) —

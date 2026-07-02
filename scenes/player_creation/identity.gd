@@ -10,8 +10,6 @@ extends Control
 
 signal advance_to_build(draft: PlayerCreationDraft)
 
-const _HERO_PORTRAIT := preload("res://assets/portraits/hero-cap.png")
-
 var _draft: PlayerCreationDraft
 var _rng: RandomNumberGenerator
 var _accent: Color = Palette.COUNTRY_ACCENT_SA
@@ -133,7 +131,7 @@ func _build_hero() -> Control:
 	panel.add_theme_stylebox_override("panel", UIStyle.hero_panel(cset["grad1"], cset["grad2"], cset["glow"], _accent))
 
 	_hero_portrait = TextureRect.new()
-	_hero_portrait.texture = _HERO_PORTRAIT
+	_hero_portrait.texture = PortraitLibrary.texture_for(_draft.appearance, 0)
 	_hero_portrait.custom_minimum_size = Vector2(132, 158)
 	_hero_portrait.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
 	_hero_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -260,6 +258,7 @@ func _on_city_selected(idx: int) -> void:
 
 func _on_appearance_selected(bucket: int) -> void:
 	_draft.appearance = bucket
+	_hero_portrait.texture = PortraitLibrary.texture_for(bucket, 0)  # live hero-swap (DP6)
 	_reroll_name_if_possible()                # name bank slice changed
 	_refresh_next_enabled()
 
@@ -299,6 +298,7 @@ func _refresh_hero() -> void:
 	var panel := _hero_portrait.get_parent() as PanelContainer
 	var cset := Palette.country_set(_draft.country)
 	panel.add_theme_stylebox_override("panel", UIStyle.hero_panel(cset["grad1"], cset["grad2"], cset["glow"], _accent))
+	_hero_portrait.texture = PortraitLibrary.texture_for(_draft.appearance, 0)
 
 func _refresh_country_buttons() -> void:
 	_style_seg(_country_sa_btn, _draft.country == Country.Code.SA)
