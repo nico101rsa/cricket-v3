@@ -31,7 +31,7 @@ func set_matchup(view: SeasonView, opp: Dictionary, opp_stars: float, match_no: 
 	col.add_child(_versus_header(view, opp, opp_stars, match_no))
 	col.add_child(_centered_line(_stakes_text(opp, match_no), Palette.GOLD, 12, Fonts.W_BOLD))
 	col.add_child(_centered_line(view.tour_name, Palette.WHITE_DIM, 11, Fonts.W_MEDIUM))
-	col.add_child(_panels(view, opp))
+	col.add_child(_panels(view, opp, opp_stars))
 	col.add_child(_build_strip(view))
 
 	var cta := Button.new()
@@ -86,7 +86,7 @@ func _stakes_text(opp: Dictionary, match_no: int) -> String:
 
 # Your captain (real attrs + affinity) vs their danger man (flavour name only —
 # the sim has no named opponents; the number that is real is the team's stars).
-func _panels(view: SeasonView, opp: Dictionary) -> Control:
+func _panels(view: SeasonView, opp: Dictionary, opp_stars: float) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 
@@ -112,6 +112,7 @@ func _panels(view: SeasonView, opp: Dictionary) -> Control:
 		14, Palette.WHITE, Fonts.W_BOLD)
 	danger.name = "DangerName"
 	them_col.add_child(danger)
+	them_col.add_child(_lbl(_stars(opp_stars), 11, Palette.GOLD, Fonts.W_MEDIUM))
 	them_col.add_child(_lbl("TEAM RATING", 8, Palette.WHITE_DIM, Fonts.W_LABEL))
 	row.add_child(them)
 	return row
