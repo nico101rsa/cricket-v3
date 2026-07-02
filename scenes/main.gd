@@ -241,7 +241,7 @@ func _apply_offer_pick(play: SeasonPlay, career: CareerState, player: Player,
 	SaveManager.clear_live_season()
 	if player != null:
 		SaveManager.save_player(player)   # affinity moved on stay AND accept
-	_show_outcome(play, career, transition)
+	_show_outcome(play, career, transition, player)
 
 # A pending Kit Room visit: show the screen; when the visit closes, save progress
 # and loop (another visit may pend) until none — then fall through to the hub.
@@ -269,7 +269,8 @@ func _save_shop_progress(play: SeasonPlay, career: CareerState) -> void:
 # The end-of-season Outcome (finish + ₸ banked + the career transition). Continue
 # starts the next Season at the new cell, or — when the Career is complete (won the
 # Province Premier) — routes through the Hall of Fame.
-func _show_outcome(play: SeasonPlay, career: CareerState, transition: Dictionary) -> void:
+func _show_outcome(play: SeasonPlay, career: CareerState, transition: Dictionary,
+		player: Player = null) -> void:
 	var screen := OUTCOME.instantiate()
 	if transition.get("complete", false):
 		screen.continue_pressed.connect(func(): LifecycleManager.win_out())
@@ -279,7 +280,8 @@ func _show_outcome(play: SeasonPlay, career: CareerState, transition: Dictionary
 		screen.continue_pressed.connect(_push_career_grid)
 	_push(screen)
 	screen.set_outcome(play.season_result(), play.pay_so_far(), play.season_wins(),
-		career, transition)
+		career, transition,
+		player.country if player != null else Country.Code.SA)
 
 # Tap a played fixture → watch that match's ball-by-ball replay (watch-only). On
 # the live path the played matches live in the SeasonPlay; back returns to the

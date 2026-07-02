@@ -112,6 +112,63 @@ func test_complete_routes_to_hall_of_fame() -> void:
 	var cta := s.find_child("ContinueBtn", true, false)
 	assert_true(cta.text.contains("HALL OF FAME"), "CTA reads enter the Hall of Fame")
 
+# --- Hi-fi skin guards (outcome-hifi spec 2026-07-03, DO2/DO5/DO6) ---
+
+func _promoted_t() -> Dictionary:
+	return {"promoted": true, "to_level": 1, "complete": false, "next_level": 1,
+		"next_tour": 0, "beat": true, "from_level": 0, "tour": 5}
+
+func test_header_band_visible_not_collapsed() -> void:
+	var s = _show(_result(1), _promoted_t())
+	await get_tree().process_frame
+	var band: PanelContainer = s.find_child("HeaderBand", true, false)
+	assert_not_null(band, "country-gradient header band present")
+	if band == null:
+		return
+	assert_true(band.is_visible_in_tree(), "header band visible")
+	assert_gt(band.size.y, 0.0, "header band not collapsed")
+
+func test_promoted_transition_strip_is_gold() -> void:
+	var s = _show(_result(1), _promoted_t())
+	await get_tree().process_frame
+	var strip: PanelContainer = s.find_child("TransitionStrip", true, false)
+	assert_not_null(strip, "transition strip present")
+	if strip == null:
+		return
+	var sb: StyleBoxFlat = strip.get_theme_stylebox("panel")
+	assert_eq(sb.bg_color, Palette.GOLD, "promotion celebrates on the gold panel")
+
+func test_missed_transition_strip_not_gold() -> void:
+	var s = _show(_result(6), {"promoted": false, "to_level": 1, "from_level": 1,
+		"complete": false, "next_level": 1, "next_tour": 2, "beat": false, "tour": 2})
+	await get_tree().process_frame
+	var strip: PanelContainer = s.find_child("TransitionStrip", true, false)
+	assert_not_null(strip, "transition strip present")
+	if strip == null:
+		return
+	var sb: StyleBoxFlat = strip.get_theme_stylebox("panel")
+	assert_ne(sb.bg_color, Palette.GOLD, "a miss does not celebrate")
+
+func test_country_param_rethemes_header() -> void:
+	var screen = OutcomeScene.instantiate()
+	add_child_autofree(screen)
+	screen.set_outcome(_result(2), 100, 5, null, _promoted_t(), Country.Code.AUS)
+	await get_tree().process_frame
+	var band: PanelContainer = screen.find_child("HeaderBand", true, false)
+	assert_not_null(band, "header band present")
+	if band == null:
+		return
+	var sb: StyleBoxFlat = band.get_theme_stylebox("panel")
+	assert_eq(sb.bg_color, Palette.COUNTRY_1_AUS.lerp(Palette.COUNTRY_2_AUS, 0.45),
+		"AUS country param re-themes the header gradient")
+
+func test_stat_tiles_present() -> void:
+	var s = _show(_result(2), _promoted_t())
+	await get_tree().process_frame
+	var labels := _all_label_text(s)
+	for cap in ["FINISHED", "RECORD", "BANKED"]:
+		assert_true(labels.contains(cap), "stat tile caption %s shown" % cap)
+
 func test_no_emoji_in_banner() -> void:
 	# Barlow tofus emoji — the banner must stay text-only.
 	var s = _show(_result(1), {"promoted": false, "to_level": 2, "complete": true,
