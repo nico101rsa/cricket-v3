@@ -12,6 +12,7 @@ const INTERACTIVE_MATCH := preload("res://scenes/interactive_match/interactive_m
 const OUTCOME := preload("res://scenes/outcome/outcome.tscn")
 const KIT_ROOM := preload("res://scenes/kit_room/kit_room.tscn")
 const OFFERS := preload("res://scenes/offers/offers.tscn")
+const PRE_MATCH := preload("res://scenes/pre_match/pre_match.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -85,6 +86,20 @@ func _play_next(team_index: int) -> void:
 	if not play.pending_shop_visit().is_empty():
 		_show_kit_room(play, career)
 		return
+	# The versus moment first (nav-shell spec 2026-07-03, Slice 1). The hub is
+	# freed by _push, so read everything it holds BEFORE pushing (play/career
+	# survive in the closure — the established RefCounted pattern).
+	var view: SeasonView = hub.current_view()
+	var opp_info: Dictionary = play.next_player_opponent()
+	var opp_team: Team = career.opponents_of_current()[team_index - 1]
+	var screen := PRE_MATCH.instantiate()
+	screen.start_pressed.connect(func(): _start_match(play, career, team_index))
+	_push(screen)
+	screen.set_matchup(view, opp_info, opp_team.stars, play.played_count() + 1)
+
+# TAP TO START → build the session and push the interactive match (the body
+# that used to follow the Kit Room gate, unchanged).
+func _start_match(play: SeasonPlay, career: CareerState, team_index: int) -> void:
 	var team: Team = career.teams[career.current_team_index]
 	# team_index is the live driver's _teams index (1..7) for both a league fixture
 	# and a playoff opponent → opponents_of_current()[team_index - 1] resolves both.
