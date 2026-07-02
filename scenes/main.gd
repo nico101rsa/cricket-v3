@@ -13,6 +13,7 @@ const OUTCOME := preload("res://scenes/outcome/outcome.tscn")
 const KIT_ROOM := preload("res://scenes/kit_room/kit_room.tscn")
 const OFFERS := preload("res://scenes/offers/offers.tscn")
 const PRE_MATCH := preload("res://scenes/pre_match/pre_match.tscn")
+const RESULT := preload("res://scenes/result/result.tscn")
 
 @onready var _slot: Control = $Slot
 
@@ -106,13 +107,17 @@ func _start_match(play: SeasonPlay, career: CareerState, team_index: int) -> voi
 	var opp: Team = career.opponents_of_current()[team_index - 1]
 	var session := play.make_session()
 	var screen := INTERACTIVE_MATCH.instantiate()
-	screen.back.connect(func(): _commit_and_return(play, session, career))
+	screen.back.connect(func(): _commit_and_return(play, session, career, opp.team_name))
 	_push(screen)
 	screen.set_session(session, team.team_name, opp.team_name,
 		team.stars, opp.stars, Country.Code.SA, Country.Code.AUS)
 	screen.boot()
 
-func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState) -> void:
+func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState,
+		opp_name: String) -> void:
+	# Read the fixture context BEFORE committing — commit advances the pointer.
+	var stage := str(play.next_player_opponent().get("stage", ""))
+	var match_no := play.played_count() + 1
 	# Commit WITH the session's decisions so the live season can be replayed after a
 	# restart (cross-session save, spec 2026-06-23).
 	play.commit_player_result(session.result(), session.export_decisions())
@@ -122,6 +127,43 @@ func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerS
 		player = SaveManager.load_player()
 	if player != null:
 		SaveManager.save_player(player)
+	# The Result screen (nav-shell spec 2026-07-03, Slice 2): the payoff moment
+	# between the match and the cadence fork. Display-only — the fork itself
+	# (kit room / hub / season end) runs on Continue in _after_result.
+	var mr := session.result()
+	var dest := ""
+	if play.season_done():
+		dest = "SEASON END"
+	elif not play.pending_shop_visit().is_empty():
+		dest = "KIT ROOM"
+	var champion := {}
+	if stage == "final" and mr.player_won():
+		# The cell just beaten — the grid only advances in _finish_live_season.
+		var won_cell := CareerResolver.next_live_cell(career)
+		champion = {"level_word": ["Club", "City", "Province"][int(won_cell["level"])],
+			"tour_name": DifficultyLadder.TOUR_NAMES[int(won_cell["tour"])]}
+	var team: Team = career.teams[career.current_team_index]
+	var screen := RESULT.instantiate()
+	screen.continue_pressed.connect(func(): _after_result(play, career))
+	_push(screen)
+	screen.set_result(mr, team.team_name, opp_name, match_no, stage,
+		_display_pay(play, mr), (player.tons_balance if player != null else 0),
+		dest, champion)
+
+# Display-only recompute of what _settle banked (same pure functions, same ints).
+func _display_pay(play: SeasonPlay, mr: MatchResult) -> Dictionary:
+	var ctx := play.pay_context()
+	if ctx.is_empty():
+		return {"base": 0, "perf": 0, "prize": 0, "total": 0}
+	var p: Dictionary = Economy.match_pay(mr, ctx["stars"], ctx["etun"])
+	var prize := 0
+	if mr.player_won():
+		prize = Economy.match_win_prize(ctx["level"], ctx["tour"], ctx["etun"])
+	return {"base": p["base"], "perf": p["perf"], "prize": prize,
+		"total": int(p["total"]) + prize}
+
+# Continue on the Result screen → the cadence fork (the old post-commit body).
+func _after_result(play: SeasonPlay, career: CareerState) -> void:
 	# The career cell this Season was played at (the grid hasn't advanced yet — the
 	# hub is already freed here, so re-derive from the career, not hub.current_cell()).
 	var cell := CareerResolver.next_live_cell(career)

@@ -415,3 +415,21 @@ func test_set_player_jokers_lifts_league_batting_total() -> void:
 			sum_joker += _player_innings_runs(jk)
 			jk.commit_player_result(jk.make_session().result())
 	assert_gt(sum_joker, sum_base, "owned joker fires across the live league fixtures")
+
+# --- pay_context (nav-shell spec 2026-07-03, Slice 2) ---
+# Read-only view of the _settle inputs so the Result screen can recompute the
+# banked pay breakdown for display. {} until enable_pay().
+
+func test_pay_context_empty_until_enable_pay() -> void:
+	var sp := _start_strong()
+	assert_true(sp.pay_context().is_empty(), "no context before enable_pay")
+
+func test_pay_context_exposes_settle_inputs() -> void:
+	var sp := _start_strong()
+	var etun := EconomyTuning.new()
+	sp.enable_pay(Player.new(), etun, 4.5, 1, 2)
+	var ctx := sp.pay_context()
+	assert_eq(ctx["stars"], 4.5, "stars exposed")
+	assert_eq(ctx["level"], 1, "level exposed")
+	assert_eq(ctx["tour"], 2, "tour exposed")
+	assert_eq(ctx["etun"], etun, "economy tuning exposed")
