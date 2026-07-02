@@ -14,15 +14,32 @@ const KIT_ROOM := preload("res://scenes/kit_room/kit_room.tscn")
 const OFFERS := preload("res://scenes/offers/offers.tscn")
 const PRE_MATCH := preload("res://scenes/pre_match/pre_match.tscn")
 const RESULT := preload("res://scenes/result/result.tscn")
+const CAREER_GRID := preload("res://scenes/career_grid/career_grid.tscn")
 
 @onready var _slot: Control = $Slot
 
 func _ready() -> void:
 	LifecycleManager.career_ended.connect(_on_career_ended)
-	if SaveManager.has_player():
-		_push_hub()
-	else:
+	if not SaveManager.has_player():
 		_start_creation()
+	elif SaveManager.has_live_season():
+		_push_hub()            # mid-season resume, unchanged
+	else:
+		_push_career_grid()    # between seasons: the career map is home (ADR 0010)
+
+# The between-Seasons home (nav-shell spec 2026-07-03, Slice 3). Read-only:
+# create-if-absent mirrors hub.boot's career bootstrapping (DN10) so a fresh
+# career renders without booting a season; the season itself still only starts
+# on hub.boot() when START SEASON is tapped.
+func _push_career_grid() -> void:
+	var player := SaveManager.load_player()
+	var career: CareerState = SaveManager.load_career() if SaveManager.has_career() \
+		else CareerResolver.start_career(0)
+	SaveManager.save_career(career)
+	var screen := CAREER_GRID.instantiate()
+	screen.start_season.connect(_push_hub)
+	_push(screen)
+	screen.set_career(career, player)
 
 # draft is null on a fresh cold start / new Player, or the in-progress draft when
 # the user taps Back from Build (spec §4: Back preserves picks). Passing it into
@@ -43,7 +60,7 @@ func _on_identity_advance(draft: PlayerCreationDraft) -> void:
 
 func _on_build_confirmed(_player: Player) -> void:
 	var picker := STARTING_TEAM.instantiate()
-	picker.proceed_to_season.connect(_push_hub)
+	picker.proceed_to_season.connect(_push_career_grid)
 	_push(picker)
 
 # Instantiate the Season Hub, mount it, then boot a real season. boot() is
@@ -257,7 +274,9 @@ func _show_outcome(play: SeasonPlay, career: CareerState, transition: Dictionary
 	if transition.get("complete", false):
 		screen.continue_pressed.connect(func(): LifecycleManager.win_out())
 	else:
-		screen.continue_pressed.connect(_push_hub)
+		# Between seasons the Career Grid is home (ADR 0010) — the next season
+		# only starts from its START SEASON.
+		screen.continue_pressed.connect(_push_career_grid)
 	_push(screen)
 	screen.set_outcome(play.season_result(), play.pay_so_far(), play.season_wins(),
 		career, transition)

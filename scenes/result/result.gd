@@ -151,7 +151,7 @@ func _tons_panel(pay: Dictionary, bank: int, won: bool) -> Control:
 	p.add_theme_stylebox_override("panel", UIStyle.panel())
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)
-	var hero := _lbl("+%d" % int(pay.get("total", 0)), 26, Palette.GOLD, Fonts.W_HEADLINE)
+	var hero := _lbl("₸ +%d" % int(pay.get("total", 0)), 26, Palette.GOLD, Fonts.W_HEADLINE)
 	hero.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(hero)
 	var brk := "base %d + perf %d" % [int(pay.get("base", 0)), int(pay.get("perf", 0))]
@@ -159,7 +159,7 @@ func _tons_panel(pay: Dictionary, bank: int, won: bool) -> Control:
 		brk += " + win prize %d" % int(pay.get("prize", 0))
 	var brk_l := _centered(brk, 10, Palette.WHITE_MID, Fonts.W_MEDIUM)
 	v.add_child(brk_l)
-	v.add_child(_centered("bank now %s" % _thousands(bank), 10, Palette.WHITE_DIM, Fonts.W_MEDIUM))
+	v.add_child(_centered("bank now ₸ %s" % _thousands(bank), 10, Palette.WHITE_DIM, Fonts.W_MEDIUM))
 	p.add_child(v)
 	return p
 
