@@ -121,40 +121,79 @@ static func next_live_cell(state: CareerState) -> Dictionary:
 	return {"level": level, "tour": CareerState.PREMIER_TOUR}
 
 
-# End-of-Season grid transition for the LIVE loop (DLC4). Mirrors play_season's tail:
-# record the outcome, bump the Season counters, and auto-cross up at a Level boundary
-# (rush model — no Offers UI; accept the cross-up offer the headless resolver would
-# generate). Returns a descriptor the Outcome screen reads. Pure: mutates only `state`
-# + `player`, runs no sim.
-static func advance_after_live_season(
-		state: CareerState, player: Player, result: SeasonResult,
+# End-of-Season advance for the LIVE loop — two-phase (offers spec 2026-07-02,
+# DO3) so the Offers screen can sit between drawing the offer set and applying
+# the pick.
+
+# Phase 1: record the season into the grid + counters, then draw the offer set
+# the screen shows (empty once the career completed, DO2). Mutates grid and
+# counters only — the team move waits for finish_live_advance.
+static func begin_live_advance(
+		state: CareerState, result: SeasonResult,
 		level: int, tour: int, rng: RandomNumberGenerator) -> Dictionary:
-	var from_level := level
 	state.record_outcome(level, tour, result.beat, result.won_final)
 	state.seasons_played += 1
 	state.seasons_at_level += 1
-	var promoted := false
+	var offers: Array = []
+	if not state.complete:
+		offers = generate_offers(state, result.beat, rng)
+	return {
+		"offers": offers,
+		"beat": result.beat,
+		"from_level": level,
+		"from_team_index": state.current_team_index,
+		"tour": tour,
+		"complete": state.complete,
+	}
+
+
+# Phase 2: apply the pick — an Offer row, or null = STAY (affinity +1, DO8;
+# skipped when the career is complete: there is no next season to be loyal
+# into). Returns the transition descriptor the Outcome screen reads.
+static func finish_live_advance(
+		state: CareerState, player: Player, begin: Dictionary, offer) -> Dictionary:
+	if offer != null:
+		accept_offer(state, player, offer)
+	elif not begin["complete"]:
+		stay(state, player)
+	return _live_transition(state, begin)
+
+
+# The Outcome descriptor (extends the 2026-06-24 shape with team_changed;
+# promoted = landed on a higher Level than the season was played at).
+static func _live_transition(state: CareerState, begin: Dictionary) -> Dictionary:
+	var nxt := next_live_cell(state)
+	return {
+		"beat": begin["beat"],
+		"promoted": state.current_level() > int(begin["from_level"]),
+		"from_level": begin["from_level"],
+		"tour": begin["tour"],
+		"to_level": state.current_level(),
+		"complete": state.complete,
+		"team_changed": state.current_team_index != int(begin["from_team_index"]),
+		"next_level": nxt["level"],
+		"next_tour": nxt["tour"],
+	}
+
+
+# The NO-UI fallback (headless tests / harnesses): begin + the rush auto-cross
+# (accept the first cross-up offer once every climb tour at the Level is
+# beaten). Byte-identical to the pre-offers behaviour — DO4: no stay() bump on
+# the no-promotion path. The live game routes through begin/finish instead.
+static func advance_after_live_season(
+		state: CareerState, player: Player, result: SeasonResult,
+		level: int, tour: int, rng: RandomNumberGenerator) -> Dictionary:
+	var begin := begin_live_advance(state, result, level, tour, rng)
 	if not state.complete:
 		var cur := state.current_level()
 		var up := cur + 1
 		if state.next_climb_tour(cur) == -1 and up < CareerState.LEVELS \
 				and state.any_unlocked_at(up):
-			for o in generate_offers(state, result.beat, rng):
+			for o in begin["offers"]:
 				if o.level == up:
 					accept_offer(state, player, o)
-					promoted = true
 					break
-	var nxt := next_live_cell(state)
-	return {
-		"beat": result.beat,
-		"promoted": promoted,
-		"from_level": from_level,
-		"tour": tour,
-		"to_level": state.current_level(),
-		"complete": state.complete,
-		"next_level": nxt["level"],
-		"next_tour": nxt["tour"],
-	}
+	return _live_transition(state, begin)
 
 
 # --- The Season turn (DC5/DC8/DC9/DC13) ----------------------------------------

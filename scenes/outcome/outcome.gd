@@ -9,7 +9,7 @@ extends Control
 signal continue_pressed()
 
 func set_outcome(result: SeasonResult, pay: int, wins: int,
-		_career: CareerState = null, transition: Dictionary = {}) -> void:
+		career: CareerState = null, transition: Dictionary = {}) -> void:
 	var pos := result.player_final_position
 	var made_playoffs := pos <= 4
 	var games := 7 + (2 if made_playoffs else 0)
@@ -52,7 +52,7 @@ func set_outcome(result: SeasonResult, pay: int, wins: int,
 	# Transition banner — the central "what just happened to the career" line
 	# (cleared a tour / promoted a Level / champion / a not-beaten retry). Gold when
 	# you advanced. No emoji — Barlow Semi Condensed tofus them.
-	var b := _banner_for(transition)
+	var b := _banner_for(transition, career)
 	var banner := Label.new()
 	banner.name = "Banner"
 	banner.text = b["text"]
@@ -125,14 +125,20 @@ func _headline(pos: int) -> String:
 		4: return "SEMI-FINAL EXIT"
 		_: return "MISSED THE PLAYOFFS"
 
-# The career-transition banner (spec 2026-06-24). Reads the descriptor returned by
-# CareerResolver.advance_after_live_season. Tours are 1-indexed for display.
-func _banner_for(t: Dictionary) -> Dictionary:
+# The career-transition banner (spec 2026-06-24; offers cases 2026-07-02).
+# Reads the descriptor returned by CareerResolver.finish_live_advance. Tours
+# are 1-indexed for display.
+func _banner_for(t: Dictionary, career: CareerState) -> Dictionary:
 	if t.get("complete", false):
 		return {"text": "PROVINCE CHAMPIONS · CAREER COMPLETE", "color": Palette.GOLD}
 	if t.get("promoted", false):
 		return {"text": "PROMOTED TO %s" % _level_word(t.get("to_level", 0)).to_upper(),
 			"color": Palette.GOLD}
+	if int(t.get("to_level", 0)) < int(t.get("from_level", 0)):
+		return {"text": "MOVED DOWN TO %s" % _level_word(t.get("to_level", 0)).to_upper(),
+			"color": Palette.WHITE}
+	if t.get("team_changed", false):
+		return {"text": "SIGNED FOR %s" % _new_team_name(career), "color": Palette.WHITE}
 	if t.get("beat", false):
 		return {"text": "%s · TOUR %d CLEARED" %
 			[_level_word(t.get("from_level", 0)).to_upper(), int(t.get("tour", 0)) + 1],
@@ -147,6 +153,11 @@ func _next_up_text(t: Dictionary) -> String:
 
 func _cta_text(t: Dictionary) -> String:
 	return "ENTER THE HALL OF FAME  >" if t.get("complete", false) else "CONTINUE  >"
+
+func _new_team_name(career: CareerState) -> String:
+	if career == null:
+		return "A NEW TEAM"
+	return career.teams[career.current_team_index].team_name.to_upper()
 
 func _level_word(level: int) -> String:
 	return ["Club", "City", "Province"][clampi(level, 0, 2)]

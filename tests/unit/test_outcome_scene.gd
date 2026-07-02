@@ -72,6 +72,30 @@ func test_promoted_banner_visible_and_named() -> void:
 	assert_gt(banner.size.y, 0.0, "banner not collapsed")
 	assert_true(banner.text.contains("CITY"), "promotion names the new Level")
 
+# --- Offers-era banners: moved down / signed same-Level (spec 2026-07-02) ---
+
+func test_moved_down_banner_names_level() -> void:
+	var s = _show(_result(2), {"promoted": false, "to_level": 0, "from_level": 1,
+		"complete": false, "team_changed": true, "next_level": 0, "next_tour": 2,
+		"beat": true, "tour": 0})
+	await get_tree().process_frame
+	var banner: Label = s.find_child("Banner", true, false)
+	assert_true(banner.text.contains("MOVED DOWN TO CLUB"),
+		"a down move names the Level, not a promotion/cleared line")
+
+func test_signed_same_level_banner_names_team() -> void:
+	var career := CareerResolver.start_career(0)
+	career.current_team_index = 1   # the team the pick landed on
+	var screen = OutcomeScene.instantiate()
+	add_child_autofree(screen)
+	screen.set_outcome(_result(5), 60, 2, career,
+		{"promoted": false, "to_level": 0, "from_level": 0, "complete": false,
+		"team_changed": true, "next_level": 0, "next_tour": 0, "beat": false, "tour": 0})
+	await get_tree().process_frame
+	var banner: Label = screen.find_child("Banner", true, false)
+	assert_true(banner.text.contains(career.teams[1].team_name.to_upper()),
+		"a same-Level move names the new team")
+
 func test_cleared_banner_names_tour_one_indexed() -> void:
 	var s = _show(_result(2), {"promoted": false, "to_level": 0, "complete": false,
 		"next_level": 0, "next_tour": 5, "beat": true, "from_level": 0, "tour": 4})

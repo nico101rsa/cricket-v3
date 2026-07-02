@@ -6,20 +6,32 @@ const Appearance = preload("res://scripts/domain/appearance.gd")
 
 var _original_player_path: String
 var _original_legends_path: String
+var _original_career_path: String
+var _original_live_path: String
 
 func before_each() -> void:
 	_original_player_path = SaveManager.player_save_path
 	_original_legends_path = SaveManager.legends_save_path
+	_original_career_path = SaveManager.career_save_path
+	_original_live_path = SaveManager.live_season_save_path
 	SaveManager.player_save_path = "user://_test_main_player.tres"
 	SaveManager.legends_save_path = "user://_test_main_legends.tres"
+	SaveManager.career_save_path = "user://_test_main_career.tres"
+	SaveManager.live_season_save_path = "user://_test_main_live.tres"
 	SaveManager.clear_player()
 	SaveManager.clear_legends()
+	SaveManager.clear_career()
+	SaveManager.clear_live_season()
 
 func after_each() -> void:
 	SaveManager.clear_player()
 	SaveManager.clear_legends()
+	SaveManager.clear_career()
+	SaveManager.clear_live_season()
 	SaveManager.player_save_path = _original_player_path
 	SaveManager.legends_save_path = _original_legends_path
+	SaveManager.career_save_path = _original_career_path
+	SaveManager.live_season_save_path = _original_live_path
 
 func test_router_instantiates_without_error():
 	var main = MainScene.instantiate()
@@ -56,3 +68,43 @@ func test_back_from_build_returns_to_identity_with_picks_preserved():
 	assert_true(back_identity.has_signal("advance_to_build"), "returned to Identity")
 	assert_eq(back_identity._draft.city, draft.city, "city pick preserved across Back")
 	assert_false(back_identity._next_btn.disabled, "hydrated Identity has Next enabled")
+
+# --- Season end routes through the Offers screen (offers spec 2026-07-02) ---
+
+func _opps() -> Array:
+	var out: Array = []
+	for k in range(7):
+		var t := Team.new()
+		t.team_name = "Opp %d" % (k + 1)
+		t.stars = 2.5
+		out.append(t)
+	return out
+
+func _done_play() -> SeasonPlay:
+	var team := Team.new()
+	team.team_name = "My XI"
+	team.stars = 2.5
+	var sp := SeasonPlay.start(Attributes.new(), team, _opps(),
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), 42)
+	while not sp.season_done() and not sp.next_player_opponent().is_empty():
+		sp.commit_player_result(sp.make_session().result())
+	return sp
+
+func test_finish_live_season_routes_offers_then_outcome():
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var p := Player.new()
+	p.attributes = Attributes.new()
+	SaveManager.save_player(p)
+	var career := CareerResolver.start_career(0)
+	var play := _done_play()
+	main._finish_live_season(play, career)
+	await get_tree().process_frame
+	var screen = main._slot.get_child(0)
+	assert_true(screen.has_signal("offer_picked"), "the Offers screen mounts at season end")
+	screen.offer_picked.emit(null)   # STAY
+	await get_tree().process_frame
+	var outcome = main._slot.get_child(0)
+	assert_true(outcome.has_signal("continue_pressed"), "the pick lands on the Outcome")
+	assert_true(SaveManager.has_career(), "career persisted after the pick")
