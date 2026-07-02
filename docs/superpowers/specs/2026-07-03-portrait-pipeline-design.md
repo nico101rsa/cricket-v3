@@ -63,7 +63,7 @@ is **byte-identical** to the drop's `view-three-quarter.png`.
   drop-in when design answers the brief. Fallback if the remap reads badly on eyeball:
   ship form-only faces (same face all buckets) and wait for design.
 - **DP5 — `PortraitLibrary`** (`scripts/ui/portrait_library.gd`, static):
-  `texture(bucket: int, form: int) -> Texture2D` and `path(bucket, band) -> String`;
+  `texture_for(bucket: int, form: int) -> Texture2D` and `path(bucket, band) -> String`;
   lazy `load()` + in-memory cache; unknown bucket/band clamps to WHITE/STEADY.
   Portraits carry **no data** — flavour only.
 - **DP6 — Consumers wired this rung:** Identity hero (live-swap on appearance pick — the
