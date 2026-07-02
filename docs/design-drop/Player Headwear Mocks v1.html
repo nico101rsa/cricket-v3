@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style data-omelette-injected>html,body{background:transparent}</style><script data-omelette-injected>(()=>{{const Y=new URLSearchParams(location.search).get("theme");if(Y==="light"||Y==="dark"){document.documentElement.dataset.theme=Y}}{const Y=()=>{try{if(document.querySelector('meta[name="color-scheme"]'))return;const k=getComputedStyle(document.documentElement).getPropertyValue("color-scheme").trim();if(k&&k!=="normal")return;const w=(X)=>{if(!X)return null;const F=getComputedStyle(X).backgroundColor.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?\s*\)$/);if(!F)return null;const K=F[4]==null?1:parseFloat(F[4])/(F[4].endsWith("%")?100:1);if(K<0.99)return null;return[+F[1],+F[2],+F[3]]};const U=w(document.body)||w(document.documentElement);if(!U)return;const x=(X)=>{const F=X/255;return F<=0.04045?F/12.92:((F+0.055)/1.055)**2.4};const D=0.2126*x(U[0])+0.7152*x(U[1])+0.0722*x(U[2]);document.documentElement.style.setProperty("color-scheme",D<0.4?"dark":"light")}catch{}};if(document.readyState==="complete")Y();else window.addEventListener("load",Y)}var _=[];var v=false;var P=30000;var h=3000;document.addEventListener("DOMContentLoaded",()=>{const Y=window.Babel;const k="om-src-id";if(Y&&Y.registerPlugin&&!(Y.availablePlugins&&Y.availablePlugins[k])){Y.registerPlugin(k,({types:D})=>({visitor:{JSXOpeningElement(X,F){const K=X.node;if(K.name&&K.name.type==="JSXMemberExpression")return;for(let z=0;z<K.attributes.length;z++){const V=K.attributes[z];if(V.type==="JSXAttribute"&&V.name&&V.name.name==="data-om-id")return}const B=F.file&&F.file.opts&&F.file.opts.filename||"?";const A=K.loc&&K.loc.start;const J=`jsx:${B}:${K.start??0}:${A?A.line:0}:${A?A.column+1:0}`;K.attributes.push(D.jsxAttribute(D.jsxIdentifier("data-om-id"),D.stringLiteral(J)))}}}))}const w="om-text-extract";let U=false;if(v&&Y&&Y.registerPlugin&&!(Y.availablePlugins&&Y.availablePlugins[w])){const D=window.React;if(D&&D.useSyncExternalStore&&D.createElement){U=true;const X={};const F=new Set;let K=0;window.__omTextO=X;window.__omTextSet=(J)=>{for(const z in J){const V=J[z];if(V==null)delete X[z];else X[z]=V}K++;F.forEach((z)=>z())};const B=(J)=>{F.add(J);return()=>F.delete(J)};const A=()=>K;window.__OmT=function J(z){D.useSyncExternalStore(B,A,A);return D.createElement("span",{"data-om-text":z.i,className:"__om-t"},z.i in X?X[z.i]:z.children)};Y.registerPlugin(w,({types:J})=>{const z={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const V={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const W=(Z,H)=>J.logicalExpression("??",J.memberExpression(J.logicalExpression("||",J.memberExpression(J.identifier("window"),J.identifier("__omTextO")),J.objectExpression([])),J.stringLiteral(Z),true),H);const Q=(Z)=>Z.file&&Z.file.opts&&Z.file.opts.filename||"?";const j=(Z)=>Z.file&&Z.file.code||"";const G=(Z,H)=>{const N=($)=>$&&$.start!=null&&$.end!=null&&($.type==="StringLiteral"||$.type==="TemplateLiteral"&&$.expressions.length===0)?[$.start,$.end]:null;const L=N(H);if(L)return L;if(H&&H.type==="Identifier"){const $=Z.scope.getBinding(H.name);if($&&$.constant&&$.path.node.type==="VariableDeclarator"){return N($.path.node.init)}}return null};const R=(Z,H,N)=>{const L=Z.node;let $=false;const M=(q,E)=>{$=true;return J.jsxElement(J.jsxOpeningElement(J.jsxIdentifier("__OmT"),[J.jsxAttribute(J.jsxIdentifier("i"),J.stringLiteral(q))],false),J.jsxClosingElement(J.jsxIdentifier("__OmT")),[E],false)};const C=L.children.map((q)=>{if(q.type==="JSXText"){if(q.start==null||q.end==null)return q;const E=N.slice(q.start,q.end);const f=E.length-E.trimStart().length;const I=E.length-E.trimEnd().length;if(f+I>=E.length)return q;return M(`txt:${H}:${q.start+f}:${q.end-I}`,q)}if(q.type==="JSXExpressionContainer"){const E=G(Z,q.expression);if(E)return M(`str:${H}:${E[0]}:${E[1]}`,q)}return q});if($)L.children=C};return{visitor:{JSXOpeningElement(Z,H){const N=Z.node;const L=Q(H);const $={};for(let M=0;M<N.attributes.length;M++){const C=N.attributes[M];if(C.type!=="JSXAttribute"||!C.name)continue;const q=C.name.name;if(!V[q])continue;if(!C.value||C.value.type!=="StringLiteral")continue;if(C.value.start==null||C.value.end==null)continue;const E=`txt:${L}:${C.value.start}:${C.value.end}`;$[q]=E;C.value=J.jsxExpressionContainer(W(E,J.stringLiteral(C.value.value)))}if(Object.keys($).length){N.attributes.push(J.jsxAttribute(J.jsxIdentifier("data-om-text-attrs"),J.stringLiteral(JSON.stringify($))))}},JSXElement(Z,H){const N=Z.node.openingElement;const L=N&&N.name&&N.name.name;if(L==="__OmT")return;if(typeof L==="string"&&z[L])return;R(Z,Q(H),j(H))},JSXFragment(Z,H){R(Z,Q(H),j(H))}}}})}}const x=U?["transform-react-jsx-source",k,w]:["transform-react-jsx-source",k];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((D,X)=>{const F=D.getAttribute("data-plugins")||"";const K=x.filter((B)=>F.indexOf(B)<0);if(K.length){D.setAttribute("data-plugins",F?`${F},${K.join(",")}`:K.join(","))}if(!D.hasAttribute("data-filename")){D.setAttribute("data-filename",D.getAttribute("src")||`inline-${X}`)}})});var S=window.parent;if(S&&S!==window){const Y=(J,z)=>{try{S.postMessage({__omelette_log:true,type:J,data:z},"*")}catch{}};["log","warn","error"].forEach((J)=>{const z=console[J];console[J]=(...V)=>{const W=V.map((Q)=>{try{return typeof Q==="object"?JSON.stringify(Q):String(Q)}catch{try{return String(Q)}catch{return"[unstringifiable]"}}}).join(" ");Y(J,W);z.apply(console,V)}});window.addEventListener("error",(J)=>{const z=J.target;if(z&&z!==window&&z.tagName){const V=z.src||z.href||"";Y("resource_error",`${z.tagName} failed to load: ${V}`)}else{Y("error",`${J.message||"Unknown error"} at ${J.filename||"?"}:${J.lineno||0}:${J.colno||0}`)}},true);window.addEventListener("unhandledrejection",(J)=>{const z=J.reason;const V=z instanceof Error?`${z.message} ${z.stack}`:String(z);Y("error",`Unhandled rejection: ${V}`)});const k=()=>{try{S.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(window.ResizeObserver)new ResizeObserver(k).observe(document.documentElement);const w=()=>{k();if(!document.querySelector('script[type="text/babel"],script[type="text/jsx"]'))return;const J=()=>document.getElementById("root")||document.querySelector("body > div[id]");const z=J()?.firstElementChild??null;let V=0;const W=()=>{const Q=J();if(Q&&Q.firstElementChild!==z||++V>30){k();return}setTimeout(W,100)};setTimeout(W,100)};if(document.readyState==="complete")w();else window.addEventListener("load",w);const U={};let x=0;const D=(J)=>new Promise((z,V)=>{if(!_.length){V(new Error("claude.complete: no parent origin"));return}const W=`c${++x}`;const Q=()=>setTimeout(()=>{delete U[W];V(new Error(`claude.complete: no data for ${P/1000}s`))},P);const j=Q();U[W]={resolve:z,reject:V,text:"",t:j,arm:Q};try{for(const G of _){S.postMessage({__om_api:true,id:W,body:J},G)}}catch(G){clearTimeout(j);delete U[W];V(G)}});const X=8;const F=async(J,z)=>{if(!Array.isArray(J.messages)){throw new Error("claude.complete: tools require a messages array")}const V=J.messages.slice();const W={...J,tools:J.tools.map((G)=>{if(G===null||typeof G!=="object")return G;const R={};for(const Z of Object.keys(G)){if(typeof G[Z]!=="function")R[Z]=G[Z]}return R})};const Q=W.tool_choice;const j=Q!=null&&(Q.type==="any"||Q.type==="tool")?{...W,tool_choice:Q.disable_parallel_tool_use!==undefined?{type:"auto",disable_parallel_tool_use:Q.disable_parallel_tool_use}:{type:"auto"}}:W;for(let G=0;G<X;G++){const R=await D({...G===0?W:j,messages:V});const Z=R.message;const H=Z&&Array.isArray(Z.content)?Z.content:null;const N=H?H.filter(($)=>$?.type==="tool_use"):[];if(Z?.stop_reason!=="tool_use"||N.length===0){return R.text}const L=[];for(const $ of N){const M=z.get($.name);if(!M){L.push({type:"tool_result",tool_use_id:$.id,content:`no handler for tool "${$.name}"`,is_error:true});continue}try{const C=await M($.input);const q=typeof C==="string"?C:A(C)??"";L.push({type:"tool_result",tool_use_id:$.id,content:q})}catch(C){L.push({type:"tool_result",tool_use_id:$.id,content:String(C?.message??C??"tool handler failed"),is_error:true})}}V.push({role:"assistant",content:H},{role:"user",content:L})}throw new Error(`claude.complete: exceeded ${X} tool turns`)};window.claude={complete(J){const z=J;if(z!==null&&typeof z==="object"&&Array.isArray(z.tools)&&z.tools.some((V)=>V!==null&&typeof V==="object"&&typeof V.run==="function")){const V=new Map;for(const W of z.tools){if(W!==null&&typeof W==="object"&&typeof W.run==="function"){V.set(String(W.name),W.run)}}return F(z,V)}return D(J).then((V)=>V.text)}};const K={};let B=0;window.omelette={writeFile:(J,z)=>new Promise((V,W)=>{if(!_.length){V();return}const Q=`f${++B}`;const j=setTimeout(()=>{delete K[Q];V()},h);K[Q]={resolve:V,reject:W,t:j};try{for(const G of _){S.postMessage({__om_file:true,id:Q,op:"write",path:J,content:z},G)}}catch{clearTimeout(j);delete K[Q];V()}})};const A=(J)=>{try{return JSON.stringify(J)}catch{return JSON.stringify(String(J))}};window.addEventListener("message",(J)=>{if(_.indexOf(J.origin)<0)return;if(J.source!==S)return;const z=J.data;if(!z)return;if(z.type==="omelette-preview-refresh"){if(typeof z.token!=="string"||!/^[0-9a-f.-]+(\.(rc|pr-[0-9]+))?(\.[0-9]+\.[0-9a-f]{16})?$/.test(z.token))return;const Q=Math.max(1,Math.floor((z.expiresAt||0)-Date.now()/1000));document.cookie="__Host-omelette-preview="+z.token+"; Path=/; Secure; SameSite=None; Partitioned; Max-Age="+Q;return}if(z.__om_file_r){const Q=K[z.id];if(!Q)return;clearTimeout(Q.t);delete K[z.id];if(z.ok)Q.resolve();else Q.reject(new Error(z.error||"write failed"));return}if(z.__om_api_r){const Q=U[z.id];if(!Q)return;if(z.error!=null){clearTimeout(Q.t);delete U[z.id];Q.reject(new Error(z.error));return}if(z.chunk!=null){clearTimeout(Q.t);Q.t=Q.arm();Q.text+=z.chunk;return}if(z.done){clearTimeout(Q.t);delete U[z.id];Q.resolve({text:z.text!=null?z.text:Q.text,message:z.message});return}return}if(!z.__om_eval)return;const V=z;const W=(Q)=>{J.source.postMessage({...Q,__om_eval_r:1,id:V.id},J.origin)};try{const Q=(0,eval)(V.code);if(Q&&typeof Q.then==="function"){Q.then((j)=>W({ok:1,v:A(j)}),(j)=>W({ok:0,e:String(j)}))}else{W({ok:1,v:A(Q)})}}catch(Q){W({ok:0,e:String(Q)})}})}})();
+</script>
+
+<meta charset="UTF-8" />
+<title>Player Headwear · Hats & Helmets v1</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --bg-2: #16161e;
+    --red: #c41e3a;
+    --red-bright: #ef6c6c;
+    --gold: #ffd166;
+    --gold-warn: #f5a623;
+    --blue: #4a90e2;
+    --green: #2ecc71;
+    --white-soft: rgba(255,255,255,0.85);
+    --white-mid: rgba(255,255,255,0.65);
+    --white-dim: rgba(255,255,255,0.45);
+    --white-faint: rgba(255,255,255,0.25);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    --surface: rgba(255,255,255,0.04);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 36px 28px 100px;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(196,30,58,0.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(74,144,226,0.06), transparent 45%),
+      var(--bg);
+    min-height: 100vh;
+  }
+
+  .page-head { max-width: 1300px; margin: 0 auto 28px; }
+  .page-head h1 {
+    font-size: 32px; font-weight: 800;
+    margin: 0; letter-spacing: -0.5px;
+  }
+  .page-head h1 .accent { color: var(--gold); }
+  .page-head .sub {
+    font-size: 14px; color: var(--white-mid);
+    margin: 8px 0 0; max-width: 760px; line-height: 1.55;
+  }
+  .page-head .sub b { color: var(--white-soft); }
+
+  .section-bar {
+    max-width: 1300px;
+    margin: 36px auto 14px;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .section-bar h2 {
+    margin: 0;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .section-bar .rule {
+    flex: 1; height: 1px; background: var(--border);
+  }
+  .section-bar .meta {
+    font-size: 11px; color: var(--white-dim);
+    letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+  }
+
+  .grid {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+  }
+
+  /* card */
+  .card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 16px 14px;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .card .num-tag {
+    font-size: 9px; letter-spacing: 2px; font-weight: 800;
+    color: var(--white-dim); text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .card .stage {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .card .stage .sky {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg,
+      #ffe6a0 0%, #f5a623 49%,
+      #6fcf72 51%, #2a8a42 100%);
+  }
+  .card .stage .sky::before {
+    content: '';
+    position: absolute;
+    top: 14%; right: 14%;
+    width: 18%; aspect-ratio: 1;
+    background: radial-gradient(circle, #fff8c8, #ffd166 70%);
+    border-radius: 50%;
+    box-shadow: 0 0 14px rgba(255,209,102,0.55);
+  }
+  .card .stage .horizon {
+    position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: rgba(0,0,0,0.45);
+    z-index: 1;
+  }
+
+  /* shared player anchor — face + neck always identical */
+  .player {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    height: 86%;
+  }
+  .neck {
+    position: absolute;
+    bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 36%; height: 18%;
+    background: linear-gradient(180deg, #a87147 0%, #7a5030 100%);
+    border-radius: 14% 14% 0 0 / 30% 30% 0 0;
+    border: 1.5px solid rgba(0,0,0,0.55);
+    border-bottom: none;
+    z-index: 2;
+  }
+  .face {
+    position: absolute;
+    bottom: 18%; left: 50%; transform: translateX(-50%);
+    width: 64%; aspect-ratio: 1;
+    background: radial-gradient(circle at 35% 35%, #c8956a, #7a5030);
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.6);
+    z-index: 3;
+  }
+  /* eyes — same on every card so faces feel identical */
+  .face::before, .face::after {
+    content: '';
+    position: absolute;
+    top: 48%;
+    width: 8%; aspect-ratio: 1;
+    background: rgba(20,12,4,0.85);
+    border-radius: 50%;
+  }
+  .face::before { left: 28%; }
+  .face::after  { right: 28%; }
+
+  /* label */
+  .card .label .name {
+    font-size: 14px; font-weight: 800;
+    letter-spacing: 0.2px;
+    color: white;
+    line-height: 1.2;
+  }
+  .card .label .kicker {
+    font-size: 9px; letter-spacing: 1.6px;
+    text-transform: uppercase; font-weight: 800;
+    color: var(--gold); margin-bottom: 4px;
+  }
+  .card .label .note {
+    font-size: 11px; color: var(--white-mid);
+    line-height: 1.45;
+    margin-top: 6px;
+  }
+
+  /* ===========================================================
+     HELMETS — H1..H4
+     Anchored to .player; full helmet always overlaps the face.
+     =========================================================== */
+
+  /* shared helmet base — covers crown */
+  .helmet-shell {
+    position: absolute;
+    z-index: 4;
+    border: 1.5px solid rgba(0,0,0,0.7);
+  }
+
+  /* ---- H1 · Test grille ----
+     Iconic test batting helmet: dome + chinstrap + steel grille
+     across face. Navy base + gold trim band. */
+  .h1 .helmet-shell {
+    top: 4%; left: 8%; right: 8%;
+    height: 56%;
+    background: linear-gradient(180deg, #1f2c5c 0%, #0d1638 100%);
+    border-radius: 50% 50% 14% 14% / 60% 60% 14% 14%;
+    box-shadow: inset 0 -4px 0 0 rgba(0,0,0,0.35);
+  }
+  /* gold accent stripe */
+  .h1 .helmet-shell::before {
+    content: '';
+    position: absolute;
+    left: 6%; right: 6%; top: 46%;
+    height: 8%;
+    background: linear-gradient(180deg, #ffd166 0%, #b8860b 100%);
+    border-top: 1px solid rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(0,0,0,0.4);
+  }
+  /* peak / brim */
+  .h1 .helmet-peak {
+    position: absolute; z-index: 4;
+    top: 56%; left: 4%; right: 4%;
+    height: 8%;
+    background: linear-gradient(180deg, #0d1638 0%, #050a1d 100%);
+    border-radius: 6px;
+    border: 1.5px solid rgba(0,0,0,0.7);
+  }
+  /* grille — 3 horizontal bars over the face */
+  .h1 .grille {
+    position: absolute; z-index: 5;
+    top: 50%; left: 18%; right: 18%;
+    height: 36%;
+    pointer-events: none;
+  }
+  .h1 .grille .bar {
+    position: absolute;
+    left: 0; right: 0;
+    height: 8%;
+    background: linear-gradient(180deg, #d3d3d3 0%, #5a5a5a 100%);
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.7);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.4);
+  }
+  .h1 .grille .bar.b1 { top: 20%; }
+  .h1 .grille .bar.b2 { top: 50%; }
+  .h1 .grille .bar.b3 { top: 80%; }
+  /* chinstrap */
+  .h1 .chinstrap {
+    position: absolute; z-index: 6;
+    bottom: 14%; left: 30%; right: 30%;
+    height: 4%;
+    background: #1f2c5c;
+    border: 1px solid rgba(0,0,0,0.6);
+    border-radius: 2px;
+  }
+
+  /* ---- H2 · Streamlined visor ----
+     Smooth aerodynamic dome, no grille — translucent
+     dark visor strip across the eyes. Premium / modern look. */
+  .h2 .helmet-shell {
+    top: 2%; left: 6%; right: 6%;
+    height: 64%;
+    background:
+      radial-gradient(circle at 30% 25%, #5a5a64 0%, #1a1a22 65%);
+    border-radius: 50% 50% 30% 30% / 60% 60% 30% 30%;
+    box-shadow:
+      inset -8px -10px 16px rgba(0,0,0,0.5),
+      inset 6px 4px 10px rgba(255,255,255,0.08);
+  }
+  /* glossy highlight */
+  .h2 .helmet-shell::before {
+    content: '';
+    position: absolute;
+    top: 8%; left: 16%; right: 50%;
+    height: 30%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.35), transparent 80%);
+    border-radius: 50%;
+    filter: blur(2px);
+  }
+  /* red brand stripe down the centre */
+  .h2 .helmet-shell::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 8%; height: 70%;
+    background: linear-gradient(180deg, var(--red), var(--red-bright));
+    border-left: 1px solid rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  /* visor strip across eyes */
+  .h2 .visor {
+    position: absolute; z-index: 5;
+    top: 50%; left: 8%; right: 8%;
+    height: 16%;
+    background: linear-gradient(180deg, rgba(20,30,60,0.92), rgba(0,8,30,0.95));
+    border-radius: 8px;
+    border: 1.5px solid rgba(0,0,0,0.8);
+    box-shadow:
+      inset 0 2px 0 rgba(80,120,180,0.55),
+      inset 0 -2px 0 rgba(0,0,0,0.6);
+  }
+  /* visor reflection sheen */
+  .h2 .visor::before {
+    content: '';
+    position: absolute;
+    top: 12%; left: 8%; width: 22%; height: 38%;
+    background: linear-gradient(120deg, rgba(120,180,255,0.55), transparent 75%);
+    border-radius: 4px;
+  }
+
+  /* ---- H3 · Side-flap (cheekguards) ----
+     Dome + extended ear/cheek flaps that wrap past the
+     jaw. Old-school protection. Maroon w/ cream trim. */
+  .h3 .helmet-shell {
+    top: 4%; left: 4%; right: 4%;
+    height: 72%;
+    background: linear-gradient(180deg, #7b1a1a 0%, #3a0808 100%);
+    border-radius: 46% 46% 28% 28% / 56% 56% 36% 36%;
+  }
+  /* cream centre band */
+  .h3 .helmet-shell::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 46%; width: 8%; height: 56%;
+    background: linear-gradient(180deg, #f4e6c8 0%, #d9b878 100%);
+    border-left: 1px solid rgba(0,0,0,0.4);
+    border-right: 1px solid rgba(0,0,0,0.4);
+  }
+  /* dome shading */
+  .h3 .helmet-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 25%, rgba(255,255,255,0.18), transparent 50%);
+    border-radius: inherit;
+    pointer-events: none;
+  }
+  /* left flap */
+  .h3 .flap-l {
+    position: absolute; z-index: 5;
+    top: 36%; left: -2%;
+    width: 18%; height: 38%;
+    background: linear-gradient(180deg, #7b1a1a 0%, #3a0808 100%);
+    border: 1.5px solid rgba(0,0,0,0.7);
+    border-radius: 60% 30% 60% 50% / 60% 30% 60% 50%;
+    transform: rotate(-6deg);
+  }
+  /* right flap */
+  .h3 .flap-r {
+    position: absolute; z-index: 5;
+    top: 36%; right: -2%;
+    width: 18%; height: 38%;
+    background: linear-gradient(180deg, #7b1a1a 0%, #3a0808 100%);
+    border: 1.5px solid rgba(0,0,0,0.7);
+    border-radius: 30% 60% 50% 60% / 30% 60% 50% 60%;
+    transform: rotate(6deg);
+  }
+  /* logo dot on dome */
+  .h3 .helmet-logo {
+    position: absolute; z-index: 5;
+    top: 12%; left: 50%; transform: translateX(-50%);
+    width: 14%; aspect-ratio: 1;
+    background: var(--gold);
+    border: 1px solid rgba(0,0,0,0.6);
+    border-radius: 50%;
+    box-shadow: inset -2px -2px 4px rgba(0,0,0,0.3);
+  }
+
+  /* ---- H4 · Battle-scarred war helmet ----
+     Aggressive faceted helmet with sharp grille bars
+     and a dirt streak — used for tired/elite vet look. */
+  .h4 .helmet-shell {
+    top: 2%; left: 8%; right: 8%;
+    height: 58%;
+    background: linear-gradient(180deg, #2a2a35 0%, #0d0d12 100%);
+    border-radius: 14% 14% 6% 6% / 50% 50% 6% 6%;
+    clip-path: polygon(
+      18% 0, 82% 0,
+      100% 32%, 100% 100%,
+      0 100%, 0 32%
+    );
+  }
+  /* faceted highlight */
+  .h4 .helmet-shell::before {
+    content: '';
+    position: absolute;
+    top: 12%; left: 22%;
+    width: 56%; height: 30%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), transparent);
+    clip-path: polygon(0 0, 100% 0, 80% 100%, 20% 100%);
+  }
+  /* gold mohawk crest */
+  .h4 .helmet-shell::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 48%; width: 4%; height: 30%;
+    background: linear-gradient(180deg, var(--gold), var(--gold-warn));
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+  /* peak */
+  .h4 .helmet-peak {
+    position: absolute; z-index: 4;
+    top: 56%; left: 4%; right: 4%;
+    height: 7%;
+    background: linear-gradient(180deg, #0d0d12 0%, #000 100%);
+    clip-path: polygon(0 0, 100% 0, 92% 100%, 8% 100%);
+    border-bottom: 1.5px solid rgba(0,0,0,0.6);
+  }
+  /* aggressive vertical grille bars */
+  .h4 .grille-v {
+    position: absolute; z-index: 5;
+    top: 50%; left: 20%; right: 20%;
+    height: 38%;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+  .h4 .grille-v .v {
+    width: 9%;
+    background: linear-gradient(90deg, #9a9a9a 0%, #3a3a3a 100%);
+    border: 1px solid rgba(0,0,0,0.7);
+    border-radius: 3px;
+    box-shadow: inset 1px 0 0 rgba(255,255,255,0.15);
+  }
+  /* dirt streak */
+  .h4 .scuff {
+    position: absolute; z-index: 6;
+    top: 18%; left: 24%;
+    width: 28%; height: 18%;
+    background: rgba(120,70,30,0.55);
+    border-radius: 50%;
+    transform: rotate(-18deg);
+    filter: blur(0.5px);
+  }
+  .h4 .scuff-2 {
+    position: absolute; z-index: 6;
+    top: 32%; right: 18%;
+    width: 14%; height: 8%;
+    background: rgba(120,70,30,0.5);
+    border-radius: 50%;
+    transform: rotate(12deg);
+    filter: blur(0.4px);
+  }
+
+  /* ===========================================================
+     CAPS — C1..C4
+     =========================================================== */
+
+  /* ---- C1 · Baggy traditional cap ----
+     Loose slouchy crown + soft peak — Test/national cap.
+     Forest green w/ embroidered roundel. */
+  .c1 .crown {
+    position: absolute; z-index: 4;
+    top: 12%; left: 14%; right: 14%;
+    height: 32%;
+    background: linear-gradient(180deg, #0E703F 0%, #063a20 100%);
+    border-radius: 50% 50% 14% 14% / 90% 90% 14% 14%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: inset -8px -4px 10px rgba(0,0,0,0.25);
+  }
+  .c1 .crown::before {
+    /* baggy puff highlight */
+    content: '';
+    position: absolute;
+    top: 16%; left: 22%; width: 30%; height: 30%;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    filter: blur(3px);
+  }
+  /* soft folded peak */
+  .c1 .peak {
+    position: absolute; z-index: 4;
+    top: 42%; left: 10%; right: 10%;
+    height: 10%;
+    background: linear-gradient(180deg, #0E703F 0%, #042815 100%);
+    border-radius: 50% 50% 50% 50% / 30% 30% 90% 90%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: inset 0 2px 0 rgba(255,255,255,0.08);
+  }
+  /* embroidered roundel */
+  .c1 .roundel {
+    position: absolute; z-index: 5;
+    top: 22%; left: 50%; transform: translateX(-50%);
+    width: 18%; aspect-ratio: 1;
+    background: radial-gradient(circle, var(--gold) 0%, #b8860b 100%);
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.6);
+  }
+  .c1 .roundel::before {
+    content: '';
+    position: absolute;
+    inset: 22%;
+    border: 1.5px solid rgba(0,0,0,0.4);
+    border-radius: 50%;
+  }
+
+  /* ---- C2 · Snapback (flat brim) ----
+     Modern flat-peak T20 cap. High structured crown,
+     hard flat brim, sticker still on the underside.
+     Red w/ white "C" wordmark slot. */
+  .c2 .crown {
+    position: absolute; z-index: 4;
+    top: 10%; left: 16%; right: 16%;
+    height: 36%;
+    background: linear-gradient(180deg, var(--red) 0%, #6b0e20 100%);
+    border-radius: 18% 18% 6% 6% / 30% 30% 6% 6%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+  }
+  /* structured panel seams */
+  .c2 .crown::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 1.5px; height: 100%;
+    background: rgba(0,0,0,0.35);
+  }
+  .c2 .crown::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 26%; width: 1.5px; height: 100%;
+    background: rgba(0,0,0,0.25);
+    box-shadow: 64px 0 0 rgba(0,0,0,0.25);
+  }
+  /* wordmark */
+  .c2 .mark {
+    position: absolute; z-index: 6;
+    top: 22%; left: 50%; transform: translateX(-50%);
+    color: white;
+    font-weight: 900;
+    font-size: 20px;
+    letter-spacing: -1px;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.5);
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  /* hard flat brim */
+  .c2 .peak {
+    position: absolute; z-index: 5;
+    top: 46%; left: 8%; right: 8%;
+    height: 8%;
+    background: linear-gradient(180deg, #6b0e20 0%, #2a0008 100%);
+    border-radius: 4px;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  }
+  /* sticker on brim */
+  .c2 .sticker {
+    position: absolute; z-index: 6;
+    top: 47.5%; right: 12%;
+    width: 12%; height: 5%;
+    background: var(--gold);
+    border: 1px solid rgba(0,0,0,0.5);
+    border-radius: 2px;
+  }
+
+  /* ---- C3 · Wide-brim sun hat ----
+     Wraparound test-cricket sun hat — wide circular brim,
+     low crown, neck-cord. Cream w/ navy band. */
+  .c3 .crown {
+    position: absolute; z-index: 4;
+    top: 16%; left: 22%; right: 22%;
+    height: 26%;
+    background: linear-gradient(180deg, #f4e6c8 0%, #d9b878 100%);
+    border-radius: 40% 40% 8% 8% / 60% 60% 8% 8%;
+    border: 1.5px solid rgba(0,0,0,0.6);
+  }
+  /* navy band */
+  .c3 .crown::before {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 30%;
+    background: linear-gradient(180deg, #1f2c5c, #0d1638);
+    border-top: 1px solid rgba(0,0,0,0.5);
+  }
+  /* wide circular brim */
+  .c3 .brim {
+    position: absolute; z-index: 4;
+    top: 40%; left: -4%; right: -4%;
+    height: 14%;
+    background: linear-gradient(180deg, #f4e6c8 0%, #b89a52 100%);
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.6);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.25);
+  }
+  /* brim underside shadow */
+  .c3 .brim::before {
+    content: '';
+    position: absolute;
+    inset: 40% 6% 0 6%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.35), transparent);
+    border-radius: 0 0 50% 50%;
+  }
+  /* neck cord */
+  .c3 .cord {
+    position: absolute; z-index: 3;
+    top: 42%; left: 30%; right: 30%; bottom: 6%;
+    border: 1.5px solid rgba(20,15,8,0.7);
+    border-top: none;
+    border-radius: 0 0 60% 60% / 0 0 100% 100%;
+  }
+
+  /* ---- C4 · Visor band (no crown) ----
+     Sweatband + visor combo — open top, common for
+     fielders in heat. Vibrant gold with mesh band. */
+  .c4 .band {
+    position: absolute; z-index: 4;
+    top: 24%; left: 6%; right: 6%;
+    height: 14%;
+    background: linear-gradient(180deg, #ffe28a 0%, #f0b500 100%);
+    border-radius: 14px;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.25);
+  }
+  /* mesh stitch */
+  .c4 .band::before {
+    content: '';
+    position: absolute;
+    inset: 28% 10%;
+    background:
+      repeating-linear-gradient(90deg,
+        rgba(0,0,0,0.15) 0 1.5px,
+        transparent 1.5px 4px);
+    border-radius: 2px;
+  }
+  /* visor */
+  .c4 .visor-brim {
+    position: absolute; z-index: 4;
+    top: 36%; left: 0%; right: 0%;
+    height: 9%;
+    background: linear-gradient(180deg, #c08800 0%, #6b4a00 100%);
+    border-radius: 50%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  }
+  /* visor underside */
+  .c4 .visor-brim::before {
+    content: '';
+    position: absolute;
+    inset: 38% 8% 0 8%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.4), transparent);
+    border-radius: 0 0 50% 50%;
+  }
+  /* exposed hair tuft on top */
+  .c4 .tuft {
+    position: absolute; z-index: 3;
+    top: 8%; left: 38%; right: 38%;
+    height: 18%;
+    background: #1c120a;
+    border-radius: 50% 50% 30% 30%;
+    border: 1.5px solid rgba(0,0,0,0.7);
+  }
+
+  /* ===========================================================
+     Tag — small role/use hint at top-right of card stage
+     =========================================================== */
+  .card .stage .use-tag {
+    position: absolute;
+    top: 8px; right: 8px;
+    z-index: 7;
+    background: rgba(0,0,0,0.55);
+    border: 1px solid var(--border-strong);
+    color: var(--white-soft);
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    padding: 3px 6px;
+    border-radius: 4px;
+    backdrop-filter: blur(4px);
+  }
+
+  /* ===========================================================
+     Comparison strip — all 8 at scorebar (tiny) size
+     =========================================================== */
+  .compare {
+    max-width: 1300px;
+    margin: 36px auto 0;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+  }
+  .compare h3 {
+    margin: 0 0 4px;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .compare .sub {
+    font-size: 11px; color: var(--white-dim);
+    margin-bottom: 16px;
+  }
+  .compare-row {
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .scorebar-chip {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px 8px 8px;
+    display: flex; align-items: center; gap: 9px;
+    font-size: 11px;
+    min-width: 0;
+  }
+  .scorebar-chip .stage {
+    width: 32px; height: 38px;
+    position: relative;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .scorebar-chip .stage .sky {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, #ffe6a0 0%, #f5a623 49%, #6fcf72 51%, #2a8a42 100%);
+  }
+  .scorebar-chip .nm {
+    font-weight: 700;
+    color: white;
+    line-height: 1.1;
+  }
+  .scorebar-chip .nm .k {
+    display: block;
+    font-size: 8px; letter-spacing: 1.2px;
+    color: var(--white-dim); text-transform: uppercase;
+    font-weight: 800;
+    margin-bottom: 2px;
+  }
+
+  /* footer notes */
+  .notes {
+    max-width: 1300px;
+    margin: 28px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    color: var(--white-mid);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .notes h3 {
+    margin: 0 0 8px;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .notes b { color: var(--white-soft); }
+  .notes ul { margin: 4px 0 0; padding-left: 18px; }
+  .notes li { margin: 4px 0; }
+
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Player headwear <span class="accent">·</span> hats &amp; helmets</h1>
+  <p class="sub">
+    Eight headwear shapes for the player portrait system. The face, neck, sky and horizon are <b>identical</b> on every card — only the headwear changes — so we can pick the most distinctive 1–2 silhouettes. Each is CSS-drawn (no SVG, no licensed marks). Bottom strip shows how each shape collapses at scorebar size: <b>silhouette legibility at 32px is the real test</b>.
+  </p>
+</div>
+
+<!-- ============= HELMETS ============= -->
+<div class="section-bar">
+  <h2>Helmets</h2>
+  <div class="rule"></div>
+  <div class="meta">batters · 4 directions</div>
+</div>
+
+<div class="grid">
+
+  <!-- H1 · Test grille -->
+  <div class="card h1">
+    <div class="num-tag">H1</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Test · classic</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="helmet-shell"></div>
+        <div class="helmet-peak"></div>
+        <div class="grille">
+          <div class="bar b1"></div>
+          <div class="bar b2"></div>
+          <div class="bar b3"></div>
+        </div>
+        <div class="chinstrap"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Test grille</div>
+      <div class="note">Iconic batting silhouette: dome + steel grille + gold trim band. The grille immediately reads "batter" at any size.</div>
+    </div>
+  </div>
+
+  <!-- H2 · Streamlined visor -->
+  <div class="card h2">
+    <div class="num-tag">H2</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">T20 · modern</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="helmet-shell"></div>
+        <div class="visor"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Streamlined visor</div>
+      <div class="note">Smooth glossy dome with a tinted visor strip instead of a grille. Reads premium / modern — pair w/ "elite" skill tier.</div>
+    </div>
+  </div>
+
+  <!-- H3 · Side-flap -->
+  <div class="card h3">
+    <div class="num-tag">H3</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Heritage</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="helmet-shell"></div>
+        <div class="flap-l"></div>
+        <div class="flap-r"></div>
+        <div class="helmet-logo"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Side-flap (cheekguards)</div>
+      <div class="note">Old-school protection. Wraparound flaps push past the jaw — wider, chunkier silhouette. Good for "vet" / "captain" types.</div>
+    </div>
+  </div>
+
+  <!-- H4 · Battle-scarred -->
+  <div class="card h4">
+    <div class="num-tag">H4</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Vet · dirty</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="helmet-shell"></div>
+        <div class="helmet-peak"></div>
+        <div class="grille-v">
+          <div class="v"></div>
+          <div class="v"></div>
+          <div class="v"></div>
+          <div class="v"></div>
+          <div class="v"></div>
+        </div>
+        <div class="scuff"></div>
+        <div class="scuff-2"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Battle-scarred</div>
+      <div class="note">Faceted shell, vertical grille, gold crest, dirt streaks. Use as the "fatigued / been-through-it" state of any helmet above.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============= CAPS ============= -->
+<div class="section-bar">
+  <h2>Caps &amp; hats</h2>
+  <div class="rule"></div>
+  <div class="meta">bowlers · fielders · 4 directions</div>
+</div>
+
+<div class="grid">
+
+  <!-- C1 · Baggy traditional -->
+  <div class="card c1">
+    <div class="num-tag">C1</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Test cap</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="crown"></div>
+        <div class="peak"></div>
+        <div class="roundel"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Baggy traditional</div>
+      <div class="note">Slouchy crown + soft peak + embroidered gold roundel. Heritage signal — captains, veterans, format = Test.</div>
+    </div>
+  </div>
+
+  <!-- C2 · Snapback flat-peak -->
+  <div class="card c2">
+    <div class="num-tag">C2</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">T20 · franchise</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="crown"></div>
+        <div class="mark">M</div>
+        <div class="peak"></div>
+        <div class="sticker"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Snapback flat-peak</div>
+      <div class="note">Structured high crown, hard flat brim, big wordmark, sticker still on the brim. Franchise/T20 energy — bowlers and fielders.</div>
+    </div>
+  </div>
+
+  <!-- C3 · Wide-brim sun hat -->
+  <div class="card c3">
+    <div class="num-tag">C3</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Day Test</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="crown"></div>
+        <div class="brim"></div>
+        <div class="cord"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Wide-brim sun hat</div>
+      <div class="note">Full circular brim + navy band + chin cord. Strongest silhouette in this set — the only round-on-top shape. Slip fielders, old guard.</div>
+    </div>
+  </div>
+
+  <!-- C4 · Visor band -->
+  <div class="card c4">
+    <div class="num-tag">C4</div>
+    <div class="stage">
+      <div class="sky"></div>
+      <div class="horizon"></div>
+      <div class="use-tag">Heat · fielder</div>
+      <div class="player">
+        <div class="neck"></div>
+        <div class="face"></div>
+        <div class="tuft"></div>
+        <div class="band"></div>
+        <div class="visor-brim"></div>
+      </div>
+    </div>
+    <div class="label">
+      <div class="kicker">Distinctive</div>
+      <div class="name">Visor band</div>
+      <div class="note">No crown — sweat-band + visor only, hair shows on top. Lets us draw hair colour as a player trait. Fielders in heat / death overs.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============= COMPARISON STRIP ============= -->
+<div class="compare">
+  <h3>Silhouette test · scorebar size</h3>
+  <div class="sub">Same shapes scaled to ~32px wide — where they actually have to read in the live scoreboard. Anything that turns into a blob fails this test.</div>
+
+  <div class="compare-row">
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini h1 -->
+        <div style="position:absolute;inset:6% 14% 0 14%;background:linear-gradient(180deg,#1f2c5c,#0d1638);border-radius:50% 50% 14% 14% / 60% 60% 14% 14%;border:1px solid rgba(0,0,0,0.7);height:62%;"></div>
+        <div style="position:absolute;left:14%;right:14%;top:42%;height:6%;background:#ffd166;border-top:1px solid rgba(0,0,0,0.3);border-bottom:1px solid rgba(0,0,0,0.3);"></div>
+        <div style="position:absolute;left:24%;right:24%;top:54%;height:3px;background:#ccc;border-radius:2px;"></div>
+        <div style="position:absolute;left:24%;right:24%;top:64%;height:3px;background:#ccc;border-radius:2px;"></div>
+        <div style="position:absolute;left:24%;right:24%;top:74%;height:3px;background:#ccc;border-radius:2px;"></div>
+      </div>
+      <div class="nm"><span class="k">H1</span>Test grille</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini h2 -->
+        <div style="position:absolute;inset:4% 10% 0 10%;background:radial-gradient(circle at 30% 25%,#5a5a64,#1a1a22 65%);border-radius:50% 50% 30% 30% / 60% 60% 30% 30%;border:1px solid rgba(0,0,0,0.7);height:72%;"></div>
+        <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:8%;height:52%;background:#c41e3a;"></div>
+        <div style="position:absolute;left:14%;right:14%;top:54%;height:14%;background:rgba(10,20,50,0.95);border:1px solid rgba(0,0,0,0.8);border-radius:3px;"></div>
+      </div>
+      <div class="nm"><span class="k">H2</span>Visor</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini h3 -->
+        <div style="position:absolute;inset:6% 8% 0 8%;background:linear-gradient(180deg,#7b1a1a,#3a0808);border-radius:46% 46% 28% 28% / 56% 56% 36% 36%;border:1px solid rgba(0,0,0,0.7);height:78%;"></div>
+        <div style="position:absolute;top:0;left:46%;width:8%;height:42%;background:#f4e6c8;"></div>
+        <div style="position:absolute;top:32%;left:0;width:14%;height:30%;background:#7b1a1a;border:1px solid rgba(0,0,0,0.7);border-radius:50% 30% 60% 50%;transform:rotate(-6deg);"></div>
+        <div style="position:absolute;top:32%;right:0;width:14%;height:30%;background:#7b1a1a;border:1px solid rgba(0,0,0,0.7);border-radius:30% 50% 50% 60%;transform:rotate(6deg);"></div>
+      </div>
+      <div class="nm"><span class="k">H3</span>Side-flap</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini h4 -->
+        <div style="position:absolute;inset:4% 12% 0 12%;background:linear-gradient(180deg,#2a2a35,#0d0d12);height:64%;border:1px solid rgba(0,0,0,0.7);clip-path:polygon(18% 0,82% 0,100% 32%,100% 100%,0 100%,0 32%);"></div>
+        <div style="position:absolute;top:0;left:48%;width:4%;height:30%;background:#ffd166;clip-path:polygon(50% 0,100% 100%,0 100%);"></div>
+      </div>
+      <div class="nm"><span class="k">H4</span>Scarred</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini c1 -->
+        <div style="position:absolute;inset:14% 18% 0 18%;background:linear-gradient(180deg,#0E703F,#063a20);border-radius:50% 50% 14% 14% / 90% 90% 14% 14%;border:1px solid rgba(0,0,0,0.6);height:36%;"></div>
+        <div style="position:absolute;left:14%;right:14%;top:42%;height:9%;background:linear-gradient(180deg,#0E703F,#042815);border:1px solid rgba(0,0,0,0.6);border-radius:50% 50% 50% 50% / 30% 30% 90% 90%;"></div>
+        <div style="position:absolute;top:22%;left:42%;width:16%;aspect-ratio:1;background:#ffd166;border-radius:50%;border:1px solid rgba(0,0,0,0.5);"></div>
+      </div>
+      <div class="nm"><span class="k">C1</span>Baggy</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini c2 -->
+        <div style="position:absolute;inset:12% 20% 0 20%;background:linear-gradient(180deg,#c41e3a,#6b0e20);border-radius:18% 18% 6% 6% / 30% 30% 6% 6%;border:1px solid rgba(0,0,0,0.7);height:40%;"></div>
+        <div style="position:absolute;left:10%;right:10%;top:46%;height:7%;background:#6b0e20;border:1px solid rgba(0,0,0,0.7);border-radius:2px;"></div>
+        <div style="position:absolute;top:18%;left:0;right:0;text-align:center;color:white;font-weight:900;font-size:9px;text-shadow:0 1px 0 rgba(0,0,0,0.5);">M</div>
+      </div>
+      <div class="nm"><span class="k">C2</span>Snapback</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini c3 -->
+        <div style="position:absolute;inset:18% 28% 0 28%;background:linear-gradient(180deg,#f4e6c8,#d9b878);border-radius:40% 40% 8% 8% / 60% 60% 8% 8%;border:1px solid rgba(0,0,0,0.6);height:24%;"></div>
+        <div style="position:absolute;left:0;right:0;top:38%;height:12%;background:linear-gradient(180deg,#f4e6c8,#b89a52);border-radius:50%;border:1px solid rgba(0,0,0,0.6);"></div>
+      </div>
+      <div class="nm"><span class="k">C3</span>Sun hat</div>
+    </div>
+
+    <div class="scorebar-chip">
+      <div class="stage">
+        <div class="sky"></div>
+        <!-- mini c4 -->
+        <div style="position:absolute;top:8%;left:38%;right:38%;height:18%;background:#1c120a;border-radius:50% 50% 30% 30%;border:1px solid rgba(0,0,0,0.6);"></div>
+        <div style="position:absolute;top:26%;left:14%;right:14%;height:12%;background:linear-gradient(180deg,#ffe28a,#f0b500);border:1px solid rgba(0,0,0,0.7);border-radius:4px;"></div>
+        <div style="position:absolute;top:38%;left:0;right:0;height:8%;background:linear-gradient(180deg,#c08800,#6b4a00);border:1px solid rgba(0,0,0,0.7);border-radius:50%;"></div>
+      </div>
+      <div class="nm"><span class="k">C4</span>Visor</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============= NOTES ============= -->
+<div class="notes">
+  <h3>Picking + next moves</h3>
+  <ul>
+    <li><b>Strongest at scorebar size</b> (the real test): <b>H1 Test grille</b>, <b>C2 Snapback</b>, <b>C3 Sun hat</b> — each has a distinct outline. H2 and C1 are too domelike at 32px and risk reading as the same blob.</li>
+    <li><b>Map to game state, not just identity:</b> helmet = batting only. Cap = fielding / bowling. <b>H4 Battle-scarred</b> works as a per-batter <i>state</i> overlay (after 50, after long innings) on top of H1/H2/H3.</li>
+    <li><b>Country palette</b> already drives the helmet/cap colour via <code>--country-1/2</code> in the in-match file — these mocks hard-code colours so the shape reads. When approved I'll port them to use the country variables.</li>
+    <li><b>What's missing:</b> distinctive <i>face</i> features — facial hair, hair colour/length, skin tone, eye style. That's the next round — say the word and I'll mock 4 face features + 4 facial-hair variants in the same format.</li>
+    <li><b>IP-safe by construction:</b> no franchise logos, no real player likenesses, no IPL trade dress. Marks are abstract (roundel, single-letter wordmark, gold crest).</li>
+  </ul>
+</div>
+
+</body>
+</html>

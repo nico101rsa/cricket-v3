@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style data-omelette-injected>html,body{background:transparent}</style><script data-omelette-injected>(()=>{{const Y=new URLSearchParams(location.search).get("theme");if(Y==="light"||Y==="dark"){document.documentElement.dataset.theme=Y}}{const Y=()=>{try{if(document.querySelector('meta[name="color-scheme"]'))return;const k=getComputedStyle(document.documentElement).getPropertyValue("color-scheme").trim();if(k&&k!=="normal")return;const w=(X)=>{if(!X)return null;const F=getComputedStyle(X).backgroundColor.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+%?))?\s*\)$/);if(!F)return null;const K=F[4]==null?1:parseFloat(F[4])/(F[4].endsWith("%")?100:1);if(K<0.99)return null;return[+F[1],+F[2],+F[3]]};const U=w(document.body)||w(document.documentElement);if(!U)return;const x=(X)=>{const F=X/255;return F<=0.04045?F/12.92:((F+0.055)/1.055)**2.4};const D=0.2126*x(U[0])+0.7152*x(U[1])+0.0722*x(U[2]);document.documentElement.style.setProperty("color-scheme",D<0.4?"dark":"light")}catch{}};if(document.readyState==="complete")Y();else window.addEventListener("load",Y)}var _=[];var v=false;var P=30000;var h=3000;document.addEventListener("DOMContentLoaded",()=>{const Y=window.Babel;const k="om-src-id";if(Y&&Y.registerPlugin&&!(Y.availablePlugins&&Y.availablePlugins[k])){Y.registerPlugin(k,({types:D})=>({visitor:{JSXOpeningElement(X,F){const K=X.node;if(K.name&&K.name.type==="JSXMemberExpression")return;for(let z=0;z<K.attributes.length;z++){const V=K.attributes[z];if(V.type==="JSXAttribute"&&V.name&&V.name.name==="data-om-id")return}const B=F.file&&F.file.opts&&F.file.opts.filename||"?";const A=K.loc&&K.loc.start;const J=`jsx:${B}:${K.start??0}:${A?A.line:0}:${A?A.column+1:0}`;K.attributes.push(D.jsxAttribute(D.jsxIdentifier("data-om-id"),D.stringLiteral(J)))}}}))}const w="om-text-extract";let U=false;if(v&&Y&&Y.registerPlugin&&!(Y.availablePlugins&&Y.availablePlugins[w])){const D=window.React;if(D&&D.useSyncExternalStore&&D.createElement){U=true;const X={};const F=new Set;let K=0;window.__omTextO=X;window.__omTextSet=(J)=>{for(const z in J){const V=J[z];if(V==null)delete X[z];else X[z]=V}K++;F.forEach((z)=>z())};const B=(J)=>{F.add(J);return()=>F.delete(J)};const A=()=>K;window.__OmT=function J(z){D.useSyncExternalStore(B,A,A);return D.createElement("span",{"data-om-text":z.i,className:"__om-t"},z.i in X?X[z.i]:z.children)};Y.registerPlugin(w,({types:J})=>{const z={style:1,script:1,noscript:1,textarea:1,title:1,option:1,text:1,tspan:1,textPath:1};const V={placeholder:1,alt:1,title:1,label:1,"aria-label":1,"aria-description":1,"aria-placeholder":1};const W=(Z,H)=>J.logicalExpression("??",J.memberExpression(J.logicalExpression("||",J.memberExpression(J.identifier("window"),J.identifier("__omTextO")),J.objectExpression([])),J.stringLiteral(Z),true),H);const Q=(Z)=>Z.file&&Z.file.opts&&Z.file.opts.filename||"?";const j=(Z)=>Z.file&&Z.file.code||"";const G=(Z,H)=>{const N=($)=>$&&$.start!=null&&$.end!=null&&($.type==="StringLiteral"||$.type==="TemplateLiteral"&&$.expressions.length===0)?[$.start,$.end]:null;const L=N(H);if(L)return L;if(H&&H.type==="Identifier"){const $=Z.scope.getBinding(H.name);if($&&$.constant&&$.path.node.type==="VariableDeclarator"){return N($.path.node.init)}}return null};const R=(Z,H,N)=>{const L=Z.node;let $=false;const M=(q,E)=>{$=true;return J.jsxElement(J.jsxOpeningElement(J.jsxIdentifier("__OmT"),[J.jsxAttribute(J.jsxIdentifier("i"),J.stringLiteral(q))],false),J.jsxClosingElement(J.jsxIdentifier("__OmT")),[E],false)};const C=L.children.map((q)=>{if(q.type==="JSXText"){if(q.start==null||q.end==null)return q;const E=N.slice(q.start,q.end);const f=E.length-E.trimStart().length;const I=E.length-E.trimEnd().length;if(f+I>=E.length)return q;return M(`txt:${H}:${q.start+f}:${q.end-I}`,q)}if(q.type==="JSXExpressionContainer"){const E=G(Z,q.expression);if(E)return M(`str:${H}:${E[0]}:${E[1]}`,q)}return q});if($)L.children=C};return{visitor:{JSXOpeningElement(Z,H){const N=Z.node;const L=Q(H);const $={};for(let M=0;M<N.attributes.length;M++){const C=N.attributes[M];if(C.type!=="JSXAttribute"||!C.name)continue;const q=C.name.name;if(!V[q])continue;if(!C.value||C.value.type!=="StringLiteral")continue;if(C.value.start==null||C.value.end==null)continue;const E=`txt:${L}:${C.value.start}:${C.value.end}`;$[q]=E;C.value=J.jsxExpressionContainer(W(E,J.stringLiteral(C.value.value)))}if(Object.keys($).length){N.attributes.push(J.jsxAttribute(J.jsxIdentifier("data-om-text-attrs"),J.stringLiteral(JSON.stringify($))))}},JSXElement(Z,H){const N=Z.node.openingElement;const L=N&&N.name&&N.name.name;if(L==="__OmT")return;if(typeof L==="string"&&z[L])return;R(Z,Q(H),j(H))},JSXFragment(Z,H){R(Z,Q(H),j(H))}}}})}}const x=U?["transform-react-jsx-source",k,w]:["transform-react-jsx-source",k];document.querySelectorAll('script[type="text/babel"],script[type="text/jsx"]').forEach((D,X)=>{const F=D.getAttribute("data-plugins")||"";const K=x.filter((B)=>F.indexOf(B)<0);if(K.length){D.setAttribute("data-plugins",F?`${F},${K.join(",")}`:K.join(","))}if(!D.hasAttribute("data-filename")){D.setAttribute("data-filename",D.getAttribute("src")||`inline-${X}`)}})});var S=window.parent;if(S&&S!==window){const Y=(J,z)=>{try{S.postMessage({__omelette_log:true,type:J,data:z},"*")}catch{}};["log","warn","error"].forEach((J)=>{const z=console[J];console[J]=(...V)=>{const W=V.map((Q)=>{try{return typeof Q==="object"?JSON.stringify(Q):String(Q)}catch{try{return String(Q)}catch{return"[unstringifiable]"}}}).join(" ");Y(J,W);z.apply(console,V)}});window.addEventListener("error",(J)=>{const z=J.target;if(z&&z!==window&&z.tagName){const V=z.src||z.href||"";Y("resource_error",`${z.tagName} failed to load: ${V}`)}else{Y("error",`${J.message||"Unknown error"} at ${J.filename||"?"}:${J.lineno||0}:${J.colno||0}`)}},true);window.addEventListener("unhandledrejection",(J)=>{const z=J.reason;const V=z instanceof Error?`${z.message} ${z.stack}`:String(z);Y("error",`Unhandled rejection: ${V}`)});const k=()=>{try{S.postMessage({type:"omelette:height",height:document.documentElement.scrollHeight},"*")}catch{}};if(window.ResizeObserver)new ResizeObserver(k).observe(document.documentElement);const w=()=>{k();if(!document.querySelector('script[type="text/babel"],script[type="text/jsx"]'))return;const J=()=>document.getElementById("root")||document.querySelector("body > div[id]");const z=J()?.firstElementChild??null;let V=0;const W=()=>{const Q=J();if(Q&&Q.firstElementChild!==z||++V>30){k();return}setTimeout(W,100)};setTimeout(W,100)};if(document.readyState==="complete")w();else window.addEventListener("load",w);const U={};let x=0;const D=(J)=>new Promise((z,V)=>{if(!_.length){V(new Error("claude.complete: no parent origin"));return}const W=`c${++x}`;const Q=()=>setTimeout(()=>{delete U[W];V(new Error(`claude.complete: no data for ${P/1000}s`))},P);const j=Q();U[W]={resolve:z,reject:V,text:"",t:j,arm:Q};try{for(const G of _){S.postMessage({__om_api:true,id:W,body:J},G)}}catch(G){clearTimeout(j);delete U[W];V(G)}});const X=8;const F=async(J,z)=>{if(!Array.isArray(J.messages)){throw new Error("claude.complete: tools require a messages array")}const V=J.messages.slice();const W={...J,tools:J.tools.map((G)=>{if(G===null||typeof G!=="object")return G;const R={};for(const Z of Object.keys(G)){if(typeof G[Z]!=="function")R[Z]=G[Z]}return R})};const Q=W.tool_choice;const j=Q!=null&&(Q.type==="any"||Q.type==="tool")?{...W,tool_choice:Q.disable_parallel_tool_use!==undefined?{type:"auto",disable_parallel_tool_use:Q.disable_parallel_tool_use}:{type:"auto"}}:W;for(let G=0;G<X;G++){const R=await D({...G===0?W:j,messages:V});const Z=R.message;const H=Z&&Array.isArray(Z.content)?Z.content:null;const N=H?H.filter(($)=>$?.type==="tool_use"):[];if(Z?.stop_reason!=="tool_use"||N.length===0){return R.text}const L=[];for(const $ of N){const M=z.get($.name);if(!M){L.push({type:"tool_result",tool_use_id:$.id,content:`no handler for tool "${$.name}"`,is_error:true});continue}try{const C=await M($.input);const q=typeof C==="string"?C:A(C)??"";L.push({type:"tool_result",tool_use_id:$.id,content:q})}catch(C){L.push({type:"tool_result",tool_use_id:$.id,content:String(C?.message??C??"tool handler failed"),is_error:true})}}V.push({role:"assistant",content:H},{role:"user",content:L})}throw new Error(`claude.complete: exceeded ${X} tool turns`)};window.claude={complete(J){const z=J;if(z!==null&&typeof z==="object"&&Array.isArray(z.tools)&&z.tools.some((V)=>V!==null&&typeof V==="object"&&typeof V.run==="function")){const V=new Map;for(const W of z.tools){if(W!==null&&typeof W==="object"&&typeof W.run==="function"){V.set(String(W.name),W.run)}}return F(z,V)}return D(J).then((V)=>V.text)}};const K={};let B=0;window.omelette={writeFile:(J,z)=>new Promise((V,W)=>{if(!_.length){V();return}const Q=`f${++B}`;const j=setTimeout(()=>{delete K[Q];V()},h);K[Q]={resolve:V,reject:W,t:j};try{for(const G of _){S.postMessage({__om_file:true,id:Q,op:"write",path:J,content:z},G)}}catch{clearTimeout(j);delete K[Q];V()}})};const A=(J)=>{try{return JSON.stringify(J)}catch{return JSON.stringify(String(J))}};window.addEventListener("message",(J)=>{if(_.indexOf(J.origin)<0)return;if(J.source!==S)return;const z=J.data;if(!z)return;if(z.type==="omelette-preview-refresh"){if(typeof z.token!=="string"||!/^[0-9a-f.-]+(\.(rc|pr-[0-9]+))?(\.[0-9]+\.[0-9a-f]{16})?$/.test(z.token))return;const Q=Math.max(1,Math.floor((z.expiresAt||0)-Date.now()/1000));document.cookie="__Host-omelette-preview="+z.token+"; Path=/; Secure; SameSite=None; Partitioned; Max-Age="+Q;return}if(z.__om_file_r){const Q=K[z.id];if(!Q)return;clearTimeout(Q.t);delete K[z.id];if(z.ok)Q.resolve();else Q.reject(new Error(z.error||"write failed"));return}if(z.__om_api_r){const Q=U[z.id];if(!Q)return;if(z.error!=null){clearTimeout(Q.t);delete U[z.id];Q.reject(new Error(z.error));return}if(z.chunk!=null){clearTimeout(Q.t);Q.t=Q.arm();Q.text+=z.chunk;return}if(z.done){clearTimeout(Q.t);delete U[z.id];Q.resolve({text:z.text!=null?z.text:Q.text,message:z.message});return}return}if(!z.__om_eval)return;const V=z;const W=(Q)=>{J.source.postMessage({...Q,__om_eval_r:1,id:V.id},J.origin)};try{const Q=(0,eval)(V.code);if(Q&&typeof Q.then==="function"){Q.then((j)=>W({ok:1,v:A(j)}),(j)=>W({ok:0,e:String(j)}))}else{W({ok:1,v:A(Q)})}}catch(Q){W({ok:0,e:String(Q)})}})}})();
+</script>
+
+<meta charset="UTF-8" />
+<title>Player profile system · canonical</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --bg-2: #16161e;
+    --red: #c41e3a;
+    --red-bright: #ef6c6c;
+    --gold: #ffd166;
+    --gold-warn: #f5a623;
+    --green: #2ecc71;
+    --green-dark: #16a34a;
+    --blue: #4a90e2;
+    --white-soft: rgba(255,255,255,0.85);
+    --white-mid: rgba(255,255,255,0.65);
+    --white-dim: rgba(255,255,255,0.45);
+    --white-faint: rgba(255,255,255,0.25);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.15);
+    --surface: rgba(255,255,255,0.04);
+    --surface-2: rgba(255,255,255,0.07);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: white;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 36px 28px 100px;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(196,30,58,0.08), transparent 40%),
+      radial-gradient(circle at 85% 90%, rgba(14,112,63,0.06), transparent 45%),
+      var(--bg);
+    min-height: 100vh;
+  }
+  .page { max-width: 1300px; margin: 0 auto; }
+
+  .page-head h1 {
+    font-size: 32px; font-weight: 800;
+    margin: 0; letter-spacing: -0.5px;
+  }
+  .page-head h1 .accent { color: var(--gold); }
+  .page-head .sub {
+    font-size: 14px; color: var(--white-mid);
+    margin: 8px 0 0; max-width: 780px; line-height: 1.55;
+  }
+  .page-head .sub b { color: var(--white-soft); }
+  .stamp {
+    display: inline-block;
+    background: var(--gold);
+    color: var(--bg);
+    font-weight: 800;
+    padding: 3px 10px 4px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-left: 10px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .section-bar {
+    margin: 36px 0 14px;
+    display: flex; align-items: baseline; gap: 14px;
+  }
+  .section-bar h2 {
+    margin: 0;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .section-bar .rule { flex: 1; height: 1px; background: var(--border); }
+  .section-bar .meta {
+    font-size: 11px; color: var(--white-dim);
+    letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+  }
+
+  /* ===========================================================
+     CANONICAL REFERENCE — full sheet
+     =========================================================== */
+  .canonical {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+  }
+  .canonical img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 10px;
+  }
+  .canonical .caption {
+    margin-top: 14px;
+    font-size: 12px; color: var(--white-mid);
+    line-height: 1.6;
+  }
+  .canonical .caption b { color: var(--white-soft); }
+  .canonical .caption .pill {
+    display: inline-block;
+    background: rgba(255,209,102,0.12);
+    border: 1px solid rgba(255,209,102,0.35);
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+
+  /* ===========================================================
+     ASSET LIBRARY — grids of individual tiles
+     =========================================================== */
+  .libs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .lib {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .lib h3 {
+    margin: 0 0 4px;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .lib p.h-sub {
+    margin: 0 0 14px;
+    font-size: 11px; color: var(--white-dim);
+    line-height: 1.5;
+  }
+  .lib .tiles {
+    display: grid;
+    gap: 10px;
+  }
+  .lib.cols-4 .tiles { grid-template-columns: repeat(4, 1fr); }
+  .lib.cols-3 .tiles { grid-template-columns: repeat(3, 1fr); }
+  .lib.cols-5 .tiles { grid-template-columns: repeat(5, 1fr); }
+  .lib.cols-6 .tiles { grid-template-columns: repeat(6, 1fr); }
+
+  .tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .tile img {
+    width: 100%; height: auto; display: block;
+  }
+  .tile .lab {
+    font-size: 9px; font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--white-mid);
+    padding: 6px 8px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+
+  /* ===========================================================
+     INTEGRATION — applied in real in-match contexts
+     =========================================================== */
+  .integ-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  .integ {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .integ h3 {
+    margin: 0 0 4px;
+    font-size: 12px; font-weight: 800;
+    letter-spacing: 1.6px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .integ p.h-sub {
+    margin: 0 0 14px;
+    font-size: 11px; color: var(--white-dim);
+    line-height: 1.5;
+  }
+
+  /* SCOREBAR row — uses the in-match red-tinted vocabulary */
+  .scorebar {
+    background: linear-gradient(180deg, rgba(196,30,58,0.18) 0%, rgba(20,20,26,0.95) 60%);
+    border: 1px solid rgba(196,30,58,0.35);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .scorebar .av {
+    width: 38px; height: 46px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(255,255,255,0.18);
+    overflow: hidden;
+    background: #1a2a3a;
+    flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .scorebar .av.large {
+    width: 52px; height: 64px;
+    border-radius: 9px;
+  }
+  .scorebar .av img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 18%;
+    display: block;
+  }
+  .scorebar .info { flex: 1; min-width: 0; line-height: 1.18; }
+  .scorebar .nm {
+    font-weight: 800; color: white; font-size: 14px; letter-spacing: 0.2px;
+  }
+  .scorebar .tag {
+    font-size: 10px; color: var(--white-mid);
+    text-transform: uppercase; letter-spacing: 1.4px;
+    font-weight: 600; margin-top: 2px;
+  }
+  .scorebar .runs {
+    font-size: 22px; font-weight: 800;
+    color: var(--gold);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.5px;
+  }
+  .scorebar .runs .b { font-size: 11px; color: var(--white-dim); margin-left: 2px; }
+  .scorebar.smaller .av { width: 30px; height: 36px; border-radius: 5px; }
+  .scorebar.smaller .nm { font-size: 12px; }
+  .scorebar.smaller .tag { font-size: 9px; }
+  .scorebar.smaller .runs { font-size: 16px; }
+
+  .scorebar + .scorebar { margin-top: 8px; }
+
+  /* KEY MOMENT card — Reigns-style swipe card actor */
+  .km {
+    background: linear-gradient(160deg, #2c1a4d 0%, #160929 100%);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .km .actor {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; gap: 14px; align-items: center;
+  }
+  .km .av {
+    width: 84px; height: 100px;
+    border-radius: 10px;
+    border: 1.5px solid rgba(255,209,102,0.4);
+    overflow: hidden;
+    background: #1a2a3a;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+  }
+  .km .av img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 22%;
+  }
+  .km .meta { flex: 1; }
+  .km .meta .name {
+    font-size: 16px; font-weight: 800; color: var(--gold);
+    letter-spacing: 0.3px;
+  }
+  .km .meta .role {
+    font-size: 10px; color: var(--white-mid);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    font-weight: 700; margin-top: 2px;
+  }
+  .km .meta .stat {
+    margin-top: 8px; font-size: 12px;
+    color: var(--white-mid); line-height: 1.5;
+  }
+  .km .meta .stat b { color: white; font-weight: 700; }
+  .km .question {
+    margin-top: 12px;
+    font-size: 13px; line-height: 1.45;
+    color: white;
+    background: rgba(255,255,255,0.04);
+    border-left: 2px solid var(--gold);
+    padding: 9px 12px;
+    border-radius: 4px;
+    font-style: italic;
+  }
+
+  /* SQUAD card — large profile */
+  .squad {
+    background: linear-gradient(180deg, rgba(74,144,226,0.12) 0%, var(--surface) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex; gap: 16px;
+  }
+  .squad .av {
+    width: 130px; height: 158px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255,255,255,0.18);
+    overflow: hidden;
+    background: #1a2a3a;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  .squad .av img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 18%;
+  }
+  .squad .right {
+    flex: 1; display: flex; flex-direction: column;
+  }
+  .squad .name {
+    font-size: 22px; font-weight: 800; letter-spacing: -0.3px;
+    color: white;
+  }
+  .squad .role {
+    font-size: 10px; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 1.6px;
+    font-weight: 800; margin-top: 2px;
+  }
+  .squad .badges {
+    margin-top: 10px;
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .squad .badge {
+    background: rgba(255,209,102,0.12);
+    border: 1px solid rgba(255,209,102,0.4);
+    color: var(--gold);
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 3px 7px; border-radius: 4px;
+  }
+  .squad .badge.cap { background: rgba(196,30,58,0.15); border-color: rgba(196,30,58,0.5); color: var(--red-bright); }
+  .squad .badge.vet { background: rgba(150,100,50,0.15); border-color: rgba(150,100,50,0.5); color: #d4a76a; }
+  .squad .stats {
+    margin-top: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding-top: 12px;
+  }
+  .squad .stats .cell {
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    padding: 6px 8px;
+  }
+  .squad .stats .k {
+    font-size: 8px; color: var(--white-dim);
+    text-transform: uppercase; letter-spacing: 1.3px;
+    font-weight: 800;
+  }
+  .squad .stats .v {
+    font-size: 18px; font-weight: 800; color: white;
+    font-variant-numeric: tabular-nums;
+    line-height: 1; margin-top: 2px;
+  }
+
+  /* STATE STRIP — same player, different expression states */
+  .states {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+  }
+  .states .row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .states .row .cell {
+    text-align: center;
+  }
+  .states .row .av {
+    width: 100%;
+    aspect-ratio: 1 / 1.1;
+    border-radius: 10px;
+    border: 1.5px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    background: #1a2a3a;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .states .row .av img {
+    width: 100%; height: 100%;
+    object-fit: cover; object-position: center 22%;
+  }
+  .states .row .lab {
+    margin-top: 6px;
+    font-size: 9px; font-weight: 800;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--white-mid);
+  }
+  .states .row .when {
+    font-size: 9px; color: var(--white-dim);
+    margin-top: 2px;
+    letter-spacing: 0.3px;
+  }
+
+  /* MATRIX — trait combination explanation */
+  .matrix {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+  }
+  .matrix h3 {
+    margin: 0 0 8px;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .matrix .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 6px;
+  }
+  .matrix .col h4 {
+    margin: 0 0 6px;
+    font-size: 11px; font-weight: 800;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--white-soft);
+  }
+  .matrix .col p {
+    margin: 0 0 8px;
+    font-size: 11px; color: var(--white-dim);
+    line-height: 1.6;
+  }
+  .matrix .col ul {
+    margin: 0; padding-left: 16px;
+    font-size: 11px; color: var(--white-mid);
+    line-height: 1.7;
+  }
+  .matrix .col code {
+    background: rgba(255,255,255,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #6ec1e4;
+    font-family: ui-monospace, monospace;
+  }
+
+  /* NOTES */
+  .notes {
+    margin-top: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 22px;
+    color: var(--white-mid);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .notes h3 {
+    margin: 0 0 8px;
+    font-size: 13px; font-weight: 800;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+  }
+  .notes b { color: var(--white-soft); }
+  .notes ul { margin: 4px 0 0; padding-left: 18px; }
+  .notes li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="page-head">
+    <h1>Player profile system <span class="accent">·</span> canonical<span class="stamp">v1 locked</span></h1>
+    <p class="sub">
+      This style is the source of truth for player portraits across the entire game. <b>Rounded, soft-shaded illustrations on a sky+ground stage</b> — same vocabulary as the in-match scorebar (gold sun for elite, green ground), now with real character and personality. Below: the reference sheet, the sliced asset library, and integration tests at every UI size we care about.
+    </p>
+  </div>
+
+  <!-- ============ CANONICAL REFERENCE ============ -->
+  <div class="section-bar">
+    <h2>Canonical reference</h2>
+    <div class="rule"></div>
+    <div class="meta">source of truth</div>
+  </div>
+  <div class="canonical">
+    <img src="assets/player-style-sheet.png" alt="Player style sheet" />
+    <div class="caption">
+      <span class="pill">Locked</span>
+      All future portraits match this style: rounded forms, soft shadow modeling, sky-yellow over grass-green stage background, white-collared shirt with country trim, embroidered roundel on the cap. <b>Four orthogonal trait axes</b> we can mix freely: view angle, equipment, player feature, expression — see the matrix below.
+    </div>
+  </div>
+
+  <!-- ============ ASSET LIBRARY ============ -->
+  <div class="section-bar">
+    <h2>Asset library</h2>
+    <div class="rule"></div>
+    <div class="meta">26 tiles · sliced from sheet</div>
+  </div>
+
+  <div class="libs" style="grid-template-columns: 1fr; margin-bottom: 18px;">
+    <div class="lib cols-4">
+      <h3>View angles</h3>
+      <p class="h-sub">Four rotations of the same character. <b>Front</b> = squad/profile screens, <b>3/4 front</b> = key-moment cards, <b>side</b> = scorebar + ticker (most legible at small size), <b>back</b> = fielding overlays.</p>
+      <div class="tiles">
+        <div class="tile"><img src="assets/portraits/view-front.png" alt="front"/><div class="lab">Front</div></div>
+        <div class="tile"><img src="assets/portraits/view-three-quarter.png" alt="3/4"/><div class="lab">3/4 Front</div></div>
+        <div class="tile"><img src="assets/portraits/view-side.png" alt="side"/><div class="lab">Side</div></div>
+        <div class="tile"><img src="assets/portraits/view-back.png" alt="back"/><div class="lab">Back</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="libs" style="grid-template-columns: 1fr; margin-bottom: 18px;">
+    <div class="lib cols-5">
+      <h3>Equipment</h3>
+      <p class="h-sub">Headwear drives <i>game state</i>, not just identity. <b>Cap</b> = fielding/bowling, <b>helmet</b> = batting active, <b>helmet grill-up</b> = between balls, <b>sun hat</b> = day Test slip cordon, <b>bucket hat</b> = old-school heritage.</p>
+      <div class="tiles">
+        <div class="tile"><img src="assets/portraits/equip-cap.png" alt="cap"/><div class="lab">Cap</div></div>
+        <div class="tile"><img src="assets/portraits/equip-helmet.png" alt="helmet"/><div class="lab">Helmet</div></div>
+        <div class="tile"><img src="assets/portraits/equip-helmet-grill-up.png" alt="grill up"/><div class="lab">Grill up</div></div>
+        <div class="tile"><img src="assets/portraits/equip-sun-hat.png" alt="sun"/><div class="lab">Sun hat</div></div>
+        <div class="tile"><img src="assets/portraits/equip-bucket-hat.png" alt="bucket"/><div class="lab">Bucket hat</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="libs" style="grid-template-columns: 1fr; margin-bottom: 18px;">
+    <div class="lib cols-6">
+      <h3>Player features</h3>
+      <p class="h-sub">Facial-hair + skin-tone axes drive the <i>identity</i> of an individual player. Each player is a fixed combination, persisted server-side. Two skin-tone variants here is enough to convey range — we'll grow this to 4–5 tones in production.</p>
+      <div class="tiles">
+        <div class="tile"><img src="assets/portraits/player-clean-shaven.png" alt="clean"/><div class="lab">Clean shaven</div></div>
+        <div class="tile"><img src="assets/portraits/player-beard.png" alt="beard"/><div class="lab">Beard</div></div>
+        <div class="tile"><img src="assets/portraits/player-mustache.png" alt="mustache"/><div class="lab">Mustache</div></div>
+        <div class="tile"><img src="assets/portraits/player-stubble.png" alt="stubble"/><div class="lab">Stubble</div></div>
+        <div class="tile"><img src="assets/portraits/player-light-skin.png" alt="light"/><div class="lab">Light skin</div></div>
+        <div class="tile"><img src="assets/portraits/player-dark-skin.png" alt="dark"/><div class="lab">Dark skin</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="libs">
+    <div class="lib cols-3">
+      <h3>Expressions</h3>
+      <p class="h-sub">Driven by <b>in-match state</b>, not picked by the player. Form streak hot = happy/confident, after a wicket = disappointed/angry, on a milestone = excited, mid-decision = focused.</p>
+      <div class="tiles">
+        <div class="tile"><img src="assets/portraits/expr-neutral.png" alt="neutral"/><div class="lab">Neutral</div></div>
+        <div class="tile"><img src="assets/portraits/expr-happy.png" alt="happy"/><div class="lab">Happy</div></div>
+        <div class="tile"><img src="assets/portraits/expr-excited.png" alt="excited"/><div class="lab">Excited</div></div>
+        <div class="tile"><img src="assets/portraits/expr-focused.png" alt="focused"/><div class="lab">Focused</div></div>
+        <div class="tile"><img src="assets/portraits/expr-determined.png" alt="determined"/><div class="lab">Determined</div></div>
+        <div class="tile"><img src="assets/portraits/expr-surprised.png" alt="surprised"/><div class="lab">Surprised</div></div>
+        <div class="tile"><img src="assets/portraits/expr-disappointed.png" alt="disappointed"/><div class="lab">Disappointed</div></div>
+        <div class="tile"><img src="assets/portraits/expr-angry.png" alt="angry"/><div class="lab">Angry</div></div>
+        <div class="tile"><img src="assets/portraits/expr-confident.png" alt="confident"/><div class="lab">Confident</div></div>
+      </div>
+    </div>
+    <div class="lib cols-4">
+      <h3>Action / intensity</h3>
+      <p class="h-sub">Special-purpose tiles for <b>key moments and stingers</b> — bowler appealing, batter celebrating fifty, focused at strike. These override the default expression during their moment.</p>
+      <div class="tiles" style="grid-template-rows: 1fr 1fr; grid-template-columns: repeat(2, 1fr);">
+        <div class="tile"><img src="assets/portraits/action-looking-up.png" alt="up"/><div class="lab">Looking up</div></div>
+        <div class="tile"><img src="assets/portraits/action-shouting.png" alt="shout"/><div class="lab">Shouting</div></div>
+        <div class="tile"><img src="assets/portraits/action-celebrating.png" alt="celeb"/><div class="lab">Celebrating</div></div>
+        <div class="tile"><img src="assets/portraits/action-focused-batting.png" alt="bat"/><div class="lab">Focused batting</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ INTEGRATION TESTS ============ -->
+  <div class="section-bar">
+    <h2>Integration · in real UI</h2>
+    <div class="rule"></div>
+    <div class="meta">size legibility test</div>
+  </div>
+
+  <div class="integ-grid">
+    <!-- SCOREBAR (tiny) -->
+    <div class="integ">
+      <h3>Scorebar · tiny</h3>
+      <p class="h-sub">38–52px avatar in the live scoreboard chip. <b>Side view</b> + cap reads cleanly at this size — that's why we slice this profile specifically.</p>
+
+      <div class="scorebar">
+        <div class="av large">
+          <img src="assets/portraits/equip-helmet.png" alt="Sharma" />
+        </div>
+        <div class="info">
+          <div class="nm">SHARMA</div>
+          <div class="tag">on 32 · firing</div>
+        </div>
+        <div class="runs">32<span class="b">(18)</span></div>
+      </div>
+
+      <div class="scorebar">
+        <div class="av">
+          <img src="assets/portraits/equip-helmet-grill-up.png" alt="Iyer" />
+        </div>
+        <div class="info">
+          <div class="nm">IYER</div>
+          <div class="tag">on 14 · steady</div>
+        </div>
+        <div class="runs">14<span class="b">(11)</span></div>
+      </div>
+
+      <div class="scorebar smaller">
+        <div class="av">
+          <img src="assets/portraits/equip-cap.png" alt="bowler" />
+        </div>
+        <div class="info">
+          <div class="nm">CHAHAL</div>
+          <div class="tag">1/24 · 3.2 ov</div>
+        </div>
+        <div class="runs" style="font-size:14px;">1/24</div>
+      </div>
+    </div>
+
+    <!-- KEY MOMENT card -->
+    <div class="integ">
+      <h3>Key-moment card · medium</h3>
+      <p class="h-sub">~85px avatar inside a Reigns-style swipe card. 3/4 view + an expression that matches the moment (here: focused — wicket-crisis decision).</p>
+      <div class="km">
+        <div class="actor">
+          <div class="av">
+            <img src="assets/portraits/expr-focused.png" alt="Sharma" />
+          </div>
+          <div class="meta">
+            <div class="name">CAPTAIN SHARMA</div>
+            <div class="role">Wicket crisis · over 13</div>
+            <div class="stat">
+              You're <b>87/4</b>, asking <b>9.2 RPO</b>, 42 balls left. Bowler has <b>1.6 dot %</b> this over.
+            </div>
+          </div>
+        </div>
+        <div class="question">"Shall I push our finisher up the order, or keep him for the death?"</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SQUAD profile (large) -->
+  <div class="section-bar">
+    <h2>Squad profile · large</h2>
+    <div class="rule"></div>
+    <div class="meta">130px · pre-match / scouting</div>
+  </div>
+
+  <div class="integ-grid">
+    <div class="squad">
+      <div class="av"><img src="assets/portraits/player-beard.png" alt="Sharma" /></div>
+      <div class="right">
+        <div class="name">ROHIT SHARMA</div>
+        <div class="role">Captain · top-order batter · RH</div>
+        <div class="badges">
+          <span class="badge cap">Captain</span>
+          <span class="badge vet">Vet · 11 yrs</span>
+          <span class="badge">Elite</span>
+          <span class="badge">Hot streak ×3</span>
+        </div>
+        <div class="stats">
+          <div class="cell"><div class="k">Avg</div><div class="v">48.2</div></div>
+          <div class="cell"><div class="k">SR</div><div class="v">141</div></div>
+          <div class="cell"><div class="k">100s</div><div class="v">31</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="squad">
+      <div class="av"><img src="assets/portraits/player-stubble.png" alt="Iyer" /></div>
+      <div class="right">
+        <div class="name">SHREYAS IYER</div>
+        <div class="role">Middle-order · finisher · RH</div>
+        <div class="badges">
+          <span class="badge">Skilled</span>
+          <span class="badge">Steady</span>
+          <span class="badge">Finishes ×7/10</span>
+        </div>
+        <div class="stats">
+          <div class="cell"><div class="k">Avg</div><div class="v">36.4</div></div>
+          <div class="cell"><div class="k">SR</div><div class="v">128</div></div>
+          <div class="cell"><div class="k">50s</div><div class="v">14</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATE STRIP — same player across match -->
+  <div class="section-bar">
+    <h2>Same player · across the match</h2>
+    <div class="rule"></div>
+    <div class="meta">expression = state, not identity</div>
+  </div>
+  <div class="states">
+    <p class="h-sub" style="margin:0;font-size:11px;color:var(--white-dim);line-height:1.5;">
+      The portrait is a <i>function</i> of player identity (fixed) × game state (live). Below: the same player at six points in one innings. We never let the user pick the expression — it's driven by the sim.
+    </p>
+    <div class="row">
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/expr-neutral.png" alt="0"/></div>
+        <div class="lab">Neutral</div>
+        <div class="when">walk in</div>
+      </div>
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/expr-focused.png" alt="1"/></div>
+        <div class="lab">Focused</div>
+        <div class="when">key delivery</div>
+      </div>
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/expr-determined.png" alt="2"/></div>
+        <div class="lab">Determined</div>
+        <div class="when">after dot streak</div>
+      </div>
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/action-celebrating.png" alt="3"/></div>
+        <div class="lab">Celebrating</div>
+        <div class="when">on 50</div>
+      </div>
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/expr-confident.png" alt="4"/></div>
+        <div class="lab">Confident</div>
+        <div class="when">hot streak ×3</div>
+      </div>
+      <div class="cell">
+        <div class="av"><img src="assets/portraits/expr-disappointed.png" alt="5"/></div>
+        <div class="lab">Disappointed</div>
+        <div class="when">wicket falls other end</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATRIX — trait architecture -->
+  <div class="section-bar">
+    <h2>Trait architecture</h2>
+    <div class="rule"></div>
+    <div class="meta">how a portrait is composed</div>
+  </div>
+  <div class="matrix">
+    <h3>Four orthogonal axes</h3>
+    <div class="grid-3">
+      <div class="col">
+        <h4>Identity · fixed per player</h4>
+        <p>Set once when the player is generated, never changes. This is what makes Sharma <i>Sharma</i>.</p>
+        <ul>
+          <li><code>skin_tone</code> — 4 tones in production</li>
+          <li><code>facial_hair</code> — clean / stubble / mustache / beard</li>
+          <li><code>country</code> — drives kit + cap colour palette</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h4>Role · changes by inning</h4>
+        <p>What the player is doing right now. Drives equipment + view angle.</p>
+        <ul>
+          <li><code>equipment</code> — cap (fielding) · helmet (batting) · grill-up (between balls) · sun hat (slip)</li>
+          <li><code>view</code> — front (profile) · 3/4 (key moment) · side (scorebar) · back (fielding)</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h4>State · changes ball-by-ball</h4>
+        <p>Driven by the live sim — never authored. Maps form/confidence/recent events to one of the 9 expressions or 4 actions.</p>
+        <ul>
+          <li><code>form</code> — hot → confident/happy · cold → disappointed</li>
+          <li><code>moment</code> — milestone → celebrating · key ball → focused · wicket → angry</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <h3>Decisions + next moves</h3>
+    <ul>
+      <li><b>This is the new C1.</b> Throw out the CSS-drawn cap mocks from the earlier files — we're working from a real illustrated style now, and it's stronger than anything CSS could fake.</li>
+      <li><b>Side view + cap</b> (the original ask) is the most legible at scorebar size — see the integration row. It carries the silhouette of a Test cap with the peak jutting forward.</li>
+      <li><b>Expression-as-state</b> is the unlock here. Same player feels alive across the match because the portrait is reacting to the sim. Pairs perfectly with the form/confidence system already in the in-match file.</li>
+      <li><b>Production assets needed:</b> we'll need this same sheet rendered with the <i>country palette</i> swapped in (Aus green, Eng navy, etc.) and with 4 skin tones × 4 facial hair = 16 base identities × 5 equipment × 4 views × 9 expressions. ~2,880 sprites; doable with a generative pipeline or hand-painted variants atop a base.</li>
+      <li><b>What to design next:</b> say the word and I'll do (a) the team kit / country palette swatches on this same character, (b) more action poses (bowling delivery, diving catch, appeal), or (c) start applying these to the in-match screen for real.</li>
+    </ul>
+  </div>
+
+</div>
+
+</body>
+</html>
