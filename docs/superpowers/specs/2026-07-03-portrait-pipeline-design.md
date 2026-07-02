@@ -45,9 +45,12 @@ is **byte-identical** to the drop's `view-three-quarter.png`.
   (`white|mixed|indian|black` × `hot|steady|tired|cold`), sliced/remapped from design's
   `clean/face-*` tiles. The full 44-file design drop lives under `docs/design-drop/`
   (not `assets/`) so the game bundle ships only what it uses.
-- **DP2 — Form→expression mapping** (design's guidance): HOT→`confident`,
-  STEADY→`neutral`, TIRED→`disappointed`, COLD→`angry`. The other 5 expressions + action
-  tiles are landed but unwired (future key-moment/stinger art).
+- **DP2 — Form→expression mapping** (design's guidance: "hot = happy/confident"):
+  HOT→`happy`, STEADY→`confident`, TIRED→`disappointed`, COLD→`angry`. `neutral` was the
+  first pick for STEADY but its tile is framed tighter than the other three (source-art
+  quirk — flagged in the design brief); `confident`'s calm half-smile keeps the three
+  everyday bands in identical framing so the portrait doesn't jump on form changes. The
+  other 5 expressions + action tiles are landed but unwired (future key-moment art).
 - **DP3 — Canonical form banding** in a new `FormBand` domain helper:
   `HOT form≥2 · STEADY 0≤form≤1 · TIRED form==-1 · COLD form≤-2`.
   This **fixes a latent display bug**: `Player.form` defaults to `0`, documented in
