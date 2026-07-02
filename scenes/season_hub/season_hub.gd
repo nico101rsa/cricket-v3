@@ -9,7 +9,6 @@ extends Control
 # Hard design rules honoured here: never show raw PWR/COM/ATT/CON (only OVR +
 # career averages); position pill shows "—" until a result exists.
 
-const HERO_CAP := preload("res://assets/portraits/hero-cap.png")
 const RARITY := {"Common": Palette.COMMON, "Rare": Palette.RARE, "Legendary": Palette.LEGENDARY}
 const BOOT_SEED := 20260615
 const AFF_FULL := 5.0   # affinity loyalty "full" (seasons-stayed; display-only)
@@ -116,8 +115,7 @@ func _style_static() -> void:
 	nextb.add_theme_font_size_override("font_size", 9)
 	Fonts.weigh(nextb, Fonts.W_BOLD)
 	_root.get_node("TonsPanel/TonsRow/ContextCol/ProgressLabel").add_theme_color_override("font_color", Palette.WHITE_MID)
-	# portrait art + affinity track
-	_root.get_node("CardPanel/PlayerCard/Portrait/PortraitTex").texture = HERO_CAP
+	# affinity track (portrait art is per-view -- set in _render_card)
 	_root.get_node("AffinityPanel/AffinityRow/AffinityCol/AffinityBar").add_theme_stylebox_override("background", UIStyle.bar_track())
 	# CTA text colours (dark on gold)
 	var ctab: Label = _root.get_node("CTA/CtaCenter/CtaLines/CtaBig")
@@ -372,6 +370,8 @@ func _render_card() -> void:
 	# §16.3 skill-tier ring around the portrait art.
 	_root.get_node("CardPanel/PlayerCard/Portrait").add_theme_stylebox_override(
 		"panel", UIStyle.portrait_ring(Palette.skill_ring(_view.team_stars)))
+	# the face follows appearance bucket x live form band (DP6)
+	_root.get_node("CardPanel/PlayerCard/Portrait/PortraitTex").texture = PortraitLibrary.texture_for(_view.appearance, _view.form)
 	var corner: Label = _root.get_node("CardPanel/PlayerCard/Portrait/StarCorner")
 	corner.text = _stars_str(_view.team_stars)
 	corner.add_theme_color_override("font_color", Palette.GOLD)
@@ -496,10 +496,7 @@ func _stars_str(stars: float) -> String:
 	return out if not out.is_empty() else "½"
 
 func _form_chip(form: int) -> String:
-	if form >= 2: return "🔥 HOT"
-	if form == 1: return "✓ STEADY"
-	if form == 0: return "● TIRED"
-	return "❄ COLD"
+	return FormBand.label(FormBand.of(form))  # no emoji -- Barlow tofus them (DP7)
 
 func _role(v: SeasonView) -> String:
 	var bat := v.power + v.composure
