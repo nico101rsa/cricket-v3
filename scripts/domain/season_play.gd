@@ -23,6 +23,17 @@ var _seed: int
 var _opp_spec: TourSpec       # difficulty cell -> the interactive opponent's brain (DL5)
 var _player_effects: Array = []   # owned-joker effect rows passed to every player match
 
+# --- The Kit Room on the live driver (spec 2026-07-02, Rung 2) ---
+var _shop: ShopState = null       # null = shop off (byte-identical pre-rung path)
+var _shop_player: Player = null   # rebound every enable_shop (hub reloads the Player)
+var _setun: EconomyTuning = null
+var _shop_level: int = 0
+var _shop_tour: int = 0
+var _visits_mask: int = 0         # bit v set = visit v consumed (v0..v4)
+var _paid_mask: int = 0           # bit v set = the visit's one paid action used (DK2-3)
+var _shop_log: Array = []
+var _offer_cache: Dictionary = {} # visit -> rolled offer (stable within a visit)
+
 var _bat: Array = []         # held per-team batting strength (ADR 0009), index-aligned
 var _bowl: Array = []        # held per-team bowling strength
 var _ai_fixtures: Array = [] # resolved AI-vs-AI completed records (see _completed)
@@ -72,9 +83,143 @@ static func start(player_attrs: Attributes, player_team: Team, opponents: Array,
 	return sp
 
 # Owned-joker effect rows that fire in the player's live matches (spec 2026-06-26).
-# [] = none (byte-identical). Seeded by the hub from CareerState.carryover_joker_id.
+# [] = none (byte-identical). With the Kit Room live (Rung 2) the shop's loadout
+# drives this via _refresh_loadout; the setter remains for tests/direct use.
 func set_player_jokers(effects: Array) -> void:
 	_player_effects = effects
+
+# --- The Kit Room (spec 2026-07-02, Rung 2) ----------------------------------
+
+# Turn on the live Kit Room. Rebind + init-once (DK2-5/DK2-9): every call rebinds the
+# (freshly re-loaded) Player and its Attributes; the ShopState itself initializes only
+# on the first call — the carry-over joker enters free, exactly like headless V0 (DK2).
+func enable_shop(player: Player, etun: EconomyTuning, level: int, tour_index: int,
+		carryover_id: String = "") -> void:
+	_shop_player = player
+	_setun = etun
+	_shop_level = level
+	_shop_tour = tour_index
+	_attrs = player.attributes   # training must stay visible to future matches (DK2-9)
+	if _shop != null:
+		return
+	_shop = ShopState.new()
+	if carryover_id != "":
+		_shop.owned_ids.append(carryover_id)
+		_shop.paid_prices[carryover_id] = 0
+		_shop_log.append({"action": "carryover_in", "id": carryover_id})
+	_refresh_loadout()
+
+func shop_enabled() -> bool: return _shop != null
+func shop() -> ShopState: return _shop
+func shop_log() -> Array: return _shop_log
+func shop_owned() -> Array: return _shop.owned_ids if _shop != null else []
+func shop_balance() -> int: return _shop_player.tons_balance if _shop_player != null else 0
+func sell_refund_of(id: String) -> int:
+	return Economy.sell_refund(int(_shop.paid_prices.get(id, 0)), _setun)
+func train_cost_of(attr: String) -> int:
+	return Economy.attr_upgrade_cost(_shop_player.attributes.get(attr), _setun)
+func train_value_of(attr: String) -> float:
+	return _shop_player.attributes.get(attr) if _shop_player != null else 0.0
+func paid_action_used() -> bool:
+	var p := pending_shop_visit()
+	return not p.is_empty() and (_paid_mask & (1 << int(p["visit"]))) != 0
+
+func _refresh_loadout() -> void:
+	_player_effects = ShopResolver.loadout_effects(_shop)
+
+# The canon visit now due, or {} (DK2-1). Offers roll on a fresh per-visit RNG
+# (_seed + 9000 + v, DK2-2) and are cached until the visit is consumed.
+func pending_shop_visit() -> Dictionary:
+	if _shop == null:
+		return {}
+	for v in range(5):
+		if _visits_mask & (1 << v):
+			continue
+		if not _visit_open(v):
+			continue
+		if not _offer_cache.has(v):
+			var rng := RandomNumberGenerator.new()
+			rng.seed = _seed + 9000 + v
+			_offer_cache[v] = ShopResolver.starter_offer(rng, _shop) if v == 0 \
+				else ShopResolver.roll_offer(rng, _shop, _shop_level, _shop_tour, _setun)
+		return {"kind": "starter" if v == 0 else "visit", "visit": v, "offer": _offer_cache[v]}
+	return {}
+
+func _visit_open(v: int) -> bool:
+	match v:
+		0: return _phase == Phase.LEAGUE and played_count() == 0
+		1: return played_count() >= 3
+		2: return played_count() >= 5
+		3: return _phase == Phase.PLAYOFFS and _pending_stage == "semi"
+		4: return _phase == Phase.PLAYOFFS and _pending_stage == "final"
+	return false
+
+# One per-tap Kit Room action against the pending visit. All money/slot maths stays
+# in ShopResolver (which push_warnings + no-ops illegal input). Paid actions (buy OR
+# train) are capped at one per visit (_paid_mask, DK2-3); sell/hold are free; pick
+# and skip consume the visit. Returns success.
+func apply_shop_action(act: Dictionary) -> bool:
+	var pending := pending_shop_visit()
+	if pending.is_empty():
+		push_warning("shop action with no pending visit")
+		return false
+	var v: int = pending["visit"]
+	var paid_used := (_paid_mask & (1 << v)) != 0
+	match act.get("kind", ""):
+		"pick":
+			if pending["kind"] != "starter" or not act.get("id", "") in (pending["offer"] as Array):
+				return false
+			_shop.owned_ids.append(act["id"])
+			_shop.paid_prices[act["id"]] = 0
+			_shop_log.append({"action": "starter", "id": act["id"]})
+			_consume(v)
+			_refresh_loadout()
+			return true
+		"skip":
+			_consume(v)
+			return true
+		"buy":
+			if pending["kind"] != "visit" or paid_used:
+				return false
+			var offer: Dictionary = pending["offer"]
+			var price: int = offer["prices"].get(act.get("id", ""), -1)
+			if price < 0:
+				push_warning("buy not in offer: %s" % act.get("id", ""))
+				return false
+			if ShopResolver.buy(_shop, _shop_player, act["id"], price, _setun, act.get("replace", "")):
+				_shop_log.append({"action": "buy", "id": act["id"], "tons": price})
+				_paid_mask |= 1 << v
+				_refresh_loadout()
+				return true
+			return false
+		"train":
+			if pending["kind"] != "visit" or paid_used:
+				return false
+			if ShopResolver.upgrade_attribute(_shop_player, act.get("attr", ""), _setun):
+				_shop_log.append({"action": "upgrade", "id": act["attr"]})
+				_paid_mask |= 1 << v
+				return true
+			return false
+		"sell":
+			if pending["kind"] != "visit":
+				return false
+			if ShopResolver.sell(_shop, _shop_player, act.get("id", ""), _setun):
+				_shop_log.append({"action": "sell", "id": act["id"]})
+				_refresh_loadout()
+				return true
+			return false
+		"hold":
+			if pending["kind"] != "visit":
+				return false
+			if ShopResolver.hold(_shop, pending["offer"], act.get("id", "")):
+				_shop_log.append({"action": "hold", "id": act["id"]})
+				return true
+			return false
+	return false
+
+func _consume(v: int) -> void:
+	_visits_mask |= 1 << v
+	_offer_cache.erase(v)
 
 # The marquee interactive opponent always plays at least competent textbook cricket.
 # The difficulty ladder dumbs the entry tours with a sub-textbook NAIVE blend
