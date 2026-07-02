@@ -386,3 +386,96 @@ func test_advance_completes_on_province_premier_win() -> void:
 		s, p, _season_stub(true, true), 2, CareerState.PREMIER_TOUR, _rng(1))
 	assert_true(s.complete)
 	assert_true(t["complete"])
+
+
+# --- Two-phase live advance: begin/finish (offers spec 2026-07-02, DO3) ---
+
+func test_begin_records_once_and_returns_offers() -> void:
+	var s := CareerResolver.start_career(0)
+	var b := CareerResolver.begin_live_advance(s, _season_stub(true, false), 0, 0, _rng(1))
+	assert_eq(s.status_of(0, 0), CareerState.CellStatus.BEATEN)
+	assert_eq(s.seasons_played, 1)
+	assert_eq(s.seasons_at_level, 1)
+	assert_gt(b["offers"].size(), 0, "offers drawn for the screen")
+	assert_eq(b["from_level"], 0)
+	assert_eq(b["from_team_index"], 0)
+	assert_false(b["complete"])
+	assert_eq(s.current_team_index, 0, "begin does NOT move the team")
+
+func test_finish_stay_bumps_affinity_and_keeps_team() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	var b := CareerResolver.begin_live_advance(s, _season_stub(true, false), 0, 0, _rng(1))
+	var t := CareerResolver.finish_live_advance(s, p, b, null)
+	assert_eq(p.affinity, 1, "explicit STAY is the loyalty mechanic (DO8)")
+	assert_eq(s.current_team_index, 0, "team unchanged")
+	assert_false(t["promoted"])
+	assert_false(t["team_changed"])
+	assert_eq(t["next_tour"], 1, "beat tour 0 -> next is tour 1")
+
+func test_finish_accept_moves_team_and_resets_affinity() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	p.affinity = 3
+	var b := CareerResolver.begin_live_advance(s, _season_stub(true, false), 0, 0, _rng(1))
+	var same_level_offer = null
+	for o in b["offers"]:
+		if o.level == 0:
+			same_level_offer = o
+			break
+	assert_not_null(same_level_offer, "a same-Level offer exists at Club")
+	var t := CareerResolver.finish_live_advance(s, p, b, same_level_offer)
+	assert_eq(s.current_team_index, same_level_offer.team_index, "moved team")
+	assert_eq(p.affinity, 0, "accept resets affinity")
+	assert_eq(s.seasons_at_level, 0, "accept resets seasons_at_level")
+	assert_false(t["promoted"], "same Level is not a promotion")
+	assert_true(t["team_changed"])
+
+func test_finish_accept_cross_up_sets_promoted() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	for t0 in range(CareerState.READINESS_TOUR):
+		s.mark_beaten(0, t0)
+	var b := CareerResolver.begin_live_advance(
+		s, _season_stub(true, false), 0, CareerState.READINESS_TOUR, _rng(1))
+	var up_offer = null
+	for o in b["offers"]:
+		if o.level == 1:
+			up_offer = o
+			break
+	assert_not_null(up_offer, "fresh beat guarantees a cross-up offer")
+	var t := CareerResolver.finish_live_advance(s, p, b, up_offer)
+	assert_true(t["promoted"])
+	assert_eq(t["to_level"], 1)
+	assert_true(t["team_changed"])
+	assert_eq(t["next_level"], 1)
+
+func test_finish_accept_down_offer_moves_down() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	# Put the player on a City team with Club still unwon -> a down offer exists.
+	s.current_team_index = CareerState.TEAMS_PER_LEVEL   # first City team
+	var b := CareerResolver.begin_live_advance(s, _season_stub(false, false), 1, 0, _rng(1))
+	var down_offer = null
+	for o in b["offers"]:
+		if o.level == 0:
+			down_offer = o
+			break
+	assert_not_null(down_offer, "unwon Club yields a down offer (DC16)")
+	var t := CareerResolver.finish_live_advance(s, p, b, down_offer)
+	assert_eq(t["to_level"], 0)
+	assert_true(t["to_level"] < t["from_level"], "moved down")
+	assert_false(t["promoted"])
+
+func test_begin_complete_career_has_no_offers_and_finish_skips_stay() -> void:
+	var s := CareerResolver.start_career(0)
+	var p := _player()
+	s.current_team_index = CareerState.TEAMS_PER_LEVEL * 2   # Province
+	s.cell_status[s.cell_index(2, CareerState.PREMIER_TOUR)] = CareerState.CellStatus.UNLOCKED
+	var b := CareerResolver.begin_live_advance(
+		s, _season_stub(true, true), 2, CareerState.PREMIER_TOUR, _rng(1))
+	assert_true(b["complete"])
+	assert_eq(b["offers"].size(), 0, "no offers once the career completed (DO2)")
+	var t := CareerResolver.finish_live_advance(s, p, b, null)
+	assert_eq(p.affinity, 0, "no stay bump on the champions path")
+	assert_true(t["complete"])
