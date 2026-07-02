@@ -16,6 +16,8 @@ var _frames := 0
 var _stage := 0
 var _outcome
 var _states: Array = []
+var _country := Country.Code.SA
+var _suffix := ""
 
 func _initialize() -> void:
 	root.size = Vector2i(390, 844)
@@ -33,6 +35,11 @@ func _initialize() -> void:
 			"t": {"beat": false, "promoted": false, "from_level": 1, "tour": 2,
 				"to_level": 1, "complete": false, "next_level": 1, "next_tour": 2}},
 	]
+	# CTRY=aus renders the promoted state only (header + celebration proof, DO5).
+	if OS.get_environment("CTRY").to_lower() == "aus":
+		_country = Country.Code.AUS
+		_suffix = "-aus"
+		_states = _states.slice(1, 2)
 	_mount(0)
 
 func _mount(i: int) -> void:
@@ -43,13 +50,13 @@ func _mount(i: int) -> void:
 	sr.player_final_position = st["pos"]
 	sr.beat = st["pos"] <= 3
 	sr.won_final = st["pos"] == 1
-	_outcome.set_outcome(sr, st["pay"], st["wins"], null, st["t"])
+	_outcome.set_outcome(sr, st["pay"], st["wins"], null, st["t"], _country)
 
 func _process(_delta: float) -> bool:
 	_frames += 1
 	if _frames >= 6:
 		var st: Dictionary = _states[_stage]
-		var path := "res://docs/mockups/outcome-%s-v1.png" % st["name"]
+		var path := "res://docs/mockups/outcome-%s%s-v1.png" % [st["name"], _suffix]
 		var img := root.get_viewport().get_texture().get_image()
 		img.save_png(path)
 		print("SAVED ", path)

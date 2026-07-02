@@ -32,8 +32,8 @@ this screen, its deltas land as a follow-on — same path the hub/in-match took.
 2. **Transition strip** — the career-consequence line, styled by weight (DO2):
    - `promoted` / `complete` (champion): **gold celebration panel**
      (`UIStyle.cta(Palette.GOLD)`, dark text) — the Result screen's champion-panel
-     idiom. Two lines: the banner text + a small sub (`YOUR CAREER MOVES UP` /
-     `CAREER COMPLETE`).
+     idiom. On promotion a small sub-line `YOUR CAREER MOVES UP`; on complete the
+     banner text already says it (no sub — eyeball round found the duplicate).
    - cleared / moved down / signed: plain `UIStyle.panel()` strip, white text.
    - missed: same strip, dim text.
    Banner *wording* is unchanged from PR #101/#104 (tests pin it).

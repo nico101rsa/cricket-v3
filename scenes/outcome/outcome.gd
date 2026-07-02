@@ -89,10 +89,9 @@ func _transition_strip(transition: Dictionary, career: CareerState) -> Control:
 	banner.name = "Banner"
 	banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(banner)
-	if celebrate:
-		var sub := _centered("CAREER COMPLETE" if transition.get("complete", false)
-			else "YOUR CAREER MOVES UP", 9, Palette.BG, Fonts.W_MEDIUM)
-		v.add_child(sub)
+	# Sub-line only on a promotion — the complete banner already says it all.
+	if celebrate and not transition.get("complete", false):
+		v.add_child(_centered("YOUR CAREER MOVES UP", 9, Palette.BG, Fonts.W_MEDIUM))
 	strip.add_child(v)
 	return strip
 
