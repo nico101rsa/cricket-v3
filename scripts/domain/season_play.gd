@@ -113,6 +113,7 @@ func shop_enabled() -> bool: return _shop != null
 func shop() -> ShopState: return _shop
 func shop_log() -> Array: return _shop_log
 func shop_owned() -> Array: return _shop.owned_ids if _shop != null else []
+func player_effects() -> Array: return _player_effects
 func shop_balance() -> int: return _shop_player.tons_balance if _shop_player != null else 0
 func sell_refund_of(id: String) -> int:
 	return Economy.sell_refund(int(_shop.paid_prices.get(id, 0)), _setun)
@@ -407,16 +408,24 @@ func make_session() -> MatchSession:
 # empty dict keeps the pre-save callers byte-identical. One log entry per committed
 # match keeps the log index-aligned with the matches it reproduces (spec 2026-06-23).
 func commit_player_result(result: MatchResult, decisions: Dictionary = {}) -> void:
+	var entry := decisions.duplicate(true)
+	# Replay context (spec 2026-07-02 DK2-4): the jokers + attrs this match was played
+	# with, so a resumed season re-simulates it identically even after mid-season
+	# shopping. Stamp-if-absent: replayed entries keep their saved context.
+	if not entry.has("jokers"):
+		entry["jokers"] = _shop.owned_ids.duplicate() if _shop != null else []
+	if not entry.has("attrs"):
+		entry["attrs"] = [_attrs.power, _attrs.composure, _attrs.attack, _attrs.control]
 	if _phase == Phase.LEAGUE:
 		if league_done():
 			return
-		_decisions.append(decisions)
+		_decisions.append(entry)
 		_player_results.append(result)
 		_settle(result)
 		if played_count() >= PLAYER_FIXTURES:
 			_start_playoffs()
 	elif _phase == Phase.PLAYOFFS:
-		_decisions.append(decisions)
+		_decisions.append(entry)
 		_settle(result)
 		_record_playoff_result(result)
 	# DONE: ignore.
@@ -452,6 +461,15 @@ static func replay(player_attrs: Attributes, player_team: Team, opponents: Array
 	for entry in decisions_log_in:
 		if sp.season_done():
 			break
+		# Replay context (spec 2026-07-02 DK2-4): run each match with the loadout +
+		# attrs it was originally played with (also fixes the Rung-1 carry-over
+		# replay divergence — effects used to be dropped on replay).
+		sp._player_effects = JokerCatalog.effects_of_ids(entry.get("jokers", []))
+		if entry.has("attrs"):
+			var arr: Array = entry["attrs"]
+			var ca := Attributes.new()
+			ca.power = arr[0]; ca.composure = arr[1]; ca.attack = arr[2]; ca.control = arr[3]
+			sp._attrs = ca
 		var sess := sp.make_session()
 		if sess == null:
 			break
@@ -469,6 +487,13 @@ func to_state(level_at: int, tour_index_at: int) -> LiveSeasonState:
 	s.pay_total = _pay_total
 	s.wins = _wins
 	s.decisions = _decisions.duplicate(true)
+	if _shop != null:
+		s.shop_enabled = true
+		s.shop_owned = _shop.owned_ids.duplicate()
+		s.shop_paid = _shop.paid_prices.duplicate()
+		s.shop_held = _shop.held_id
+		s.shop_visits_mask = _visits_mask
+		s.shop_paid_mask = _paid_mask
 	return s
 
 # Resume an in-progress season from a saved LiveSeasonState. Rebuilds the difficulty
@@ -482,7 +507,28 @@ static func from_state(state: LiveSeasonState, player: Player, career: CareerSta
 	var sp := SeasonPlay.replay(player.attributes, team, career.opponents_of_current(),
 		spec.make_tour(), BallTuning.new(), InningsTuning.new(), state.seed, spec, state.decisions)
 	sp.restore_pay_tally(state.pay_total, state.wins)
+	sp.restore_shop(state, player, EconomyTuning.new())
 	return sp
+
+# Rebuild the live ShopState from a save (spec 2026-07-02 DK2-4). Re-binds the
+# freshly-loaded Player (whose balance/attrs are the persisted truth) and re-derives
+# the loadout effects for the matches still to come. Pre-v2 saves (shop_enabled
+# false) no-op; the hub's enable_shop then initializes a fresh shop.
+func restore_shop(state: LiveSeasonState, player: Player, etun: EconomyTuning) -> void:
+	if not state.shop_enabled:
+		return
+	_shop = ShopState.new()
+	_shop.owned_ids.assign(state.shop_owned)
+	_shop.paid_prices = state.shop_paid.duplicate()
+	_shop.held_id = state.shop_held
+	_visits_mask = state.shop_visits_mask
+	_paid_mask = state.shop_paid_mask
+	_shop_player = player
+	_setun = etun
+	_shop_level = state.level
+	_shop_tour = state.tour_index
+	_attrs = player.attributes
+	_refresh_loadout()
 
 # --- ₸ pay (Slice 3) ---
 

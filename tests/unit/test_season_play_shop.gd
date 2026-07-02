@@ -15,9 +15,12 @@ func _rich_player() -> Player:
 func _play_with_shop(seed_value: int = 20260702, carryover: String = "") -> Dictionary:
 	var p := _rich_player()
 	var career := CareerResolver.start_career(0)
+	# Pass the cell spec exactly as the hub/from_state do — the round-trip pin
+	# compares against a from_state rebuild, which always carries spec_for(0,0).
+	var spec := DifficultyLadder.spec_for(0, 0)
 	var sp := SeasonPlay.start(p.attributes, career.teams[career.current_team_index],
-		career.opponents_of_current(), DifficultyLadder.spec_for(0, 0).make_tour(),
-		BallTuning.new(), InningsTuning.new(), seed_value)
+		career.opponents_of_current(), spec.make_tour(),
+		BallTuning.new(), InningsTuning.new(), seed_value, spec)
 	sp.enable_shop(p, EconomyTuning.new(), 0, 0, carryover)
 	return {"sp": sp, "p": p, "career": career}
 
@@ -66,7 +69,7 @@ func test_offer_is_deterministic_and_cached() -> void:
 	var b: Dictionary = sp.pending_shop_visit()
 	assert_eq(a["offer"]["common"], b["offer"]["common"], "same visit, same offer")
 
-func test_buy_deducts_and_changes_next_match() -> void:
+func test_buy_deducts_owns_and_feeds_the_loadout() -> void:
 	var c := _play_with_shop()
 	var sp: SeasonPlay = c["sp"]
 	var p: Player = c["p"]
@@ -75,15 +78,34 @@ func test_buy_deducts_and_changes_next_match() -> void:
 	var offer: Dictionary = sp.pending_shop_visit()["offer"]
 	var id: String = offer["common"]
 	var price: int = offer["prices"][id]
-	var before_next: int = sp.make_session().result().innings1.total \
-		+ sp.make_session().result().innings2.total
 	var bal: int = p.tons_balance
 	assert_true(sp.apply_shop_action({"kind": "buy", "id": id}))
 	assert_eq(p.tons_balance, bal - price, "price deducted")
 	assert_true(id in sp.shop_owned())
-	var after_next: int = sp.make_session().result().innings1.total \
-		+ sp.make_session().result().innings2.total
-	assert_ne(after_next, before_next, "owned joker alters the next live match")
+	# The sim hand-off: the live loadout now carries exactly the owned effects.
+	# (Whether a given joker moves a given match depends on its trigger — e.g.
+	# boost-role jokers only fire on a human Boost press, DLF-BOOST.)
+	assert_gt(sp.player_effects().size(), 0, "effects flow to the live matches")
+	assert_eq(sp.player_effects().size(),
+		JokerCatalog.effects_of_ids(sp.shop_owned()).size(), "loadout == owned effects")
+
+func test_carryover_loadout_alters_the_live_matches() -> void:
+	# Same seed, one play carries block_the_shine (always-on early-innings survival
+	# buff) — the first three matches must diverge from the joker-less play.
+	var base := (_play_with_shop(20260704)["sp"] as SeasonPlay)
+	var carry := (_play_with_shop(20260704, "block_the_shine")["sp"] as SeasonPlay)
+	base.apply_shop_action({"kind": "skip"})
+	carry.apply_shop_action({"kind": "skip"})
+	var sum_base := 0
+	var sum_carry := 0
+	for i in range(3):
+		var rb := base.make_session().result()
+		var rc := carry.make_session().result()
+		sum_base += rb.innings1.total + rb.innings2.total
+		sum_carry += rc.innings1.total + rc.innings2.total
+		base.commit_player_result(rb)
+		carry.commit_player_result(rc)
+	assert_ne(sum_carry, sum_base, "carried joker alters the live matches")
 
 func test_one_paid_action_per_visit() -> void:
 	var c := _play_with_shop()
@@ -149,3 +171,38 @@ func test_playoff_visits_semi_and_final() -> void:
 			assert_eq(after_semi.get("visit", -1), 4, "V4 pends before the final")
 		else:
 			assert_eq(after_semi, {}, "no visit before the 3rd-place match")
+
+func test_cross_session_roundtrip_with_shopping_is_lossless() -> void:
+	# Play 3, buy at V1, play 2 more, train at V2, save -> resume: the resumed driver
+	# must equal the uninterrupted one (progress + loadout + standings + the NEXT match).
+	var c := _play_with_shop(20260703)
+	var sp: SeasonPlay = c["sp"]
+	var career: CareerState = c["career"]
+	var v0: Dictionary = sp.pending_shop_visit()
+	sp.apply_shop_action({"kind": "pick", "id": v0["offer"][0]})
+	_commit_n(sp, 3)
+	var offer: Dictionary = sp.pending_shop_visit()["offer"]
+	sp.apply_shop_action({"kind": "buy", "id": offer["common"]})
+	sp.apply_shop_action({"kind": "skip"})
+	_commit_n(sp, 2)
+	sp.apply_shop_action({"kind": "train", "attr": "power"})   # V2 paid action
+	sp.apply_shop_action({"kind": "skip"})
+
+	var state := sp.to_state(0, 0)
+	# Simulate a reload: a FRESH Player object carrying the persisted balance/attrs.
+	var p2 := _rich_player()
+	p2.tons_balance = (c["p"] as Player).tons_balance
+	p2.attributes.power = (c["p"] as Player).attributes.power
+	var resumed := SeasonPlay.from_state(state, p2, career)
+
+	assert_eq(resumed.played_count(), sp.played_count(), "same progress")
+	assert_eq(resumed.shop_owned(), sp.shop_owned(), "same loadout")
+	assert_eq(resumed.pending_shop_visit(), sp.pending_shop_visit(), "same pending visit")
+	var a: Array = sp.live_league().standings
+	var b: Array = resumed.live_league().standings
+	for i in range(a.size()):
+		assert_eq(b[i].points, a[i].points, "standings row %d points equal" % i)
+	var na := sp.make_session().result()
+	var nb := resumed.make_session().result()
+	assert_eq(nb.innings1.total, na.innings1.total, "next match innings1 equal")
+	assert_eq(nb.innings2.total, na.innings2.total, "next match innings2 equal")
