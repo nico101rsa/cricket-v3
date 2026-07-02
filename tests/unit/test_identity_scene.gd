@@ -78,7 +78,7 @@ func test_hifi_header_and_cta_text():
 	assert_true(identity._next_btn.is_visible_in_tree(), "CTA is actually visible")
 
 func test_hifi_hero_portrait_present_and_sized():
-	# Portrait art is wired (placeholder hero-cap.png) and renders at a real size.
+	# Portrait art is wired (PortraitLibrary face) and renders at a real size.
 	assert_not_null(identity._hero_portrait.texture, "hero portrait has art")
 	assert_true(identity._hero_portrait.is_visible_in_tree())
 	assert_gt(identity._hero_portrait.custom_minimum_size.y, 0.0, "portrait reserves height")
@@ -112,3 +112,22 @@ func test_reroll_button_state_and_action():
 	identity._on_reroll_pressed()
 	assert_not_null(identity._draft.name, "name still valid after re-roll")
 	assert_eq(identity._name_label.text, identity._draft.name.display_caps(), "label stays in sync after re-roll")
+
+func test_hero_swaps_on_appearance_pick():
+	identity._on_country_pressed(Country.Code.SA)
+	var before = identity._hero_portrait.texture
+	identity._on_appearance_selected(Appearance.Bucket.BLACK)
+	assert_eq(identity._hero_portrait.texture, PortraitLibrary.texture_for(Appearance.Bucket.BLACK, 0))
+	assert_ne(identity._hero_portrait.texture, before, "picking BLACK swaps the hero art")
+
+func test_hero_rehydrates_from_draft():
+	var draft := PlayerCreationDraft.new()
+	draft.country = Country.Code.AUS
+	draft.appearance = Appearance.Bucket.INDIAN
+	identity.set_draft(draft)
+	assert_eq(identity._hero_portrait.texture, PortraitLibrary.texture_for(Appearance.Bucket.INDIAN, 0), "Back navigation shows the picked face")
+
+func test_picker_tiles_show_face_thumbnails():
+	for bucket in Appearance.all():
+		var btn: Button = identity._appearance_picker.button_for(bucket)
+		assert_eq(btn.icon, PortraitLibrary.texture_for(bucket, 0), Appearance.to_key(bucket) + " tile wears its face")

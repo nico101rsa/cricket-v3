@@ -263,3 +263,22 @@ func test_boot_enables_shop_with_pending_starter() -> void:
 	assert_true(play.shop_enabled(), "shop on for live play")
 	assert_eq(play.pending_shop_visit()["kind"], "starter", "V0 pends on a fresh season")
 	SaveManager.clear_career(); SaveManager.clear_player(); SaveManager.clear_live_season()
+
+func test_player_card_portrait_matches_bucket_and_form() -> void:
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	var v := _view()
+	v.appearance = Appearance.Bucket.INDIAN
+	v.form = 2
+	hub.set_view(v)
+	await get_tree().process_frame
+	var tex: TextureRect = hub.get_node("Margin/Root/CardPanel/PlayerCard/Portrait/PortraitTex")
+	assert_eq(tex.texture, PortraitLibrary.texture_for(Appearance.Bucket.INDIAN, 2), "card wears the bucket x form face")
+
+func test_form_chip_is_plain_text_no_emoji() -> void:
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	assert_eq(hub._form_chip(2), "HOT")
+	assert_eq(hub._form_chip(0), "STEADY")  # fresh player: STEADY, not TIRED
+	assert_eq(hub._form_chip(-1), "TIRED")
+	assert_eq(hub._form_chip(-2), "COLD")
