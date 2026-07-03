@@ -384,6 +384,25 @@ func live_season() -> SeasonResult:
 # An interactive MatchSession for the Player's pending match (league fixture or
 # playoff knockout). Derived per-match seed so each game diverges only on its own
 # decisions. null when nothing is pending.
+# --- Form (spec 2026-07-03 DF6): the season's running Form + Affinity bonus. ---
+# enable_form binds the Player (rebind-safe: the hub reloads the Player each match);
+# the running points seed once from the Player, then live on this driver and settle
+# back on every commit. Off (never enabled) = byte-identical.
+var _form_on := false
+var _form_points := 0.0
+var _form_base_mult := 1.0
+var _form_player: Player = null
+
+func enable_form(player: Player) -> void:
+	if not _form_on:
+		_form_on = true
+		_form_points = player.form_points
+	_form_base_mult = FormState.affinity_mult(player.affinity)
+	_form_player = player
+
+func form_points_now() -> float:
+	return _form_points
+
 func make_session() -> MatchSession:
 	if _phase == Phase.LEAGUE:
 		if league_done():
@@ -391,7 +410,8 @@ func make_session() -> MatchSession:
 		var opp: Team = _teams[played_count() + 1]
 		var fixture_seed := _seed + 100 + played_count()
 		return MatchSession.start(_attrs, _teams[0], opp, _tour, fixture_seed,
-			-1, _tuning, _itun, _opp_spec, _player_effects)
+			-1, _tuning, _itun, _opp_spec, _player_effects,
+			_form_points, _form_base_mult, _form_on)
 	if _phase == Phase.PLAYOFFS:
 		var opp_idx := _pending_opponent_index()
 		if opp_idx < 0:
@@ -399,7 +419,8 @@ func make_session() -> MatchSession:
 		var offset: int = {"semi": 0, "final": 1, "third": 2}[_pending_stage]
 		var po_seed: int = _seed + 200 + offset
 		return MatchSession.start(_attrs, _teams[0], _teams[opp_idx], _tour, po_seed,
-			-1, _tuning, _itun, _opp_spec, _player_effects)
+			-1, _tuning, _itun, _opp_spec, _player_effects,
+			_form_points, _form_base_mult, _form_on)
 	return null
 
 # Fold a finished player match into the live Season + advance. Caller passes the
@@ -416,6 +437,12 @@ func commit_player_result(result: MatchResult, decisions: Dictionary = {}) -> vo
 		entry["jokers"] = _shop.owned_ids.duplicate() if _shop != null else []
 	if not entry.has("attrs"):
 		entry["attrs"] = [_attrs.power, _attrs.composure, _attrs.attack, _attrs.control]
+	# DF6 -- the committed match's end form becomes the next match's start; settle
+	# onto the bound Player so the hub (portrait/chip) and the save see it.
+	if _form_on:
+		_form_points = result.form_end
+		if _form_player != null:
+			_form_player.set_form_points(_form_points)
 	if _phase == Phase.LEAGUE:
 		if league_done():
 			return
@@ -455,9 +482,19 @@ func restore_pay_tally(total: int, wins: int) -> void:
 # left off here (the caller restores the tally) to avoid re-banking.
 static func replay(player_attrs: Attributes, player_team: Team, opponents: Array,
 		tour: TourDistribution, tuning: BallTuning, itun: InningsTuning,
-		seed_value: int, opp_spec: TourSpec, decisions_log_in: Array) -> SeasonPlay:
+		seed_value: int, opp_spec: TourSpec, decisions_log_in: Array,
+		form_player: Player = null) -> SeasonPlay:
 	var sp := SeasonPlay.start(player_attrs, player_team, opponents, tour,
 		tuning, itun, seed_value, opp_spec)
+	# DF6 -- form is never serialized: a season always starts at 0 (season-end reset
+	# guarantees it), so replay re-derives the chain match by match. The persisted
+	# Player's mid-season form_points is OVERWRITTEN by the re-derived value (they
+	# are equal by construction; the replay is the authority).
+	if form_player != null:
+		sp._form_on = true
+		sp._form_points = 0.0
+		sp._form_base_mult = FormState.affinity_mult(form_player.affinity)
+		sp._form_player = form_player
 	for entry in decisions_log_in:
 		if sp.season_done():
 			break
@@ -487,6 +524,7 @@ func to_state(level_at: int, tour_index_at: int) -> LiveSeasonState:
 	s.pay_total = _pay_total
 	s.wins = _wins
 	s.decisions = _decisions.duplicate(true)
+	s.form_enabled = _form_on
 	if _shop != null:
 		s.shop_enabled = true
 		s.shop_owned = _shop.owned_ids.duplicate()
@@ -505,7 +543,8 @@ static func from_state(state: LiveSeasonState, player: Player, career: CareerSta
 	var spec := DifficultyLadder.spec_for(state.level, state.tour_index)
 	var team: Team = career.teams[career.current_team_index]
 	var sp := SeasonPlay.replay(player.attributes, team, career.opponents_of_current(),
-		spec.make_tour(), BallTuning.new(), InningsTuning.new(), state.seed, spec, state.decisions)
+		spec.make_tour(), BallTuning.new(), InningsTuning.new(), state.seed, spec, state.decisions,
+		player if state.form_enabled else null)
 	sp.restore_pay_tally(state.pay_total, state.wins)
 	sp.restore_shop(state, player, EconomyTuning.new())
 	return sp

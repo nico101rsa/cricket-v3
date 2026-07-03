@@ -22,6 +22,7 @@ extends Resource
 @export var decisions: Array = []
 
 # --- v2: the live Kit Room (spec 2026-07-02). ShopState is tiny + serialisable. ---
+@export var form_enabled: bool = false  # Form was live on the saved driver (spec 2026-07-03 DF6)
 @export var shop_enabled: bool = false
 @export var shop_owned: Array = []
 @export var shop_paid: Dictionary = {}

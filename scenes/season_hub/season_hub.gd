@@ -176,6 +176,7 @@ func set_play(player: Player, career: CareerState, play: SeasonPlay) -> void:
 	# accrues correctly across the season; the running tally lives on the play.
 	var team: Team = career.teams[career.current_team_index]
 	play.enable_pay(player, EconomyTuning.new(), team.stars, _cell_level, _cell_tour)
+	play.enable_form(player)  # Form + Affinity bonus (spec 2026-07-03 DF6)
 	# The live Kit Room (spec 2026-07-02, Rung 2): rebind + init-once; the carry-over
 	# joker enters the shop free (V0) and the shop's loadout drives the live jokers
 	# (replaces the Rung-1 direct carry-over seeding).

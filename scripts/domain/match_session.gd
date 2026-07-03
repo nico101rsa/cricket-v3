@@ -21,6 +21,12 @@ var _seed: int
 var _force: int                  # force_player_bats_first (-1 toss / 1 / 0)
 var _opp_spec: TourSpec           # difficulty cell -> OpponentBrain plans; null = brainless (pre-rung)
 var _player_effects: Array = []   # owned-joker effect rows; [] = none (byte-identical)
+# Form (spec 2026-07-03 DF6): the match-START points + Affinity base mult. _resim
+# always rebuilds a FRESH FormState from these -- decisions re-sim the same match,
+# never a compounded one.
+var _form_start := 0.0
+var _form_base_mult := 1.0
+var _use_form := false
 
 var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
@@ -36,7 +42,8 @@ var _player := Player.new()      # carries attributes for the builder
 static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistribution,
 		seed: int, force_player_bats_first: int = -1,
 		tuning: BallTuning = null, itun: InningsTuning = null,
-		opp_spec: TourSpec = null, player_effects: Array = []) -> MatchSession:
+		opp_spec: TourSpec = null, player_effects: Array = [],
+		form_start: float = 0.0, form_base_mult: float = 1.0, use_form: bool = false) -> MatchSession:
 	var s := MatchSession.new()
 	s._attrs = attrs
 	s._team = team
@@ -48,6 +55,9 @@ static func start(attrs: Attributes, team: Team, opp: Team, tour: TourDistributi
 	s._itun = itun if itun != null else InningsTuning.new()
 	s._opp_spec = opp_spec
 	s._player_effects = player_effects
+	s._form_start = form_start
+	s._form_base_mult = form_base_mult
+	s._use_form = use_form
 	s._player.attributes = attrs
 	s._resim()
 	return s
@@ -103,10 +113,11 @@ func _resim() -> void:
 		fld = ShopResolver.plans_for(_player_effects)["field"]
 	var log1: Array = []
 	var log2: Array = []
+	var fs: FormState = FormState.make(_form_start, _form_base_mult) if _use_form else null
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
 		ip, pbp, _player_effects, fld, null, oip,
-		boost, drs, null, null, null, _force, obp, log1, log2)
+		boost, drs, null, null, null, _force, obp, log1, log2, fs)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
 	_events = MatchViewBuilder.build_events(_result, _player)
