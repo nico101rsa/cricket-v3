@@ -19,3 +19,51 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 ## 2026-07-03
 
 - (first fresh-start session — notes go here)
+- there needs to be clubs loaded per city so pretoria you can look at the biggest clubs.suburbs in the city..maybe give the user a selection of 3 starting clubs (low rank clubs)
+- jokers must say what it does. maybe a small i which you can click or some words underneath. it does not need to give %, but does say powerplay punch makes you very solid in power play overs
+- my team was 1.5 stars but shows as 2 stars
+- tap to start should just start..no need to press play afterwards
+- boost needs to empty once press and slow fill back up(see logic in specs)
+- one of the playtest it asked me in key moment with 5 overs left, but the batter showed over 30. see screenshot
+- player after 1 game that was not very good is tired..how does this work
+- DRS should give you % of success and review all your batters (what is the DRS review again for AI)?
+- keep batter in position they came in, do not switch them around..you can however change the highlight if they are facing..otherwise it is difficult for me to focus on one batter as it keeps on flipping over
+- check second game i played in playtest. i played against a very much stronger side and destroyed them with bowling..just luck?
+- also show scorecard at the start of powerplay, when i come into bat/bowl or before the last 5 overs..maybe a mini scorecard at the bottom. but i want to pause between innigs and a full scorecard and some high level commentary?
+---
+
+## Triage (Claude, 2026-07-03 evening — after Nico's first 2 games)
+
+**Investigate FIRST (possible sim bug):**
+- (T1) The 41/9-in-6-overs collapse vs a stronger side (screenshot 19.03.19). 9 wickets in
+  6 overs is extreme even for a weak side; if wicket probability at that cell / with
+  team-wide DRS auto-claims is off, it colours everything else. Reproduce the fixture
+  headlessly from the save's seed+decisions before trusting any other balance feel.
+
+**Quick-fix batch (one small rung):**
+- (T2) Pre-Match star glyphs: `pre_match.gd _stars()` rounds 1.5→★★ (hub does ★½ right) → shared helper.
+- (T3) KM card "OVR 30" read as "over 30" → plain label ("rated 30/100" or drop it); sweep KM cards for shorthand.
+- (T4) Pre-Match TAP TO START starts the match directly (no second PLAY press).
+- (T5) In-match batter rows: fixed positions, highlight the striker instead of reordering.
+
+**Small feel rungs:**
+- (T6) Form too twitchy: one dismissal (−0.5) rounds to the TIRED band immediately —
+  answer to "player tired after 1 bad game": dismissed −0.5 + a dot-streak −0.25 = −0.75,
+  and the display rounds −0.5..−1.49 to TIRED. Fix: widen STEADY to cover > −1.0 (band on
+  raw points, not roundi), so one bad game ≠ tired face. Re-check with the sweep.
+- (T7) Joker plain-English descriptions (45 one-liners, no %) + shown in Kit Room/hub (tap-info or subtext).
+- (T8) DRS: show success % on the review prompt; clarify team-wide scope in copy.
+  Answer to "what is the AI's DRS for": the opponent captain holds the same base reviews —
+  they can overturn YOUR wickets (their batter survives) and claim close dots against you.
+
+**Medium rungs:**
+- (T9) Boost water-meter per ADR 0005 (press locks magnitude from fill %, drains, ~25s recharge,
+  ~6 full presses/match) — the built version is a per-innings press budget, a real deviation
+  from the design authority. Sim + gauge UI + balance check.
+- (T10) Scorecard moments: mini scorecard at powerplay start / when you come in to bat-bowl /
+  last 5 overs + an innings-break pause with full scorecard + short commentary.
+
+**Needs Nico's scope call:**
+- (T11) City clubs at creation (e.g. Pretoria suburbs/big clubs, pick 1 of 3 low-rank starters) —
+  flavour-rich; needs club name banks per city (design-track candidate) + a creation step.
+  Question for Nico: flavour-only (team name/identity) or should the pick differ mechanically?
