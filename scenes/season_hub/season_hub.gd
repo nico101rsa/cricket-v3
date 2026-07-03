@@ -410,7 +410,29 @@ func _render_jokers() -> void:
 	for c in box.get_children():
 		c.queue_free()
 	_root.get_node("JokersPanel/JokersWrap/JokHead/JokCount").text = "%d / 4" % _view.jokers.size()
+	var desc := _joker_desc_label()
+	desc.visible = false
 	for i in range(4):
+		if i < _view.jokers.size():
+			# Filled slots are tappable (T7): tap toggles the plain-English
+			# description of what the joker does in the line under the bench.
+			var j: Dictionary = _view.jokers[i]
+			var tile := Button.new()
+			tile.custom_minimum_size = Vector2(0, 50)
+			tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			tile.text = j["name"]
+			tile.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			tile.alignment = HORIZONTAL_ALIGNMENT_CENTER
+			tile.add_theme_font_size_override("font_size", 9)
+			Fonts.weigh(tile, Fonts.W_BOLD)
+			for state in ["normal", "hover", "pressed", "focus"]:
+				tile.add_theme_stylebox_override(state, UIStyle.chip(j["rarity"]))
+			tile.add_theme_color_override("font_color", RARITY.get(j["rarity"], Palette.WHITE))
+			var jid: String = j.get("id", "")
+			var jname: String = j["name"]
+			tile.pressed.connect(func(): _toggle_joker_desc(jname, jid))
+			box.add_child(tile)
+			continue
 		var slot := Label.new()
 		slot.custom_minimum_size = Vector2(0, 50)
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -419,12 +441,7 @@ func _render_jokers() -> void:
 		slot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		slot.add_theme_font_size_override("font_size", 9)
 		Fonts.weigh(slot, Fonts.W_BOLD)
-		if i < _view.jokers.size():
-			var j: Dictionary = _view.jokers[i]
-			slot.text = j["name"]
-			slot.add_theme_stylebox_override("normal", UIStyle.chip(j["rarity"]))
-			slot.add_theme_color_override("font_color", RARITY.get(j["rarity"], Palette.WHITE))
-		elif i == 3:
+		if i == 3:
 			slot.text = "🔒 1ST LEVEL WIN"
 			slot.add_theme_stylebox_override("normal", UIStyle.joker_slot(true))
 			slot.add_theme_color_override("font_color", Palette.WHITE_DIM)
@@ -433,6 +450,30 @@ func _render_jokers() -> void:
 			slot.add_theme_stylebox_override("normal", UIStyle.joker_slot(false))
 			slot.add_theme_color_override("font_color", Palette.WHITE_MID)
 		box.add_child(slot)
+
+# The one description line under the bench (created once, re-used across renders).
+func _joker_desc_label() -> Label:
+	var wrap: Control = _root.get_node("JokersPanel/JokersWrap")
+	var existing := wrap.get_node_or_null("JokDesc")
+	if existing != null:
+		return existing
+	var l := Label.new()
+	l.name = "JokDesc"
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.add_theme_font_size_override("font_size", 10)
+	l.add_theme_color_override("font_color", Palette.WHITE_DIM)
+	Fonts.weigh(l, Fonts.W_MEDIUM)
+	wrap.add_child(l)
+	return l
+
+func _toggle_joker_desc(jname: String, jid: String) -> void:
+	var desc := _joker_desc_label()
+	var text := "%s — %s" % [jname.to_upper(), JokerCatalog.describe(jid)]
+	if desc.visible and desc.text == text:
+		desc.visible = false
+		return
+	desc.text = text
+	desc.visible = true
 
 func _render_affinity(cset: Dictionary) -> void:
 	_root.get_node("AffinityPanel/AffinityRow/AffinityCol/AffinityTop/AffinityLabel").text = \

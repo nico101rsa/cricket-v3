@@ -56,6 +56,11 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   it takes two to look TIRED. No sweep needed: banding is display-only (hub chip, portrait,
   glow, Hall of Fame) — the sim reads FormState.mult(), which never touches bands.
 - (T7) Joker plain-English descriptions (45 one-liners, no %) + shown in Kit Room/hub (tap-info or subtext).
+  ✅ DONE 2026-07-04: `JokerCatalog.DESC` — 45 one-liners, no numbers/% (unit-enforced), honest
+  to the real effect rows. Kit Room shows the line under every joker (starter picks, shelf,
+  your-jokers, carry-over); hub bench tiles are now tappable — tap toggles the description
+  in a line under the bench. Renders: docs/mockups/kit-room-{starter,visit}-v1.png +
+  docs/mockups/hub-joker-desc-v1.png (harness tools/preview_joker_desc.gd).
 - (T8) DRS: show success % on the review prompt; clarify team-wide scope in copy.
   Answer to "what is the AI's DRS for": the opponent captain holds the same base reviews —
   they can overturn YOUR wickets (their batter survives) and claim close dots against you.

@@ -282,3 +282,24 @@ func test_form_chip_is_plain_text_no_emoji() -> void:
 	assert_eq(hub._form_chip(0), "STEADY")  # fresh player: STEADY, not TIRED
 	assert_eq(hub._form_chip(-1), "TIRED")
 	assert_eq(hub._form_chip(-2), "COLD")
+
+# T7 (playtest): tapping a joker tile on the hub bench reveals its plain-English
+# description in the line under the bench; tapping again hides it.
+func test_joker_tile_tap_reveals_description() -> void:
+	var hub = SeasonHubScene.instantiate()
+	add_child_autofree(hub)
+	var v := _view()
+	v.jokers = [{"id": "dead_bat", "name": "Dead Bat", "rarity": "Common"}]
+	hub.set_view(v)
+	await get_tree().process_frame
+	var box: HBoxContainer = hub.get_node("Margin/Root/JokersPanel/JokersWrap/JokersBox")
+	var tile := box.get_child(0) as Button
+	assert_not_null(tile, "filled joker slot is tappable")
+	var desc: Label = hub.find_child("JokDesc", true, false)
+	assert_not_null(desc, "bench has a description line")
+	assert_false(desc.visible, "hidden until a tile is tapped")
+	tile.pressed.emit()
+	assert_true(desc.visible)
+	assert_true(desc.text.contains(JokerCatalog.describe("dead_bat")))
+	tile.pressed.emit()
+	assert_false(desc.visible, "second tap hides it")

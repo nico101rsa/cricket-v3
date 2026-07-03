@@ -323,6 +323,68 @@ const PRICES := {
 }
 
 
+# T7 (playtest): plain-English one-liners -- what each joker DOES, in cricket
+# words. No percentages, no numbers (Nico's ruling); magnitudes live in the
+# effect rows and docs/joker-pool-v1.md. Keep these honest to the real effects.
+const DESC := {
+	# Anchor -- survive, accumulate, deny the wicket
+	"dead_bat": "While you bat Defensive, you are harder to get out.",
+	"the_sheet_anchor": "Switching to Balanced batting lifts your Form.",
+	"block_the_shine": "Early in your innings, while the ball is new, you are harder to get out.",
+	"rotate_the_strike": "While you bat Balanced, the runs come a little easier.",
+	"building_phase": "Every full over you survive batting Defensive lifts your Form.",
+	"carry_your_bat": "While you bat Defensive, you are much harder to get out and still score.",
+	"match_winners_vigil": "When your Form rises while batting, you drop anchor: Defensive, and very hard to dismiss for a long spell.",
+	# Tempo -- score faster
+	"powerplay_punch": "While you bat Aggressive, your scoring shots come off more often.",
+	"field_restrictions": "Batting against a catching field, the runs come easier.",
+	"ride_the_wave": "When your Form rises while batting, the next few balls score big.",
+	"captains_statement": "Switching to Aggressive batting lifts your Form.",
+	"slog_over_specialist": "In the death overs while Aggressive, your hitting goes up a gear.",
+	"boundary_hunter": "When your Form rises while batting, you snap Aggressive and score quicker.",
+	"hot_streak": "Two Form gains in one over spark a hot spell: big scoring and hard to dismiss.",
+	"the_chase_master": "Chasing while Aggressive, you score much harder without throwing your wicket away.",
+	# Strangler -- deny runs
+	"tight_lines": "Bowling to a defensive field, your side leaks fewer runs.",
+	"squeeze_the_middle": "Through the middle overs, your side concedes fewer runs.",
+	"defensive_captain": "Going Defensive while bowling also pulls the field back for you.",
+	"pressure_cooker": "Against batters who block, your side finds more wickets.",
+	"dot_ball_pressure": "Bowling to a defensive field: more wickets and fewer runs conceded.",
+	"death_over_stranglehold": "In the death overs, your side is harder to score off.",
+	"choke_hold": "Defensive plans and a defensive field together strangle the scoring and bring wickets.",
+	# Wicket Hunter -- take wickets
+	"cordon_killer": "With a catching field set, the wickets come more often.",
+	"pace_pack": "Bringing on a pace bowler makes the next over more dangerous.",
+	"spinners_web": "Bringing on a spinner makes the next over more dangerous.",
+	"attack_the_stumps": "Bowling under Aggressive captaincy brings more wickets.",
+	"first_change_specialist": "Every bowling change attacks: extra wicket threat and a catching field snaps in.",
+	"the_trap": "A catching field with spin on turns the screw for wickets.",
+	"wicket_maiden": "When your Form rises while bowling, the next over hunts a wicket and gives nothing away.",
+	"the_strike_bowler": "A bowling change into a catching field starts a fierce wicket-hunting spell and lifts your Form.",
+	# Boost Stack -- amplify the Manager Boost
+	"power_up": "Your Boost lasts longer.",
+	"boost_battery": "Your Boost hits harder: runs when batting, wickets when bowling.",
+	"boost_adrenaline": "Pressing Boost lifts your Form.",
+	"pedal_to_the_metal": "Pressing Boost snaps your batting to Aggressive.",
+	"power_surge": "Your Boost is stronger and lasts longer.",
+	"compounding_pressure": "Boost while Aggressive becomes a surge: heavy scoring without the extra risk.",
+	"the_comeback_press": "Every Boost lifts your Form, and your third Boost of the match is a monster.",
+	# Reviewer -- DRS
+	"cool_head": "Your DRS reviews succeed a little more often.",
+	"captains_eye": "DRS reviews taken while Defensive succeed far more often.",
+	"spare_review": "One extra DRS review each innings.",
+	"hot_spot": "Winning a DRS review lifts your Form.",
+	"snicko": "Your DRS reviews succeed more often.",
+	"the_captains_call": "One extra DRS review each innings.",
+	"bowlers_backing": "Winning a review while bowling fires the attack up for the next over.",
+	"the_review_master": "Reviews succeed more often, you carry an extra one, and winning them lifts your Form.",
+}
+
+
+static func describe(id: String) -> String:
+	return DESC.get(id, "")
+
+
 static func price(id: String) -> int:
 	return PRICES[id]
 

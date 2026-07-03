@@ -288,3 +288,15 @@ func test_effects_of_ids_flattens_groups() -> void:
 	assert_gt(fx.size(), 1, "chase master is multi-row")
 	for e in fx:
 		assert_true(e.id == "dead_bat" or e.id == "the_chase_master")
+
+# T7 (playtest): every joker carries a plain-English one-liner -- what it does in
+# cricket words, no percentages, no numbers (Nico: "does not need to give %").
+func test_every_joker_has_a_plain_english_description() -> void:
+	var digits := RegEx.create_from_string("[0-9%]")
+	for g in JokerCatalog.implemented_groups():
+		var d: String = JokerCatalog.describe(g["id"])
+		assert_true(d.length() > 10, "%s has a real description" % g["id"])
+		assert_null(digits.search(d), "%s description is number-free: '%s'" % [g["id"], d])
+
+func test_describe_unknown_id_is_empty() -> void:
+	assert_eq(JokerCatalog.describe("not_a_joker"), "")
