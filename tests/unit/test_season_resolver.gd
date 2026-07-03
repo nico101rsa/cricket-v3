@@ -112,16 +112,16 @@ func _pin_season(seed_v: int) -> SeasonResult:
 
 func test_shop_seams_default_off_byte_identical() -> void:
 	# Shop-rung pin (DK3): the shop seams add zero RNG draws when off.
-	# RE-CAPTURED at the career-fidelity rung (CF5, 2026-06-13), then again at
-	# world-scale v2 (2026-06-14): the per-Season strength noise became
-	# PROPORTIONAL (continuous ± noise_frac×spread, was fixed ±6.25) — an
-	# INTENTIONAL balance change, so the seeded season shifts (pos 1->2, total
-	# 224->189; points held at 12). The pin's job is unchanged: prove the shop
-	# seams add zero RNG draws when off.
+	# RE-CAPTURED at the career-fidelity rung (CF5, 2026-06-13), at world-scale v2
+	# (2026-06-14, proportional strength noise), and at DRS decision moments
+	# (2026-07-04 T8): the survive channel now consumes RNG only on MOMENT wickets
+	# (was every wicket) — an INTENTIONAL mechanic change, so the seeded season
+	# shifts (pos 2->3, points 12->10, total 189->198). The pin's job is unchanged:
+	# prove the shop seams add zero RNG draws when off.
 	var a := _pin_season(4242)
-	assert_eq(a.player_final_position, 2)
-	assert_eq(a.league.standings[0].points, 12)
-	assert_eq(a.final_match.innings1.total, 189)
+	assert_eq(a.player_final_position, 3)
+	assert_eq(a.league.standings[0].points, 10)
+	assert_eq(a.final_match.innings1.total, 198)
 
 
 func test_shop_hook_fires_at_canon_points() -> void:
