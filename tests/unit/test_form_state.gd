@@ -12,13 +12,13 @@ func test_multiplier_anchors() -> void:
 func test_tick_table() -> void:
 	var f := FormState.make(0.0)
 	f.on_player_boundary()
-	assert_almost_eq(f.points, 0.25, 0.0001, "boundary +0.25")
+	assert_almost_eq(f.points, 0.05, 0.0001, "boundary +0.05 (v3 dials)")
 	f.on_player_dismissed()
-	assert_almost_eq(f.points, -0.75, 0.0001, "dismissed -1.0")
+	assert_almost_eq(f.points, -0.45, 0.0001, "dismissed -0.5 (v3)")
 	f.on_player_wicket()
-	assert_almost_eq(f.points, -0.25, 0.0001, "bowling wicket +0.5")
+	assert_almost_eq(f.points, 0.35, 0.0001, "bowling wicket +0.8")
 	f.on_player_conceded_boundary()
-	assert_almost_eq(f.points, -0.5, 0.0001, "conceded boundary -0.25")
+	assert_almost_eq(f.points, 0.25, 0.0001, "conceded boundary -0.1")
 
 func test_dot_streak_fires_every_6_and_resets_on_a_run() -> void:
 	var f := FormState.make(0.0)
@@ -36,7 +36,7 @@ func test_dot_streak_fires_every_6_and_resets_on_a_run() -> void:
 	f.on_player_boundary()
 	for i in 5:
 		f.on_player_dot()
-	assert_almost_eq(f.points, -0.25, 0.0001, "any run/boundary resets the streak (only the boundary +0.25 landed)")
+	assert_almost_eq(f.points, -0.45, 0.0001, "any run/boundary resets the streak (only the boundary +0.05 landed)")
 
 func test_clamps() -> void:
 	var f := FormState.make(2.9)
@@ -44,8 +44,8 @@ func test_clamps() -> void:
 		f.on_player_boundary()
 	assert_almost_eq(f.points, 3.0, 0.0001, "clamped at +3")
 	var g := FormState.make(-2.5)
-	g.on_player_dismissed()
-	g.on_player_dismissed()
+	for i in 3:
+		g.on_player_dismissed()
 	assert_almost_eq(g.points, -3.0, 0.0001, "clamped at -3")
 
 func test_affinity_base_mult_composes() -> void:

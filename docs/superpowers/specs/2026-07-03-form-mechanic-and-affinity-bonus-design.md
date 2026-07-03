@@ -140,3 +140,40 @@ player.gd                           ← +form_points float (form int stays, sync
   (never the evolving value), or resims compound form and desync replay.
 - iCloud " 2" conflict files appeared mid-rung already once today — sweep before every
   test run.
+
+## Results (DF10 sweep, 2026-07-03)
+
+Instrument: `tools/sweep_form_balance.gd` — 4 reference builds (125-pt: batter 50/50/12.5/12.5 ·
+bat-AR 40/40/22.5/22.5 · all-rounder 31.25×4 · bowler 12.5/12.5/50/50), both teams even ★3,
+form-OFF vs form-ON (start 0, affinity 0). Match level: N=2000 paired seeds per build×arm
+(Sweep harness). Season level: N=300 LeagueResolver seasons (7 fixtures, form chains) per
+build×arm. Logs: `/tmp/form_sweep{,_v2,_v3}.log`; per-build tick-event rates measured by a
+throwaway probe (N=800/build, neutral multiplier).
+
+**Dial history:**
+- **v1** (spec DF3 first targets: boundary +0.25 / dismissed −1.0 / wicket +0.5 / conceded −0.25):
+  FAILED build equality — mean match form_end batter **+0.86** vs all-rounder **−1.14**
+  (season-end +1.97 vs −2.87), win spread ON 3.1pp, batter pay +₸4.4 over bowler.
+  Cause (measured rates/match): batter hits 5.25 boundaries & is dismissed 0.42×, never
+  bowls; a 4-over spell concedes 3.0–5.5 boundaries per 0.17–0.82 wickets — the bowling
+  table was structurally negative and the batting table structurally positive.
+- **v2** (boundary +0.1 / wicket +0.8 / conceded −0.1): nets fixed (+0.10…+0.27) but the
+  batter's intra-innings self-amplification still lifted its pay **+₸2.2** with others flat.
+- **v3 SHIPPED** (boundary **+0.05** / dismissed **−0.5** / dot-streak −0.25 / wicket **+0.8** /
+  conceded **−0.1**): batting variance halved.
+
+**v3 verdict (all vs the same-seed OFF arm):**
+- Match form_end means: batter +0.04 · bat-AR −0.23 · all-rounder −0.23 · bowler +0.28.
+- Win% shift per build: ≤0.4pp match / ≤0.9pp season (tolerance ~2pp) ✓
+- Pay shift: batter **+₸1.33** (+1.9%) · others ≤₸0.3 (tolerance ~₸1; accepted — half of v2,
+  and the residual is the intra-innings momentum that IS the mechanic) ✓
+- Scoring env at player matches: team/opp totals move ≤0.3 runs ✓ (form is Player-only)
+- Form-reactive jokers: untouched by construction (they trigger on form *events*, not the
+  new value) — no re-pricing.
+
+**Playtest watch-item (feel, not balance):** season chaining settles bat-AR/all-rounder around
+**−1.8** end-of-season form (TIRED face much of the late season) and bowler around **+0.8**,
+because small per-match nets compound through the attribute feedback. Win/pay effects are
+inside tolerance (above). If the tired-faced all-rounder FEELS bad in Nico's playtest, the
+ready lever is `TICK_BOWL_BOUNDARY` −0.1 → −0.08 (lifts both bowling builds ~+0.1/match;
+next sweep re-checks the bowler's hot drift).

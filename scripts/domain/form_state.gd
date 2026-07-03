@@ -7,12 +7,20 @@ extends RefCounted
 # Player's roll touchpoints and calls the tick methods as outcomes land.
 # Tuning dials (DF3/DF12) -- first sweep targets, adjust via DF10 if the ledger moves:
 
-const TICK_BOUNDARY := 0.25        # batting: hit a 4 or 6
-const TICK_DISMISSED := -1.0       # batting: the Player is out
+# v3 dials (DF10 sweep, 2026-07-03): solved from measured per-build event rates so
+# every build's EXPECTED net-per-match is ~0 (build equality), then batting ticks
+# HALVED from v2 to damp the batter's intra-innings self-amplification (early
+# boundaries -> higher mult -> more boundaries), which was lifting batter pay +T2.2
+# with others flat. Rates (probe N=800/build, even *3): batter hits 5.25 boundaries
+# & is dismissed 0.42x per match and never bowls; a 4-over spell concedes ~4-5.5
+# boundaries per ~0.4-0.8 wickets -- so the conceded penalty is small and the wicket
+# reward large. Predicted nets: batter +0.04, bat-AR -0.20, allround -0.26, bowler +0.25.
+const TICK_BOUNDARY := 0.05        # batting: hit a 4 or 6
+const TICK_DISMISSED := -0.5       # batting: the Player is out
 const TICK_DOT_STREAK := -0.25     # batting: every DOT_STREAK_N consecutive dots on strike
 const DOT_STREAK_N := 6
-const TICK_BOWL_WICKET := 0.5      # bowling: wicket in the Player's over
-const TICK_BOWL_BOUNDARY := -0.25  # bowling: boundary conceded in the Player's over
+const TICK_BOWL_WICKET := 0.8      # bowling: wicket in the Player's over
+const TICK_BOWL_BOUNDARY := -0.1   # bowling: boundary conceded in the Player's over
 const POINTS_CLAMP := 3.0          # points live in [-3, +3] (DF1)
 const AFFINITY_PCT := 0.01         # +1% attrs per affinity year... (DF7)
 const AFFINITY_CAP := 5            # ...capped at the hub's AFF_FULL display cap
