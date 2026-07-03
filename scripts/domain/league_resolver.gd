@@ -33,7 +33,8 @@ static func simulate_league(
 		opp_spec: TourSpec = null,
 		jokers: Array = [],
 		shop_hook: Callable = Callable(),
-		capture: bool = false
+		capture: bool = false,
+		form_state: FormState = null
 ) -> LeagueResult:
 	var teams: Array = [player_team]
 	teams.append_array(opponents)
@@ -94,7 +95,8 @@ static func simulate_league(
 			i_bats_first, tuning, itun, rng, ip, bp,
 			jokers if i == 0 else [], fp, null, oip, bplan, dp, null,
 			rosters[i], rosters[j], bat[i] / MatchResolver.REF_SCALAR, bat[j] / MatchResolver.REF_SCALAR,
-			null, odp, obp, bl1, bl2)
+			null, odp, obp, bl1, bl2,
+			form_state if i == 0 else null)  # DF8 -- the Player's fixtures only
 
 		# Attribute innings (innings1 = first-batting side).
 		var i_inns: InningsResult = m.innings1 if i_bats_first else m.innings2

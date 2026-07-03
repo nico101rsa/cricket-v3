@@ -16,7 +16,8 @@ static func _knockout(
 		rng: RandomNumberGenerator, ip: IntentPlan, bp: BowlingPlan,
 		opp_spec: TourSpec = null,
 		jokers: Array = [],
-		rosters: Array = []
+		rosters: Array = [],
+		form_state: FormState = null
 ) -> Dictionary:
 	var s1 := a_idx
 	var s2 := b_idx
@@ -61,7 +62,8 @@ static func _knockout(
 		team_bat[s2], team_bowl[s2], team_bowl[s2],
 		toss, tuning, itun, rng, ipp, bpp,
 		jokers if s1 == 0 else [], fp, null, oip, bplan, dp, null,
-		pr, orr, pf, of, null, odp, obp)
+		pr, orr, pf, of, null, odp, obp,
+		null, null, form_state if s1 == 0 else null)  # DF8 -- Player knockouts only
 	var s1_won: bool
 	if m.outcome == MatchResult.Outcome.TIE:
 		var s1_seed := a_seed if s1 == a_idx else b_seed
@@ -88,11 +90,13 @@ static func simulate_season(
 		opp_spec: TourSpec = null,
 		jokers: Array = [],
 		shop_hook: Callable = Callable(),
-		capture: bool = false
+		capture: bool = false,
+		form_state: FormState = null
 ) -> SeasonResult:
 	var league := LeagueResolver.simulate_league(
 		player_attrs, player_team, opponents, tour, tuning, itun, rng,
-		player_intent_plan, player_bowling_plan, opp_spec, jokers, shop_hook, capture)
+		player_intent_plan, player_bowling_plan, opp_spec, jokers, shop_hook, capture,
+		form_state)
 	# Career-fidelity CF2: knockouts play the same roster path as the league.
 	var rosters := LeagueResolver.build_rosters(player_attrs, itun, opponents.size() + 1)
 	var bat: Array = league.team_bat
@@ -113,8 +117,8 @@ static func simulate_season(
 		jokers = shop_hook.call(league.player_matches.duplicate())
 
 	# Semi-finals: 1v4, 2v3.
-	var sf1 := _knockout(s1i, 1, s4i, 4, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
-	var sf2 := _knockout(s2i, 2, s3i, 3, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
+	var sf1 := _knockout(s1i, 1, s4i, 4, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
+	var sf2 := _knockout(s2i, 2, s3i, 3, bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
 
 	# Seed lookup for the bracket (team_index -> league position 1..4).
 	var seed_of := {s1i: 1, s2i: 2, s3i: 3, s4i: 4}
@@ -132,17 +136,17 @@ static func simulate_season(
 	var fw_b: int = sf2["winner"]
 	var final_kn: Dictionary
 	if seed_of[fw_a] <= seed_of[fw_b]:
-		final_kn = _knockout(fw_a, seed_of[fw_a], fw_b, seed_of[fw_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
+		final_kn = _knockout(fw_a, seed_of[fw_a], fw_b, seed_of[fw_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
 	else:
-		final_kn = _knockout(fw_b, seed_of[fw_b], fw_a, seed_of[fw_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
+		final_kn = _knockout(fw_b, seed_of[fw_b], fw_a, seed_of[fw_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
 
 	var tl_a: int = sf1["loser"]
 	var tl_b: int = sf2["loser"]
 	var third_kn: Dictionary
 	if seed_of[tl_a] <= seed_of[tl_b]:
-		third_kn = _knockout(tl_a, seed_of[tl_a], tl_b, seed_of[tl_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
+		third_kn = _knockout(tl_a, seed_of[tl_a], tl_b, seed_of[tl_b], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
 	else:
-		third_kn = _knockout(tl_b, seed_of[tl_b], tl_a, seed_of[tl_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters)
+		third_kn = _knockout(tl_b, seed_of[tl_b], tl_a, seed_of[tl_a], bat, bowl, player_attrs, tuning, itun, rng, player_intent_plan, player_bowling_plan, opp_spec, jokers, rosters, form_state)
 
 	var result := SeasonResult.new()
 	result.league = league
