@@ -102,3 +102,31 @@ func test_no_emoji_anywhere() -> void:
 	var txt := _all_label_text(screen)
 	for ch in "🏏🃏🛒▶":
 		assert_false(txt.contains(ch), "no emoji (Barlow tofu)")
+
+# T7 (playtest): the Kit Room says what each joker DOES, in plain English.
+func test_starter_tiles_show_descriptions() -> void:
+	var sp := _play()
+	var screen = KitRoomScene.instantiate()
+	add_child_autofree(screen)
+	var visit: Dictionary = sp.pending_shop_visit()
+	screen.set_visit(sp, visit)
+	await get_tree().process_frame
+	var all_text := _all_label_text(screen)
+	for id in (visit["offer"] as Array):
+		assert_true(all_text.contains(JokerCatalog.describe(id)),
+			"starter tile for %s shows its description" % id)
+
+func test_shelf_rows_show_descriptions() -> void:
+	var sp := _visit_play()
+	var screen = KitRoomScene.instantiate()
+	add_child_autofree(screen)
+	var visit: Dictionary = sp.pending_shop_visit()
+	screen.set_visit(sp, visit)
+	await get_tree().process_frame
+	var all_text := _all_label_text(screen)
+	var offer: Dictionary = visit["offer"]
+	for rarity in ["common", "rare", "legendary"]:
+		var id: String = offer.get(rarity, "")
+		if id != "":
+			assert_true(all_text.contains(JokerCatalog.describe(id)),
+				"shelf row for %s shows its description" % id)

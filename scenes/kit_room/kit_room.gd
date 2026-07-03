@@ -75,7 +75,7 @@ func _starter_body() -> void:
 	_col.add_child(box)
 	for id in (_visit["offer"] as Array):
 		var jid: String = id
-		var b := _row_btn("%s\nCOMMON · FREE" % _jname(jid))
+		var b := _row_btn("%s\nCOMMON · FREE\n%s" % [_jname(jid), JokerCatalog.describe(jid)])
 		b.pressed.connect(func():
 			if _play.apply_shop_action({"kind": "pick", "id": jid}):
 				done.emit())
@@ -101,8 +101,9 @@ func _visit_body() -> void:
 		var price: int = offer["prices"][jid]
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 8)
-		var name_l := _lbl("%s\n%s · ₸ %d" % [_jname(jid), rarity.to_upper(), price],
-			13, Palette.WHITE)
+		var name_l := _lbl("%s\n%s · ₸ %d\n%s" % [_jname(jid), rarity.to_upper(), price,
+			JokerCatalog.describe(jid)], 13, Palette.WHITE)
+		name_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_l)
 		var buy := _small_btn("BUY")
@@ -129,7 +130,8 @@ func _visit_body() -> void:
 			var oid: String = oid_v
 			var orow := HBoxContainer.new()
 			orow.add_theme_constant_override("separation", 8)
-			var ol := _lbl(_jname(oid), 13, Palette.WHITE)
+			var ol := _lbl("%s\n%s" % [_jname(oid), JokerCatalog.describe(oid)], 13, Palette.WHITE)
+			ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			ol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			orow.add_child(ol)
 			var sell := _small_btn("SELL ₸%d" % _play.sell_refund_of(oid))
@@ -172,7 +174,7 @@ func _carryover_body() -> void:
 	_col.add_child(box)
 	for id_v in _play.shop_owned():
 		var jid: String = id_v
-		var b := _row_btn(_jname(jid))
+		var b := _row_btn("%s\n%s" % [_jname(jid), JokerCatalog.describe(jid)])
 		b.pressed.connect(func(): carryover_elected.emit(jid))
 		box.add_child(b)
 	var none := _cta("CARRY NOTHING  >", Palette.WHITE_DIM)
