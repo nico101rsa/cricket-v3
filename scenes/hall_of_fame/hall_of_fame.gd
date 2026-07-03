@@ -51,7 +51,7 @@ func render_archive(arc: LegendsArchive) -> void:
 		_earlier_list.add_child(_make_row(arc.entries[i]))
 
 func _render_hero(e: LegendEntry) -> void:
-	_hero_portrait.texture = PortraitLibrary.texture_for(e.player.appearance, e.player.form)
+	_hero_portrait.texture = PortraitLibrary.texture_for(e.player.appearance, e.player.form_points)
 	_hero_badge.text = _badge_text(e)
 	_hero_name.text = e.player.name.display_caps()
 	_hero_meta.text = "%s played · %s won" % [_plural(e.seasons_played, "Season"), _plural(e.levels_won, "Level")]

@@ -14,7 +14,7 @@ extends Resource
 @export var created_at: int = 0                  # NEW — Unix epoch seconds
 
 # Neutral defaults for fields that other systems own.
-@export var form: int = 0          # banded display value -- ALWAYS roundi(form_points) (Form spec DF1)
+@export var form: int = 0          # roundi(form_points), kept for save compat -- display bands form_points (T6)
 @export var form_points: float = 0.0  # the true Form state, [-3, +3] (Form spec DF1)
 @export var affinity: int = 0
 @export var tons_balance: int = 0

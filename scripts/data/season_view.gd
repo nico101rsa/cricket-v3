@@ -16,7 +16,7 @@ var team_stars: float = 0.0
 # --- Player snapshot ---
 var player_name: String = ""
 var city: String = ""
-var form: int = 0
+var form: float = 0.0  # raw form points -- FormBand bands the float (T6)
 var appearance: int = 0
 var power: float = 0.0
 var composure: float = 0.0
