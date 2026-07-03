@@ -141,3 +141,37 @@ func test_flash_label_shows_your_boundary():
 	_scene.boot()
 	_scene.seek_to(c + 1)   # render through the boundary; highlight is for the just-shown ball
 	assert_ne(_scene.flash_text(), "", "the flash label shows a your-moment after a boundary")
+
+# --- DRS decision moments card (spec 2026-07-04 DT8) ------------------------
+
+func _first_offer_cursor(s: MatchSession) -> int:
+	for i in range(s.events().size()):
+		if not s.review_offer(i).is_empty():
+			return i
+	return -1
+
+func test_drs_card_shows_odds_and_flavour():
+	var s := _make_session()
+	var c := _first_offer_cursor(s)
+	assert_gt(c, -1, "seed 20260615 produces a DRS moment")
+	var offer := s.review_offer(c)
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c)
+	assert_true(_scene.overlay_visible(), "the DRS card pauses at the moment")
+	var all_text := _all_overlay_text(_scene)
+	var pct := "%d%%" % int(round(float(offer["p_shown"]) * 100.0))
+	assert_string_contains(all_text, pct, "the card shows the drawn odds")
+	var flavour_label := "LBW" if offer["flavour"] == "lbw" else "CAUGHT BEHIND"
+	assert_string_contains(all_text, flavour_label, "the card names the dismissal flavour")
+
+func _all_overlay_text(scene: Node) -> String:
+	return _gather_text(scene._overlay) if scene._overlay != null else ""
+
+func _gather_text(node: Node) -> String:
+	var out := ""
+	if node is Label or node is Button or node is RichTextLabel:
+		out += " " + node.text
+	for ch in node.get_children():
+		out += _gather_text(ch)
+	return out

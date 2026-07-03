@@ -507,13 +507,32 @@ func _show_overlay(_offer: Dictionary) -> void:
 	_build_drs_body()
 	_overlay.visible = true
 
+# DRS decision moment card (spec 2026-07-04 DT8): names who fell + the dismissal
+# flavour, and SHOWS the drawn overturn odds on the REVIEW button — the number on
+# the card is exactly the number the re-sim rolls.
 func _build_drs_body() -> void:
 	for c in _ov_body.get_children(): c.queue_free()
 	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
 		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
 	var reviews := _session.reviews_left()
+	var m := _pending_review
+	var flavour_label: String = "LBW" if m.get("flavour", "") == "lbw" else "CAUGHT BEHIND"
 	_ov_body.add_child(_lbl("%s · DRS REVIEW" % v.score_big, 10, Palette.BLUE, HORIZONTAL_ALIGNMENT_CENTER))
-	_ov_body.add_child(_actor_card(v.player_bat, "Given out"))
+	# The dismissed batter: the hero's own card, or a teammate chip from the offer.
+	var actor: Dictionary
+	var caption := "Given out %s" % flavour_label
+	if bool(m.get("is_player", true)):
+		actor = v.player_bat
+	else:
+		var surname := PlayerNames.for_position(_team_name, _my_code, int(m.get("batter_pos", 3)))
+		actor = {"name": PlayerNames.upper(_team_name, _my_code, int(m.get("batter_pos", 3))),
+			"badge": PlayerNames.badge(surname),
+			"runs": int(m.get("batter_runs", 0)), "balls": int(m.get("batter_balls", 0)),
+			"ovr": 0, "stars": _my_stars}
+		caption = "Your No.%d · given out %s" % [int(m.get("batter_pos", 3)), flavour_label]
+	if int(m.get("batter_balls", 0)) >= DRSMoments.SET_BALLS:
+		caption += " · was set"
+	_ov_body.add_child(_actor_card(actor, caption))
 	var glyph := _lbl("📺", 42, Palette.WHITE, HORIZONTAL_ALIGNMENT_CENTER)
 	glyph.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -524,11 +543,16 @@ func _build_drs_body() -> void:
 	narr.add_theme_font_size_override("normal_font_size", 13)
 	narr.add_theme_font_override("normal_font", Fonts.italic())  # narration = body italic
 	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
-	narr.text = "[center]Umpire's given you [color=#ffd166]out[/color]. Take the walk, or burn a [color=#ffd166]review[/color] and send it upstairs?[/center]"
+	var who := "you" if bool(m.get("is_player", true)) else "your batter"
+	var hold_line := "Burn the review now, or hold it?" if not bool(m.get("death", false)) \
+		else "Last overs — use it or lose it."
+	narr.text = "[center]Umpire's given %s [color=#ffd166]out[/color] — %s. %s[/center]" \
+		% [who, flavour_label.to_lower(), hold_line]
 	_ov_body.add_child(narr)
 	var ch := HBoxContainer.new(); ch.add_theme_constant_override("separation", 8)
 	ch.add_child(_two_line_btn("ACCEPT", "Take the walk", Palette.RED, review_no))
-	var stake := ("%d review%s left" % [reviews, "" if reviews == 1 else "s"]) if reviews > 0 else "No reviews left"
+	var pct := int(round(float(m.get("p_shown", 0.0)) * 100.0))
+	var stake := ("%d%% to overturn · %d left" % [pct, reviews]) if reviews > 0 else "No reviews left"
 	var review_btn := _two_line_btn("REVIEW", stake, Palette.BLUE, review_yes)
 	review_btn.disabled = reviews <= 0
 	ch.add_child(review_btn)
@@ -638,8 +662,10 @@ func _actor_card(actor: Dictionary, job: String) -> PanelContainer:
 	vb.add_child(_lbl(actor.get("name", "—"), 17, Palette.GOLD))
 	vb.add_child(_lbl(job, 10, Palette.WHITE_MID))
 	# "skill N", not "OVR N" -- Nico read OVR as an over number (playtest T3).
-	var stats: String = ("econ %s · skill %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if actor.has("econ") \
-		else "%d (%d) · skill %d" % [actor.get("runs", 0), actor.get("balls", 0), actor.get("ovr", 0)]
+	# Teammates carry no modelled skill (ovr 0) -- omit the tag rather than "skill 0".
+	var skill_tag: String = " · skill %d" % actor.get("ovr", 0) if int(actor.get("ovr", 0)) > 0 else ""
+	var stats: String = ("econ %s%s" % [actor.get("econ", "0.0"), skill_tag]) if actor.has("econ") \
+		else "%d (%d)%s" % [actor.get("runs", 0), actor.get("balls", 0), skill_tag]
 	vb.add_child(_lbl(stats, 9, Palette.WHITE_DIM))
 	h.add_child(ring); h.add_child(vb)
 	p.add_child(h)

@@ -85,14 +85,13 @@ func _process(_d: float) -> bool:
 					_scene.seek_to(c); break
 		10:
 			_save(OUT_KM_BOWL)
-			# Back to the batting session, seek to the first Player dismissal (DRS card).
+			# Back to the batting session, seek to the first DRS MOMENT (spec
+			# 2026-07-04: not every dismissal offers — scan review_offer).
 			_scene.set_session(_session, _team.team_name, _opp.team_name,
 				_team.stars, _opp.stars, Country.Code.SA, Country.Code.AUS)
 			_scene.boot()
-			var ev: Array = _session.events()
-			for i in range(ev.size()):
-				var e: Dictionary = ev[i]
-				if e["type"] == "ball" and e.get("player_batting", false) and e["wicket"]:
+			for i in range(_session.events().size()):
+				if not _session.review_offer(i).is_empty():
 					_scene.seek_to(i); break
 		12:
 			_save(OUT_DRS)
