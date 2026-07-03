@@ -14,9 +14,15 @@ extends Resource
 @export var created_at: int = 0                  # NEW — Unix epoch seconds
 
 # Neutral defaults for fields that other systems own.
-@export var form: int = 0          # 0 = "Steady" (neutral); enum will land with the Form system
+@export var form: int = 0          # banded display value -- ALWAYS roundi(form_points) (Form spec DF1)
+@export var form_points: float = 0.0  # the true Form state, [-3, +3] (Form spec DF1)
 @export var affinity: int = 0
 @export var tons_balance: int = 0
+
+# The one write path for Form -- keeps the display int in sync (Form spec DF1).
+func set_form_points(p: float) -> void:
+	form_points = clampf(p, -3.0, 3.0)
+	form = roundi(form_points)
 
 static func from_draft(draft: PlayerCreationDraft) -> Player:
 	var p := Player.new()

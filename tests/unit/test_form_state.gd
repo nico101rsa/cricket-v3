@@ -54,3 +54,15 @@ func test_affinity_base_mult_composes() -> void:
 	assert_almost_eq(FormState.affinity_mult(9), 1.05, 0.0001, "capped at +5% (AFF_FULL 5)")
 	var f := FormState.make(3.0, FormState.affinity_mult(5))
 	assert_almost_eq(f.mult(), 1.15 * 1.05, 0.0001, "mult() = base_mult x form_mult(points)")
+
+func test_player_form_points_field_and_sync() -> void:
+	var p := Player.new()
+	assert_almost_eq(p.form_points, 0.0, 0.0001, "fresh player: neutral")
+	assert_eq(p.form, 0)
+	p.set_form_points(1.6)
+	assert_almost_eq(p.form_points, 1.6, 0.0001)
+	assert_eq(p.form, 2, "display int = roundi(points) -> HOT band")
+	p.set_form_points(-0.6)
+	assert_eq(p.form, -1, "TIRED band")
+	p.set_form_points(9.0)
+	assert_almost_eq(p.form_points, 3.0, 0.0001, "clamped on write")
