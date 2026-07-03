@@ -55,6 +55,17 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 - (T8) DRS: show success % on the review prompt; clarify team-wide scope in copy.
   Answer to "what is the AI's DRS for": the opponent captain holds the same base reviews —
   they can overturn YOUR wickets (their batter survives) and claim close dots against you.
+  **EXPANDED (Nico, 2026-07-04 am): DRS becomes a real decision moment.** Direction:
+  more DRS decisions but contextual, not every wicket — (a) a top-order batter who is set
+  ("on fire") falls to a reviewable-looking dismissal (caught behind / LBW flavour), or
+  (b) the last 2 overs with a review still in hand. Success chance is drawn PER MOMENT in
+  roughly the 20%–70% range and SHOWN — the decision is "burn the review at 35% now, or
+  hold it for the death overs". Proposed shape (to brainstorm at rung time): dismissal-type
+  flavour roll (bowled/caught/LBW/caught-behind…) gates reviewability; per-moment p drawn
+  from situation + flavour; failed review burns it (standard cricket); the opponent AI
+  mirrors the same variable p (symmetry); moment frequency × mean p tuned so total
+  overturn rate ≈ today's flat rate → the fair-fight floor doesn't move (sweep gate).
+  T8 is now a MEDIUM rung (sim moment model + KM-style card UI + balance check).
 
 **Medium rungs:**
 - (T9) Boost water-meter per ADR 0005 (press locks magnitude from fill %, drains, ~25s recharge,
