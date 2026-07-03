@@ -240,6 +240,7 @@ func _apply_offer_pick(play: SeasonPlay, career: CareerState, player: Player,
 	SaveManager.save_career(career)
 	SaveManager.clear_live_season()
 	if player != null:
+		player.set_form_points(0.0)       # Form resets at Season end, with Jokers (DF6)
 		SaveManager.save_player(player)   # affinity moved on stay AND accept
 	_show_outcome(play, career, transition, player)
 

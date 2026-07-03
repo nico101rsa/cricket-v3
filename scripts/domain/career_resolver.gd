@@ -215,7 +215,8 @@ static func play_season(
 		rng: RandomNumberGenerator,
 		intent_plan: IntentPlan = null, bowling_plan: BowlingPlan = null,
 		shop_policy: Callable = Callable(),
-		match_snaps = null
+		match_snaps = null,
+		use_form: bool = false
 ) -> Dictionary:
 	var level := state.current_level()
 	if not state.is_unlocked(level, tour_index):
@@ -252,10 +253,15 @@ static func play_season(
 			ShopResolver.apply_visit(act, shop, player, offer, etun, shop_log)
 			return ShopResolver.loadout_effects(shop)
 
+	# DF6/DF7 -- fresh Form per season (= the season reset) carrying the Affinity
+	# bonus; headless careers never write form back onto the Player.
+	var season_form: FormState = null
+	if use_form:
+		season_form = FormState.make(0.0, FormState.affinity_mult(player.affinity))
 	var season := SeasonResolver.simulate_season(
 		player.attributes, team, state.opponents_of_current(), spec.make_tour(),
 		tuning, itun, rng, intent_plan, bowling_plan, spec,
-		ShopResolver.loadout_effects(shop), hook)
+		ShopResolver.loadout_effects(shop), hook, false, season_form)
 
 	# Settle whatever the hooks did not (shop off: everything; shop on: the
 	# championship match), then the Season-level prizes (DV9).
