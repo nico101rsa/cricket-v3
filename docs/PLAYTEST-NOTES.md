@@ -75,6 +75,15 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   mirrors the same variable p (symmetry); moment frequency × mean p tuned so total
   overturn rate ≈ today's flat rate → the fair-fight floor doesn't move (sweep gate).
   T8 is now a MEDIUM rung (sim moment model + KM-style card UI + balance check).
+  ✅ DONE 2026-07-04 (spec 2026-07-04-drs-decision-moments-design.md, DT1–DT12):
+  wickets carry a hash-drawn dismissal flavour; LBW/caught-behind wickets where the
+  batter was set (≥10 balls) or in the last 2 overs become DECISION MOMENTS — any
+  batter on your team, with the overturn % (20–70%, drawn per moment) SHOWN on the
+  card ("REVIEW — 26% to overturn · 2 left"). Failed review burns, success retained
+  (real T20 rule — was burn-on-any-commit). The opponent now holds the same DRS in
+  the LIVE match (it had none — live was quietly easier than the measured floor).
+  Balance gate passed: fair-fight floor holds 48–49% every build (spec §6 table).
+  Non-moment dismissals no longer pause the match.
 
 **Medium rungs:**
 - (T9) Boost water-meter per ADR 0005 (press locks magnitude from fill %, drains, ~25s recharge,

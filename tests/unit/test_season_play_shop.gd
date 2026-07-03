@@ -90,15 +90,17 @@ func test_buy_deducts_owns_and_feeds_the_loadout() -> void:
 		JokerCatalog.effects_of_ids(sp.shop_owned()).size(), "loadout == owned effects")
 
 func test_carryover_loadout_alters_the_live_matches() -> void:
-	# Same seed, one play carries block_the_shine (always-on early-innings survival
-	# buff) — the first three matches must diverge from the joker-less play.
+	# Same seed, one play carries rotate_the_strike (runs mult on EVERY Balanced
+	# hero ball — the live default intent, so it perturbs every hero delivery) —
+	# the league must diverge from the joker-less play. (block_the_shine's narrow
+	# 18-ball wicket sliver could pass a whole season untouched — a luck test.)
 	var base := (_play_with_shop(20260704)["sp"] as SeasonPlay)
-	var carry := (_play_with_shop(20260704, "block_the_shine")["sp"] as SeasonPlay)
+	var carry := (_play_with_shop(20260704, "rotate_the_strike")["sp"] as SeasonPlay)
 	base.apply_shop_action({"kind": "skip"})
 	carry.apply_shop_action({"kind": "skip"})
 	var sum_base := 0
 	var sum_carry := 0
-	for i in range(3):
+	for i in range(7):
 		var rb := base.make_session().result()
 		var rc := carry.make_session().result()
 		sum_base += rb.innings1.total + rb.innings2.total

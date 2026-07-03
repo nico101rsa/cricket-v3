@@ -249,15 +249,32 @@ static func simulate_innings(
 		var orig_wicket := o.wicket
 		var orig_dot := (not o.wicket) and o.runs == 0
 		if orig_wicket:
+			# Survive channel = DRS decision moments (spec 2026-07-04, T8): auto/AI
+			# reviews fire only on MOMENT wickets (reviewable flavour + set/death gate)
+			# at the hash-drawn per-moment p, attempted iff p >= AI_BURN_P. Scripted
+			# mode (review_balls non-null) reviews exactly the listed balls at the same
+			# moment p — the number shown on the card is the number rolled here.
+			# s["balls"] is the striker's balls faced BEFORE this delivery.
+			var bio := balls % 6 + 1
 			if player_is_batting and drs_policy != null:
-				# DI3 — scripted mode (review_balls non-null): only review the listed
-				# [over, ball_in_over] deliveries; auto mode (null) = byte-identical.
-				var bio := balls % 6 + 1
-				var do_review: bool = drs_policy.review_balls == null or drs_policy.review_balls.has([over, bio])
-				if do_review and runtime.try_review(jokers, true, intent, drs_policy.base_p, balls + 1, rng):
+				var mp: float = drs_policy.moment_p_override if drs_policy.moment_p_override >= 0.0 \
+					else DRSMoments.moment_p(player_is_batting, over, bio)
+				var attempt := false
+				if drs_policy.review_balls == null:
+					attempt = DRSMoments.is_moment(
+						DRSMoments.flavour_of(player_is_batting, over, bio), s["balls"], over) \
+						and mp >= DRSMoments.AI_BURN_P
+				else:
+					attempt = drs_policy.review_balls.has([over, bio])
+				if attempt and runtime.try_review(jokers, true, intent, mp, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
 			elif (not player_is_batting) and opp_drs_policy != null:
-				if opp_runtime.try_review([], true, intent, opp_drs_policy.base_p, balls + 1, rng):
+				var omp: float = opp_drs_policy.moment_p_override if opp_drs_policy.moment_p_override >= 0.0 \
+					else DRSMoments.moment_p(player_is_batting, over, bio)
+				if DRSMoments.is_moment(
+						DRSMoments.flavour_of(player_is_batting, over, bio), s["balls"], over) \
+						and omp >= DRSMoments.AI_BURN_P \
+						and opp_runtime.try_review([], true, intent, omp, balls + 1, rng):
 					o = BallOutcome.new(false, 0)
 		elif orig_dot:
 			if (not player_is_batting) and drs_policy != null:

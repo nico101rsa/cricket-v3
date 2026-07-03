@@ -30,7 +30,10 @@ var _use_form := false
 
 var _presses: Array = []         # [innings_no, within_innings_over] pairs
 var _review_balls: Array = []    # [over, ball_in_over] pairs (Player batting innings)
-var _reviews_used := 0           # batting-side reviews the Player has committed
+var _reviews_used := 0           # FAILED reviews (T20 rule: success retains — DT9);
+                                 # recomputed from the log after every re-sim
+var _drs_moments: Array = []     # computed DRS decision moments (spec 2026-07-04 DT7)
+var _moment_p_override := -1.0   # test seam: force every moment p (DT6); < 0 = hash
 var _km_plan := KeyMomentPlan.new()   # accumulated Key Moment overrides (spec 2026-06-16)
 var _km_moments: Array = []           # computed {title, prompt, from_over, cursor, choices, lever}
 var _bowl_km_plan := BowlingKeyMomentPlan.new()  # accumulated bowling overrides (spec 2026-06-18)
@@ -93,6 +96,10 @@ func _resim() -> void:
 		boost.press_overs.append(p[1])   # 1-based within-innings; resolver checks per innings
 	var drs := DRSPolicy.new()
 	drs.review_balls = _review_balls
+	drs.moment_p_override = _moment_p_override
+	# T8 symmetry (DT4): the live opponent holds base DRS too — it can overturn
+	# your wickets and claim close dots, exactly like the headless fair fight.
+	var odrs := DRSPolicy.new()
 	var ip := IntentPlan.new()         # all-BALANCED base; carries the Key Moment overrides
 	ip.key_moments = _km_plan
 	# Player bowling plan rides the existing player_bowling_plan slot. Only passed when
@@ -117,11 +124,18 @@ func _resim() -> void:
 	_result = MatchResolver.simulate_match_teams(
 		_attrs, _team, _opp, _tour, _tuning, _itun, rng,
 		ip, pbp, _player_effects, fld, null, oip,
-		boost, drs, null, null, null, _force, obp, log1, log2, fs)
+		boost, drs, null, null, odrs, _force, obp, log1, log2, fs)
 	_result.ball_log_innings1 = log1
 	_result.ball_log_innings2 = log2
 	_events = MatchViewBuilder.build_events(_result, _player)
 	_compute_km_moments()
+	_compute_drs_moments()
+	# DT9: only FAILED reviews burn budget (the reviewed ball still reads as a
+	# wicket); a successful review is retained, T20-style.
+	_reviews_used = 0
+	for bid in _review_balls:
+		if ball_is_wicket(bid):
+			_reviews_used += 1
 
 # -- Boost (DI2) -------------------------------------------------------------
 
@@ -153,21 +167,87 @@ func decide_boost(innings_no: int, over: int) -> void:
 func decide_boost_over(over: int) -> void:
 	decide_boost(1, over)
 
-# -- DRS review (DI3) --------------------------------------------------------
+# -- DRS review (DI3 + decision moments, spec 2026-07-04) --------------------
 
 func reviews_left() -> int:
 	return maxi(0, REVIEW_BUDGET - _reviews_used)
 
-# Given the playback cursor (index of the event about to be shown), is it a Player
-# dismissal the Player can review? Returns {ball_id:[over,ball], over, ball} or {}.
+# Test seam (DT6): force every moment's success chance; re-sims so p_shown follows.
+func set_moment_p_override(v: float) -> void:
+	_moment_p_override = v
+	_resim()
+
+# Shown/rolled odds for a moment: the hash-drawn moment p plus the Reviewer-joker
+# ACCURACY/MASTER bonuses that apply at this ball's intent — mirrors
+# JokerRuntime.try_review, so the number on the card IS the number rolled (DT3).
+func _drs_shown_p(base_p: float, intent: int) -> float:
+	var p := base_p
+	for j in _player_effects:
+		match j.drs_role:
+			JokerEffect.DRSRole.ACCURACY:
+				if j.intent_req == -1 or intent == j.intent_req:
+					p += j.drs_p_bonus
+			JokerEffect.DRSRole.MASTER:
+				p += JokerRuntime.DRS_MASTER_BONUS
+	return clampf(p, 0.0, 1.0)
+
+# Cursor of the event CONTAINING this ball in the player's batting innings: the
+# hero's own deliveries are "ball" events; a teammate's wicket lives inside its
+# over-summary event. The pause fires before the event shows (prefix untouched).
+func _cursor_for_ball(player_innings: int, over: int, bio: int, hero_ball: bool) -> int:
+	for i in range(_events.size()):
+		var e: Dictionary = _events[i]
+		if e.get("innings", -1) != player_innings:
+			continue
+		if hero_ball:
+			if e["type"] == "ball" and e["over"] == over and e.get("ball", -1) == bio:
+				return i
+		else:
+			if e["type"] == "over" and e["over"] == over:
+				return i
+	return -1
+
+# Walk the team-batting ball log for qualifying wickets (DT2 gate) — ANY batter,
+# not just the hero — and anchor each to its playback cursor with the shown odds.
+func _compute_drs_moments() -> void:
+	_drs_moments = []
+	var log := _player_batting_log()
+	var pbi := 1 if _result.player_bats_first else 2
+	var faced := {}    # striker_pos -> balls faced before the current delivery
+	var scored := {}   # striker_pos -> runs scored so far
+	for b in log:
+		var pos: int = b["striker_pos"]
+		var before: int = faced.get(pos, 0)
+		faced[pos] = before + 1
+		if not b["wicket"]:
+			scored[pos] = scored.get(pos, 0) + b["runs"]
+			continue
+		var flavour: String = DRSMoments.flavour_of(b["player_batting"], b["over"], b["ball_in_over"])
+		if not DRSMoments.is_moment(flavour, before, b["over"]):
+			continue
+		var c := _cursor_for_ball(pbi, b["over"], b["ball_in_over"], bool(b["is_player"]))
+		if c == -1:
+			continue
+		var base_p: float = _moment_p_override if _moment_p_override >= 0.0 \
+			else DRSMoments.moment_p(b["player_batting"], b["over"], b["ball_in_over"])
+		_drs_moments.append({
+			"cursor": c, "ball_id": [b["over"], b["ball_in_over"]],
+			"over": b["over"], "ball": b["ball_in_over"],
+			"batter_pos": pos, "batter_runs": scored.get(pos, 0), "batter_balls": before,
+			"is_player": b["is_player"], "flavour": flavour,
+			"p_shown": _drs_shown_p(base_p, b["intent"]),
+			"death": b["over"] >= DRSMoments.DEATH_OVER,
+		})
+
+# Given the playback cursor (index of the event about to be shown), is there a DRS
+# decision moment here? Returns the enriched moment dict (DT7) or {}. A ball the
+# player already reviewed (and lost) is not re-offered.
 func review_offer(cursor: int) -> Dictionary:
 	if reviews_left() <= 0:
 		return {}
-	if cursor < 0 or cursor >= _events.size():
-		return {}
-	var e: Dictionary = _events[cursor]
-	if e["type"] == "ball" and e.get("player_batting", false) and e["wicket"]:
-		return {"ball_id": [e["over"], e["ball"]], "over": e["over"], "ball": e["ball"]}
+	for m in _drs_moments:
+		if m["cursor"] == cursor and not _review_balls.has(m["ball_id"]):
+			return m
 	return {}
 
 # Is the ball at ball_id [over, ball_in_over] currently a wicket in the player's
@@ -180,12 +260,12 @@ func ball_is_wicket(ball_id: Array) -> bool:
 	return true
 
 # Commit a review of the dismissal at ball_id [over, ball_in_over], re-sim.
+# Budget accounting happens in _resim (failed reviews only — DT9).
 func decide_review(ball_id: Array) -> void:
 	if reviews_left() <= 0:
 		return
 	if not _review_balls.has(ball_id):
 		_review_balls.append(ball_id)
-	_reviews_used += 1
 	_resim()
 
 # -- Key Moments (spec 2026-06-16) ------------------------------------------
@@ -313,7 +393,6 @@ func export_decisions() -> Dictionary:
 func apply_decisions(d: Dictionary) -> void:
 	_presses = (d.get("presses", []) as Array).duplicate(true)
 	_review_balls = (d.get("review_balls", []) as Array).duplicate(true)
-	_reviews_used = _review_balls.size()
 	_km_plan = KeyMomentPlan.new()
 	_km_plan.overrides = (d.get("km", []) as Array).duplicate(true)
 	_bowl_km_plan = BowlingKeyMomentPlan.new()

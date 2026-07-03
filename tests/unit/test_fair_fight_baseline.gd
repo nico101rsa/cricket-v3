@@ -14,20 +14,24 @@ func _rng(seed_val: int) -> RandomNumberGenerator:
 	r.seed = seed_val
 	return r
 
-# DF3: with a high-success DRS, a derived (non-hero) innings still gets reviews on
-# dismissals -> fewer wickets fall than with no DRS. Pre-fix this was hero-only, so
-# a null-player innings got ZERO reviews; now any dismissal can be reviewed.
+# DF3: with a forced-success DRS, a derived (non-hero) innings still gets reviews
+# on MOMENT dismissals (spec 2026-07-04: reviewable flavour + set/death gate) ->
+# fewer wickets fall than with no DRS. Summed over seeds so at least some innings
+# produce qualifying moments.
 func test_drs_reviews_any_dismissal_not_just_hero() -> void:
-	var hi := DRSPolicy.new()
-	hi.base_reviews = 50      # effectively unlimited for the test
-	hi.base_p = 1.0           # always overturns
-	var no_drs := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(42))
-	var with_drs := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(42), 0, null, null, null,
-		0, 0, 0, [], true, null, null, null, hi)
-	assert_lt(with_drs.wickets, no_drs.wickets,
-		"team-wide DRS should save non-hero batters too")
+	var no_sum := 0
+	var with_sum := 0
+	for seed_value in range(40, 55):
+		var hi := DRSPolicy.new()
+		hi.base_reviews = 50            # effectively unlimited for the test
+		hi.moment_p_override = 1.0      # every attempted review overturns
+		no_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value)).wickets
+		with_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value), 0, null, null, null,
+			0, 0, 0, [], true, null, null, null, hi).wickets
+	assert_lt(with_sum, no_sum,
+		"team-wide DRS moments should save non-hero batters too (%d < %d over 15 seeds)" % [with_sum, no_sum])
 
 # DF3: real T20 allows 2 unsuccessful reviews per innings.
 func test_default_review_count_is_two() -> void:
@@ -51,17 +55,22 @@ func test_opponent_boost_lifts_opponent_innings() -> void:
 	assert_gt(boosted_sum, base_sum, "opponent boost should lift the opponent's score")
 
 # DF5: the opponent reviews to survive its own dismissals (base rule, no jokers).
+# Moment-gated since spec 2026-07-04 -> summed over seeds so qualifying moments occur.
 func test_opponent_drs_saves_opponent_wickets() -> void:
-	var hi := DRSPolicy.new()
-	hi.base_reviews = 50
-	hi.base_p = 1.0
-	var base := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
-		0, 0, 0, [], false)
-	var saved := InningsResolver.simulate_innings(
-		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
-		0, 0, 0, [], false, null, null, null, null, null, [], 0, null, hi)
-	assert_lt(saved.wickets, base.wickets, "opponent DRS should save opponent batters")
+	var base_sum := 0
+	var saved_sum := 0
+	for seed_value in range(1, 16):
+		var hi := DRSPolicy.new()
+		hi.base_reviews = 50
+		hi.moment_p_override = 1.0
+		base_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value), 0, null, null, null,
+			0, 0, 0, [], false).wickets
+		saved_sum += InningsResolver.simulate_innings(
+			null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(seed_value), 0, null, null, null,
+			0, 0, 0, [], false, null, null, null, null, null, [], 0, null, hi).wickets
+	assert_lt(saved_sum, base_sum,
+		"opponent DRS moments should save opponent batters (%d < %d over 15 seeds)" % [saved_sum, base_sum])
 
 # DF5: the opponent also reviews to CLAIM while bowling — a Player dot can be
 # overturned to a wicket. Use a strong batting side vs weak bowling so the base case
