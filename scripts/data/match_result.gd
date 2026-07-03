@@ -13,6 +13,7 @@ var outcome: int = Outcome.TIE
 var margin_runs: int = 0           # set when a side wins batting first
 var margin_wickets: int = 0        # set when a side wins chasing
 var balls_remaining: int = 0       # set when a side wins chasing
+var form_end: float = 0.0          # Player Form points at match end (0.0 when form is off) -- spec DF5
 
 # Opt-in per-ball replay logs (Play → Match screen, spec §6). Empty unless the
 # match was simulated with capture on. innings1/innings2 follow bat order (same as

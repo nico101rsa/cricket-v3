@@ -125,7 +125,8 @@ static func simulate_innings(
 		team_bat_factor: float = 1.0,
 		opp_boost_plan: BoostPlan = null,
 		opp_drs_policy: DRSPolicy = null,
-		ball_log = null
+		ball_log = null,
+		form_state: FormState = null
 ) -> InningsResult:
 	var batters := _build_batters(player_attrs, partner_batting, itun, batting_roster, team_bat_factor)
 	var max_balls := itun.over_limit * 6
@@ -220,8 +221,18 @@ static func simulate_innings(
 		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type, is_chase)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var opp_win := opp_runtime.tick_mults(opp_is_batting)  # DF2 — opponent base buffs
+		# DF2/DF5 -- the Player's effective attributes carry Form x Affinity. Player-only:
+		# teammates and opponents roll at their plain strengths (DF8).
+		var bat_fmult := 1.0
+		var bowl_fmult := 1.0
+		if form_state != null:
+			if player_is_batting and s["is_player"]:
+				bat_fmult = form_state.mult()
+			elif player_bowling:
+				bowl_fmult = form_state.mult()
 		var o := BallResolver.resolve_ball(
-			s["power"], s["composure"], bat_attack, bat_control,
+			s["power"] * bat_fmult, s["composure"] * bat_fmult,
+			bat_attack * bowl_fmult, bat_control * bowl_fmult,
 			intent, tuning, rng, jm.x * win.x * opp_win.x, jm.y * win.y * opp_win.y,
 			bowler_type)
 		# C2f — DRS: a review can overturn a close decision (see below).
@@ -270,6 +281,23 @@ static func simulate_innings(
 			formed = s["is_player"] and not o.wicket and (o.runs == 4 or o.runs == 6)
 		elif player_bowling:
 			formed = o.wicket
+		# DF3 -- per-ball Form ticks, Player-only (batting: the Player on strike;
+		# bowling: the Player's own overs).
+		if form_state != null:
+			if player_is_batting and s["is_player"]:
+				if o.wicket:
+					form_state.on_player_dismissed()
+				elif o.runs == 4 or o.runs == 6:
+					form_state.on_player_boundary()
+				elif o.runs == 0:
+					form_state.on_player_dot()
+				else:
+					form_state.on_player_run()
+			elif player_bowling:
+				if o.wicket:
+					form_state.on_player_wicket()
+				elif o.runs == 4 or o.runs == 6:
+					form_state.on_player_conceded_boundary()
 		runtime.on_ball_end(jokers, player_is_batting, balls, formed)
 		opp_runtime.on_ball_end([], opp_is_batting, balls, false)  # DF2 — decay opponent buffs
 		# C2g — Building Phase: count consecutive Player Defensive balls -> Form every 6.
