@@ -34,13 +34,13 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 
 ## Triage (Claude, 2026-07-03 evening — after Nico's first 2 games)
 
-**Investigate FIRST (possible sim bug):**
+**Investigate FIRST (possible sim bug):** ✅ DONE 2026-07-03 late
 - (T1) The 41/9-in-6-overs collapse vs a stronger side (screenshot 19.03.19). 9 wickets in
   6 overs is extreme even for a weak side; if wicket probability at that cell / with
   team-wide DRS auto-claims is off, it colours everything else. Reproduce the fixture
   headlessly from the save's seed+decisions before trusting any other balance feel.
 
-**Quick-fix batch (one small rung):**
+**Quick-fix batch (one small rung):** ✅ ALL DONE (PR #112, 2026-07-03 late) — plus new T12 below
 - (T2) Pre-Match star glyphs: `pre_match.gd _stars()` rounds 1.5→★★ (hub does ★½ right) → shared helper.
 - (T3) KM card "OVR 30" read as "over 30" → plain label ("rated 30/100" or drop it); sweep KM cards for shorthand.
 - (T4) Pre-Match TAP TO START starts the match directly (no second PLAY press).
@@ -68,3 +68,20 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   flavour-rich; needs club name banks per city (design-track candidate) + a creation step.
   Question for Nico: flavour-only (team name/identity) or should the pick differ mechanically?
   **RULED (Nico, 2026-07-03): flavour only — name and identity.**
+
+
+## Batch-1 outcomes (2026-07-03 late, PR #112)
+
+- **T1 verdict:** the 41/9 collapse is the Club-Practise env being deliberately wild, not
+  a bug — same-fixture benchmark N=300 (tools/probe_save_replay.gd): opponent innings mean
+  105.2/7.4, P(9+ wkts)=49.7%, P(<=45 all out)=5.3%. Your match was a ~5% tail. Verdict:
+  luck + club-cricket texture. (Riverside are 2.5★ vs your 1.5★ — one star up, not giants.)
+- **T12 (NEW BUG, found via T1, FIXED):** your match 2 was never saved — the season file
+  only wrote when you pressed Continue on the Result screen, so quitting there lost the
+  match (your ₸ pay kept it, desync). Now the season saves the moment a match commits.
+- **T2–T5 fixed:** star glyphs (1.5 = ★½ everywhere) · KM card says "skill 30" not "OVR 30" ·
+  TAP TO START starts the match rolling · batter rows hold their positions, the gold
+  highlight follows the strike.
+- **Still queued:** T6 form-twitchiness (one bad game ≠ tired face) · T7 joker descriptions ·
+  T8 DRS % · T9 Boost water-meter (ADR 0005) · T10 scorecard moments · T11 city clubs
+  (ruled: flavour only).

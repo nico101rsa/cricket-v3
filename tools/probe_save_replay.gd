@@ -1,7 +1,9 @@
 extends SceneTree
 
-# T1 (playtest triage): reproduce Nico's match 2 (the 41/9 collapse) from the real
-# save, decompose it, and benchmark the cell. Read-only on the save.
+# Save-replay diagnostic (born as playtest T1, kept for future triage): loads the
+# REAL user:// save read-only, replays the live season, prints per-match lines, and
+# benchmarks the next fixture's cell (N=300). Run headless with the game closed:
+#   /Applications/Godot.app/Contents/MacOS/Godot --headless --path . -s tools/probe_save_replay.gd
 
 func _initialize() -> void:
 	var player: Player = load("user://player.tres")
