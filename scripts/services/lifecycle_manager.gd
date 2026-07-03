@@ -7,6 +7,13 @@ extends Node
 
 signal career_ended(end_reason: String)
 
+func _ready() -> void:
+	# Desktop must let the OS lock/sleep the screen (a security finding, 2026-07-03:
+	# Godot's keep_screen_on default held a macOS power assertion, so the Mac never
+	# locked while the game ran). The project setting is off; phones re-enable it at
+	# runtime -- a match should not dim mid-over on the iOS build.
+	DisplayServer.screen_set_keep_on(OS.has_feature("mobile"))
+
 func manual_retire() -> void:
 	end_career(LegendEntry.END_REASON_RETIRED)
 
