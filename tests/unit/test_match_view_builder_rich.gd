@@ -27,7 +27,10 @@ func test_mid_innings_has_two_batters_with_real_balls():
 	var v := MatchViewBuilder.build_rich(s.result(), s.player(), c, "Karoo Kings", "Dusty Plains")
 	assert_false(v.striker.is_empty(), "a striker is at the crease")
 	assert_false(v.nonstriker.is_empty(), "a non-striker is at the crease")
-	assert_true(v.striker["on_strike"], "the striker chip is flagged on-strike")
+	# T5 contract: chips sit in batting order (never reordered); on_strike carries
+	# the highlight — exactly ONE of the two chips wears it.
+	assert_ne(bool(v.striker["on_strike"]), bool(v.nonstriker["on_strike"]),
+		"exactly one chip is flagged on-strike")
 	assert_gt(int(v.striker["balls"]) + int(v.nonstriker["balls"]), 0, "real balls faced")
 
 func test_score_and_runrate_are_real():

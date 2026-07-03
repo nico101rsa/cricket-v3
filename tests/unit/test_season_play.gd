@@ -404,7 +404,7 @@ func test_set_player_jokers_lifts_league_batting_total() -> void:
 	var effects := JokerCatalog.effects_of_ids(["block_the_shine"])
 	var sum_base := 0
 	var sum_joker := 0
-	for s in range(8):
+	for s in range(16):
 		var base := _season_at(3300 + s)
 		var jk := _season_at(3300 + s)
 		jk.set_player_jokers(effects)

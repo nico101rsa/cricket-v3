@@ -60,7 +60,7 @@ func test_can_boost_respects_budget():
 	assert_eq(s.presses_left(1), 0)
 	assert_false(s.can_boost(1), "budget exhausted")
 
-# -- Task 5: DRS review -----------------------------------------------------
+# -- Task 5: DRS review (decision moments, spec 2026-07-04) ------------------
 
 func _first_dismissal_cursor(s: MatchSession) -> int:
 	var ev := s.events()
@@ -70,41 +70,75 @@ func _first_dismissal_cursor(s: MatchSession) -> int:
 			return i
 	return -1
 
-func test_review_offer_fires_on_player_dismissal():
-	var s := _session()
-	var c := _first_dismissal_cursor(s)
-	assert_gt(c, -1, "the seed produces a Player dismissal")
-	var offer := s.review_offer(c)
-	assert_false(offer.is_empty(), "an offer is returned at the dismissal cursor")
-	assert_true(offer.has("ball_id"), "offer carries the ball_id")
+# First cursor where a DRS moment is offered (any batter: hero ball event or a
+# teammate wicket's over-summary event).
+func _first_moment_cursor(s: MatchSession) -> int:
+	for c in range(s.events().size()):
+		if not s.review_offer(c).is_empty():
+			return c
+	return -1
 
-func test_decide_review_overturn_or_burn():
+func test_review_offer_is_a_moment_with_shown_odds():
 	var s := _session()
-	var c := _first_dismissal_cursor(s)
+	var c := _first_moment_cursor(s)
+	assert_gt(c, -1, "seed 20260615 produces at least one DRS moment")
 	var offer := s.review_offer(c)
-	var bid: Array = offer["ball_id"]
-	var reviews_before := s.reviews_left()
+	assert_true(offer.has("ball_id"), "offer carries the ball_id")
+	assert_true(offer.has("p_shown"), "the card shows the odds")
+	assert_between(float(offer["p_shown"]), DRSMoments.P_LO, 0.95)
+	assert_true(DRSMoments.is_reviewable(offer["flavour"]), "moments are reviewable-looking")
+	assert_true(offer.has("batter_pos"), "offer says who fell")
+	assert_true(offer.has("batter_runs") and offer.has("batter_balls"), "with their score")
+
+func test_non_moment_dismissals_do_not_offer():
+	# The T8 point: NOT every wicket asks. A hero dismissal that fails the moment
+	# gate (not set, not death, or unreviewable flavour) must stay silent.
+	var s := _session()
+	var ev := s.events()
+	var silent_checked := 0
+	for i in range(ev.size()):
+		var e: Dictionary = ev[i]
+		if e["type"] == "ball" and e.get("player_batting", false) and e["wicket"]:
+			var flavour := DRSMoments.flavour_of(true, e["over"], e["ball"])
+			if not DRSMoments.is_reviewable(flavour):
+				silent_checked += 1
+				assert_true(s.review_offer(i).is_empty(),
+					"unreviewable %s dismissal at %d.%d stays silent" % [flavour, e["over"], e["ball"]])
+	pass_test("checked %d unreviewable hero dismissals" % silent_checked)
+
+func test_success_retains_review_failure_burns():
+	# T20 rule (DT9): a SUCCESSFUL review is retained; a failed one burns.
+	var s := _session()
+	s.set_moment_p_override(1.0)          # every attempted review succeeds
+	var c := _first_moment_cursor(s)
+	assert_gt(c, -1, "a moment exists")
+	var bid: Array = s.review_offer(c)["ball_id"]
 	s.decide_review(bid)
-	var still_out := false
-	for b in s.result().ball_log_innings1:
-		if b["over"] == bid[0] and b["ball_in_over"] == bid[1]:
-			still_out = b["wicket"]
-	if still_out:
-		assert_eq(s.reviews_left(), reviews_before - 1, "failed review burned one")
-	else:
-		assert_eq(s.reviews_left(), reviews_before - 1, "a committed review counts against budget")
+	assert_false(s.ball_is_wicket(bid), "overturned")
+	assert_eq(s.reviews_left(), MatchSession.REVIEW_BUDGET, "successful review retained")
+
+	var s2 := _session()
+	s2.set_moment_p_override(0.0)         # every attempted review fails
+	var c2 := _first_moment_cursor(s2)
+	assert_gt(c2, -1, "a moment exists")
+	var bid2: Array = s2.review_offer(c2)["ball_id"]
+	s2.decide_review(bid2)
+	assert_true(s2.ball_is_wicket(bid2), "the wicket stands")
+	assert_eq(s2.reviews_left(), MatchSession.REVIEW_BUDGET - 1, "failed review burned one")
+	assert_true(s2.review_offer(c2).is_empty(), "no re-offer after a burned review")
 
 func test_review_offer_stops_when_no_reviews_left():
 	var s := _session()
 	s._reviews_used = MatchSession.REVIEW_BUDGET
 	assert_eq(s.reviews_left(), 0)
-	var c := _first_dismissal_cursor(s)
+	var c := _first_moment_cursor(s)
 	if c > -1:
 		assert_true(s.review_offer(c).is_empty(), "no offer with 0 reviews left")
 
 func test_decide_review_leaves_prefix_byte_identical():
 	var s := _session()
-	var c := _first_dismissal_cursor(s)
+	var c := _first_moment_cursor(s)
+	assert_gt(c, -1, "a moment exists")
 	var offer := s.review_offer(c)
 	var bid: Array = offer["ball_id"]
 	var before := s.result().ball_log_innings1.duplicate(true)
@@ -175,16 +209,18 @@ func test_empty_km_is_byte_identical_to_no_plan():
 	var team: Team = career.teams[career.current_team_index]
 	var opp: Team = career.opponents_of_current()[0]
 	var tour := DifficultyLadder.spec_for(career.current_level(), 0).make_tour()
-	# Mirror the session's exact policies (empty boost, scoped-empty DRS) but pass a
-	# NULL intent plan — isolating the IntentPlan(empty-km) swap. If they match, an
-	# empty Key Moment plan is byte-identical to no intent plan at all.
+	# Mirror the session's exact policies (empty boost, scoped-empty DRS, base opp
+	# DRS — the T8 symmetry) but pass a NULL intent plan — isolating the
+	# IntentPlan(empty-km) swap. If they match, an empty Key Moment plan is
+	# byte-identical to no intent plan at all.
 	var boost := BoostPlan.new()
 	var drs := DRSPolicy.new()
 	drs.review_balls = []
+	var odrs := DRSPolicy.new()
 	var l1: Array = []; var l2: Array = []
 	MatchResolver.simulate_match_teams(a, team, opp, tour, BallTuning.new(), InningsTuning.new(),
 		rng, null, null, [], null, null, null, boost, drs,
-		null, null, null, 1, null, l1, l2)
+		null, null, odrs, 1, null, l1, l2)
 	assert_eq(s.result().ball_log_innings1, l1, "no-decision KM session == null-intent baseline (byte-identical)")
 
 # -- Opponent brain (difficulty-scaled, spec 2026-06-17) --------------------
@@ -249,10 +285,11 @@ func test_empty_bowling_km_is_byte_identical_to_textbook_plan():
 	var plans := OpponentBrain.draw_plans(spec.brain_tier, spec.blend, rng)
 	var boost := BoostPlan.new()
 	var drs := DRSPolicy.new(); drs.review_balls = []
+	var odrs := DRSPolicy.new()
 	var l1: Array = []; var l2: Array = []
 	MatchResolver.simulate_match_teams(a, team, opp, tour, BallTuning.new(), InningsTuning.new(),
 		rng, IntentPlan.new(), BowlingPlan.new(), [], null, null, plans[0], boost, drs,
-		null, null, null, 0, plans[1], l1, l2)
+		null, null, odrs, 0, plans[1], l1, l2)
 	assert_eq(s.result().ball_log_innings1, l1, "empty bowling-KM session == explicit textbook bowling plan (byte-identical)")
 
 func _bowl_km_cursor(s: MatchSession, kind_contains: String) -> int:
@@ -348,8 +385,11 @@ func test_apply_then_export_round_trips_all_four_channels():
 	}
 	s.apply_decisions(d)
 	assert_eq(s.export_decisions(), d, "apply then export returns the same decision record")
-	assert_eq(s.reviews_left(), MatchSession.REVIEW_BUDGET - 1,
-		"applied review_balls count against the budget")
+	# DT9: only FAILED reviews burn budget — a replayed review that overturned its
+	# ball is retained, one that stands as a wicket has burned.
+	var burned := 1 if s.ball_is_wicket([5, 2]) else 0
+	assert_eq(s.reviews_left(), MatchSession.REVIEW_BUDGET - burned,
+		"replayed reviews burn budget only when they failed")
 
 
 # --- Player jokers fire in the live match (spec 2026-06-26, Rung 1) ---
