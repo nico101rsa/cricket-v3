@@ -637,8 +637,9 @@ func _actor_card(actor: Dictionary, job: String) -> PanelContainer:
 	var vb := VBoxContainer.new(); vb.alignment = BoxContainer.ALIGNMENT_CENTER
 	vb.add_child(_lbl(actor.get("name", "—"), 17, Palette.GOLD))
 	vb.add_child(_lbl(job, 10, Palette.WHITE_MID))
-	var stats: String = ("econ %s · OVR %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if actor.has("econ") \
-		else "%d (%d) · OVR %d" % [actor.get("runs", 0), actor.get("balls", 0), actor.get("ovr", 0)]
+	# "skill N", not "OVR N" -- Nico read OVR as an over number (playtest T3).
+	var stats: String = ("econ %s · skill %d" % [actor.get("econ", "0.0"), actor.get("ovr", 0)]) if actor.has("econ") \
+		else "%d (%d) · skill %d" % [actor.get("runs", 0), actor.get("balls", 0), actor.get("ovr", 0)]
 	vb.add_child(_lbl(stats, 9, Palette.WHITE_DIM))
 	h.add_child(ring); h.add_child(vb)
 	p.add_child(h)

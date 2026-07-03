@@ -30,3 +30,10 @@ func test_mid_pro_reads_about_67() -> void:
 func test_round_helper() -> void:
 	assert_eq(Display.to_card_round(60.0), 100)
 	assert_eq(Display.to_card_round(12.5), 13)
+
+func test_stars_str_half_stars_render_as_half() -> void:
+	# T2 (playtest): 1.5 must NOT round up to two full stars.
+	assert_eq(Display.stars_str(1.5), "★½")
+	assert_eq(Display.stars_str(2.0), "★★")
+	assert_eq(Display.stars_str(3.5), "★★★½")
+	assert_eq(Display.stars_str(0.5), "½")

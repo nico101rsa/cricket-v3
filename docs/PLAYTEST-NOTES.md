@@ -67,3 +67,4 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 - (T11) City clubs at creation (e.g. Pretoria suburbs/big clubs, pick 1 of 3 low-rank starters) —
   flavour-rich; needs club name banks per city (design-track candidate) + a creation step.
   Question for Nico: flavour-only (team name/identity) or should the pick differ mechanically?
+  **RULED (Nico, 2026-07-03): flavour only — name and identity.**

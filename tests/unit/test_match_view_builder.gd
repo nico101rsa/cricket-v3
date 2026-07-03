@@ -187,3 +187,25 @@ func test_bowling_three_and_five_for() -> void:
 	assert_eq(MatchViewBuilder.build(m, _player(), 3).highlight_text, "WICKET! 1/0", "1st wicket = WICKET!")
 	assert_true(MatchViewBuilder.build(m, _player(), 5).highlight_text.begins_with("THREE-FOR!"), "3rd = THREE-FOR!")
 	assert_true(MatchViewBuilder.build(m, _player(), 7).highlight_text.begins_with("FIVE-FOR!"), "5th = FIVE-FOR!")
+
+# T5 (playtest): batter chips keep their batting-order positions; strike is a
+# highlight, not a reorder (rows used to flip every rotation).
+func _ball_at(pos: int, over: int, bio: int, runs: int, total: int) -> Dictionary:
+	return {"over": over, "ball_in_over": bio, "striker_pos": pos, "is_player": pos == 1,
+		"player_batting": true, "player_bowling": false, "intent": 0,
+		"boost_pressed": false, "wicket": false, "runs": runs, "total": total, "wickets": 0}
+
+func test_batter_chips_hold_position_order_across_strike_rotation() -> void:
+	# The opener (pos 1, the player) takes a single -> pos 2 comes on strike for
+	# ball 2. At the cursor after ball 1 the strike belongs to pos 2, but chip 1
+	# must STAY pos 1 (highlight moves, rows do not).
+	var log1 := [
+		_ball_at(1, 1, 1, 1, 1),
+		_ball_at(2, 1, 2, 0, 1)]
+	var log2 := [_ball(1, 1, false, false, true, 0, false, false, 0, 0)]
+	var m := _match_with_logs(log1, log2, true)
+	var v := MatchViewBuilder.build_rich(m, _player(), 1, "My XI", "Opp")
+	assert_eq(int(v.striker.get("position", -1)), 1, "first chip = earlier batting position")
+	assert_eq(int(v.nonstriker.get("position", -1)), 2, "second chip = later position")
+	assert_false(bool(v.striker.get("on_strike", true)), "pos 1 not on strike after the single")
+	assert_true(bool(v.nonstriker.get("on_strike", false)), "pos 2 highlighted on strike")

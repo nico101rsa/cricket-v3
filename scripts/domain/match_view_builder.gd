@@ -221,16 +221,16 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 	for pos in pair:
 		var nm := "YOU" if pos == player_pos else PlayerNames.upper(v.bat_team, bat_code, pos)
 		chips.append({
-			"name": nm,
+			"name": nm, "position": pos,
 			"badge": "YOU" if pos == player_pos else PlayerNames.badge(PlayerNames.for_position(v.bat_team, bat_code, pos)),
 			"runs": runs.get(pos, 0), "balls": faced.get(pos, 0),
 			"on_strike": pos == on_strike, "stars": bat_stars, "out": false,
 			"ovr": ovr_by_pos.get(pos, 0),
 		})
 	if not chips.is_empty():
-		# striker first
-		if chips.size() == 2 and not chips[0]["on_strike"]:
-			chips.reverse()
+		# Batting-order positions, NEVER reordered on strike rotation (playtest T5:
+		# flipping rows made batters hard to track). on_strike carries the highlight.
+		# Field names stay striker/nonstriker for the UI; read them as chip 1/chip 2.
 		v.striker = chips[0]
 		if chips.size() > 1: v.nonstriker = chips[1]
 

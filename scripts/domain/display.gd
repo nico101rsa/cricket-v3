@@ -27,3 +27,13 @@ static func to_card(internal: float) -> float:
 
 static func to_card_round(internal: float) -> int:
 	return int(round(to_card(internal)))
+
+# Star-rating glyph string -- half-stars render as the half glyph, NEVER rounded up
+# (playtest T2: a 1.5-star team read as two stars on Pre-Match). Shared by every
+# screen that prints stars.
+static func stars_str(stars: float) -> String:
+	var full := int(floor(stars))
+	var out := "★".repeat(full)
+	if (stars - full) >= 0.5:
+		out += "½"
+	return out if not out.is_empty() else "½"

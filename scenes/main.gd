@@ -129,6 +129,7 @@ func _start_match(play: SeasonPlay, career: CareerState, team_index: int) -> voi
 	screen.set_session(session, team.team_name, opp.team_name,
 		team.stars, opp.stars, Country.Code.SA, Country.Code.AUS)
 	screen.boot()
+	screen.play()  # TAP TO START starts the match rolling (playtest T4)
 
 func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerState,
 		opp_name: String) -> void:
@@ -144,6 +145,12 @@ func _commit_and_return(play: SeasonPlay, session: MatchSession, career: CareerS
 		player = SaveManager.load_player()
 	if player != null:
 		SaveManager.save_player(player)
+	# T12 (playtest bug): persist the season WITH the commit -- quitting on the
+	# Result screen used to lose the finished match (player and season files
+	# desynced). Season end is owned by _finish_live_season/_apply_offer_pick.
+	if not play.season_done():
+		var cell_now := CareerResolver.next_live_cell(career)
+		SaveManager.save_live_season(play.to_state(cell_now["level"], cell_now["tour"]))
 	# The Result screen (nav-shell spec 2026-07-03, Slice 2): the payoff moment
 	# between the match and the cadence fork. Display-only — the fork itself
 	# (kit room / hub / season end) runs on Continue in _after_result.
