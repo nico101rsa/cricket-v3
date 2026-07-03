@@ -492,7 +492,7 @@ func _cap(name: String) -> String:
 func _stars_str(stars: float) -> String:
 	return Display.stars_str(stars)
 
-func _form_chip(form: int) -> String:
+func _form_chip(form: float) -> String:
 	return FormBand.label(FormBand.of(form))  # no emoji -- Barlow tofus them (DP7)
 
 func _role(v: SeasonView) -> String:

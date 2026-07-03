@@ -21,6 +21,14 @@ func _career() -> CareerState:
 	# A real fresh career; player team = current_team_index, opponents = the rest.
 	return CareerResolver.start_career(0)
 
+func test_form_carries_raw_points_to_the_view() -> void:
+	# T6: the hub bands raw form points, so the view carries the float, not the
+	# rounded int (-0.75 used to arrive as -1 and wear the TIRED face).
+	var p := _player()
+	p.set_form_points(-0.75)
+	var v := SeasonViewBuilder.build(p, _career(), _empty_season(), 0)
+	assert_almost_eq(v.form, -0.75, 0.0001, "view.form is the raw points")
+
 func _empty_season() -> SeasonResult:
 	var sr := SeasonResult.new()
 	var lr := LeagueResult.new()

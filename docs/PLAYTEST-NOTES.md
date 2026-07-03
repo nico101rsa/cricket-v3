@@ -51,6 +51,10 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   answer to "player tired after 1 bad game": dismissed −0.5 + a dot-streak −0.25 = −0.75,
   and the display rounds −0.5..−1.49 to TIRED. Fix: widen STEADY to cover > −1.0 (band on
   raw points, not roundi), so one bad game ≠ tired face. Re-check with the sweep.
+  ✅ DONE 2026-07-04: FormBand now bands raw points — STEADY > −1.0 ≥ TIRED > −2.0 ≥ COLD,
+  HOT ≥ 1.5 (same effective boundary as before). One bad game (−0.75) keeps the STEADY face;
+  it takes two to look TIRED. No sweep needed: banding is display-only (hub chip, portrait,
+  glow, Hall of Fame) — the sim reads FormState.mult(), which never touches bands.
 - (T7) Joker plain-English descriptions (45 one-liners, no %) + shown in Kit Room/hub (tap-info or subtext).
 - (T8) DRS: show success % on the review prompt; clarify team-wide scope in copy.
   Answer to "what is the AI's DRS for": the opponent captain holds the same base reviews —

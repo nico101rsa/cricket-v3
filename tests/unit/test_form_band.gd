@@ -12,6 +12,18 @@ func test_banding_table() -> void:
 	assert_eq(FormBand.of(-2), FormBand.Band.COLD)
 	assert_eq(FormBand.of(-5), FormBand.Band.COLD)
 
+func test_banding_on_raw_points() -> void:
+	# T6 (playtest): one bad game (dismissed -0.5 + dot streak -0.25 = -0.75) must NOT
+	# read TIRED. Bands sit on raw points, not a rounded int: STEADY covers > -1.0,
+	# TIRED > -2.0, COLD the rest; HOT keeps its old effective boundary (>= 1.5).
+	assert_eq(FormBand.of(-0.75), FormBand.Band.STEADY, "one bad game stays STEADY")
+	assert_eq(FormBand.of(-0.99), FormBand.Band.STEADY)
+	assert_eq(FormBand.of(-1.0), FormBand.Band.TIRED, "STEADY covers points > -1.0 only")
+	assert_eq(FormBand.of(-1.99), FormBand.Band.TIRED)
+	assert_eq(FormBand.of(-2.0), FormBand.Band.COLD)
+	assert_eq(FormBand.of(1.49), FormBand.Band.STEADY)
+	assert_eq(FormBand.of(1.5), FormBand.Band.HOT, "1.5 points is HOT, same as the old roundi")
+
 func test_keys_and_labels() -> void:
 	assert_eq(FormBand.key(FormBand.Band.HOT), "hot")
 	assert_eq(FormBand.key(FormBand.Band.STEADY), "steady")

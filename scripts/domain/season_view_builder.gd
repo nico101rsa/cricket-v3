@@ -27,7 +27,7 @@ static func build(player: Player, career_state: CareerState,
 	# Snapshot
 	v.player_name = player.name.display_caps()
 	v.city = player.city
-	v.form = player.form
+	v.form = player.form_points
 	v.appearance = player.appearance
 	v.power = player.attributes.power
 	v.composure = player.attributes.composure
