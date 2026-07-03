@@ -151,4 +151,4 @@ func _lbl(txt: String, size: int, col: Color, weight: int) -> Label:
 	return l
 
 func _stars(stars: float) -> String:
-	return "★".repeat(maxi(int(round(stars)), 1)) + " · %.1f" % stars
+	return Display.stars_str(stars) + " · %.1f" % stars

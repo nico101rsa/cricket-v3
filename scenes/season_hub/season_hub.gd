@@ -490,11 +490,7 @@ func _cap(name: String) -> String:
 	return name.replace(" ", "").substr(0, 3).to_upper()
 
 func _stars_str(stars: float) -> String:
-	var full := int(floor(stars))
-	var out := "★".repeat(full)
-	if (stars - full) >= 0.5:
-		out += "½"
-	return out if not out.is_empty() else "½"
+	return Display.stars_str(stars)
 
 func _form_chip(form: int) -> String:
 	return FormBand.label(FormBand.of(form))  # no emoji -- Barlow tofus them (DP7)

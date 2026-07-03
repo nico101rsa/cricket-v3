@@ -108,3 +108,23 @@ func test_finish_live_season_routes_offers_then_outcome():
 	var outcome = main._slot.get_child(0)
 	assert_true(outcome.has_signal("continue_pressed"), "the pick lands on the Outcome")
 	assert_true(SaveManager.has_career(), "career persisted after the pick")
+
+func test_commit_saves_the_live_season_immediately() -> void:
+	# T12 (playtest bug): quitting on the Result screen used to lose the finished
+	# match — the season file only wrote on Continue. The commit must persist it.
+	var main = MainScene.instantiate()
+	add_child_autofree(main)
+	await get_tree().process_frame
+	var p := Player.new()
+	p.attributes = Attributes.new()
+	SaveManager.save_player(p)
+	var career := CareerResolver.start_career(0)
+	SaveManager.save_career(career)
+	var team := Team.new(); team.team_name = "My XI"; team.stars = 2.5
+	var play := SeasonPlay.start(Attributes.new(), team, _opps(),
+		TourDistribution.new(), BallTuning.new(), InningsTuning.new(), 77)
+	var session := play.make_session()
+	main._commit_and_return(play, session, career, "Opp 1")
+	await get_tree().process_frame
+	assert_true(SaveManager.has_live_season(), "season file written at commit, not on Continue")
+	assert_eq(SaveManager.load_live_season().decisions.size(), 1, "the committed match is in the save")
