@@ -56,6 +56,23 @@ New pure helper **`scripts/domain/drs_moments.gd`** (`class_name DRSMoments`) �
 - Scene test — DRS card shows the percentage and flavour.
 - Sweep gate (DT10) recorded in §6 Results.
 
-## 6. Results (filled at build time)
+## 6. Results (build, 2026-07-04)
 
-- Sweep: TBD at build.
+**Instrument:** `tools/sweep_form_balance.gd` (the shared balance re-sweep): 4 reference builds, even ★3, form-OFF vs ON. Match level N=2000 paired seeds per build×arm; season level N=300 LeagueResolver seasons per build×arm. Log `/tmp/t8_sweep.log`; v3 reference `/tmp/form_sweep_v3.log` + form spec Results §.
+
+**Match level (win% · pay · team/opp totals · form net), the canonical build-equality gate:**
+
+| build | OFF win% | ON win% | ON pay ₸ | form net |
+|---|---|---|---|---|
+| batter | 49.0 | 49.3 | 69.4 | +0.04 |
+| bat-AR | 48.4 | 48.5 | 69.4 | −0.23 |
+| all-rounder | 49.3 | 48.9 | 68.5 | −0.23 |
+| bowler | 48.1 | 48.2 | 68.1 | +0.28 |
+
+- **The fair-fight floor holds:** every build in both arms sits at 48–49% (win spread 1.2pp OFF / 1.1pp ON, tolerance ~2pp) — the moment redesign is two-sided and symmetric, and the total overturn EV landed close enough to the old flat rate that nothing moved. Nico's DT10 gate ✓.
+- Pay spread ≤ ₸1.6 with the known v3 batter residual (+₸1.33 ON−OFF) unchanged ✓.
+- Form nets identical to the v3 reference (+0.04/−0.23/−0.23/+0.28) ✓. Scoring env ~177.5 both sides ✓.
+
+**Season level (fixture-win% OFF→ON · season-end form):** batter 47.7→48.0 (−0.22) · bat-AR 45.0→43.9 (−1.91) · all-rounder 46.2→44.7 (−1.41) · bowler 56.6→57.5 (+1.66). All within N=300 noise (±~1.5pp) of the v3 reference run. **Note:** the bowler build's high season fixture-win% (~57%) is PRE-EXISTING — v3 measured 56.9% on the identical instrument pre-DRS — and match-level equality holds; flagged as its own investigation (season vs match instrument divergence), not a T8 effect.
+
+**DRS-joker re-pricing:** deferred per DT10 — no floor drift to react to. Reviewer jokers' accuracy bonuses now ride on the moment p (shown and rolled); their realized value shifts with moment frequency, worth folding into the next joker sweep if one runs.
