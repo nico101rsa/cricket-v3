@@ -25,12 +25,15 @@ const TEAM_NAMES := [
 # Build a fresh Career: 24 Teams on the star ladder, only Club Practise
 # unlocked, the Player on one of the 3 lowest-star Club teams (DC7).
 # Deterministic — no rng.
-static func start_career(picked_club_slot: int) -> CareerState:
+static func start_career(picked_club_slot: int, city: String = "") -> CareerState:
 	var state := CareerState.new()
 	for lvl in range(CareerState.LEVELS):
 		for k in range(CareerState.TEAMS_PER_LEVEL):
 			var t := Team.new()
-			t.team_name = TEAM_NAMES[lvl][k]
+			# T11 (DCC1/DCC2): the Club level wears the chosen city's club names;
+			# no/unknown city keeps the canon placeholder bank byte-for-byte.
+			t.team_name = CityClubs.bank(city)[k] if lvl == 0 and CityClubs.has_bank(city) \
+				else TEAM_NAMES[lvl][k]
 			t.stars = STAR_LADDER[k]
 			state.teams.append(t)
 	var status: Array[int] = []

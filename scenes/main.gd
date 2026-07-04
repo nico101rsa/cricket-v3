@@ -34,7 +34,7 @@ func _ready() -> void:
 func _push_career_grid() -> void:
 	var player := SaveManager.load_player()
 	var career: CareerState = SaveManager.load_career() if SaveManager.has_career() \
-		else CareerResolver.start_career(0)
+		else CareerResolver.start_career(player.club_slot, player.city)   # T11 DCC7
 	SaveManager.save_career(career)
 	var screen := CAREER_GRID.instantiate()
 	screen.start_season.connect(_push_hub)

@@ -32,7 +32,7 @@ func _make_draft() -> PlayerCreationDraft:
 	var d := PlayerCreationDraft.new()
 	var aus := OS.get_environment("CTRY") == "aus"
 	d.country = Country.Code.AUS if aus else Country.Code.SA
-	d.city = "Perth" if aus else "Cape Town"
+	d.city = "Perth" if aus else "Pretoria"   # T11: shows the YOUR CLUB tiles
 	d.appearance = Appearance.Bucket.MIXED if aus else Appearance.Bucket.WHITE
 	var n := NamePair.new()
 	if aus:
