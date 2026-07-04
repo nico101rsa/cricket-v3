@@ -44,6 +44,7 @@ var _over_grid: GridContainer
 var _pship_names: Label; var _pship_runs: Label; var _pship_bar: ProgressBar
 var _autosim_bar: Button; var _play_lbl: Label; var _speed_lbl: Label; var _sim_progress: ProgressBar
 var _boost_btn: Button; var _boost_badge: Label
+var _moment_strip: PanelContainer; var _moment_title: Label; var _moment_sub: Label; var _moment_score: Label
 var _result_box: VBoxContainer
 var _overlay: Control; var _ov_banner: Label; var _ov_body: VBoxContainer; var _ov_ok_shown := false
 var _km_overlay: Control; var _km_banner: Label; var _km_body: VBoxContainer
@@ -220,6 +221,20 @@ func _build_body() -> void:
 	_body_vbox.add_child(pp)
 
 	_body_vbox.add_child(_spacer())
+
+	# T10 mini scorecard strip (DSC4/DSC5) — hidden until a moment fires.
+	_moment_strip = _panel(UIStyle.goal_panel())
+	_moment_strip.visible = false
+	var mh := HBoxContainer.new(); mh.add_theme_constant_override("separation", 10)
+	var mv := VBoxContainer.new()
+	_moment_title = _lbl("", 13, Palette.GOLD)
+	_moment_sub = _lbl("", 10, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_MEDIUM)
+	mv.add_child(_moment_title); mv.add_child(_moment_sub)
+	_moment_score = _lbl("", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
+	mh.add_child(mv); mh.add_child(_spacer()); mh.add_child(_moment_score)
+	_moment_strip.add_child(mh)
+	_body_vbox.add_child(_moment_strip)
+
 	_build_dock()
 
 func _mk_bar(accent: Color) -> ProgressBar:
@@ -414,6 +429,13 @@ func step(delta: int) -> void:
 			_show_overlay(offer)
 			pause()
 			return
+		var m := MatchViewBuilder.moment_at(_session.result(), _session.player(), _cursor)
+		if not m.is_empty():
+			_show_moment_strip(m)
+			if _playing:
+				_tick.stop()
+				_flash_timer.start(FLASH_HOLD)
+				return
 		if _flash != "" and _playing:
 			_tick.stop()
 			_flash_timer.start(FLASH_HOLD)
@@ -488,6 +510,25 @@ func _update_boost_button() -> void:
 	var next_over := mini(_over_at_cursor() + 1, 20)
 	_boost_btn.disabled = not _session.can_boost(inn, next_over)
 	_boost_badge.text = "%d%%" % roundi(st["fill"] * 100.0)
+
+# T10 mini scorecard strip: title/sub from moment_at, live score + context from
+# the already-built MatchView (DSC5 - no new numbers).
+func _show_moment_strip(m: Dictionary) -> void:
+	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
+		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
+	_moment_title.text = m["title"]
+	var ctx := ""
+	if m["kind"] == "you_bowl":
+		ctx = v.current_line
+	elif not v.striker.is_empty() and not v.nonstriker.is_empty():
+		ctx = "%s %d* & %s %d*" % [v.striker["name"], v.striker["runs"],
+			v.nonstriker["name"], v.nonstriker["runs"]]
+	_moment_sub.text = m["sub"] if ctx == "" else "%s · %s" % [m["sub"], ctx]
+	_moment_score.text = "%s (%s)" % [v.score_big, v.score_meta.get_slice(" · ", 0)]
+	_moment_strip.visible = true
+
+func moment_strip_visible() -> bool:
+	return _moment_strip.visible
 
 # ---------------------------------------------------------------- DRS overlay
 
@@ -762,6 +803,7 @@ func _render() -> void:
 	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
 		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
 	_flash = v.highlight_text
+	_moment_strip.visible = false
 
 	# Header
 	_bat_name.text = _team_name.to_upper()

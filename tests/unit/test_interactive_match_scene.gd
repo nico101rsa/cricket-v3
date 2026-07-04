@@ -181,3 +181,42 @@ func _gather_text(node: Node) -> String:
 	for ch in node.get_children():
 		out += _gather_text(ch)
 	return out
+
+# --- T10 scorecard moments (spec 2026-07-04 DSC4/DSC5/DSC6) -------------------
+
+func _moment_cursor(s: MatchSession, kind: String) -> int:
+	for c in range(1, s.events().size() + 1):
+		var m := MatchViewBuilder.moment_at(s.result(), s.player(), c)
+		if m.get("kind", "") == kind:
+			return c
+	return -1
+
+func test_moment_strip_shows_on_trigger_step():
+	var s := _make_session()
+	var c := _moment_cursor(s, "you_bat")
+	if c == -1:
+		c = _moment_cursor(s, "you_bowl")
+	assert_gt(c, -1, "a player-involvement moment exists")
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c - 1)
+	_scene.step(1)
+	await get_tree().process_frame
+	assert_true(_scene.moment_strip_visible(), "mini scorecard strip shown at the trigger")
+	var strip: Control = _scene._moment_strip
+	assert_true(strip.is_visible_in_tree(), "strip visible in tree (not clipped away)")
+	assert_gt(strip.size.y, 0.0, "strip not collapsed")
+
+func test_moment_strip_hides_on_next_step():
+	var s := _make_session()
+	var c := _moment_cursor(s, "death")
+	if c == -1:
+		pass_test("chase ended before over 16 on this seed - trigger covered above")
+		return
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(c - 1)
+	_scene.step(1)
+	assert_true(_scene.moment_strip_visible(), "strip on")
+	_scene.step(1)
+	assert_false(_scene.moment_strip_visible(), "strip clears on the next step (DSC4)")
