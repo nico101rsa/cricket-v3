@@ -89,6 +89,15 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 - (T9) Boost water-meter per ADR 0005 (press locks magnitude from fill %, drains, ~25s recharge,
   ~6 full presses/match) — the built version is a per-innings press budget, a real deviation
   from the design authority. Sim + gauge UI + balance check.
+  ✅ DONE 2026-07-04 (spec 2026-07-04-boost-water-meter-design.md, DW1–DW13): the meter
+  ticks per BALL (the sim has no wall clock): starts full each innings, a press locks
+  strength AND length from the current fill (100% = the old full boost; 50% = half),
+  drains over the boost, recharges over 34 balls — 3 full presses per innings possible,
+  ~6/match per the ADR. Presses under 25% fill do nothing; the BOOST badge is now a live
+  % gauge ("ON" while boosting). Found+fixed en route: every live press was silently
+  double-firing in the innings where you bowl (invisible buff — gone). Balance gate:
+  floor holds 48–49% every build; the Boost lever measured +2.0 win-pts (was +1.5) after
+  one dial iteration (base_mult 1.15→1.22), spec §9 has both tables.
 - (T10) Scorecard moments: mini scorecard at powerplay start / when you come in to bat-bowl /
   last 5 overs + an innings-break pause with full scorecard + short commentary.
 

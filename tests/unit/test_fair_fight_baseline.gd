@@ -141,3 +141,70 @@ func test_opponent_boost_reaches_the_match() -> void:
 			_tuning(), _itun(), ra, null, null, [], null, null, null, null, null, null, strong_boost, null)
 		if ma.outcome == MatchResult.Outcome.PLAYER_WIN: wins_armed += 1
 	assert_lt(wins_armed, wins_passive, "a strong opponent boost should sharply lower the Player win-rate")
+
+# T9 (spec 2026-07-04 DW3/DW8): the resolver logs the PLAYER meter's fill and
+# drain state per ball. A press at over 2 (ball 7, log index 6) locks off a full
+# meter (fill still 1.0 at the instant of the press); the meter then drains over
+# exactly base_n=6 balls, landing empty at over 3's first ball (index 12), which
+# is also the first recharging tick.
+func test_log_carries_meter_fill_and_drain() -> void:
+	var boost := BoostPlan.at([2])
+	var log := []
+	InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], true, null, null, boost, null, null, [], 1.0, null, null, log)
+	assert_gte(log.size(), 13, "innings should run past over 3 for this seed")
+	assert_almost_eq(log[0]["boost_fill"], 1.0, 0.001, "over 1, no press yet -> full meter")
+	assert_false(log[0]["boost_draining"], "over 1 -> not draining")
+	assert_true(log[6]["boost_pressed"], "over 2 ball 1 -> press fires")
+	assert_true(log[6]["boost_draining"], "just pressed -> draining")
+	assert_almost_eq(log[6]["boost_fill"], 1.0, 0.001, "press locks from a still-full meter")
+	assert_almost_eq(log[12]["boost_fill"], 0.0, 0.001, "6-ball drain done by over 3 ball 1")
+	assert_false(log[12]["boost_draining"], "drain window closed -> recharging, not draining")
+
+# T9/DW5: a second press attempted while the meter is still draining (fill 0,
+# below MIN_PRESS_FILL) is a no-op — try_press returns {} and boost_pressed stays
+# false for that ball.
+func test_press_while_draining_is_ignored_by_resolver() -> void:
+	var boost := BoostPlan.at([2, 3])
+	var log := []
+	InningsResolver.simulate_innings(
+		null, 5, 5.0, 5.0, _tuning(), _itun(), _rng(7), 0, null, null, null,
+		0, 0, 0, [], true, null, null, boost, null, null, [], 1.0, null, null, log)
+	assert_gte(log.size(), 13, "innings should run past over 3 for this seed")
+	assert_false(log[12]["boost_pressed"], "over-3 press on an empty meter is a no-op (DW5)")
+
+# T9/DW13: MatchResolver must route innings-aware press_pairs so a live session
+# press fires only in its own innings. A flat plan (press_overs, no pairs) has no
+# innings concept and — being applied via for_innings passthrough — still presses
+# in BOTH innings (the pre-existing, byte-identical flat behaviour). A pairs plan
+# scoped to innings 1 must NOT also fire in innings 2.
+func test_press_pairs_do_not_double_fire_across_innings() -> void:
+	var flat := BoostPlan.new()
+	flat.press_overs = [1]
+	flat.base_mult = 2.0
+	flat.base_n = 120
+
+	var paired := BoostPlan.new()
+	paired.press_pairs = [[1, 1]]
+	paired.base_mult = 2.0
+	paired.base_n = 120
+
+	var log1_flat := []
+	var log2_flat := []
+	var ra := _rng(2026)
+	var ma := MatchResolver.simulate_match_teams(_attrs(), Team.new(), Team.new(), _tour(),
+		_tuning(), _itun(), ra, null, null, [], null, null, null, flat, null, null, null, null,
+		1, null, log1_flat, log2_flat)
+
+	var log1_paired := []
+	var log2_paired := []
+	var rb := _rng(2026)
+	var mb := MatchResolver.simulate_match_teams(_attrs(), Team.new(), Team.new(), _tour(),
+		_tuning(), _itun(), rb, null, null, [], null, null, null, paired, null, null, null, null,
+		1, null, log1_paired, log2_paired)
+
+	assert_eq(ma.innings1.total, mb.innings1.total,
+		"same seed + same innings-1 press -> identical innings-1 totals")
+	assert_true(log2_flat[0]["boost_pressed"], "flat plan leaks its press into innings 2")
+	assert_false(log2_paired[0]["boost_pressed"], "paired plan stays scoped to innings 1 only")

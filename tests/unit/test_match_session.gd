@@ -48,17 +48,30 @@ func test_innings1_is_player_batting():
 	assert_true(s.player_bats_this(1), "innings1 = Player batting when forced bats-first")
 	assert_false(s.player_bats_this(2), "innings2 = Player bowling")
 
-func test_presses_left_decrements_and_caps():
+func test_can_boost_follows_the_meter():
 	var s := _session()
-	assert_eq(s.presses_left(1), MatchSession.BOOST_BUDGET)
-	s.decide_boost_over(2)
-	assert_eq(s.presses_left(1), MatchSession.BOOST_BUDGET - 1)
+	s.decide_boost(1, 2)
+	assert_false(s.can_boost(1, 3), "over-3 start: meter empty (drain just ended)")
+	assert_true(s.can_boost(1, 5), "over-5 start: recharged past 25% (12/34)")
 
-func test_can_boost_respects_budget():
+func test_boost_fill_matches_log():
 	var s := _session()
-	s.decide_boost_over(2); s.decide_boost_over(3)
-	assert_eq(s.presses_left(1), 0)
-	assert_false(s.can_boost(1), "budget exhausted")
+	assert_almost_eq(s.boost_fill(1, 1), 1.0, 0.0001, "fresh innings, full meter")
+	s.decide_boost(1, 2)
+	assert_almost_eq(s.boost_fill(1, 3), 0.0, 0.0001, "empty right after the window")
+	assert_almost_eq(s.boost_fill(1, 5), 12.0 / 34.0, 0.001, "12 recharge balls by over 5")
+
+func test_blocked_press_never_enters_decisions():
+	var s := _session()
+	s.decide_boost(1, 2)
+	s.decide_boost(1, 3)   # blocked (meter empty at over 3)
+	assert_eq((s.export_decisions()["presses"] as Array).size(), 1, "no-op press not recorded (DW9)")
+
+func test_boost_state_at_cursor():
+	var s := _session()
+	var st := s.boost_state(0)
+	assert_almost_eq(st["fill"], 1.0, 0.0001, "gauge full at match start")
+	assert_false(st["draining"], "not draining at match start")
 
 # -- Task 5: DRS review (decision moments, spec 2026-07-04) ------------------
 

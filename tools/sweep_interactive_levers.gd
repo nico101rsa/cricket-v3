@@ -174,13 +174,16 @@ func _one(build: Attributes, player_stars: float, opp_stars: float, tour: TourDi
 
 
 # Drive the levers through MatchSession's public API in an engaged-player order:
-# Boost (death overs) → Key Moments → DRS (review the first 2 dismissals that remain
+# Boost (meter-paced) → Key Moments → DRS (review the first 2 dismissals that remain
 # after the re-sims). Each decide_* re-sims the whole match.
 func _apply(s: MatchSession, arm: Dictionary) -> void:
 	var inn := 1 if s.result().player_bats_first else 2
 	if arm.get("boost", false):
+		# T9 water-meter: the old 16+18 schedule dies (over 18 sits at ~18% fill,
+		# blocked). Meter-optimal ceiling = 3 full presses (40-ball cycle): 1/8/16.
+		s.decide_boost(inn, 1)
+		s.decide_boost(inn, 8)
 		s.decide_boost(inn, 16)
-		s.decide_boost(inn, 18)
 	for km in arm.get("km", []):
 		s.decide_key_moment(km[0], km[1])
 	for bkm in arm.get("bowl_km", []):

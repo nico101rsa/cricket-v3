@@ -47,6 +47,12 @@ func test_boost_button_enabled_with_budget():
 	_scene.boot()
 	assert_true(_scene.boost_enabled(), "boost available at start")
 
+func test_boost_badge_shows_fill_gauge():
+	var s := _make_session()
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	assert_eq(_scene._boost_badge.text, "100%", "badge shows a full fill gauge at match start")
+
 func _km_cursor(s: MatchSession, kind: String) -> int:
 	for c in range(s.events().size()):
 		var o := s.key_moment_offer(c)

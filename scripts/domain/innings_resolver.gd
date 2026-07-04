@@ -144,6 +144,8 @@ static func simulate_innings(
 	var pb_wickets := 0  # Player-as-bowler figures for this innings
 	var pb_runs := 0
 	var pb_balls := 0
+	var boost_meter := BoostMeter.new()       # DW1: full at innings start
+	var opp_boost_meter := BoostMeter.new()   # DF4 symmetry (DW8)
 	var runtime := JokerRuntime.new()  # C2c — per-innings windowed-buff state
 	if drs_policy != null:
 		runtime.init_reviews(jokers, drs_policy.base_reviews)  # C2f — DRS resource
@@ -210,14 +212,20 @@ static func simulate_innings(
 		# that apply from this over onward (so before tick_mults below).
 		if bowling_plan != null and not player_is_batting and balls == (over - 1) * 6 and (over == 1 or over == 7 or over == 16):
 			runtime.on_bowling_change(jokers, bowler_type, field_mode)
-		# C2e — a Manager Boost press at this over's start fires a side-aware buff.
+		# C2e/T9 — a Manager Boost press at this over's start locks a fill-scaled
+		# buff off the water-meter (spec 2026-07-04 DW2/DW3); the joker pipeline
+		# below is unchanged — it just receives the locked params.
 		var boost_pressed_now := false
 		if boost_plan != null and balls == (over - 1) * 6 and boost_plan.presses_on(over):
-			runtime.on_boost_press(jokers, player_is_batting, intent, boost_plan.base_mult, boost_plan.base_n, balls + 1)
-			boost_pressed_now = true
-		# DF4 — the opponent presses its own Boost (base buff, no jokers), side-aware.
+			var locked := boost_meter.try_press(boost_plan.base_mult, boost_plan.base_n)
+			if not locked.is_empty():
+				runtime.on_boost_press(jokers, player_is_batting, intent, locked["mult"], locked["n"], balls + 1)
+				boost_pressed_now = true
+		# DF4 — the opponent presses its own Boost off its own meter.
 		if opp_boost_plan != null and balls == (over - 1) * 6 and opp_boost_plan.presses_on(over):
-			opp_runtime.on_boost_press([], opp_is_batting, intent, opp_boost_plan.base_mult, opp_boost_plan.base_n, balls + 1)
+			var olocked := opp_boost_meter.try_press(opp_boost_plan.base_mult, opp_boost_plan.base_n)
+			if not olocked.is_empty():
+				opp_runtime.on_boost_press([], opp_is_batting, intent, olocked["mult"], olocked["n"], balls + 1)
 		var jm := JokerResolver.roll_mults(jokers, player_is_batting, intent, balls + 1, field_mode, bowl_intent, bowler_type, is_chase)
 		var win := runtime.tick_mults(player_is_batting)  # C2c — active windowed buffs
 		var opp_win := opp_runtime.tick_mults(opp_is_batting)  # DF2 — opponent base buffs
@@ -356,9 +364,12 @@ static func simulate_innings(
 				"striker_pos": s["position"], "is_player": s["is_player"],
 				"player_batting": player_is_batting, "player_bowling": player_bowling,
 				"intent": intent, "boost_pressed": boost_pressed_now,
+				"boost_fill": boost_meter.fill, "boost_draining": boost_meter.draining(),
 				"wicket": o.wicket, "runs": (0 if o.wicket else o.runs),
 				"total": total, "wickets": wickets,
 			})
+		boost_meter.tick()
+		opp_boost_meter.tick()
 		# end of over: swap strike (skip if the innings just ended)
 		if balls % 6 == 0 and wickets < 10:
 			var tmp2 := striker

@@ -8,7 +8,6 @@ extends RefCounted
 # RNG (a fresh seeded RNG per re-sim) → the prefix you've already watched is
 # byte-identical; only the future diverges. Spec §3.
 
-const BOOST_BUDGET := 2   # presses per innings (DI5, strawman)
 const REVIEW_BUDGET := 2  # batting-side reviews per innings (DI6)
 
 var _attrs: Attributes
@@ -93,7 +92,7 @@ func _resim() -> void:
 		obp = plans[1]
 	var boost := BoostPlan.new()
 	for p in _presses:
-		boost.press_overs.append(p[1])   # 1-based within-innings; resolver checks per innings
+		boost.press_pairs.append([p[0], p[1]])   # innings-aware (DW13)
 	var drs := DRSPolicy.new()
 	drs.review_balls = _review_balls
 	drs.moment_p_override = _moment_p_override
@@ -137,28 +136,58 @@ func _resim() -> void:
 		if ball_is_wicket(bid):
 			_reviews_used += 1
 
-# -- Boost (DI2) -------------------------------------------------------------
+# -- Boost: ADR 0005 water-meter (spec 2026-07-04 DW9) ------------------------
 
 # Is innings_no (1/2) the Player's batting innings?
 func player_bats_this(innings_no: int) -> bool:
 	return (innings_no == 1) == _result.player_bats_first
 
-func _presses_in(innings_no: int) -> int:
-	var n := 0
+func _innings_log(innings_no: int) -> Array:
+	return _result.ball_log_innings1 if innings_no == 1 else _result.ball_log_innings2
+
+# First log row of a 1-based over in an innings, or {}.
+func _over_start_row(innings_no: int, over: int) -> Dictionary:
+	for b in _innings_log(innings_no):
+		if b["over"] == over:
+			return b
+	return {}
+
+# The meter fill at an over's start (what a press there would lock from).
+func boost_fill(innings_no: int, over: int) -> float:
+	var row := _over_start_row(innings_no, over)
+	return row.get("boost_fill", 0.0)
+
+# Can the player press at this over's start? Mirrors BoostMeter's own gate off
+# the logged meter state, so the UI and the sim can never disagree (DW9).
+func can_boost(innings_no: int, over: int) -> bool:
 	for p in _presses:
-		if p[0] == innings_no:
-			n += 1
-	return n
+		if p[0] == innings_no and p[1] == over:
+			return false
+	var row := _over_start_row(innings_no, over)
+	if row.is_empty() or row["boost_draining"]:
+		return false
+	return row["boost_fill"] >= BoostMeter.MIN_PRESS_FILL
 
-func presses_left(innings_no: int) -> int:
-	return maxi(0, BOOST_BUDGET - _presses_in(innings_no))
-
-func can_boost(innings_no: int) -> bool:
-	return presses_left(innings_no) > 0
+# Gauge state at a playback cursor: meter fill + draining at the last ball the
+# cursor event covers (ball events -> that ball; over events -> the over's last ball).
+func boost_state(cursor: int) -> Dictionary:
+	var last := {"fill": 1.0, "draining": false}
+	for i in range(mini(cursor, _events.size() - 1) + 1):
+		var e: Dictionary = _events[i]
+		if not e.has("over") or e.get("innings", -1) == -1:
+			continue
+		var log := _innings_log(e["innings"])
+		for b in log:
+			if b["over"] != e["over"]:
+				continue
+			if e["type"] == "ball" and b.get("ball_in_over", -1) != e.get("ball", -2):
+				continue
+			last = {"fill": b["boost_fill"], "draining": b["boost_draining"]}
+	return last
 
 # Add a Boost press at 1-based within-innings over in innings_no, re-sim.
 func decide_boost(innings_no: int, over: int) -> void:
-	if presses_left(innings_no) <= 0:
+	if not can_boost(innings_no, over):
 		return
 	_presses.append([innings_no, over])
 	_resim()
