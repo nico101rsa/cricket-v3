@@ -100,6 +100,15 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   one dial iteration (base_mult 1.15→1.22), spec §9 has both tables.
 - (T10) Scorecard moments: mini scorecard at powerplay start / when you come in to bat-bowl /
   last 5 overs + an innings-break pause with full scorecard + short commentary.
+  ✅ DONE 2026-07-04 (spec 2026-07-04-scorecard-moments-design.md, DSC1–DSC10, PR #118):
+  gold mini strip above the dock at YOU'RE IN / YOU'RE ON / POWERPLAY (innings 1) /
+  FINAL 5 OVERS — shows live score + batters at the crease, holds autoplay ~2.5s,
+  never pauses. Innings break now PAUSES on a full first-innings scorecard (every
+  batter's real runs/balls, dismissal flavour matching the T8 DRS hash, DNB line)
+  + short commentary (total, required rate, top scorer — no par judgement) + CONTINUE.
+  Bonus fix found by the render eyeball: the screen behind the break used to show
+  the FINISHED chase score (a result spoiler, one-tick flash before) — gone.
+  Renders: docs/mockups/scorecard-moment-strip-v1.png + innings-break-v1.png.
 
 **Needs Nico's scope call:**
 - (T11) City clubs at creation (e.g. Pretoria suburbs/big clubs, pick 1 of 3 low-rank starters) —
