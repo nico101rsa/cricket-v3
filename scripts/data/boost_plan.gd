@@ -8,7 +8,10 @@ extends RefCounted
 # See spec 2026-06-08-jokers-in-sim-7cC2e-boost-design.md.
 
 var press_overs: Array[int] = []
-var base_mult: float = 1.15
+# 1.15 -> 1.22 (T9 gate, 2026-07-04): the DW13 double-fire fix removed the hidden
+# bowling-innings half of every live press, which had been ~half the lever's value;
+# 1.22 restores the Boost lever into the spec's +2..+8 win-pt band (spec §9).
+var base_mult: float = 1.22
 var base_n: int = 6
 
 # DW13 (spec 2026-07-04): innings-aware presses for live sessions. When non-empty,

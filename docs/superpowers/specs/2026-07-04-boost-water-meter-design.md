@@ -136,6 +136,45 @@ re-pricing the 5 boost-role jokers becomes a flagged follow-up, not scope creep 
   the DF4 tests should pass **unchanged**; that's itself the regression proof.
 - Scene test: badge renders a percent; disabled under min fill.
 
-## 9. Results (filled after the gate)
+## 9. Results (gate run 2026-07-04, on-branch)
 
-*(sweep table + lever number land here before merge)*
+**Floor — `tools/sweep_form_balance.gd`** (even-★3 reference builds, N=2000 paired-seed
+matches per build×arm, form OFF/ON, no jokers, no boost plan; log `/tmp/t9_floor.log`):
+
+| build | form OFF win% | form ON win% |
+|---|---|---|
+| batter | 49.0 | 49.3 |
+| bat-AR | 48.4 | 48.5 |
+| allround | 49.3 | 48.9 |
+| bowler | 48.1 | 48.2 |
+
+Fair-fight band holds (win ≈ loss ≈ 48–49%); the floor carries no boost plan, so this is
+the no-regression check on the resolver changes, and it passed untouched. (The season-level
+bowler outlier — 56.6/57.5% vs 44–48% for others — is the PRE-EXISTING season-vs-match
+instrument divergence flagged at T8 with its own follow-up chip; identical numbers, not a
+T9 effect.)
+
+**Lever — `tools/sweep_interactive_levers.gd`** (1.5★ ref build vs the club field, Club
+entry tour as shipped, N=400 seasons × 7 fixtures = 2800 matches/arm, ±0.9pp; boost arm
+= the meter-optimal 3 full presses at overs 1/8/16; logs `/tmp/t9_levers.log` and
+`/tmp/t9_levers_122.log`):
+
+| arm | win% @ base_mult 1.15 | win% @ 1.22 (shipped) |
+|---|---|---|
+| base (no levers) | 38.1 | 38.1 |
+| +boost | 39.6 (**+1.5**) | 40.1 (**+2.0**) |
+| +drs | 40.7 | 40.7 |
+| all_aggr | 38.9 | 39.4 |
+
+At the original 1.15 the lever measured +1.5 — the same as pre-meter, and the reason is
+instructive: the OLD +1.5 was measured WITH the DW13 double-fire (each press also fired a
+hidden wicket-buff in the bowling innings, ~half the lever's value); the meter's third
+press roughly offset removing that leak. Per DW12's escape hatch, one `base_mult`
+iteration (1.15 → 1.22) lands the lever at **+2.0 win-pts** — inside the +2..+8 band,
+still well under the Key-Moment lever (±14). `RECHARGE_BALLS` untouched.
+
+**Flagged follow-up (per §6):** the 1.22 base also feeds the headless flat plans that
+boost-role-joker careers press (`ShopResolver.plans_for` → `BoostPlan.at([1,10,16])`),
+so the 5 boost-role jokers (#31–#37 band) run ~5% hotter than priced. Their prices were
+derived from measured realized strength at 1.15 — a re-pricing sweep is queued as a
+follow-up, NOT done in this rung (DW11).

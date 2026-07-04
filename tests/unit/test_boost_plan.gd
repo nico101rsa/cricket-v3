@@ -9,7 +9,7 @@ func test_presses_on() -> void:
 func test_at_factory_defaults() -> void:
 	var p := BoostPlan.at([5])
 	assert_eq(p.press_overs, [5])
-	assert_almost_eq(p.base_mult, 1.15, 0.0001)
+	assert_almost_eq(p.base_mult, 1.22, 0.0001)   # T9 gate re-tune (spec §9)
 	assert_eq(p.base_n, 6)
 
 func test_empty_plan_presses_nowhere() -> void:
