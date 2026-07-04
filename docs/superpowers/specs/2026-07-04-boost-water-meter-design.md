@@ -178,3 +178,9 @@ boost-role-joker careers press (`ShopResolver.plans_for` → `BoostPlan.at([1,10
 so the 5 boost-role jokers (#31–#37 band) run ~5% hotter than priced. Their prices were
 derived from measured realized strength at 1.15 — a re-pricing sweep is queued as a
 follow-up, NOT done in this rung (DW11).
+
+**Save-compat note (final review, 2026-07-04):** `apply_decisions` replays stored presses
+without re-checking `can_boost`; a pre-T9 save whose presses collide under the meter
+(e.g. the old 16+18 pattern — over 18 sits at ~18% fill) replays with the blocked press
+silently no-opped by the resolver (DW9's defensive ignore), giving a valid but different
+match. Accepted: old saves are rare mid-match sessions, nothing corrupts.
