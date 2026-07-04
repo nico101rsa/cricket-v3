@@ -57,8 +57,16 @@ static func _knockout(
 		bplan = jplans["boost"]
 		dp = DRSPolicy.new()
 		odp = DRSPolicy.new()
+	# Bowling budget conservation on the Player's knockouts (closes the CF1
+	# deferred gap, mirroring LeagueResolver's league fixtures + simulate_match_teams).
+	var s1_attack: float = team_bowl[s1]
+	var s1_control: float = team_bowl[s1]
+	if pa != null:
+		var n_overs := InningsResolver.player_overs(pa, itun)
+		s1_attack = MatchResolver._conserved_bowling(team_bowl[s1], n_overs, pa.attack, itun.over_limit, itun.bowl_concentration_k)
+		s1_control = MatchResolver._conserved_bowling(team_bowl[s1], n_overs, pa.control, itun.over_limit, itun.bowl_concentration_k)
 	var m := MatchResolver.simulate_match(
-		pa, team_bat[s1], team_bowl[s1], team_bowl[s1],
+		pa, team_bat[s1], s1_attack, s1_control,
 		team_bat[s2], team_bowl[s2], team_bowl[s2],
 		toss, tuning, itun, rng, ipp, bpp,
 		jokers if s1 == 0 else [], fp, null, oip, bplan, dp, null,

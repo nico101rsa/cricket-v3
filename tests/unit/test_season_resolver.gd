@@ -116,12 +116,15 @@ func test_shop_seams_default_off_byte_identical() -> void:
 	# (2026-06-14, proportional strength noise), and at DRS decision moments
 	# (2026-07-04 T8): the survive channel now consumes RNG only on MOMENT wickets
 	# (was every wicket) — an INTENTIONAL mechanic change, so the seeded season
-	# shifts (pos 2->3, points 12->10, total 189->198). The pin's job is unchanged:
+	# shifts (pos 2->3, points 12->10, total 189->198). RE-CAPTURED again at the
+	# league bowling-conservation fix (2026-07-04): Player league fixtures +
+	# knockouts now conserve the team bowling budget like simulate_match_teams
+	# (pos 3->4, points 10->14, total 198->208). The pin's job is unchanged:
 	# prove the shop seams add zero RNG draws when off.
 	var a := _pin_season(4242)
-	assert_eq(a.player_final_position, 3)
-	assert_eq(a.league.standings[0].points, 10)
-	assert_eq(a.final_match.innings1.total, 198)
+	assert_eq(a.player_final_position, 4)
+	assert_eq(a.league.standings[0].points, 14)
+	assert_eq(a.final_match.innings1.total, 208)
 
 
 func test_shop_hook_fires_at_canon_points() -> void:
