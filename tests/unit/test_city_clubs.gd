@@ -24,3 +24,20 @@ func test_unknown_city_falls_back_to_placeholder_club_bank():
 	assert_eq(CityClubs.bank(""), CareerResolver.TEAM_NAMES[0], "empty city -> canon names")
 	assert_eq(CityClubs.bank("Atlantis"), CareerResolver.TEAM_NAMES[0], "unknown city -> canon names")
 	assert_false(CityClubs.has_bank(""), "no bank claimed for empty")
+
+func test_start_career_with_city_names_the_club_level():
+	var state := CareerResolver.start_career(1, "Pretoria")
+	for k in range(CareerState.TEAMS_PER_LEVEL):
+		assert_eq(state.teams[k].team_name, CityClubs.bank("Pretoria")[k],
+			"Club slot %d named from the Pretoria bank (DCC1)" % k)
+	assert_eq(state.teams[CareerState.TEAMS_PER_LEVEL].team_name,
+		CareerResolver.TEAM_NAMES[1][0], "City level keeps placeholder names")
+	for k in range(CareerState.TEAMS_PER_LEVEL):
+		assert_eq(state.teams[k].stars, CareerResolver.STAR_LADDER[k], "ladder unchanged")
+	assert_eq(state.current_team_index, 1, "picked slot honoured")
+
+func test_start_career_without_city_is_byte_identical():
+	var state := CareerResolver.start_career(0)
+	for k in range(CareerState.TEAMS_PER_LEVEL):
+		assert_eq(state.teams[k].team_name, CareerResolver.TEAM_NAMES[0][k],
+			"no city -> canon placeholder names (DCC2)")
