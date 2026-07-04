@@ -48,6 +48,8 @@ var _moment_strip: PanelContainer; var _moment_title: Label; var _moment_sub: La
 var _result_box: VBoxContainer
 var _overlay: Control; var _ov_banner: Label; var _ov_body: VBoxContainer; var _ov_ok_shown := false
 var _km_overlay: Control; var _km_banner: Label; var _km_body: VBoxContainer
+var _break_overlay: Control; var _break_banner: Label; var _break_body: VBoxContainer
+var _resume_after_break := false
 var _tick: Timer; var _flash_timer: Timer
 
 # ---------------------------------------------------------------- build helpers
@@ -320,6 +322,13 @@ func _build_overlays() -> void:
 	_km_banner = _km_overlay.get_node("Center/Banner") as Label
 	_km_overlay.visible = false
 
+	_break_overlay = _make_overlay_root()
+	add_child(_break_overlay)
+	_break_body = _break_overlay.get_node("Center/Card/V") as VBoxContainer
+	_break_body.add_theme_constant_override("separation", 4)
+	_break_banner = _break_overlay.get_node("Center/Banner") as Label
+	_break_overlay.visible = false
+
 func _make_overlay_root() -> Control:
 	var o := Control.new()
 	o.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -429,6 +438,11 @@ func step(delta: int) -> void:
 			_show_overlay(offer)
 			pause()
 			return
+		if _cursor >= 1 and _session.events()[_cursor - 1]["type"] == "innings_break":
+			_resume_after_break = _playing
+			_show_break_overlay()
+			pause()
+			return
 		var m := MatchViewBuilder.moment_at(_session.result(), _session.player(), _cursor)
 		if not m.is_empty():
 			_show_moment_strip(m)
@@ -449,6 +463,7 @@ func seek_to(cursor: int) -> void:
 	# Scrubbing to a non-trigger cursor clears any overlay left showing.
 	_overlay.visible = false
 	_km_overlay.visible = false
+	_break_overlay.visible = false
 	var km := _session.key_moment_offer(_cursor)
 	if not km.is_empty():
 		_pending_km = km
@@ -458,6 +473,10 @@ func seek_to(cursor: int) -> void:
 	if not offer.is_empty():
 		_pending_review = offer
 		_show_overlay(offer)
+		return
+	if _cursor >= 1 and _cursor <= _session.events().size() \
+			and _session.events()[_cursor - 1]["type"] == "innings_break":
+		_show_break_overlay()
 
 func play() -> void:
 	if _cursor >= _event_count: return
@@ -796,6 +815,55 @@ func km_press(i: int) -> void:
 	if _resume_after_km and _cursor < _event_count:
 		_resume_after_km = false
 		play()
+
+# ---------------------------------------------------------------- innings break
+
+# Full first-innings scorecard + commentary (T10, DSC6-DSC9). Text-only banner
+# (DSC10 - no emoji in new copy).
+func _show_break_overlay() -> void:
+	_break_banner.text = "INNINGS BREAK"
+	_break_banner.add_theme_stylebox_override("normal", UIStyle.banner("moment"))
+	_break_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("moment"))
+	for c in _break_body.get_children(): c.queue_free()
+	var mr := _session.result()
+	var bat_team := _team_name if mr.player_bats_first else _opp_name
+	var bat_code := _my_code if mr.player_bats_first else _opp_code
+	var chase_team := _opp_name if mr.player_bats_first else _team_name
+	var card := MatchViewBuilder.build_scorecard(mr, _session.player(), bat_team, bat_code, chase_team)
+	_break_body.add_child(_lbl(card["header"], 13, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	for r in card["rows"]:
+		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
+		var nm := _lbl(r["name"], 11, Palette.GOLD if r["is_player"] else Palette.WHITE_SOFT)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(nm)
+		h.add_child(_lbl(r["how"], 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_MEDIUM))
+		var sc := _lbl("%d (%d)" % [r["runs"], r["balls"]], 11, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
+		sc.custom_minimum_size = Vector2(58, 0)
+		h.add_child(sc)
+		_break_body.add_child(h)
+	if card["dnb"] != "":
+		_break_body.add_child(_lbl(card["dnb"], 9, Palette.WHITE_DIM))
+	var narr := RichTextLabel.new()
+	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
+	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
+	narr.add_theme_font_size_override("normal_font_size", 12)
+	narr.add_theme_font_override("normal_font", Fonts.italic())
+	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
+	narr.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	narr.text = "[center]%s[/center]" % card["commentary"]
+	_break_body.add_child(narr)
+	_break_body.add_child(_two_line_btn("CONTINUE", "Start the chase", Palette.GOLD, break_continue))
+	_break_overlay.visible = true
+
+func break_continue() -> void:
+	_break_overlay.visible = false
+	_render()
+	if _resume_after_break and _cursor < _event_count:
+		_resume_after_break = false
+		play()
+
+func break_overlay_visible() -> bool:
+	return _break_overlay.visible
 
 # ---------------------------------------------------------------- render
 

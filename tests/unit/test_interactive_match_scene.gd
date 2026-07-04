@@ -220,3 +220,46 @@ func test_moment_strip_hides_on_next_step():
 	assert_true(_scene.moment_strip_visible(), "strip on")
 	_scene.step(1)
 	assert_false(_scene.moment_strip_visible(), "strip clears on the next step (DSC4)")
+
+func _break_index(s: MatchSession) -> int:
+	var ev := s.events()
+	for i in range(ev.size()):
+		if ev[i]["type"] == "innings_break":
+			return i
+	return -1
+
+func test_break_overlay_pauses_on_step():
+	var s := _make_session()
+	var bi := _break_index(s)
+	assert_gt(bi, -1, "innings break exists")
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(bi)
+	_scene.play()
+	_scene.step(1)
+	await get_tree().process_frame
+	assert_true(_scene.break_overlay_visible(), "full scorecard overlay at the break")
+	assert_false(_scene._playing, "playback paused (DSC6)")
+	var card: Control = _scene._break_overlay.get_node("Center/Card")
+	assert_gt(card.size.y, 0.0, "card not collapsed")
+
+func test_break_continue_resumes():
+	var s := _make_session()
+	var bi := _break_index(s)
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(bi)
+	_scene.play()
+	_scene.step(1)
+	_scene.break_continue()
+	assert_false(_scene.break_overlay_visible(), "overlay hides on CONTINUE")
+	assert_true(_scene._playing, "playback resumes")
+
+func test_scrub_to_break_shows_card_without_playing():
+	var s := _make_session()
+	var bi := _break_index(s)
+	_scene.set_session(s, "Karoo Kings", "Opponent")
+	_scene.boot()
+	_scene.seek_to(bi + 1)
+	assert_true(_scene.break_overlay_visible(), "scrubbing onto the break shows the card")
+	assert_false(_scene._playing, "scrub never auto-plays")
