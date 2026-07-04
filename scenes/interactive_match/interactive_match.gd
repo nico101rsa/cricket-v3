@@ -849,9 +849,10 @@ func _show_break_overlay() -> void:
 	narr.add_theme_font_size_override("normal_font_size", 12)
 	narr.add_theme_font_override("normal_font", Fonts.italic())
 	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
-	narr.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	narr.text = "[center]%s[/center]" % card["commentary"]
 	_break_body.add_child(narr)
+	# No expanding filler: the card's centre-aligned VBox holds the scorecard,
+	# commentary and CONTINUE as one compact centred block.
 	_break_body.add_child(_two_line_btn("CONTINUE", "Start the chase", Palette.GOLD, break_continue))
 	_break_overlay.visible = true
 
