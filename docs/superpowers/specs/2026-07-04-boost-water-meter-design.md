@@ -179,6 +179,13 @@ so the 5 boost-role jokers (#31–#37 band) run ~5% hotter than priced. Their pr
 derived from measured realized strength at 1.15 — a re-pricing sweep is queued as a
 follow-up, NOT done in this rung (DW11).
 
+**Post-merge combined check (2026-07-04 pm):** PR #116 (season bowling-budget
+conservation, a parallel background fix) merged into main between this branch's gate and
+its merge. Re-ran the full suite (876/10816 green) and the form sweep on merged main
+(`/tmp/t9_floor_merged.log`): match level identical to the table above; season level now
+bowler 47.2/50.0 vs 45.9–48.0 others (N=300 seasons/build×arm) — the T8 bowler-divergence
+flag is substantially resolved by #116, residual ~2pp ON-arm lead noted in the roadmap.
+
 **Save-compat note (final review, 2026-07-04):** `apply_decisions` replays stored presses
 without re-checking `can_boost`; a pre-T9 save whose presses collide under the meter
 (e.g. the old 16+18 pattern — over 18 sits at ~18% fill) replays with the blocked press
