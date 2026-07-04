@@ -307,6 +307,52 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 		]
 	return v
 
+# --- T10 scorecard moments (spec 2026-07-04 DSC2/DSC3) ------------------------
+# Mini-moment strip trigger for the event just applied (index cursor-1). Derived
+# from the stream, never injected into it (DSC1). First-crossing per innings per
+# kind; precedence you_bat/you_bowl > powerplay > death. {} = no strip.
+
+const DEATH_FROM_OVER := 16
+const _MOMENT_KINDS := ["you_bat", "you_bowl", "powerplay", "death"]
+const _MOMENT_COPY := {
+	"you_bat": ["YOU'RE IN", "Time to bat"],
+	"you_bowl": ["YOU'RE ON", "Your spell begins"],
+	"powerplay": ["POWERPLAY", "Field up - first 6 overs"],
+	"death": ["FINAL 5 OVERS", "Death overs begin"],
+}
+
+static func _moment_matches(e: Dictionary, kind: String) -> bool:
+	if e["type"] != "ball" and e["type"] != "over":
+		return false
+	match kind:
+		"you_bat": return e["type"] == "ball" and e.get("player_batting", false)
+		"you_bowl": return e["type"] == "ball" and e.get("player_bowling", false)
+		"powerplay": return e["innings"] == 1   # first innings-1 event = powerplay start (DSC3)
+		"death": return e.get("over", 0) >= DEATH_FROM_OVER
+	return false
+
+static func moment_at(mr: MatchResult, player: Player, cursor: int) -> Dictionary:
+	var events := build_events(mr, player)
+	if cursor < 1 or cursor > events.size():
+		return {}
+	var e: Dictionary = events[cursor - 1]
+	if e["type"] != "ball" and e["type"] != "over":
+		return {}
+	var innings: int = e["innings"]
+	for kind in _MOMENT_KINDS:
+		if not _moment_matches(e, kind):
+			continue
+		var seen := false
+		for k in range(cursor - 1):
+			var p: Dictionary = events[k]
+			if (p["type"] == "ball" or p["type"] == "over") \
+					and p["innings"] == innings and _moment_matches(p, kind):
+				seen = true
+				break
+		if not seen:
+			return {"kind": kind, "title": _MOMENT_COPY[kind][0], "sub": _MOMENT_COPY[kind][1]}
+	return {}
+
 # Pure run-rate chart read-model: walk the active innings' ball-log up to `n`
 # legal balls into per-over bars + a cumulative-CRR worm + the target/par line.
 # innings_no 1 → par line (PAR_RR); 2 → chase RR from first_total. Used by build_rich.
