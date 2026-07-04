@@ -16,6 +16,22 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
 
 ---
 
+## 2026-07-04 evening — fresh career, 2 games (the six-fix check)
+
+Fresh career started tonight (old save backed up by Claude; Hall of Fame kept).
+Things worth an eye — the six fixes shipped today (react to any, skip the rest):
+- T6 form face: steadier now? (one bad game should NOT look TIRED)
+- T7 joker one-liners: readable in the Kit Room? hub tiles tap OK?
+- T8 DRS card: does "% to overturn" make it a real decision? opponent DRS fair?
+- T9 BOOST gauge: does timing the press feel like a choice? partial press worth it?
+- T10 scorecard moments: strips at powerplay/your entrance/last 5 + the
+  innings-break card — right amount of pause, or too chatty?
+- T11 city clubs: does the 3-club pick land? do the club names read local?
+
+- (notes go here)
+
+---
+
 ## 2026-07-03
 
 - (first fresh-start session — notes go here)
