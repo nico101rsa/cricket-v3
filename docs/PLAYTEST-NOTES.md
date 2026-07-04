@@ -115,6 +115,15 @@ Things worth an eye this pass (from the Form rung — ignore unless noticed):
   flavour-rich; needs club name banks per city (design-track candidate) + a creation step.
   Question for Nico: flavour-only (team name/identity) or should the pick differ mechanically?
   **RULED (Nico, 2026-07-03): flavour only — name and identity.**
+  ✅ DONE 2026-07-04 (spec 2026-07-04-city-clubs-design.md, DCC1–DCC10, PR #119):
+  every creation city has a bank of 8 suburb clubs (Pretoria: Menlo Park CC,
+  Hatfield Hurricanes, Sunnyside Swifts, Waterkloof Warriors…); a fresh career's
+  whole Club league wears your city's club names; Identity now shows a YOUR CLUB
+  section — pick 1 of 3 starting clubs (★½/★★/★★½, the ladder's existing starting
+  slots made visible). Flavour only — names never touch the sim. Old saves keep
+  their names; no city on file keeps Karoo Kings. Design delta filed:
+  docs/design-inbox/identity-club-pick-REQUEST.md. Render:
+  docs/mockups/player-creation-identity-built-v1.png.
 
 
 ## Batch-1 outcomes (2026-07-03 late, PR #112)
