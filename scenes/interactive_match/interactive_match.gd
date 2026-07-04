@@ -272,11 +272,11 @@ func _build_dock() -> void:
 	_boost_btn.add_theme_stylebox_override("pressed", UIStyle.boost_button())
 	_boost_btn.pressed.connect(_on_boost)
 	boost_wrap.add_child(_boost_btn)
-	_boost_badge = _lbl("0", 12, Color(0, 0, 0), HORIZONTAL_ALIGNMENT_CENTER)
+	_boost_badge = _lbl("100%", 9, Color(0, 0, 0), HORIZONTAL_ALIGNMENT_CENTER)
 	_boost_badge.add_theme_stylebox_override("normal", UIStyle.boost_badge())
-	_boost_badge.custom_minimum_size = Vector2(22, 22)
+	_boost_badge.custom_minimum_size = Vector2(30, 22)
 	_boost_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_boost_badge.position = Vector2(40, -4)
+	_boost_badge.position = Vector2(36, -4)
 	boost_wrap.add_child(_boost_badge)
 
 	dock.add_child(_autosim_bar); dock.add_child(speed_btn); dock.add_child(boost_wrap)
