@@ -44,9 +44,12 @@ var _over_grid: GridContainer
 var _pship_names: Label; var _pship_runs: Label; var _pship_bar: ProgressBar
 var _autosim_bar: Button; var _play_lbl: Label; var _speed_lbl: Label; var _sim_progress: ProgressBar
 var _boost_btn: Button; var _boost_badge: Label
+var _moment_strip: PanelContainer; var _moment_title: Label; var _moment_sub: Label; var _moment_score: Label
 var _result_box: VBoxContainer
 var _overlay: Control; var _ov_banner: Label; var _ov_body: VBoxContainer; var _ov_ok_shown := false
 var _km_overlay: Control; var _km_banner: Label; var _km_body: VBoxContainer
+var _break_overlay: Control; var _break_banner: Label; var _break_body: VBoxContainer
+var _resume_after_break := false
 var _tick: Timer; var _flash_timer: Timer
 
 # ---------------------------------------------------------------- build helpers
@@ -220,6 +223,20 @@ func _build_body() -> void:
 	_body_vbox.add_child(pp)
 
 	_body_vbox.add_child(_spacer())
+
+	# T10 mini scorecard strip (DSC4/DSC5) — hidden until a moment fires.
+	_moment_strip = _panel(UIStyle.goal_panel())
+	_moment_strip.visible = false
+	var mh := HBoxContainer.new(); mh.add_theme_constant_override("separation", 10)
+	var mv := VBoxContainer.new()
+	_moment_title = _lbl("", 13, Palette.GOLD)
+	_moment_sub = _lbl("", 10, Palette.WHITE_MID, HORIZONTAL_ALIGNMENT_LEFT, Fonts.W_MEDIUM)
+	mv.add_child(_moment_title); mv.add_child(_moment_sub)
+	_moment_score = _lbl("", 15, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
+	mh.add_child(mv); mh.add_child(_spacer()); mh.add_child(_moment_score)
+	_moment_strip.add_child(mh)
+	_body_vbox.add_child(_moment_strip)
+
 	_build_dock()
 
 func _mk_bar(accent: Color) -> ProgressBar:
@@ -304,6 +321,13 @@ func _build_overlays() -> void:
 	_km_body.add_theme_constant_override("separation", 0)
 	_km_banner = _km_overlay.get_node("Center/Banner") as Label
 	_km_overlay.visible = false
+
+	_break_overlay = _make_overlay_root()
+	add_child(_break_overlay)
+	_break_body = _break_overlay.get_node("Center/Card/V") as VBoxContainer
+	_break_body.add_theme_constant_override("separation", 4)
+	_break_banner = _break_overlay.get_node("Center/Banner") as Label
+	_break_overlay.visible = false
 
 func _make_overlay_root() -> Control:
 	var o := Control.new()
@@ -414,6 +438,18 @@ func step(delta: int) -> void:
 			_show_overlay(offer)
 			pause()
 			return
+		if _cursor >= 1 and _session.events()[_cursor - 1]["type"] == "innings_break":
+			_resume_after_break = _playing
+			_show_break_overlay()
+			pause()
+			return
+		var m := MatchViewBuilder.moment_at(_session.result(), _session.player(), _cursor)
+		if not m.is_empty():
+			_show_moment_strip(m)
+			if _playing:
+				_tick.stop()
+				_flash_timer.start(FLASH_HOLD)
+				return
 		if _flash != "" and _playing:
 			_tick.stop()
 			_flash_timer.start(FLASH_HOLD)
@@ -427,6 +463,7 @@ func seek_to(cursor: int) -> void:
 	# Scrubbing to a non-trigger cursor clears any overlay left showing.
 	_overlay.visible = false
 	_km_overlay.visible = false
+	_break_overlay.visible = false
 	var km := _session.key_moment_offer(_cursor)
 	if not km.is_empty():
 		_pending_km = km
@@ -436,6 +473,10 @@ func seek_to(cursor: int) -> void:
 	if not offer.is_empty():
 		_pending_review = offer
 		_show_overlay(offer)
+		return
+	if _cursor >= 1 and _cursor <= _session.events().size() \
+			and _session.events()[_cursor - 1]["type"] == "innings_break":
+		_show_break_overlay()
 
 func play() -> void:
 	if _cursor >= _event_count: return
@@ -488,6 +529,25 @@ func _update_boost_button() -> void:
 	var next_over := mini(_over_at_cursor() + 1, 20)
 	_boost_btn.disabled = not _session.can_boost(inn, next_over)
 	_boost_badge.text = "%d%%" % roundi(st["fill"] * 100.0)
+
+# T10 mini scorecard strip: title/sub from moment_at, live score + context from
+# the already-built MatchView (DSC5 - no new numbers).
+func _show_moment_strip(m: Dictionary) -> void:
+	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
+		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
+	_moment_title.text = m["title"]
+	var ctx := ""
+	if m["kind"] == "you_bowl":
+		ctx = v.current_line
+	elif not v.striker.is_empty() and not v.nonstriker.is_empty():
+		ctx = "%s %d* & %s %d*" % [v.striker["name"], v.striker["runs"],
+			v.nonstriker["name"], v.nonstriker["runs"]]
+	_moment_sub.text = m["sub"] if ctx == "" else "%s · %s" % [m["sub"], ctx]
+	_moment_score.text = "%s (%s)" % [v.score_big, v.score_meta.get_slice(" · ", 0)]
+	_moment_strip.visible = true
+
+func moment_strip_visible() -> bool:
+	return _moment_strip.visible
 
 # ---------------------------------------------------------------- DRS overlay
 
@@ -756,12 +816,63 @@ func km_press(i: int) -> void:
 		_resume_after_km = false
 		play()
 
+# ---------------------------------------------------------------- innings break
+
+# Full first-innings scorecard + commentary (T10, DSC6-DSC9). Text-only banner
+# (DSC10 - no emoji in new copy).
+func _show_break_overlay() -> void:
+	_break_banner.text = "INNINGS BREAK"
+	_break_banner.add_theme_stylebox_override("normal", UIStyle.banner("moment"))
+	_break_overlay.get_node("Center/Card").add_theme_stylebox_override("panel", UIStyle.moment_card("moment"))
+	for c in _break_body.get_children(): c.queue_free()
+	var mr := _session.result()
+	var bat_team := _team_name if mr.player_bats_first else _opp_name
+	var bat_code := _my_code if mr.player_bats_first else _opp_code
+	var chase_team := _opp_name if mr.player_bats_first else _team_name
+	var card := MatchViewBuilder.build_scorecard(mr, _session.player(), bat_team, bat_code, chase_team)
+	_break_body.add_child(_lbl(card["header"], 13, Palette.GOLD, HORIZONTAL_ALIGNMENT_CENTER))
+	for r in card["rows"]:
+		var h := HBoxContainer.new(); h.add_theme_constant_override("separation", 8)
+		var nm := _lbl(r["name"], 11, Palette.GOLD if r["is_player"] else Palette.WHITE_SOFT)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(nm)
+		h.add_child(_lbl(r["how"], 9, Palette.WHITE_DIM, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_MEDIUM))
+		var sc := _lbl("%d (%d)" % [r["runs"], r["balls"]], 11, Palette.WHITE, HORIZONTAL_ALIGNMENT_RIGHT, Fonts.W_BOLD, true)
+		sc.custom_minimum_size = Vector2(58, 0)
+		h.add_child(sc)
+		_break_body.add_child(h)
+	if card["dnb"] != "":
+		_break_body.add_child(_lbl(card["dnb"], 9, Palette.WHITE_DIM))
+	var narr := RichTextLabel.new()
+	narr.bbcode_enabled = true; narr.fit_content = true; narr.scroll_active = false
+	narr.autowrap_mode = TextServer.AUTOWRAP_WORD
+	narr.add_theme_font_size_override("normal_font_size", 12)
+	narr.add_theme_font_override("normal_font", Fonts.italic())
+	narr.add_theme_color_override("default_color", Palette.WHITE_SOFT)
+	narr.text = "[center]%s[/center]" % card["commentary"]
+	_break_body.add_child(narr)
+	# No expanding filler: the card's centre-aligned VBox holds the scorecard,
+	# commentary and CONTINUE as one compact centred block.
+	_break_body.add_child(_two_line_btn("CONTINUE", "Start the chase", Palette.GOLD, break_continue))
+	_break_overlay.visible = true
+
+func break_continue() -> void:
+	_break_overlay.visible = false
+	_render()
+	if _resume_after_break and _cursor < _event_count:
+		_resume_after_break = false
+		play()
+
+func break_overlay_visible() -> bool:
+	return _break_overlay.visible
+
 # ---------------------------------------------------------------- render
 
 func _render() -> void:
 	var v := MatchViewBuilder.build_rich(_session.result(), _session.player(), _cursor,
 		_team_name, _opp_name, _my_stars, _opp_stars, _my_code, _opp_code)
 	_flash = v.highlight_text
+	_moment_strip.visible = false
 
 	# Header
 	_bat_name.text = _team_name.to_upper()
