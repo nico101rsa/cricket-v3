@@ -131,3 +131,43 @@ func test_picker_tiles_show_face_thumbnails():
 	for bucket in Appearance.all():
 		var btn: Button = identity._appearance_picker.button_for(bucket)
 		assert_eq(btn.icon, PortraitLibrary.texture_for(bucket, 0), Appearance.to_key(bucket) + " tile wears its face")
+
+# --- T11 city clubs (spec 2026-07-04 DCC4/DCC5/DCC6) --------------------------
+
+func _city_index(city: String) -> int:
+	for i in range(identity._city_dropdown.item_count):
+		if identity._city_dropdown.get_item_text(i) == city:
+			return i
+	return -1
+
+func test_club_pick_tiles_exist_and_follow_city():
+	identity._on_country_pressed(Country.Code.SA)
+	identity._on_city_selected(_city_index("Pretoria"))
+	await get_tree().process_frame
+	var tiles: Array = identity._club_buttons
+	assert_eq(tiles.size(), 3, "3 starting clubs offered (DCC5)")
+	for i in range(3):
+		assert_eq(tiles[i].text.split("\n")[0], CityClubs.bank("Pretoria")[i],
+			"tile %d named from the city bank" % i)
+		assert_true(tiles[i].is_visible_in_tree(), "tile %d visible" % i)
+		assert_gt(tiles[i].size.y, 0.0, "tile %d not collapsed" % i)
+	assert_true(tiles[0].button_pressed, "slot 0 preselected (DCC6)")
+
+func test_club_pick_writes_draft_and_survives_advance():
+	identity._on_country_pressed(Country.Code.SA)
+	identity._on_city_selected(_city_index("Pretoria"))
+	identity._on_club_pressed(2)
+	var captured: Array = []
+	identity.advance_to_build.connect(func(d): captured.append(d))
+	identity._on_appearance_selected(Appearance.Bucket.WHITE)
+	identity._on_next_pressed()
+	assert_eq(captured.size(), 1, "advanced")
+	assert_eq(captured[0].club_slot, 2, "the pick rides the draft (DCC7)")
+
+func test_club_section_hidden_without_city_and_next_not_gated():
+	identity._on_country_pressed(Country.Code.SA)
+	await get_tree().process_frame
+	assert_false(identity._club_box.visible, "no city yet -> section hidden (DCC6)")
+	identity._on_city_selected(_city_index("Cape Town"))
+	identity._on_appearance_selected(Appearance.Bucket.WHITE)
+	assert_false(identity._next_btn.disabled, "club pick never gates Next (DCC6)")

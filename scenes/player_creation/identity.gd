@@ -26,6 +26,8 @@ var _reroll_btn: Button
 var _country_sa_btn: Button
 var _country_aus_btn: Button
 var _city_dropdown: OptionButton
+var _club_box: VBoxContainer
+var _club_buttons: Array = []
 var _appearance_picker: AppearancePicker
 var _next_btn: Button
 
@@ -77,6 +79,7 @@ func _build_ui() -> void:
 	body.add_child(_build_name_block())
 	body.add_child(_build_country_toggle())
 	body.add_child(_build_city_pill())
+	body.add_child(_build_club_pick())
 	body.add_child(_build_appearance())
 
 	_next_btn = Button.new()
@@ -198,6 +201,27 @@ func _build_city_pill() -> Control:
 	_city_dropdown.item_selected.connect(_on_city_selected)
 	return _city_dropdown
 
+# T11 (DCC4/DCC5/DCC6): the 1-of-3 starting-club pick — city-bank names for the
+# 3 lowest-★ Club slots (1.5/2.0/2.5, existing ladder made visible), seg-button
+# style, slot 0 preselected, never gates Next. Hidden until a city is chosen.
+func _build_club_pick() -> Control:
+	_club_box = VBoxContainer.new()
+	_club_box.add_theme_constant_override("separation", 5)
+	_club_box.add_child(_lbl("YOUR CLUB", 10, Palette.WHITE_DIM, Fonts.W_LABEL))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	var stars := [1.5, 2.0, 2.5]   # CareerResolver.STAR_LADDER slots 0-2
+	for i in range(3):
+		var b := _seg_button("")
+		b.add_theme_font_size_override("font_size", 10)
+		b.pressed.connect(_on_club_pressed.bind(i))
+		b.set_meta("stars", stars[i])
+		row.add_child(b)
+		_club_buttons.append(b)
+	_club_box.add_child(row)
+	_club_box.visible = false
+	return _club_box
+
 func _build_appearance() -> Control:
 	_appearance_picker = AppearancePicker.new()
 	_appearance_picker.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -244,6 +268,7 @@ func _on_country_pressed(c: int) -> void:
 	_refresh_hero()
 	_refresh_country_buttons()
 	_refresh_city_dropdown()
+	_refresh_club_tiles()                     # T11: city reset -> section hides
 	_refresh_appearance_picker()              # picker enables now that a Country exists
 	_refresh_name_label()
 	_refresh_next_enabled()
@@ -254,7 +279,23 @@ func _on_city_selected(idx: int) -> void:
 	else:
 		_draft.city = _city_dropdown.get_item_text(idx)
 	_refresh_name_label()                     # the name sub shows "City · Country"
+	_refresh_club_tiles()                     # T11: the 3 offered clubs follow the city
 	_refresh_next_enabled()
+
+func _on_club_pressed(i: int) -> void:
+	_draft.club_slot = i
+	_refresh_club_tiles()
+
+func _refresh_club_tiles() -> void:
+	var show := _draft.city != "" and CityClubs.has_bank(_draft.city)
+	_club_box.visible = show
+	if not show:
+		return
+	var bank := CityClubs.bank(_draft.city)
+	for i in range(3):
+		var b: Button = _club_buttons[i]
+		b.text = "%s\n%s" % [bank[i], Display.stars_str(b.get_meta("stars"))]
+		_style_seg(b, _draft.club_slot == i)
 
 func _on_appearance_selected(bucket: int) -> void:
 	_draft.appearance = bucket
@@ -283,6 +324,7 @@ func _refresh_all() -> void:
 	_refresh_hero()
 	_refresh_country_buttons()
 	_refresh_city_dropdown()
+	_refresh_club_tiles()
 	_refresh_appearance_picker()
 	_refresh_name_label()
 	_refresh_next_enabled()
