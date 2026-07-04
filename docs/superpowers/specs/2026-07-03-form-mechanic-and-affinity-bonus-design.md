@@ -177,3 +177,29 @@ because small per-match nets compound through the attribute feedback. Win/pay ef
 inside tolerance (above). If the tired-faced all-rounder FEELS bad in Nico's playtest, the
 ready lever is `TICK_BOWL_BOUNDARY` −0.1 → −0.08 (lifts both bowling builds ~+0.1/match;
 next sweep re-checks the bowler's hot drift).
+
+## Addendum (2026-07-04): the season table's absolute levels were biased — fixed
+
+The DF10 season instrument (this spec + the T8 §6 re-sweep) showed the bowler build
+winning **56.6–56.9%** of league fixtures with the other builds at 45–48%, while the
+match instrument held all four at 48–49%. Diagnosed 2026-07-04: **`LeagueResolver`
+(and `SeasonResolver._knockout`) never applied `MatchResolver._conserved_bowling`**
+to the Player's fixtures — the CF1 deferred gap recorded in the career-fidelity spec
+(2026-06-13). Unconserved, the bowler build's 4 overs at attack/control 50 sat ON TOP
+of the team's full bowling scalar (~+12% team bowling budget, and no
+`bowl_concentration_k` charge); the bat-AR's 2 overs at 22.5 dragged its team ~3%
+below par. Fix: both season paths now conserve exactly like `simulate_match_teams`.
+
+Season level re-measured post-fix (`tools/probe_league_conservation.gd`, N=1000
+seasons = 7000 fixtures per build×arm, seeds 555000+k, same builds/opponents):
+
+| build      | OFF was (N=300) | OFF now (N=1000) | ON now |
+|------------|-----------------|------------------|--------|
+| batter     | 47.5–47.7       | 49.4             | 49.7   |
+| bat-AR     | 45.0–45.7       | 48.3             | 47.1   |
+| all-rounder| 46.2–47.4       | 47.8             | 47.1   |
+| bowler     | 56.6–56.9       | **47.6**         | 49.8   |
+
+OFF spread **11.6pp → 1.8pp**, on the match harness's 48–49% floor. The v3 dial
+verdict above (form-ON *deltas* vs same-seed OFF) is unaffected — both arms carried
+the same conservation bias, so the ON−OFF differences it gated on were honest.

@@ -24,7 +24,7 @@ Career League/Season matches currently run the untuned SCALAR (clone) sim path a
 
 ## 3. Out of scope
 
-Conserved bowling in league fixtures (CF1 note) · opponent jokers · per-bowler husbanding · the Kit Room screen · E4 (next rung, inherits all of this).
+Conserved bowling in league fixtures (CF1 note — **CLOSED 2026-07-04**: the gap measured ~+9pp fixture-win for the bowler build at season level; League + knockout Player fixtures now conserve; see the form spec's 2026-07-04 Addendum) · opponent jokers · per-bowler husbanding · the Kit Room screen · E4 (next rung, inherits all of this).
 
 ## §10 Findings (close-out, 2026-06-13)
 

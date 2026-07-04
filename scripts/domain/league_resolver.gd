@@ -59,6 +59,19 @@ static func simulate_league(
 	# proportional bat factors), the same sim the balance ledger was tuned on.
 	var rosters := build_rosters(player_attrs, itun, n)
 
+	# Bowling budget conservation on the Player's fixtures (closes the CF1 deferred
+	# gap): mirror simulate_match_teams — the Player bowls their quota at their own
+	# attack/control, teammates bowl the conserved remainder so the team's total
+	# bowling budget matches a no-Player team. Without this the season path handed
+	# bowler builds a free ~+12% bowling budget (a ~+9pp fixture-win edge vs the
+	# match harness). bowl[0] is the season-held draw, so compute once.
+	var cons_attack: float = bowl[0]
+	var cons_control: float = bowl[0]
+	if player_attrs != null:
+		var n_overs := InningsResolver.player_overs(player_attrs, itun)
+		cons_attack = MatchResolver._conserved_bowling(bowl[0], n_overs, player_attrs.attack, itun.over_limit, itun.bowl_concentration_k)
+		cons_control = MatchResolver._conserved_bowling(bowl[0], n_overs, player_attrs.control, itun.over_limit, itun.bowl_concentration_k)
+
 	for fx in round_robin(n):
 		var i: int = fx.x
 		var j: int = fx.y
@@ -90,7 +103,9 @@ static func simulate_league(
 		var bl2 = [] if (capture and i == 0) else null
 		var m := MatchResolver.simulate_match(
 			p_attrs,
-			bat[i], bowl[i], bowl[i],
+			bat[i],
+			cons_attack if i == 0 else bowl[i],
+			cons_control if i == 0 else bowl[i],
 			bat[j], bowl[j], bowl[j],
 			i_bats_first, tuning, itun, rng, ip, bp,
 			jokers if i == 0 else [], fp, null, oip, bplan, dp, null,
