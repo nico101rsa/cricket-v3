@@ -75,6 +75,61 @@ func test_death_fires_at_first_over16_event_per_innings():
 			continue
 		assert_eq(m.get("kind", ""), "death", "death strip at over 16 (innings %d)" % innings)
 
+func test_scorecard_rows_reconcile_with_the_innings():
+	var s := _mk()
+	var mr := s.result()
+	var card := MatchViewBuilder.build_scorecard(mr, s.player(), "Karoo Kings", 0, "Riverside")
+	var run_sum := 0
+	var outs := 0
+	var player_rows := 0
+	for r in card["rows"]:
+		run_sum += r["runs"]
+		if r["out"]:
+			outs += 1
+		if r["is_player"]:
+			player_rows += 1
+	assert_eq(run_sum, mr.innings1.total, "row runs sum to the innings total")
+	assert_eq(outs, mr.innings1.wickets, "out rows match the wicket count")
+	assert_eq(player_rows, 1 if mr.player_bats_first else 0, "YOU row iff the Player's team batted first")
+	assert_string_contains(card["header"], "%d/%d" % [mr.innings1.total, mr.innings1.wickets])
+
+func test_scorecard_dismissals_match_drs_flavours():
+	var s := _mk()
+	var mr := s.result()
+	var card := MatchViewBuilder.build_scorecard(mr, s.player(), "Karoo Kings", 0, "Riverside")
+	var how_by_pos := {}
+	for r in card["rows"]:
+		if r["out"]:
+			how_by_pos[r["pos"]] = r["how"]
+	for f in mr.innings1.fall_of_wickets:
+		var ballno: int = f["ball"]
+		var over := ((ballno - 1) / 6) + 1
+		var bio := ((ballno - 1) % 6) + 1
+		var expect := MatchViewBuilder._how_str(DRSMoments.flavour_of(mr.player_bats_first, over, bio))
+		assert_eq(how_by_pos.get(f["batter"], ""), expect,
+			"scorecard dismissal agrees with the T8 flavour hash (pos %d)" % f["batter"])
+
+func test_scorecard_dnb_and_not_out_rows():
+	var s := _mk()
+	var mr := s.result()
+	var card := MatchViewBuilder.build_scorecard(mr, s.player(), "Karoo Kings", 0, "Riverside")
+	var came_in: int = mini(mr.innings1.wickets + 2, 11)
+	assert_eq(card["rows"].size(), came_in, "rows = everyone who came to the crease, in order")
+	for r in card["rows"]:
+		if not r["out"]:
+			assert_eq(r["how"], "not out", "in but not dismissed reads not out")
+	if came_in < 11:
+		assert_ne(card["dnb"], "", "DNB line lists the rest")
+
+func test_scorecard_commentary_carries_real_numbers():
+	var s := _mk()
+	var mr := s.result()
+	var card := MatchViewBuilder.build_scorecard(mr, s.player(), "Karoo Kings", 0, "Riverside")
+	var req := (mr.innings1.total + 1) * 6.0 / 120.0
+	assert_string_contains(card["commentary"], str(mr.innings1.total), "total quoted")
+	assert_string_contains(card["commentary"], "%.1f an over" % req, "required rate quoted (DSC9)")
+	assert_false("par" in card["commentary"].to_lower(), "no par judgement (DSC9)")
+
 func test_each_kind_fires_at_most_once_per_innings_and_non_ball_events_are_empty():
 	var s := _mk()
 	var ev := s.events()

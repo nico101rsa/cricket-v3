@@ -353,6 +353,74 @@ static func moment_at(mr: MatchResult, player: Player, cursor: int) -> Dictionar
 			return {"kind": kind, "title": _MOMENT_COPY[kind][0], "sub": _MOMENT_COPY[kind][1]}
 	return {}
 
+# Full first-innings scorecard for the innings-break overlay (DSC7/DSC8/DSC9).
+# Reads the REAL innings card (runs/balls/out per position) + fall_of_wickets;
+# dismissal flavour reuses the T8 hash so the card agrees with any DRS moment
+# shown for that ball. Names are flavour (PlayerNames); the Player reads YOU.
+static func build_scorecard(mr: MatchResult, _player: Player,
+		bat_team: String, bat_code: int, chase_team: String) -> Dictionary:
+	var inn: InningsResult = mr.innings1
+	var fall_ball := {}
+	for f in inn.fall_of_wickets:
+		fall_ball[f["batter"]] = f["ball"]
+	var came_in: int = mini(inn.wickets + 2, 11)
+	var rows: Array = []
+	var dnb: Array = []
+	var top_pos := -1
+	var top_runs := -1
+	var player_pos := -1
+	var player_row := {}
+	for b in inn.batters:
+		var pos: int = b["position"]
+		var is_player: bool = mr.player_bats_first and b["is_player"]
+		if is_player:
+			player_pos = pos
+		var nm: String = "YOU" if is_player else PlayerNames.upper(bat_team, bat_code, pos)
+		if pos > came_in:
+			dnb.append("You" if is_player else PlayerNames.for_position(bat_team, bat_code, pos))
+			continue
+		var how := "not out"
+		if b["out"]:
+			var ballno: int = fall_ball.get(pos, 0)
+			var over := ((ballno - 1) / 6) + 1
+			var bio := ((ballno - 1) % 6) + 1
+			how = _how_str(DRSMoments.flavour_of(mr.player_bats_first, over, bio))
+		if int(b["runs"]) > top_runs:
+			top_runs = b["runs"]
+			top_pos = pos
+		var row := {"pos": pos, "name": nm, "runs": int(b["runs"]), "balls": int(b["balls"]),
+			"out": bool(b["out"]), "how": how, "is_player": is_player}
+		rows.append(row)
+		if is_player:
+			player_row = row
+	# Commentary: chase-anchored, no par judgement (DSC9). All numbers real.
+	var req := (inn.total + 1) * 6.0 / 120.0
+	var first := ("%s are all out for %d" % [bat_team, inn.total]) if inn.wickets >= 10 \
+		else ("%s post %d/%d" % [bat_team, inn.total, inn.wickets])
+	var lines: Array = ["%s - %s need %.1f an over." % [first, chase_team, req]]
+	if top_pos != -1 and top_runs > 0:
+		var who := "You" if top_pos == player_pos else PlayerNames.for_position(bat_team, bat_code, top_pos)
+		lines.append("%s top-scored with %d." % [who, top_runs])
+	if not player_row.is_empty() and top_pos != player_pos:
+		lines.append("You made %d off %d." % [player_row["runs"], player_row["balls"]])
+	return {
+		"header": "%s · %d/%d (%s)" % [bat_team.to_upper(), inn.total, inn.wickets, _overs_from_balls(inn.balls)],
+		"rows": rows,
+		"dnb": "" if dnb.is_empty() else "Did not bat: %s" % ", ".join(dnb),
+		"commentary": " ".join(lines),
+	}
+
+# DRS flavour string -> scorecard dismissal text (DSC8).
+static func _how_str(flavour: String) -> String:
+	match flavour:
+		"caught": return "c"
+		"caught_behind": return "c behind"
+		"bowled": return "b"
+		"lbw": return "lbw"
+		"run_out": return "run out"
+		"stumped": return "st"
+	return "out"
+
 # Pure run-rate chart read-model: walk the active innings' ball-log up to `n`
 # legal balls into per-over bars + a cumulative-CRR worm + the target/par line.
 # innings_no 1 → par line (PAR_RR); 2 → chase RR from first_total. Used by build_rich.
