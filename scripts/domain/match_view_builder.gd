@@ -163,7 +163,7 @@ static func build_rich(mr: MatchResult, player: Player, cursor: int,
 	for k in range(c):
 		if events[k]["type"] == "innings_break":
 			innings_no = 2
-	var od := _over_dot(events, c)
+	var od := _over_dot(events, c, innings_no)
 	var balls_into: int = maxi(0, (od[0] - 1) * 6 + od[1]) if od[0] >= 1 else 0
 
 	# Which side bats this innings (and its flavour palette).
@@ -530,9 +530,15 @@ static func _overs(over: int, ball: int) -> String:
 	return "%d.%d" % [total / 6, total % 6]
 
 # Best-effort current over.ball from the last applied event (display only).
-static func _over_dot(events: Array, c: int) -> Array:
+# innings_no > 0 scopes the scan to that innings: at the exact innings-break
+# cursor the scan must NOT fall through to innings 1's over 20, or the chase
+# reads as 120 balls old and build_rich walks the whole second innings — a
+# result spoiler behind the T10 break overlay.
+static func _over_dot(events: Array, c: int, innings_no: int = -1) -> Array:
 	for k in range(c - 1, -1, -1):
 		var e: Dictionary = events[k]
+		if innings_no > 0 and e.get("innings", innings_no) != innings_no:
+			continue
 		if e["type"] == "ball":
 			return [e["over"], e["ball"]]
 		if e["type"] == "over":

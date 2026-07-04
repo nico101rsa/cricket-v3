@@ -145,3 +145,19 @@ func test_each_kind_fires_at_most_once_per_innings_and_non_ball_events_are_empty
 		counts[key] = counts.get(key, 0) + 1
 	for key in counts:
 		assert_eq(counts[key], 1, "%s fires exactly once" % key)
+
+func test_chase_backdrop_at_break_cursor_is_unstarted():
+	# Regression: at cursor = innings_break + 1 the rich view must show the chase
+	# at 0/0 (0.0 OV), not the walked-to-the-end second innings (result spoiler
+	# behind the T10 break overlay).
+	var s := _mk()
+	var ev := s.events()
+	var bi := -1
+	for i in range(ev.size()):
+		if ev[i]["type"] == "innings_break":
+			bi = i
+			break
+	assert_gt(bi, -1, "innings break exists")
+	var v := MatchViewBuilder.build_rich(s.result(), s.player(), bi + 1, "Karoo Kings", "Riverside")
+	assert_eq(v.score_big, "0/0", "chase not started at the break")
+	assert_true(v.score_meta.begins_with("0.0 OV"), "no overs bowled yet in the chase")
