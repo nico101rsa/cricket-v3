@@ -203,29 +203,34 @@ static func simulate_match(
 		ai_plan = opp_bowling_plan if opp_bowling_plan != null else BowlingPlan.textbook()
 		p_plan = player_bowling_plan if player_bowling_plan != null else BowlingPlan.textbook()
 
+	# DW13: innings-aware live presses — a session press fires only in its innings.
+	# Flat headless plans (empty press_pairs) pass through unchanged.
+	var bp1: BoostPlan = boost_plan.for_innings(1) if boost_plan != null else null
+	var bp2: BoostPlan = boost_plan.for_innings(2) if boost_plan != null else null
+
 	if player_bats_first:
 		# Player's team posts (their intent), opposition chases.
 		innings1 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, 0, player_intent_plan, opp_bowl, ai_plan,
-			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
+			0, 0, 0, jokers, true, null, null, bp1, drs_policy, opp_field_plan,
 			player_roster, player_bat_factor, opp_boost_plan, opp_drs_policy, ball_log_1, form_state)
 		innings2 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, innings1.total + 1, opp_intent_plan, player_bowl, p_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, bp2, drs_policy, null,
 			opp_roster, opp_bat_factor, opp_boost_plan, opp_drs_policy, ball_log_2, form_state)
 	else:
 		# Opposition posts, Player's team chases (their intent).
 		innings1 = InningsResolver.simulate_innings(
 			null, opp_batting, player_team_attack, player_team_control,
 			tuning, itun, rng, 0, opp_intent_plan, player_bowl, p_plan,
-			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, boost_plan, drs_policy, null,
+			p_bowl_attack, p_bowl_control, p_bowl_overs, jokers, false, field_plan, player_bowl_intent_plan, bp1, drs_policy, null,
 			opp_roster, opp_bat_factor, opp_boost_plan, opp_drs_policy, ball_log_1, form_state)
 		innings2 = InningsResolver.simulate_innings(
 			player_attrs, player_team_batting, opp_attack, opp_control,
 			tuning, itun, rng, innings1.total + 1, player_intent_plan, opp_bowl, ai_plan,
-			0, 0, 0, jokers, true, null, null, boost_plan, drs_policy, opp_field_plan,
+			0, 0, 0, jokers, true, null, null, bp2, drs_policy, opp_field_plan,
 			player_roster, player_bat_factor, opp_boost_plan, opp_drs_policy, ball_log_2, form_state)
 
 	var res := _decide_result(innings1, innings2, player_bats_first, max_balls)
