@@ -26,8 +26,6 @@ var _speed_idx := 0
 var _playing := false
 var _pending_review := {}
 var _resume_after_review := false
-var _boost_active_over := -1
-var _boost_active_innings := -1
 var _pending_km := {}
 var _resume_after_km := false
 var _flash := ""
@@ -473,27 +471,23 @@ func _on_flash_done() -> void:
 
 func _on_boost() -> void:
 	var inn := _innings_at_cursor()
-	if not _session.can_boost(inn) or _boost_active_over != -1: return
 	var next_over := mini(_over_at_cursor() + 1, 20)
+	if not _session.can_boost(inn, next_over):
+		return
 	_session.decide_boost(inn, next_over)
 	_event_count = _session.events().size()
-	_boost_active_over = next_over
-	_boost_active_innings = inn
 	_render()
 
 func _update_boost_button() -> void:
-	var inn := _innings_at_cursor()
-	if _boost_active_over != -1 and (inn != _boost_active_innings or _over_at_cursor() > _boost_active_over):
-		_boost_active_over = -1
-	if _boost_active_over != -1:
+	var st := _session.boost_state(_cursor)
+	if st["draining"]:
 		_boost_btn.disabled = true
 		_boost_badge.text = "ON"
-	elif _session.can_boost(inn):
-		_boost_btn.disabled = false
-		_boost_badge.text = str(_session.presses_left(inn))
-	else:
-		_boost_btn.disabled = true
-		_boost_badge.text = "0"
+		return
+	var inn := _innings_at_cursor()
+	var next_over := mini(_over_at_cursor() + 1, 20)
+	_boost_btn.disabled = not _session.can_boost(inn, next_over)
+	_boost_badge.text = "%d%%" % roundi(st["fill"] * 100.0)
 
 # ---------------------------------------------------------------- DRS overlay
 
