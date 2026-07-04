@@ -7,6 +7,7 @@ extends Resource
 @export var country: int = -1          # Country.Code or -1 if unset
 @export var city: String = ""          # "" if unset
 @export var appearance: int = -1       # Appearance.Bucket or -1 if unset
+@export var club_slot: int = 0         # starting-club pick, 0-2 (T11 DCC6)
 @export var name: NamePair             # null until first name-roll
 @export var attributes: Attributes     # always present; defaults to 11/11/11/11
 

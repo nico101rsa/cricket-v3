@@ -41,3 +41,14 @@ func test_start_career_without_city_is_byte_identical():
 	for k in range(CareerState.TEAMS_PER_LEVEL):
 		assert_eq(state.teams[k].team_name, CareerResolver.TEAM_NAMES[0][k],
 			"no city -> canon placeholder names (DCC2)")
+
+func test_club_slot_rides_draft_to_player():
+	var d := PlayerCreationDraft.new()
+	d.country = Country.Code.SA
+	d.city = "Pretoria"
+	d.appearance = 0
+	d.name = NamePair.new()
+	d.club_slot = 2
+	var p := Player.from_draft(d)
+	assert_eq(p.club_slot, 2, "club_slot copied at creation")
+	assert_eq(Player.new().club_slot, 0, "old saves default to slot 0 (DCC7)")

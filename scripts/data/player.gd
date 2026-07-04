@@ -9,6 +9,7 @@ extends Resource
 @export var country: int = Country.Code.SA       # Country.Code
 @export var city: String = ""                    # NEW (spec §6.2)
 @export var appearance: int = Appearance.Bucket.WHITE  # NEW (spec §6.2)
+@export var club_slot: int = 0                    # starting-club pick at creation (T11 DCC7; old saves = 0)
 @export var attributes: Attributes               # mutable via Tons upgrades
 @export var starting_attributes: Attributes      # NEW (spec §6.2) — snapshot at creation, immutable
 @export var created_at: int = 0                  # NEW — Unix epoch seconds
@@ -29,6 +30,7 @@ static func from_draft(draft: PlayerCreationDraft) -> Player:
 	p.name = draft.name
 	p.country = draft.country
 	p.city = draft.city
+	p.club_slot = draft.club_slot
 	p.appearance = draft.appearance
 	p.attributes = draft.attributes.duplicate_typed()
 	p.starting_attributes = draft.attributes.duplicate_typed()
