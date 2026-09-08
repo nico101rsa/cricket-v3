@@ -1,3 +1,21 @@
+# Cricket v3 · Roadmap
+
+> **Spun off from Cricket v2 (`cricket-sim`) on 2026-09-08.** A text-only cricket management game played through Claude Code from a phone. The full Cricket v2 roadmap is kept below as inherited reference; nothing in it is a live task for this repo.
+
+## Next session
+
+**State:** fresh copy of Cricket v2 on `main`, history intact, `upstream` remote = original (push disabled). No v3 code yet. Godot tree still present and untouched.
+
+**The next step:** confirm the open decisions in the CLAUDE.md preface (language, turn granularity, team model, v1 loop, Claude's voice), then brainstorm → spec → plan → build the first rung: a Python port of the sim core with its tests, and a CLI that can play one match from a JSON save. Run it AFK per the inherited conventions.
+
+**Key seams:** `scripts/domain/` holds the pure sim logic; `tests/unit/` the GUT tests that pin the balance numbers. `docs/adr/` and `CONTEXT.md` explain why the sim is shaped the way it is.
+
+**Awaiting Nico:** the open decisions above, and the one management lever he most wants to feel.
+
+---
+
+# (Inherited) Cricket v2 roadmap
+
 # Cricket Sim · Project Roadmap
 
 Mobile **roguelite cricket-career** mashing **Reigns × Balatro × management**, targeting South Africa & Australia. ~2:45 per match. Personal/learning project — "success" = I play it and enjoy it.

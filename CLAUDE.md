@@ -1,3 +1,31 @@
+# Cricket v3 — READ THIS FIRST (added 2026-09-08)
+
+**This repo is a spin-off of `cricket-sim` (Cricket v2), not the original.** It was copied with full history on 2026-09-08 so the original can be left alone while this one becomes a different game. The `upstream` remote points at the original for reference and cherry-picking; its push URL is disabled on purpose. Never push to upstream.
+
+## What this game is
+A **text-only cricket management game played through Claude Code from Nico's phone.** No graphics. The game is a program that prints stats; Claude Code is the screen and the commentator. Nico manages a team over multiple seasons, saves persist between sessions, and the point is the *feeling of running a team*: picking the XI, watching the table, ageing and replacing players.
+
+Everything below this section (and most of `PROJECT_ROADMAP.md`, `CONTEXT.md`, `docs/`) is **inherited from Cricket v2** and describes the mobile Godot game. Treat it as reference material for the sim, not as instructions for this repo, until this preface is replaced by a proper CLAUDE.md.
+
+## Decisions made so far (grilling session, 2026-09-08)
+- Second repo, full history copy, `upstream` = original, read-only. Done.
+- Phone workflow = Claude Code cloud sessions only. Nico reviews and merges on the phone.
+- "Headless" = the playable text game, not CI. CI comes with it but is not the goal.
+- Saves live in git: a play session ends with commit → push → PR → merge, done by Claude. A cloud session can only push its own working branch, so this is the only way a career survives the sandbox.
+- The cloud sandbox has Python 3, pip and pytest pre-installed (Ubuntu 24.04, x86_64). Downloading a Godot binary there needs a custom network allowlist plus a setup script.
+
+## Still open (recommendations recorded, Nico has not confirmed)
+- **Language:** recommend **Python**, porting only the sim pieces the new game needs (ball, innings, match, league, season, name banks, cities, roughly 1,300 of the 4,300 domain lines) *with their tests* so the tuned balance survives. If Python is chosen, the first build commit deletes the Godot tree; history keeps every original file reachable via `git show upstream/main:<path>`.
+- **Turn granularity:** recommend match-level (pick XI + one tactical call per match, then sim) with a "sim the rest of the season" shortcut.
+- **Team model:** recommend a franchise T20 league (one player franchise, 7 AI, ~10 matches, playoffs), reusing the original's SA/AUS cities and name banks.
+- **v1 management loop:** squad of 15 → pick XI → sim → table → playoffs → off-season (ageing, retirements, small budget, sign 1–2 from a free-agent pool). No contracts, scouting, training or jokers in v1. The single lever Nico most wants to feel is still to be named.
+- **Claude's voice:** recommend Claude narrates like a coach and commentator; the game prints plain data.
+
+## First thing a new session should do
+Confirm the open items above with Nico (one short message, recommendations first), then plan the Python port of the sim core as the first rung. Domain sources to port live in `scripts/domain/` (start with `ball_resolver.gd`, `innings_resolver.gd`, `match_resolver.gd`, `league_resolver.gd`, `season_resolver.gd`, `name_banks.gd`, `cities.gd`) and their tests in `tests/unit/`.
+
+---
+
 # Cricket v2 — Project Instructions
 
 Mobile roguelite cricket-career game (Reigns × Balatro × management). Engine: **Godot 4.6.3** (Standard build), **GDScript** (not C#). Design source of truth: `CONTEXT.md` + `docs/adr/`. Build plan: `docs/superpowers/plans/2026-06-01-player-creation-plan.md` (the build authority).
