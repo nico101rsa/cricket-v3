@@ -4,13 +4,13 @@
 
 ## Next session
 
-**State:** fresh copy of Cricket v2 on `main`, history intact, `upstream` remote = original (push disabled). No v3 code yet. Godot tree still present and untouched.
+**State (2026-09-09):** the Python port of the sim core is in (`cricket/`, 51 pytest tests). Two mock teams play a full T20 with named XIs, a bowling rotation, fall of wickets and a proper scorecard: `python -m cricket play --seed 1`. The Godot tree is still in the repo, untouched.
 
-**The next step:** confirm the open decisions in the CLAUDE.md preface (language, turn granularity, team model, v1 loop, Claude's voice), then brainstorm → spec → plan → build the first rung: a Python port of the sim core with its tests, and a CLI that can play one match from a JSON save. Run it AFK per the inherited conventions.
+**The next step:** (1) delete the Godot tree once Nico has seen a match; (2) confirm the still-open decisions in the CLAUDE.md preface; (3) build the season rung — 8 teams, single round robin, points + NRR table, saved as JSON in the repo so a career survives the sandbox. `scripts/domain/league_resolver.gd` is the reference for the table maths.
 
-**Key seams:** `scripts/domain/` holds the pure sim logic; `tests/unit/` the GUT tests that pin the balance numbers. `docs/adr/` and `CONTEXT.md` explain why the sim is shaped the way it is.
+**Key seams:** `cricket/sim/` (ball, intent, bowling rotation, innings, match), `cricket/model.py` (Player/Team/XI + `pick_xi`), `cricket/mock.py` (seeded squads), `cricket/scorecard.py` (text). Balance numbers are pinned in `tests/py/test_ball.py` and `test_innings.py`.
 
-**Awaiting Nico:** the open decisions above, and the one management lever he most wants to feel.
+**Awaiting Nico:** go/no-go on deleting the Godot tree, the open decisions, and the one management lever he most wants to feel.
 
 ---
 

@@ -14,15 +14,20 @@ Everything below this section (and most of `PROJECT_ROADMAP.md`, `CONTEXT.md`, `
 - Saves live in git: a play session ends with commit → push → PR → merge, done by Claude. A cloud session can only push its own working branch, so this is the only way a career survives the sandbox.
 - The cloud sandbox has Python 3, pip and pytest pre-installed (Ubuntu 24.04, x86_64). Downloading a Godot binary there needs a custom network allowlist plus a setup script.
 
+## Decided by building (2026-09-09)
+- **Language: Python.** The first rung is in: `cricket/` is a Python port of the v2 sim core (ball → innings → match) generalised from "one hero + archetype clones" to 11 named batters and 5 named bowlers a side. Every tuned coefficient is carried over verbatim (`cricket/tuning.py`); textbook-v-textbook first innings average ~159, inside v2's 150-167 band. Tests: `pytest -q` (51 tests, `tests/py/`). Play a match: `python -m cricket play --seed 1 [--home Durban --away Perth]`.
+- **Dropped from the port on purpose:** jokers, DRS, Boost, Form, the hero-specific bowling-budget conservation. They were v2 roguelite mechanics; v3 v1 manages a team, it doesn't play a hero.
+- **RNG:** Python's `random.Random`, not Godot's PCG. Same-seed determinism holds inside Python; v2 seeds do not replay ball-for-ball. The pinned numbers are rates and bands, which is what the tests check.
+- **Godot tree still present.** Delete it in the next PR once Nico has seen the first match (history keeps every file reachable via `git show upstream/main:<path>`).
+
 ## Still open (recommendations recorded, Nico has not confirmed)
-- **Language:** recommend **Python**, porting only the sim pieces the new game needs (ball, innings, match, league, season, name banks, cities, roughly 1,300 of the 4,300 domain lines) *with their tests* so the tuned balance survives. If Python is chosen, the first build commit deletes the Godot tree; history keeps every original file reachable via `git show upstream/main:<path>`.
 - **Turn granularity:** recommend match-level (pick XI + one tactical call per match, then sim) with a "sim the rest of the season" shortcut.
-- **Team model:** recommend a franchise T20 league (one player franchise, 7 AI, ~10 matches, playoffs), reusing the original's SA/AUS cities and name banks.
+- **Team model:** recommend a franchise T20 league (one player franchise, 7 AI, ~10 matches, playoffs), reusing the original's SA/AUS cities and name banks (already ported to `cricket/names.py`).
 - **v1 management loop:** squad of 15 → pick XI → sim → table → playoffs → off-season (ageing, retirements, small budget, sign 1–2 from a free-agent pool). No contracts, scouting, training or jokers in v1. The single lever Nico most wants to feel is still to be named.
 - **Claude's voice:** recommend Claude narrates like a coach and commentator; the game prints plain data.
 
 ## First thing a new session should do
-Confirm the open items above with Nico (one short message, recommendations first), then plan the Python port of the sim core as the first rung. Domain sources to port live in `scripts/domain/` (start with `ball_resolver.gd`, `innings_resolver.gd`, `match_resolver.gd`, `league_resolver.gd`, `season_resolver.gd`, `name_banks.gd`, `cities.gd`) and their tests in `tests/unit/`.
+Read this preface and `PROJECT_ROADMAP.md` "Next session". Run `pytest -q` and `python -m cricket play` to see the state. Then: delete the Godot tree (if Nico has confirmed), and build the next rung — a saved league season (8 teams, round robin, table) on top of `cricket/sim/match.py`. Mock squads come from `cricket/mock.py`; the auto-pick lives in `cricket/model.py` (`pick_xi`).
 
 ---
 

@@ -10,3 +10,8 @@
 export.cfg
 export_presets.cfg
 .tmp/
+
+# Python
+__pycache__/
+.pytest_cache/
+*.pyc
