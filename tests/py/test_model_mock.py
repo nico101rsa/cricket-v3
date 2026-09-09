@@ -19,7 +19,7 @@ def test_squad_shape_and_names():
     for t in (home, away):
         assert len(t.squad) == 15
         assert [p.role for p in t.squad] == SQUAD_SHAPE
-        assert len({p.name for p in t.squad}) == 15
+        assert len({p.surname for p in t.squad}) == 15, "surnames unique inside a squad"
         assert all(19 <= p.age <= 35 for p in t.squad)
     assert home.country == "SA" and away.country == "AUS"
     assert home.name == "Newlands CC" and away.name == "Manly Seasiders"

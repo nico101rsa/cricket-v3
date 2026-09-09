@@ -54,9 +54,9 @@ def mock_team(city: str, club_index: int, rng: random.Random) -> Team:
     for i, role in enumerate(SQUAD_SHAPE):
         kind = kinds[i % 2] if role != Role.BATTER else None
         p = mock_player(role, country, rng, kind)
-        while p.name in used:       # keep names unique within a squad
+        while p.surname in used:    # unique surnames: the phone scorecard shows surname only
             p = mock_player(role, country, rng, kind)
-        used.add(p.name)
+        used.add(p.surname)
         squad.append(p)
     return Team(name, city, country, squad)
 

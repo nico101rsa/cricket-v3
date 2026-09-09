@@ -62,3 +62,82 @@ def render_match(m: MatchResult) -> str:
         f"RESULT: {m.result_line()}",
     ]
     return "\n".join(lines)
+
+
+# --- Narrow format: fits a phone screen (NARROW columns). This is the default. ---
+
+NARROW = 36
+
+def _short(p, width: int) -> str:
+    s = p.surname if len(p.surname) <= width else p.surname[: width - 1] + "."
+    return f"{s:<{width}}"
+
+
+def _wrap(prefix: str, items: list[str], width: int = NARROW) -> list[str]:
+    """Comma-join items into lines no wider than width, first line prefixed."""
+    lines, cur = [], prefix
+    for it in items:
+        piece = it if cur in (prefix, "  ") else ", " + it
+        if len(cur) + len(piece) > width and cur not in (prefix, "  "):
+            lines.append(cur + ",")
+            cur = "  " + it
+        else:
+            cur += piece
+    lines.append(cur)
+    return lines
+
+
+def _fit(line: str, sep: str, width: int = NARROW) -> list[str]:
+    """Break a line at sep (kept on the second line) if it is too wide."""
+    if len(line) <= width:
+        return [line]
+    head, _, tail = line.partition(sep)
+    return [head + sep.rstrip(), "  " + tail]
+
+
+def render_xi_narrow(xi: XI) -> str:
+    lines = [f"{xi.team.name} XI", " #  Name          Role    Bat   Bowl"]
+    for i, p in enumerate(xi.batting_order, 1):
+        a = p.attrs
+        bowls = "*" if p in xi.bowlers else " "
+        bat = f"{a.power:.0f}/{a.composure:.0f}"
+        bowl = f"{a.attack:.0f}/{a.control:.0f}"
+        lines.append(f"{i:>2}{bowls} {_short(p, 12)}  {_role(p):<7} {bat:<5} {bowl:<5}")
+    lines.append("Bat = pow/comp, Bowl = att/con")
+    lines.append("* = one of the five bowlers")
+    return "\n".join(lines)
+
+
+def render_innings_narrow(inn: InningsResult) -> str:
+    t = inn.xi.team
+    lines = [f"{t.name.upper()} {inn.total}/{inn.wickets} ({inn.overs_text} ov)"]
+    for b in inn.batters:
+        if not b.batted:
+            continue
+        how = f"b {b.dismissed_by.surname}" if b.out else "not out"
+        lines.append(f"{_short(b.player, 12)} {b.runs:>3} ({b.balls:>2})  {how}")
+    if inn.fall:
+        lines += _wrap("Fall: ", [f"{f.wicket}-{f.score}" for f in inn.fall])
+    lines.append("Bowling       O-R-W     Econ")
+    for c in inn.bowlers:
+        figs = f"{c.overs_text}-{c.runs}-{c.wickets}"
+        lines.append(f"{_short(c.player, 12)}  {figs:<9} {c.economy:>5.2f}")
+    return "\n".join(lines)
+
+
+def render_match_narrow(m: MatchResult) -> str:
+    h, a = m.home.team, m.away.team
+    i1, i2 = m.innings1, m.innings2
+    lines = [
+        *_fit(f"{h.name} v {a.name}", " v "),
+        *_fit(f"Toss: {m.toss_winner.name}, batted first", ", "),
+        "",
+        f"{i1.xi.team.name} {i1.total}/{i1.wickets} ({i1.overs_text} ov)",
+        f"{i2.xi.team.name} {i2.total}/{i2.wickets} ({i2.overs_text} ov)",
+        m.result_line().replace(" (", ",\n  ").rstrip(")"),
+        "",
+        render_innings_narrow(i1),
+        "",
+        render_innings_narrow(i2),
+    ]
+    return "\n".join(lines)
