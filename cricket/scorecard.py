@@ -78,7 +78,7 @@ def _wrap(prefix: str, items: list[str], width: int = NARROW) -> list[str]:
     lines, cur = [], prefix
     for it in items:
         piece = it if cur in (prefix, "  ") else ", " + it
-        if len(cur) + len(piece) > width and cur not in (prefix, "  "):
+        if len(cur) + len(piece) + 1 > width and cur not in (prefix, "  "):   # +1 = trailing comma
             lines.append(cur + ",")
             cur = "  " + it
         else:
@@ -87,22 +87,41 @@ def _wrap(prefix: str, items: list[str], width: int = NARROW) -> list[str]:
     return lines
 
 
-def _fit(line: str, sep: str, width: int = NARROW) -> list[str]:
-    """Break a line at sep (kept on the second line) if it is too wide."""
+def _fit(line: str, sep: str, width: int = NARROW, tail: str | None = None) -> list[str]:
+    """Break a line in two if it is too wide: at the first sep, or before
+    the given tail (the part that moves to the second line)."""
     if len(line) <= width:
         return [line]
-    head, _, tail = line.partition(sep)
-    return [head + sep.rstrip(), "  " + tail]
+    if tail is not None:
+        return [line[: -len(tail)].rstrip(), "  " + tail]
+    head, _, rest = line.partition(sep)
+    return [head + sep.rstrip(), "  " + rest]
+
+
+def _result_lines(m: MatchResult) -> list[str]:
+    if m.winner is None:
+        return ["Match tied"]
+    if m.margin_runs > 0:
+        margin = f"won by {m.margin_runs} run{'' if m.margin_runs == 1 else 's'}"
+        extra = []
+    else:
+        margin = f"won by {m.margin_wickets} wicket{'' if m.margin_wickets == 1 else 's'},"
+        extra = [f"  {m.balls_remaining} ball{'' if m.balls_remaining == 1 else 's'} left"]
+    return _fit(f"{m.winner.name} {margin}", " ", tail=margin) + extra
+
+
+def _score(inn: InningsResult) -> str:
+    return f"{inn.total}/{inn.wickets} ({inn.overs_text} ov)"
 
 
 def render_xi_narrow(xi: XI) -> str:
-    lines = [f"{xi.team.name} XI", " #  Name          Role    Bat   Bowl"]
+    lines = [f"{xi.team.name} XI", " #  Name         Role    Bat   Bowl"]
     for i, p in enumerate(xi.batting_order, 1):
         a = p.attrs
         bowls = "*" if p in xi.bowlers else " "
         bat = f"{a.power:.0f}/{a.composure:.0f}"
         bowl = f"{a.attack:.0f}/{a.control:.0f}"
-        lines.append(f"{i:>2}{bowls} {_short(p, 12)}  {_role(p):<7} {bat:<5} {bowl:<5}")
+        lines.append(f"{i:>2}{bowls} {_short(p, 11)}  {_role(p):<7} {bat:<5} {bowl:<5}")
     lines.append("Bat = pow/comp, Bowl = att/con")
     lines.append("* = one of the five bowlers")
     return "\n".join(lines)
@@ -110,7 +129,7 @@ def render_xi_narrow(xi: XI) -> str:
 
 def render_innings_narrow(inn: InningsResult) -> str:
     t = inn.xi.team
-    lines = [f"{t.name.upper()} {inn.total}/{inn.wickets} ({inn.overs_text} ov)"]
+    lines = _fit(f"{t.name.upper()} {_score(inn)}", " ", tail=_score(inn))
     for b in inn.batters:
         if not b.batted:
             continue
@@ -132,9 +151,9 @@ def render_match_narrow(m: MatchResult) -> str:
         *_fit(f"{h.name} v {a.name}", " v "),
         *_fit(f"Toss: {m.toss_winner.name}, batted first", ", "),
         "",
-        f"{i1.xi.team.name} {i1.total}/{i1.wickets} ({i1.overs_text} ov)",
-        f"{i2.xi.team.name} {i2.total}/{i2.wickets} ({i2.overs_text} ov)",
-        m.result_line().replace(" (", ",\n  ").rstrip(")"),
+        *_fit(f"{i1.xi.team.name} {_score(i1)}", " ", tail=_score(i1)),
+        *_fit(f"{i2.xi.team.name} {_score(i2)}", " ", tail=_score(i2)),
+        *_result_lines(m),
         "",
         render_innings_narrow(i1),
         "",
