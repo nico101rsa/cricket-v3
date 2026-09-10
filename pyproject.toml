@@ -1,0 +1,9 @@
+[project]
+name = "cricket-v3"
+version = "0.1.0"
+description = "Text-only cricket management game played through Claude Code."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/py"]
+pythonpath = ["."]
