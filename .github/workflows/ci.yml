@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -29,9 +30,9 @@ jobs:
           path: web/dist
 
   deploy:
-    # Publishes web/dist to GitHub Pages. Needs Pages enabled once in the repo
-    # settings with source "GitHub Actions"; the repo must be public on a free plan.
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Publishes web/dist to GitHub Pages. configure-pages enables Pages with
+    # source "GitHub Actions" on first run; the repo must be public on a free plan.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: test
     runs-on: ubuntu-latest
     permissions:
@@ -46,6 +47,9 @@ jobs:
         with:
           node-version: '22'
       - run: cd web && CRICKET_BUILD="${GITHUB_SHA::7}" node build.js
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
