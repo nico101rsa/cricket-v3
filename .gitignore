@@ -15,3 +15,8 @@ export_presets.cfg
 __pycache__/
 .pytest_cache/
 *.pyc
+
+# Web build outputs
+web/dist/
+web/tools/shots/
+node_modules/

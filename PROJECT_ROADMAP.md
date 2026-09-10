@@ -4,13 +4,13 @@
 
 ## Next session
 
-**State (2026-09-09):** the Python port of the sim core is in (`cricket/`, 51 pytest tests). Two mock teams play a full T20 with named XIs, a bowling rotation, fall of wickets and a proper scorecard: `python -m cricket play --seed 1`. The Godot tree is still in the repo, untouched.
+**State (2026-09-10):** the game is a phone web app in `web/` (JavaScript engine + one-file UI, PWA, GitHub Pages deploy in `.github/workflows/ci.yml`). Nico creates a 10-club Pretoria v Sydney league from a seed, reads the cryptic blurbs, picks a club, picks his XI and game plan, watches his matches live at 3 s a ball (or sims them), and sees scorecards, the table, squad stats, league leaderboards and player cards. Playoffs decide the champion; the next season ages everyone a year. 107 tests (53 pytest on the Python oracle, 54 node on the engine, game and Python-parity tape) plus a Playwright smoke run.
 
-**The next step:** (1) delete the Godot tree once Nico has seen a match; (2) confirm the still-open decisions in the CLAUDE.md preface; (3) build the season rung — 8 teams, single round robin, points + NRR table, saved as JSON in the repo so a career survives the sandbox. `scripts/domain/league_resolver.gd` is the reference for the table maths.
+**Waiting on Nico:** (1) make the repo public and enable Pages (Settings → Pages → Source: GitHub Actions); (2) merge the PR; (3) open `https://nico101rsa.github.io/cricket-v3/` in Safari, add to home screen, and play season 1. First-season checklist for him: lock the phone mid-match and come back; force-quit Safari and reopen; export a save from More.
 
-**Key seams:** `cricket/sim/` (ball, intent, bowling rotation, innings, match), `cricket/model.py` (Player/Team/XI + `pick_xi`), `cricket/mock.py` (seeded squads), `cricket/scorecard.py` (text). Balance numbers are pinned in `tests/py/test_ball.py` and `test_innings.py`.
+**The next rung (after his first season):** delete the Godot tree and `cricket/` (golden.json stays); then the first off-season feature he asks for. Candidates in the order the preface recommends: retirements at 34–36 with a free-agent pool and 1–2 signings, then a small budget. Keep each rung to one PR.
 
-**Awaiting Nico:** go/no-go on deleting the Godot tree, the open decisions, and the one management lever he most wants to feel.
+**Key seams:** `web/src/engine/` (sim, do not retune casually), `web/src/game/game.js` (state machine: newLeague → chooseTeam → startLive/playFixture → commitResult → advanceStage → nextSeason), `web/src/game/generator.js` (league variance and blurbs), `web/src/ui/app.js` (screens keyed by `SCREENS`, actions keyed by `A`), `web/build.js`, `web/tools/smoke.js`.
 
 ---
 
