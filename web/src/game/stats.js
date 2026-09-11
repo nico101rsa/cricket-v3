@@ -10,6 +10,7 @@
       bat: { inns: 0, no: 0, runs: 0, balls: 0, hs: 0, hsNo: false, fours: 0, sixes: 0, ducks: 0, fifties: 0 },
       bowl: { balls: 0, runs: 0, wkts: 0, bestW: 0, bestR: 0, threes: 0 },
       last5: [], // most recent first: {runs, balls, out}
+      last5b: [], // most recent first: {wkts, runs, balls}
     };
   }
 
@@ -31,6 +32,9 @@
     s.bowl.balls += line.balls; s.bowl.runs += line.runs; s.bowl.wkts += line.wkts;
     if (line.wkts > s.bowl.bestW || (line.wkts === s.bowl.bestW && line.runs < s.bowl.bestR)) { s.bowl.bestW = line.wkts; s.bowl.bestR = line.runs; }
     if (line.wkts >= 3) s.bowl.threes += 1;
+    s.last5b = s.last5b || [];
+    s.last5b.unshift({ wkts: line.wkts, runs: line.runs, balls: line.balls });
+    if (s.last5b.length > 5) s.last5b.length = 5;
   }
 
   // Fold one stored match result into stats[playerId][seasonNo].
@@ -60,6 +64,8 @@
       if (x.bowl.bestW > s.bowl.bestW || (x.bowl.bestW === s.bowl.bestW && x.bowl.bestR < s.bowl.bestR)) { s.bowl.bestW = x.bowl.bestW; s.bowl.bestR = x.bowl.bestR; }
     }
     s.last5 = (b && b.last5.length ? b.last5 : (a ? a.last5 : [])).slice(0, 5);
+    const l5b = (x) => (x && x.last5b) || [];
+    s.last5b = (l5b(b).length ? l5b(b) : l5b(a)).slice(0, 5);
     return s;
   }
 
@@ -84,8 +90,9 @@
   function bestText(s) { return s.bowl.balls ? `${s.bowl.bestW}/${s.bowl.bestR}` : '-'; }
   function avgText(s) { const a = batAvg(s); return a === Infinity ? `${s.bat.runs}*` : fmt1(a); }
   function last5Text(s) { return s.last5.length ? s.last5.map((x) => `${x.runs}${x.out ? '' : '*'}`).join(' ') : '-'; }
+  function last5BowlText(s) { const l = s.last5b || []; return l.length ? l.map((x) => `${x.wkts}/${x.runs}`).join(' ') : '-'; }
 
   return (Cricket.stats = {
-    emptySeason, applyResult, merge, seasonOf, careerOf, oversText, fmt1, fmt2, batAvg, batSR, bowlAvg, econ, hsText, bestText, avgText, last5Text,
+    emptySeason, applyResult, merge, seasonOf, careerOf, oversText, fmt1, fmt2, batAvg, batSR, bowlAvg, econ, hsText, bestText, avgText, last5Text, last5BowlText,
   });
 });

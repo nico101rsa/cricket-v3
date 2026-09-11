@@ -40,14 +40,17 @@
   }
 
   // Toss (one rng draw, winner bats first) unless opts.homeBatsFirst is given,
-  // then the first innings, then a chase of total + 1.
+  // then the first innings, then a chase of total + 1. opts.instruct(inn, ball,
+  // strikerId, bowlerId) is the in-match instruction hook (see innings.js),
+  // called with the innings index (0 or 1) in front.
   function simulateMatch(home, away, tuning, itun, rng, homePlan, awayPlan, opts = {}) {
     const tossed = rng.random() < 0.5;
     const homeBatsFirst = opts.homeBatsFirst === undefined ? tossed : !!opts.homeBatsFirst;
     const [first, second] = homeBatsFirst ? [home, away] : [away, home];
     const [p1, p2] = homeBatsFirst ? [homePlan, awayPlan] : [awayPlan, homePlan];
-    const innings1 = simulateInnings(first, second, tuning, itun, rng, p1, 0, opts);
-    const innings2 = simulateInnings(second, first, tuning, itun, rng, p2, innings1.total + 1, opts);
+    const forInn = (i) => (opts.instruct ? { ...opts, instruct: (ball, s, b) => opts.instruct(i, ball, s, b) } : opts);
+    const innings1 = simulateInnings(first, second, tuning, itun, rng, p1, 0, forInn(0));
+    const innings2 = simulateInnings(second, first, tuning, itun, rng, p2, innings1.total + 1, forInn(1));
     return decideResult(home, away, homeBatsFirst, innings1, innings2, itun.over_limit * 6);
   }
 

@@ -102,12 +102,42 @@
 
   // Simulate a fixture (pure: does not touch state). Returns the engine result
   // plus the stored-form summary. xis may be given (replays use the stored ones).
-  function simulateFixture(state, fixture, xis) {
+  function simulateFixture(state, fixture, xis, instructions) {
     xis = xis || { home: xiSpecFor(state, fixture.homeId), away: xiSpecFor(state, fixture.awayId) };
     const seed = matchSeed(state, fixture);
     const home = resolveXI(state, fixture.homeId, xis.home), away = resolveXI(state, fixture.awayId, xis.away);
-    const m = X.simulateMatch(home, away, T.ballTuning(), T.inningsTuning(), R.makeRng(seed), I.presetPlan(xis.home.preset), I.presetPlan(xis.away.preset), { cosmetic: R.makeRng(R.deriveSeed(seed, 9)) });
+    const opts = { cosmetic: R.makeRng(R.deriveSeed(seed, 9)) };
+    if (instructions && instructions.length) opts.instruct = instructor(instructions);
+    const m = X.simulateMatch(home, away, T.ballTuning(), T.inningsTuning(), R.makeRng(seed), I.presetPlan(xis.home.preset), I.presetPlan(xis.away.preset), opts);
     return { match: m, summary: summarise(fixture, m, xis, seed) };
+  }
+
+  // ---- in-match instructions ----------------------------------------------
+  // The manager's mid-match calls, kept as a list on state.live so the replay
+  // regenerates from seed + XIs + instructions. Each entry:
+  //   { inn: 0|1, from: ballIndex, playerId, kind: 'bat'|'bowl', value }
+  // value = an Intent (0/1/2) for 'bat' or 'attack'|'contain' for 'bowl';
+  // null clears (back to the plan). The latest entry at or before a ball wins.
+  function instructionFor(instructions, inn, ball, playerId, kind) {
+    let found = null;
+    for (const x of instructions || []) if (x.inn === inn && x.kind === kind && x.playerId === playerId && x.from <= ball) found = x;
+    return found ? found.value : null;
+  }
+  function instructor(instructions) {
+    return (inn, ball, strikerId, bowlerId) => {
+      const intent = instructionFor(instructions, inn, ball, strikerId, 'bat');
+      const bowl = instructionFor(instructions, inn, ball, bowlerId, 'bowl');
+      return intent === null && bowl === null ? null : { intent, bowl };
+    };
+  }
+  // Record an instruction for the live match. Only balls from `from` onwards
+  // change, so the replay's past stays exactly as it was shown.
+  function instruct(state, ins) {
+    if (!state.live) throw new Error('no live match');
+    if (!['bat', 'bowl'].includes(ins.kind)) throw new Error('bad instruction kind');
+    state.live.instructions = (state.live.instructions || []).filter((x) => !(x.inn === ins.inn && x.from === ins.from && x.playerId === ins.playerId && x.kind === ins.kind));
+    state.live.instructions.push({ inn: ins.inn, from: ins.from, playerId: ins.playerId, kind: ins.kind, value: ins.value === undefined ? null : ins.value });
+    return liveMatch(state);
   }
 
   function summarise(fixture, m, xis, seed) {
@@ -174,13 +204,13 @@
     if (err) throw new Error(err);
     playOthersInRound(state, fixture);
     const xis = { home: xiSpecFor(state, fixture.homeId), away: xiSpecFor(state, fixture.awayId) };
-    state.live = { fixtureId: fixture.id, xis, cursor: 0, playing: false, anchorMs: null, anchorCursor: 0, speed: 1 };
+    state.live = { fixtureId: fixture.id, xis, cursor: 0, playing: false, anchorMs: null, anchorCursor: 0, speed: 1, instructions: [] };
     return liveMatch(state);
   }
   // Re-simulate the live fixture (deterministic) for the replay.
   function liveMatch(state) {
     const f = fixtureById(state, state.live.fixtureId);
-    return simulateFixture(state, f, state.live.xis);
+    return simulateFixture(state, f, state.live.xis, state.live.instructions);
   }
   function finishLive(state, sim) {
     const f = fixtureById(state, state.live.fixtureId);
@@ -213,12 +243,13 @@
     // Add migrations here as the format grows: if (s.version === 1) {...; s.version = 2;}
     if (s.version > SAVE_VERSION) throw new Error(`save is from a newer game (v${s.version})`);
     s.settings = s.settings || { ballMs: 3000 };
+    if (s.live && !s.live.instructions) s.live.instructions = [];
     return s;
   }
 
   return (Cricket.game = {
     SAVE_VERSION, newLeague, chooseTeam, startSeason, teamById, squadOf, fixtureById, userFixtures, nextFixture, nextUserFixture, roundOf,
     visible, visibleSquad, suggestXI, suggestFrom, validateUserXI, aiXI, matchSeed, simulateFixture, playFixture, playOthersInRound, playRound,
-    simToEndOfSeason, startLive, liveMatch, finishLive, nextSeason, serialize, deserialize, migrate,
+    simToEndOfSeason, startLive, liveMatch, finishLive, instructionFor, instructor, instruct, nextSeason, serialize, deserialize, migrate,
   });
 });
