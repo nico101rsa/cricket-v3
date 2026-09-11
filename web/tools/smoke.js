@@ -38,23 +38,45 @@ const url = 'file://' + DIST;
   await page.click('[data-action=preset][data-preset=attacking]');
   await page.click('[data-action=playLive]');
   await page.waitForSelector('.screen-live');
-  await page.waitForTimeout(400);
-  await shot('05-live');
+  // The match opens on a decision card: your openers or your opening bowler.
+  await page.waitForSelector('.decide');
+  await shot('05-live-decide');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await shot('05a-live-decide-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  // Give an instruction: the match re-simulates from that ball, the card stays.
+  await page.click('.decide [data-action=instruct]:not(.active)');
+  await page.waitForSelector('.decide');
+  const nIns = await page.evaluate(() => window.CricketApp.state.live.instructions.length);
+  must(nIns === 1, `one instruction recorded, got ${nIns}`);
+  must((await page.$$('.decide .chip.active')).length >= 1, 'chosen instruction is highlighted');
   // Reload mid-match: the game must come back on the live screen at the same ball.
   const before = await page.evaluate(() => window.CricketApp.state.live.cursor);
   await page.reload();
   await page.waitForSelector('.screen-live');
   const after = await page.evaluate(() => window.CricketApp.state.live.cursor);
   must(after >= before, `resume cursor ${after} >= ${before}`);
+  must((await page.evaluate(() => window.CricketApp.state.live.instructions.length)) === 1, 'instruction survives a reload');
   await page.click('[data-action=liveSpeed][data-speed="10"]');
   await page.click('[data-action=livePlay]');
   await page.waitForTimeout(1500);
+  await shot('05b-live');
+  // Batters: the one in longest on top, the striker starred.
+  const starred = await page.$$eval('.batter .bname', (els) => els.map((e) => e.textContent).filter((t) => t.endsWith('*')).length);
+  must(starred <= 1, `at most one striker starred, got ${starred}`);
   await page.click('[data-action=liveSkip][data-what=innings]');
   await page.waitForSelector('.banner');
+  must((await page.$$('.banner + details table.sc')).length >= 1, 'first-innings scorecard shown at the break');
   await shot('06-break');
   await page.click('[data-action=livePlay]');
   await page.waitForTimeout(700);
   await shot('07-chase');
+  if (await page.$('.decide')) await page.click('.decide [data-action=livePlay]');
+  await page.waitForTimeout(1200);
+  await shot('07b-chase-live');
+  // Tap a batter or bowler of your own team mid-innings to change an instruction.
+  const tappable = await page.$('.batter[data-action=liveTap], .bowler[data-action=liveTap]');
+  if (tappable) { await tappable.click(); await page.waitForSelector('.decide'); await shot('07c-tap'); await page.click('[data-action=liveTapClose]'); }
   await page.click('[data-action=liveSkip][data-what=end]');
   await page.waitForSelector('.banner.result');
   await shot('08-result');

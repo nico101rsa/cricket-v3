@@ -223,12 +223,25 @@
   };
 
   // ---- live match ---------------------------------------------------------
+  // The timeline is one item per ball plus stop items the replay pauses on:
+  // 'decide' (a batter or bowler of YOUR team comes in: stats + instruction),
+  // 'break' (innings break, full scorecard) and 'end'. Every item carries inn
+  // (which innings is on screen) and shown (how many of its balls are shown).
   function buildTimeline(sim) {
-    const tl = [];
-    sim.match.innings1.events.forEach((ev) => tl.push({ type: 'ball', inn: 0, ev }));
-    tl.push({ type: 'break' });
-    sim.match.innings2.events.forEach((ev) => tl.push({ type: 'ball', inn: 1, ev }));
-    tl.push({ type: 'end' });
+    const s = st(), m = sim.match, tl = [];
+    for (const inn of [0, 1]) {
+      const r = inn === 0 ? m.innings1 : m.innings2;
+      const userBats = r.xi.team.id === s.userTeamId, userBowls = r.bowlingXI.team.id === s.userTeamId;
+      if (inn === 1) tl.push({ type: 'break', inn: 0, shown: m.innings1.events.length });
+      if (userBats) tl.push({ type: 'decide', inn, shown: 0, kind: 'bat', ids: [r.xi.order[0].id, r.xi.order[1].id], title: 'Your openers' });
+      const seen = new Set();
+      r.events.forEach((ev, k) => {
+        if (userBowls && !seen.has(ev.bowlerId)) { seen.add(ev.bowlerId); tl.push({ type: 'decide', inn, shown: k, kind: 'bowl', ids: [ev.bowlerId], title: k === 0 ? 'Your opening bowler' : 'New bowler' }); }
+        tl.push({ type: 'ball', inn, shown: k + 1, ev });
+        if (userBats && ev.wicket && ev.nextInId && k + 1 < r.events.length) tl.push({ type: 'decide', inn, shown: k + 1, kind: 'bat', ids: [ev.nextInId], title: 'New batter' });
+      });
+    }
+    tl.push({ type: 'end', inn: 1, shown: m.innings2.events.length });
     return tl;
   }
   function ensureLive() {
@@ -242,10 +255,13 @@
   }
   const ballMs = () => st().settings.ballMs || 3000;
   function liveCursorNow() {
-    const l = st().live;
+    const l = st().live, tl = app.sim.timeline;
     if (!l.playing || l.anchorMs === null) return l.cursor;
     const step = ballMs() / (l.speed || 1);
-    return Math.min(app.sim.timeline.length - 1, l.anchorCursor + Math.floor((Date.now() - l.anchorMs) / step));
+    const c = Math.min(tl.length - 1, l.anchorCursor + Math.floor((Date.now() - l.anchorMs) / step));
+    // The clock never runs past a stop item, however long the phone was locked.
+    for (let i = l.anchorCursor + 1; i <= c; i++) if (tl[i].type !== 'ball') return i;
+    return c;
   }
   function setPlaying(playing) {
     const l = st().live;
@@ -268,13 +284,21 @@
     const c = liveCursorNow();
     if (c !== l.cursor) {
       l.cursor = c;
-      const item = app.sim.timeline[c];
-      if (item.type === 'break' || item.type === 'end') { l.playing = false; l.anchorMs = null; l.anchorCursor = c; }
+      if (app.sim.timeline[c].type !== 'ball') { l.playing = false; l.anchorMs = null; l.anchorCursor = c; }
       saveLive();
       render();
     }
   }
   function startTicker() { if (!app.timer) app.timer = setInterval(tick, 200); }
+  // From a stop item: step past it and play if the next item is a ball.
+  function playOn() {
+    const tl = app.sim.timeline;
+    const c = liveCursorNow();
+    if (tl[c].type !== 'ball' && c < tl.length - 1) jumpTo(c + 1);
+    setPlaying(tl[st().live.cursor].type === 'ball');
+    app.view.tap = null;
+    render();
+  }
 
   // Reduce the shown events of one innings into a display state.
   function inningsView(innIdx, shownEvents) {
@@ -282,17 +306,19 @@
     const inn = innIdx === 0 ? sim.innings1 : sim.innings2;
     const all = inn.events;
     const n = shownEvents;
-    const bat = new Map(inn.xi.order.map((p, i) => [p.id, { id: p.id, pos: i + 1, runs: 0, balls: 0, out: false, how: null, bowlerId: null, fielderId: null }]));
+    const bat = new Map(inn.xi.order.map((p, i) => [p.id, { id: p.id, pos: i + 1, runs: 0, balls: 0, fours: 0, sixes: 0, out: false, how: null, bowlerId: null, fielderId: null }]));
     const bowl = new Map();
     const overs = new Map();
-    let total = 0, wickets = 0;
+    const fall = [];
+    let total = 0, wickets = 0, lastWicketBall = 0, lastWicketScore = 0;
     for (let i = 0; i < n; i++) {
       const e = all[i];
       const b = bat.get(e.strikerId); b.balls += 1; b.runs += e.runs;
-      if (e.wicket) { b.out = true; b.how = e.how; b.bowlerId = e.bowlerId; b.fielderId = e.fielderId; wickets += 1; }
+      if (e.runs === 4) b.fours += 1; else if (e.runs === 6) b.sixes += 1;
+      if (e.wicket) { b.out = true; b.how = e.how; b.bowlerId = e.bowlerId; b.fielderId = e.fielderId; wickets += 1; fall.push({ w: wickets, score: total, ball: i + 1, batterId: e.strikerId }); lastWicketBall = i + 1; lastWicketScore = total; }
       total += e.runs;
-      const c = bowl.get(e.bowlerId) || { id: e.bowlerId, balls: 0, runs: 0, wkts: 0 };
-      c.balls += 1; c.runs += e.runs; if (e.wicket) c.wkts += 1; bowl.set(e.bowlerId, c);
+      const c = bowl.get(e.bowlerId) || { id: e.bowlerId, balls: 0, runs: 0, wkts: 0, dots: 0 };
+      c.balls += 1; c.runs += e.runs; if (e.wicket) c.wkts += 1; if (!e.runs) c.dots += 1; bowl.set(e.bowlerId, c);
       const o = overs.get(e.over) || []; o.push(e.wicket ? 'W' : String(e.runs)); overs.set(e.over, o);
     }
     const last = n ? all[n - 1] : null;
@@ -303,70 +329,119 @@
     const bowlerId = next ? next.bowlerId : (last ? last.bowlerId : null);
     const curOver = next ? next.over : (last ? last.over : 1);
     const done = n >= all.length;
-    return { inn, total, wickets, balls, bat, bowl, overs, last, next, strikerId, nonStrikerId, bowlerId, curOver, done, target: inn.target, teamId: inn.xi.team.id, bowlingTeamId: inn.bowlingXI.team.id };
+    const partnership = { runs: total - lastWicketScore, balls: balls - lastWicketBall };
+    const lastWicket = fall.length ? fall[fall.length - 1] : null;
+    const card = { teamId: inn.xi.team.id, total, wickets, balls, target: inn.target, batters: [...bat.values()], bowlers: [...bowl.values()], fall };
+    return { inn, total, wickets, balls, bat, bowl, overs, last, next, strikerId, nonStrikerId, bowlerId, curOver, done, partnership, lastWicket, card, target: inn.target, teamId: inn.xi.team.id, bowlingTeamId: inn.bowlingXI.team.id };
+  }
+
+  // One player's card for a decision: visible stats, form, and the instruction
+  // chips (only for your own players). `from` is the ball the call applies from.
+  const BAT_OPTS = [[0, 'Defend', 'Keep the wicket. Fewer boundaries, fewer risks.'], ['', 'Play the plan', 'Follow the game plan for the match state.'], [2, 'Attack', 'Go after the bowling. More runs, more risk.']];
+  const BOWL_OPTS = [['contain', 'Contain', 'Bowl tight. Fewer runs, fewer wickets.'], ['', 'Normal', 'Bowl to the plan.'], ['attack', 'Attack', 'Hunt wickets. Goes for runs if it misses.']];
+  const insLabel = (kind, val) => { const o = (kind === 'bat' ? BAT_OPTS : BOWL_OPTS).find((x) => String(x[0]) === String(val === null ? '' : val)); return o ? o[1] : ''; };
+  function liveCard(id, kind, inn, from, mine) {
+    const p = player(id), v = Game.visible(st(), p);
+    const cur = Game.instructionFor(st().live.instructions, inn, from, id, kind);
+    const rows = (label, x) => (kind === 'bat'
+      ? `<tr><td class="left">${label}</td><td>${x.matches}</td><td>${x.bat.inns}</td><td>${x.bat.runs}</td><td>${S.avgText(x)}</td><td>${S.fmt1(S.batSR(x))}</td><td>${S.hsText(x)}</td></tr>`
+      : `<tr><td class="left">${label}</td><td>${x.matches}</td><td>${oversText(x.bowl.balls)}</td><td>${x.bowl.wkts}</td><td>${S.fmt2(S.econ(x))}</td><td>${S.fmt1(S.bowlAvg(x))}</td><td>${S.bestText(x)}</td></tr>`);
+    const head = kind === 'bat' ? '<th></th><th>M</th><th>I</th><th>R</th><th>Avg</th><th>SR</th><th>HS</th>' : '<th></th><th>M</th><th>O</th><th>W</th><th>Econ</th><th>Avg</th><th>Best</th>';
+    const form = kind === 'bat' ? S.last5Text(v.season) : S.last5BowlText(v.season);
+    const opts = kind === 'bat' ? BAT_OPTS : BOWL_OPTS;
+    const chips = mine ? `<div class="toggle">${opts.map(([val, label]) => `<button class="chip ${String(cur === null ? '' : cur) === String(val) ? 'active' : ''}" data-action="instruct" data-kind="${kind}" data-id="${id}" data-inn="${inn}" data-from="${from}" data-value="${val}">${label}</button>`).join('')}</div><p class="muted small">${esc(opts.find((x) => String(x[0]) === String(cur === null ? '' : cur))[2])}</p>` : '';
+    return `<div class="pcard"><div class="pcard-head"><b>${esc(p.firstName)} ${esc(p.surname)}</b> <span class="muted small">${roleText(p)} · age ${p.age}</span></div>
+      <table class="table sc"><thead><tr>${head}</tr></thead><tbody>${rows(`Season ${st().season.no}`, v.season)}${rows('Career', v.career)}</tbody></table>
+      <p class="small"><span class="muted">Form (last five${kind === 'bat' ? ' innings' : ' spells'}):</span> ${esc(form)}</p>${chips}</div>`;
+  }
+  // Short stats line for an incoming opposition batter.
+  function batterBlurb(id) {
+    const v = Game.visible(st(), player(id)), c = v.career;
+    return c.bat.inns ? `avg ${S.avgText(c)} · SR ${S.fmt1(S.batSR(c))} · form ${esc(S.last5Text(v.season))}` : 'no innings yet';
   }
 
   SCREENS.live = () => {
     if (!ensureLive()) return SCREENS.hub();
     startTicker();
-    const s = st(), l = s.live;
-    const tl = app.sim.timeline;
-    const cursor = l.cursor;
-    const item = tl[cursor];
+    const s = st(), l = s.live, tl = app.sim.timeline, m = app.sim.sim.match;
+    const item = tl[l.cursor];
     const f = Game.fixtureById(s, l.fixtureId);
-    const m = app.sim.sim.match;
-    // Which innings is on screen and how many of its events are shown.
-    let innIdx, shown;
-    if (item.type === 'ball') { innIdx = item.inn; shown = cursor - (innIdx ? m.innings1.events.length + 1 : 0) + 1; }
-    else if (item.type === 'break') { innIdx = 0; shown = m.innings1.events.length; }
-    else { innIdx = 1; shown = m.innings2.events.length; }
-    const v = inningsView(innIdx, shown);
+    const innIdx = item.inn;
+    const v = inningsView(innIdx, item.shown);
     const batTeam = team(v.teamId), bowlTeam = team(v.bowlingTeamId);
-    const header = `<div class="score-head"><div class="score-team">${esc(batTeam.name)}</div><div class="score-big">${v.total}/${v.wickets}</div><div class="score-ov">${oversText(v.balls)} ov · RR ${v.balls ? (6 * v.total / v.balls).toFixed(2) : '0.00'}</div></div>`;
+    const userBats = isUser(v.teamId), userBowls = isUser(v.bowlingTeamId);
+    const maxBalls = 120;
+    const phase = v.balls >= maxBalls ? '' : `<span class="phase">${I.PHASE_NAMES[I.phaseOf(v.curOver)]}</span>`;
+    const header = `<div class="score-head"><div class="score-team">${esc(batTeam.name)} <span class="muted small">${userBats ? 'you bat' : userBowls ? 'you bowl' : ''}</span></div><div class="score-big">${v.total}/${v.wickets}</div><div class="score-ov">${oversText(v.balls)} ov · RR ${v.balls ? (6 * v.total / v.balls).toFixed(2) : '0.00'}<br>${phase}</div></div>`;
     let chase = '';
     if (innIdx === 1) {
-      const need = v.target - v.total, left = 120 - v.balls;
-      chase = need > 0 && left > 0 ? `<div class="chase">Need <b>${need}</b> off <b>${left}</b> · RRR ${(need * 6 / left).toFixed(2)}</div>` : need > 0 ? `<div class="chase">Target ${v.target}</div>` : '';
+      const need = v.target - v.total, left = maxBalls - v.balls;
+      chase = need > 0 && left > 0 && v.wickets < 10 ? `<div class="chase">Need <b>${need}</b> off <b>${left}</b> · RRR ${(need * 6 / left).toFixed(2)} · ${10 - v.wickets} wkts in hand</div>` : need > 0 ? `<div class="chase">Target ${v.target}</div>` : '';
     } else {
-      chase = `<div class="chase muted">First innings · ${esc(bowlTeam.abbr)} bowling</div>`;
+      const proj = v.balls >= 12 && v.balls < maxBalls && v.wickets < 10 ? ` · at this rate ${Math.round(v.total + (maxBalls - v.balls) * v.total / v.balls)}` : '';
+      chase = `<div class="chase muted">First innings · ${esc(bowlTeam.abbr)} bowling${proj}</div>`;
     }
-    const bline = (id, star) => { const b = v.bat.get(id); return b ? `<div class="batter ${star ? 'striker' : ''}">${star ? '▸ ' : ''}${esc(pname(id))} <b>${b.runs}</b> (${b.balls})</div>` : ''; };
+    // Batters: the one in longest on top, the striker marked *. Yours are tappable.
+    const insTag = (kind, id) => { const val = Game.instructionFor(l.instructions, innIdx, v.balls, id, kind); return val === null ? '' : ` <span class="tag">${esc(insLabel(kind, val))}</span>`; };
+    const bline = (b) => {
+      const star = b.id === v.strikerId;
+      const sr = b.balls ? Math.round(100 * b.runs / b.balls) : 0;
+      return `<div class="batter ${star ? 'striker' : ''}" ${userBats ? `data-action="liveTap" data-kind="bat" data-id="${b.id}"` : ''}><span class="bname">${esc(pname(b.id))}${star ? '*' : ''}</span> <b>${b.runs}</b> <span class="muted">(${b.balls})</span> <span class="muted small">SR ${sr}${b.fours || b.sixes ? ` · ${b.fours}×4 ${b.sixes}×6` : ''}</span>${userBats ? insTag('bat', b.id) : ''}</div>`;
+    };
     let batters = '';
-    if (!v.done && v.wickets < 10) batters = `<div class="batters">${bline(v.strikerId, true)}${bline(v.nonStrikerId, false)}</div>`;
+    if (!v.done && v.wickets < 10) {
+      const pair = [v.strikerId, v.nonStrikerId].filter((id) => id !== null && id !== undefined).map((id) => v.bat.get(id)).filter(Boolean).sort((a, b) => a.pos - b.pos);
+      batters = `<div class="batters">${pair.map(bline).join('')}<div class="muted small">Partnership ${v.partnership.runs} (${v.partnership.balls})${userBats ? ' · tap a batter to instruct' : ''}</div></div>`;
+    }
     const bc = v.bowlerId ? v.bowl.get(v.bowlerId) || { balls: 0, runs: 0, wkts: 0 } : null;
-    const bowler = v.bowlerId ? `<div class="bowler">${esc(pname(v.bowlerId))} <span class="muted">${player(v.bowlerId).kind === 'PACE' ? 'pace' : 'spin'}</span> · ${oversText(bc.balls)}-${bc.runs}-${bc.wkts}</div>` : '';
+    const bowler = v.bowlerId ? `<div class="bowler" ${userBowls ? `data-action="liveTap" data-kind="bowl" data-id="${v.bowlerId}"` : ''}><span class="muted">Bowling:</span> ${esc(pname(v.bowlerId))} <span class="muted small">${player(v.bowlerId).kind === 'PACE' ? 'pace' : 'spin'}</span> · <b>${oversText(bc.balls)}-${bc.runs}-${bc.wkts}</b>${bc.balls ? ` <span class="muted small">econ ${(6 * bc.runs / bc.balls).toFixed(1)}</span>` : ''}${userBowls ? insTag('bowl', v.bowlerId) : ''}</div>` : '';
     const thisOver = (v.overs.get(v.curOver) || []);
     const overStr = `<div class="this-over"><span class="muted">Over ${v.curOver}:</span> ${thisOver.length ? thisOver.map((x) => `<span class="ball b-${x}">${x}</span>`).join('') : '<span class="muted">—</span>'}</div>`;
-    const prev = [...v.overs.keys()].filter((o) => o < v.curOver).slice(-4).map((o) => { const arr = v.overs.get(o); return `<div class="prev-over small"><span class="muted">${o}</span> ${arr.join(' ')} <span class="muted">(${arr.reduce((a, x) => a + (x === 'W' ? 0 : Number(x)), 0)})</span></div>`; }).join('');
+    const prev = [...v.overs.keys()].filter((o) => o < v.curOver).slice(-4).reverse().map((o) => { const arr = v.overs.get(o); return `<div class="prev-over small"><span class="muted">${o}</span> ${arr.join(' ')} <span class="muted">(${arr.reduce((a, x) => a + (x === 'W' ? 0 : Number(x)), 0)})</span></div>`; }).join('');
     let event = '';
     if (v.last) {
       if (v.last.wicket) {
         const b = v.bat.get(v.last.strikerId);
-        event = `<div class="event wicket">WICKET · ${esc(pname(v.last.strikerId))} ${esc(dismissalText(b))} · ${b.runs} (${b.balls})${v.last.nextInId && !v.done ? `<br><span class="small">Next in: ${esc(pname(v.last.nextInId))}</span>` : ''}</div>`;
+        const nextIn = v.last.nextInId && !v.done ? `<br><span class="small">Next in: ${esc(pname(v.last.nextInId))} · ${batterBlurb(v.last.nextInId)}</span>` : '';
+        event = `<div class="event wicket">WICKET · ${esc(pname(v.last.strikerId))} ${esc(dismissalText(b))} · ${b.runs} (${b.balls})${nextIn}</div>`;
       } else if (v.last.runs === 6) event = `<div class="event six">SIX · ${esc(pname(v.last.strikerId))}</div>`;
       else if (v.last.runs === 4) event = `<div class="event four">FOUR · ${esc(pname(v.last.strikerId))}</div>`;
     }
+    const lastWkt = v.lastWicket && !(v.last && v.last.wicket) ? `<div class="muted small">Last wicket: ${esc(pname(v.lastWicket.batterId))} ${v.bat.get(v.lastWicket.batterId).runs} (${v.bat.get(v.lastWicket.batterId).balls}) · ${v.lastWicket.score}/${v.lastWicket.w} in ${oversText(v.lastWicket.ball)} ov</div>` : '';
+    // Decision card (a stop item) or a tapped player.
+    let decide = '';
+    if (item.type === 'decide') {
+      const mine = item.kind === 'bat' ? userBats : userBowls;
+      decide = `<div class="decide"><h3>${esc(item.title)}</h3>${item.ids.map((id) => liveCard(id, item.kind, innIdx, item.shown, mine)).join('')}${btn('livePlay', 'Play on', '', 'primary wide')}</div>`;
+    } else if (app.view.tap && item.type === 'ball') {
+      const t = app.view.tap;
+      decide = `<div class="decide"><h3>${t.kind === 'bat' ? 'Batter' : 'Bowler'} instruction <span class="muted small">from now</span></h3>${liveCard(t.id, t.kind, innIdx, v.balls, t.kind === 'bat' ? userBats : userBowls)}${btn('liveTapClose', 'Done', '', 'wide')}</div>`;
+    }
     let banner = '';
-    if (item.type === 'break') banner = `<div class="banner">Innings break · ${esc(batTeam.name)} ${v.total}/${v.wickets}. ${esc(team(m.innings2.xi.team.id).name)} need ${v.total + 1}.<br>${btn('livePlay', 'Start the chase', '', 'primary')}</div>`;
+    if (item.type === 'break') banner = `<div class="banner">Innings break · ${esc(batTeam.name)} ${v.total}/${v.wickets}. ${esc(team(m.innings2.xi.team.id).name)} need ${v.total + 1}.<br>${btn('livePlay', 'Start the chase', '', 'primary')}</div><details open><summary>First innings scorecard</summary>${inningsCardHtml(app.sim.sim.summary.innings[0])}</details>`;
     if (item.type === 'end') banner = `<div class="banner result"><b>${esc(m.resultLine())}</b><br>${btn('liveFinish', 'Scorecard', '', 'primary')}</div>`;
     const speedBtns = SPEEDS.map((x) => `<button class="chip ${l.speed === x ? 'active' : ''}" data-action="liveSpeed" data-speed="${x}">${x}×</button>`).join('');
-    const controls = item.type === 'end' ? '' : `<div class="controls">${btn('livePlay', l.playing ? 'Pause' : 'Play', '', 'primary wide')}<div class="toggle">${speedBtns}</div><div class="row">${btn('liveSkip', 'Over ▸', 'data-what="over"', 'small')}${btn('liveSkip', 'Innings ▸▸', 'data-what="innings"', 'small')}${btn('liveSkip', 'End ⏭', 'data-what="end"', 'small')}</div></div>`;
-    return `<header class="title live-title"><h2>${esc(team(f.homeId).abbr)} v ${esc(team(f.awayId).abbr)}</h2><p class="muted small">${esc(f.label || `Round ${f.round}`)} · ${ballMs() / 1000}s a ball at 1×</p></header>
-      <section class="card live">${header}${chase}${batters}${bowler}${overStr}${event}${banner}${controls}${prev}</section>
-      <p class="muted small center">The phone clock keeps the match moving even if the screen locks.</p>`;
+    const playLabel = item.type === 'ball' ? (l.playing ? 'Pause' : 'Play') : 'Play on';
+    const controls = item.type === 'end' ? '' : `<div class="controls">${item.type === 'decide' || item.type === 'break' ? '' : btn('livePlay', playLabel, '', 'primary wide')}<div class="toggle">${speedBtns}</div><div class="row">${btn('liveSkip', 'Over ▸', 'data-what="over"', 'small')}${btn('liveSkip', 'Innings ▸▸', 'data-what="innings"', 'small')}${btn('liveSkip', 'End ⏭', 'data-what="end"', 'small')}</div></div>`;
+    const soFar = item.type === 'break' ? '' : `<details><summary>Scorecard so far</summary>${innIdx === 1 ? `<h3 class="muted small">First innings</h3>${inningsCardHtml(app.sim.sim.summary.innings[0])}` : ''}${inningsCardHtml(v.card)}</details>`;
+    return `<header class="title live-title"><h2>${esc(team(f.homeId).abbr)} v ${esc(team(f.awayId).abbr)}</h2><p class="muted small">${esc(f.label || `Round ${f.round}`)} · ${ballMs() / 1000}s a ball at 1× · ${innIdx === 1 ? `${esc(team(m.innings1.xi.team.id).abbr)} made ${m.innings1.total}/${m.innings1.wickets}` : 'first innings'}</p></header>
+      <section class="card live">${header}${chase}${batters}${bowler}${overStr}${event}${lastWkt}${decide}${banner}${controls}${prev}${soFar}</section>
+      <p class="muted small center">The phone clock keeps the match moving even if the screen locks. Your batters and bowlers stop the clock when they come in.</p>`;
   };
 
   // ---- scorecard --------------------------------------------------------
+  // One innings card from a stored-result shape (also built live from the replay).
+  function inningsCardHtml(i) {
+    const t = team(i.teamId);
+    const dnb = i.batters.filter((b) => !b.balls && !b.out);
+    return `<h3>${esc(t.name)} <span class="score-inline">${i.total}/${i.wickets} (${oversText(i.balls)} ov)</span>${i.target ? `<span class="muted small"> target ${i.target}</span>` : ''}</h3>
+      <table class="table left-all sc"><tbody>${i.batters.filter((b) => b.balls || b.out).map((b) => `<tr><td>${esc(surname(b.id))}</td><td class="num">${b.runs}${b.out ? '' : '*'}</td><td class="num muted">(${b.balls})</td><td class="muted small">${esc(dismissalText(b))}</td></tr>`).join('')}</tbody></table>
+      ${dnb.length ? `<p class="muted small">Did not bat: ${dnb.map((b) => esc(surname(b.id))).join(', ')}</p>` : ''}
+      ${i.fall.length ? `<p class="muted small">Fall: ${i.fall.map((f) => `${f.w}-${f.score}`).join(', ')}</p>` : ''}
+      ${i.bowlers.length ? `<table class="table sc"><thead><tr><th class="left">Bowling</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr></thead><tbody>${i.bowlers.map((c) => `<tr><td class="left">${esc(surname(c.id))}</td><td>${oversText(c.balls)}</td><td>${c.runs}</td><td>${c.wkts}</td><td>${c.balls ? (6 * c.runs / c.balls).toFixed(2) : '-'}</td></tr>`).join('')}</tbody></table>` : ''}`;
+  }
   function scorecardHtml(r) {
-    const inn = (i) => {
-      const t = team(i.teamId);
-      return `<h3>${esc(t.name)} <span class="score-inline">${i.total}/${i.wickets} (${oversText(i.balls)} ov)</span>${i.target ? `<span class="muted small"> target ${i.target}</span>` : ''}</h3>
-        <table class="table left-all sc"><tbody>${i.batters.filter((b) => b.balls || b.out).map((b) => `<tr><td>${esc(surname(b.id))}</td><td class="num">${b.runs}</td><td class="num muted">(${b.balls})</td><td class="muted small">${esc(dismissalText(b))}</td></tr>`).join('')}</tbody></table>
-        ${i.batters.filter((b) => !b.balls && !b.out).length ? `<p class="muted small">Did not bat: ${i.batters.filter((b) => !b.balls && !b.out).map((b) => esc(surname(b.id))).join(', ')}</p>` : ''}
-        ${i.fall.length ? `<p class="muted small">Fall: ${i.fall.map((f) => `${f.w}-${f.score}`).join(', ')}</p>` : ''}
-        <table class="table sc"><thead><tr><th class="left">Bowling</th><th>O</th><th>R</th><th>W</th><th>Econ</th></tr></thead><tbody>${i.bowlers.map((c) => `<tr><td class="left">${esc(surname(c.id))}</td><td>${oversText(c.balls)}</td><td>${c.runs}</td><td>${c.wkts}</td><td>${c.balls ? (6 * c.runs / c.balls).toFixed(2) : '-'}</td></tr>`).join('')}</tbody></table>`;
-    };
-    return `<section class="card"><p class="result-line"><b>${esc(r.resultLine)}</b></p><p class="muted small">Toss: ${esc(team(r.homeBatsFirst ? r.homeId : r.awayId).name)}, batted first</p></section><section class="card">${inn(r.innings[0])}</section><section class="card">${inn(r.innings[1])}</section>`;
+    return `<section class="card"><p class="result-line"><b>${esc(r.resultLine)}</b></p><p class="muted small">Toss: ${esc(team(r.homeBatsFirst ? r.homeId : r.awayId).name)}, batted first</p></section><section class="card">${inningsCardHtml(r.innings[0])}</section><section class="card">${inningsCardHtml(r.innings[1])}</section>`;
   }
   SCREENS.scorecard = () => {
     const f = Game.fixtureById(st(), app.view.fixtureId);
@@ -432,7 +507,7 @@
     const s = st(); const f = Game.nextUserFixture(s); if (!f) return;
     try { Game.startLive(s, f); } catch (e) { app.flash = e.message; render(); return; }
     app.sim = null; save(); saveLive();
-    ensureLive(); setPlaying(true); go('live');
+    ensureLive(); setPlaying(false); go('live');
   };
   A.playInstant = () => {
     const s = st(); const f = Game.nextUserFixture(s); if (!f) return;
@@ -440,21 +515,38 @@
     Game.playOthersInRound(s, f); Game.playFixture(s, f); save();
     go('scorecard', { fixtureId: f.id, back: { screen: 'hub' } });
   };
-  A.livePlay = () => { const l = st().live; const item = app.sim.timeline[l.cursor]; if (item.type === 'break') jumpTo(l.cursor + 1); setPlaying(!l.playing); render(); };
+  A.livePlay = () => { const l = st().live; const item = app.sim.timeline[liveCursorNow()]; if (item.type !== 'ball') playOn(); else { setPlaying(!l.playing); render(); } };
+  A.liveTap = (d) => { const t = app.view.tap; app.view.tap = t && t.id === Number(d.id) && t.kind === d.kind ? null : { kind: d.kind, id: Number(d.id) }; if (app.view.tap) setPlaying(false); keepScroll(); render(); };
+  A.liveTapClose = () => { app.view.tap = null; keepScroll(); render(); };
+  A.instruct = (d) => {
+    const l = st().live; const c = liveCursorNow();
+    const value = d.value === '' ? null : (d.kind === 'bat' ? Number(d.value) : d.value);
+    Game.instruct(st(), { inn: Number(d.inn), from: Number(d.from), playerId: Number(d.id), kind: d.kind, value });
+    // Re-simulate: everything up to the cursor is unchanged, so the cursor stays.
+    app.sim = null; ensureLive();
+    l.cursor = Math.min(c, app.sim.timeline.length - 1); l.anchorCursor = l.cursor; if (l.playing) l.anchorMs = Date.now();
+    if (app.sim.timeline[l.cursor].type !== 'ball') { l.playing = false; l.anchorMs = null; }
+    save(); saveLive(); keepScroll(); render();
+  };
   A.liveSpeed = (d) => { const l = st().live; l.cursor = liveCursorNow(); l.speed = Number(d.speed); l.anchorMs = l.playing ? Date.now() : null; l.anchorCursor = l.cursor; saveLive(); render(); };
   A.liveSkip = (d) => {
     const l = st().live, tl = app.sim.timeline; const c = liveCursorNow(); const item = tl[c];
     let target = c;
     if (d.what === 'end') target = tl.length - 1;
-    else if (d.what === 'innings') { target = c; while (target < tl.length - 1 && tl[target].type !== 'break' && tl[target].type !== 'end') target++; if (tl[target].type === 'break' && item.type === 'break') target = tl.length - 1; }
-    else { // over
-      if (item.type !== 'ball') return;
-      const o = item.ev.over, inn = item.inn; target = c;
-      while (target + 1 < tl.length && tl[target + 1].type === 'ball' && tl[target + 1].inn === inn && tl[target + 1].ev.over === o) target++;
-      if (tl[target + 1] && tl[target + 1].type !== 'ball') target++;
+    else if (d.what === 'innings') { target = c; if (item.type === 'break') target++; while (target < tl.length - 1 && tl[target].type !== 'break' && tl[target].type !== 'end') target++; }
+    else { // over: to the end of this over, or the next stop item if one comes first
+      if (item.type === 'end') return;
+      if (item.type !== 'ball') { target = c + 1; }
+      const first = tl[target];
+      if (first.type === 'ball') {
+        const o = first.ev.over, inn = first.inn;
+        while (target + 1 < tl.length && tl[target + 1].type === 'ball' && tl[target + 1].inn === inn && tl[target + 1].ev.over === o) target++;
+        if (tl[target + 1] && tl[target + 1].type !== 'ball') target++;
+      }
     }
     jumpTo(target);
     if (tl[target].type !== 'ball') { l.playing = false; l.anchorMs = null; }
+    app.view.tap = null;
     render();
   };
   A.liveFinish = () => { const s = st(); const f = Game.finishLive(s, app.sim.sim); app.sim = null; save(); saveLive(); go('scorecard', { fixtureId: f.id, back: { screen: 'hub' } }); };

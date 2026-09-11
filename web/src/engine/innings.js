@@ -38,6 +38,11 @@
 
   // Simulate one innings. target > 0 stops the innings the instant the total
   // reaches it (a chase). opts.cosmetic is an optional rng for dismissal flavour.
+  // opts.instruct(ballIndex, strikerId, bowlerId) may return the manager's
+  // in-match instructions for that ball: { intent } overrides the plan's
+  // intent for the striker, { bowl: 'attack' | 'contain' } shifts the bowler's
+  // attack/control by itun.bowl_mode_shift. Null = play the plan (byte-identical
+  // to a match with no instructions).
   function simulateInnings(batting, bowlingXI, tuning, itun, rng, plan, target = 0, opts = {}) {
     plan = plan || balanced();
     const batters = batting.order.map((p, i) => batterCard(p, i + 1));
@@ -57,12 +62,16 @@
     while (balls < maxBalls && wickets < 10 && (target === 0 || total < target)) {
       const s = batters[striker];
       const over = Math.floor(balls / 6) + 1;
-      const intent = plan.forState(over, total, wickets, balls, target, maxBalls);
       const bowler = overPlan[over - 1];
+      const ins = opts.instruct ? opts.instruct(balls, s.player.id, bowler.id) : null;
+      let intent = plan.forState(over, total, wickets, balls, target, maxBalls);
+      if (ins && ins.intent !== undefined && ins.intent !== null) intent = ins.intent;
+      const bowlMode = ins && ins.bowl ? ins.bowl : null;
+      const shift = bowlMode === 'attack' ? itun.bowl_mode_shift : bowlMode === 'contain' ? -itun.bowl_mode_shift : 0;
       const card = cards.get(bowler.id);
       const bonus = phaseBonus(bowler.kind, over, itun);
-      const attack = Math.max(itun.attr_floor, bowler.attrs.attack + bonus);
-      const control = Math.max(itun.attr_floor, bowler.attrs.control + bonus);
+      const attack = Math.max(itun.attr_floor, shift ? bowler.attrs.attack + bonus + shift : bowler.attrs.attack + bonus);
+      const control = Math.max(itun.attr_floor, shift ? bowler.attrs.control + bonus - shift : bowler.attrs.control + bonus);
       const o = resolveBall(
         Math.max(itun.attr_floor, s.player.attrs.power),
         Math.max(itun.attr_floor, s.player.attrs.composure),
@@ -72,7 +81,7 @@
       card.balls += 1;
       const ev = {
         over, ball: ((balls - 1) % 6) + 1, strikerId: s.player.id, nonStrikerId: batters[nonStriker].player.id,
-        bowlerId: bowler.id, intent, runs: o.wicket ? 0 : o.runs, wicket: o.wicket, how: null, fielderId: null,
+        bowlerId: bowler.id, intent, bowlMode, runs: o.wicket ? 0 : o.runs, wicket: o.wicket, how: null, fielderId: null,
         total: 0, wickets: 0, nextInId: null,
       };
       if (o.wicket) {

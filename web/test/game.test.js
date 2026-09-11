@@ -164,3 +164,49 @@ test('stats reveal hidden quality: batting average and economy correlate with at
   assert.ok(rb >= 0.6, `batting r=${rb.toFixed(2)} over ${bx.length} batters`);
   assert.ok(rw <= -0.5, `bowling r=${rw.toFixed(2)} over ${wx.length} bowlers`);
 });
+
+test('in-match instructions: the past stays put, only balls from the call change', () => {
+  const st = fresh(13, 2);
+  const f = Game.nextUserFixture(st);
+  const base = Game.startLive(st, f);
+  const inn0 = base.match.innings1;
+  const userBats = inn0.xi.team.id === st.userTeamId;
+  // Pick the striker of ball 30 and tell them to defend from there.
+  const at = 30, ev = inn0.events[at];
+  const who = userBats ? ev.strikerId : ev.bowlerId;
+  const after = Game.instruct(st, userBats ? { inn: 0, from: at, playerId: who, kind: 'bat', value: 0 } : { inn: 0, from: at, playerId: who, kind: 'bowl', value: 'contain' });
+  assert.equal(st.live.instructions.length, 1);
+  assert.deepEqual(after.match.innings1.events.slice(0, at), inn0.events.slice(0, at), 'balls before the call are identical');
+  const changed = after.match.innings1.events[at];
+  if (userBats) assert.equal(changed.intent, 0); else assert.equal(changed.bowlMode, 'contain');
+  // A save round-trip keeps the instructions, so the replay after a reload matches.
+  const saved = Game.deserialize(Game.serialize(st));
+  assert.deepEqual(Game.liveMatch(saved).summary, after.summary);
+  // Clearing goes back to the plan for later balls.
+  Game.instruct(st, { inn: 0, from: at + 6, playerId: who, kind: userBats ? 'bat' : 'bowl', value: null });
+  assert.equal(Game.instructionFor(st.live.instructions, 0, at + 3, who, userBats ? 'bat' : 'bowl'), userBats ? 0 : 'contain');
+  assert.equal(Game.instructionFor(st.live.instructions, 0, at + 6, who, userBats ? 'bat' : 'bowl'), null);
+  assert.equal(Game.instructionFor(st.live.instructions, 0, at - 1, who, userBats ? 'bat' : 'bowl'), null);
+  assert.equal(Game.instructionFor(st.live.instructions, 1, at, who, userBats ? 'bat' : 'bowl'), null);
+  // A match with no instructions is byte-identical to the original replay.
+  st.live.instructions = [];
+  assert.deepEqual(Game.liveMatch(st).summary, base.summary);
+});
+
+test('in-match instructions move the cricket the right way', () => {
+  const { xis, tuning, itun, R } = require('./helpers.js');
+  const X = require('../src/engine/match.js');
+  const I = require('../src/engine/intent.js');
+  let wDef = 0, wAgg = 0, rAtk = 0, rCon = 0, wAtk = 0, wCon = 0;
+  for (let seed = 1; seed <= 200; seed++) {
+    const [h, a] = xis(seed);
+    const run = (instruct) => X.simulateMatch(h, a, tuning(), itun(), R.makeRng(seed), I.balanced(), I.balanced(), { instruct }).innings1;
+    wDef += run(() => ({ intent: 0, bowl: null })).wickets;
+    wAgg += run(() => ({ intent: 2, bowl: null })).wickets;
+    const atk = run(() => ({ intent: null, bowl: 'attack' })), con = run(() => ({ intent: null, bowl: 'contain' }));
+    rAtk += atk.total; rCon += con.total; wAtk += atk.wickets; wCon += con.wickets;
+  }
+  assert.ok(wDef < wAgg, `defend loses fewer wickets: ${wDef} v ${wAgg}`);
+  assert.ok(wAtk > wCon, `attacking bowlers take more wickets: ${wAtk} v ${wCon}`);
+  assert.ok(rAtk > rCon, `attacking bowlers concede more: ${rAtk} v ${rCon}`);
+});

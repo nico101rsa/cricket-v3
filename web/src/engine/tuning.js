@@ -31,6 +31,9 @@
       pace_phase_bonus: [9.375, -9.375, 9.375],
       spin_phase_bonus: [-9.375, 9.375, -9.375],
       attr_floor: 0.5,
+      // Manager's bowling instruction (added 2026-09-11): 'attack' adds this to
+      // attack and takes it from control, 'contain' the reverse. 0 when unset.
+      bowl_mode_shift: 6.25,
     };
   }
 
