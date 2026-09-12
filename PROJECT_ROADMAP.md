@@ -4,7 +4,21 @@
 
 ## Next session
 
-**State (2026-09-10):** the game is a phone web app in `web/` (JavaScript engine + one-file UI, PWA, GitHub Pages deploy in `.github/workflows/ci.yml`). Nico creates a 10-club Pretoria v Sydney league from a seed, reads the cryptic blurbs, picks a club, picks his XI and game plan, watches his matches live at 3 s a ball (or sims them), and sees scorecards, the table, squad stats, league leaderboards and player cards. Playoffs decide the champion; the next season ages everyone a year. 107 tests (53 pytest on the Python oracle, 54 node on the engine, game and Python-parity tape) plus a Playwright smoke run.
+**State (2026-09-12):** the game is a phone web app in `web/` (JavaScript engine + one-file UI, PWA, GitHub Pages deploy in `.github/workflows/ci.yml`). Nico creates a 10-club Pretoria v Sydney league from a seed, reads the cryptic blurbs, picks a club, picks his XI and game plan, watches his matches live at 3 s a ball (or sims them), and sees scorecards, the table, squad stats, league leaderboards and player cards. Playoffs decide the champion; the next season ages everyone a year. 113 tests (53 pytest on the Python oracle, 60 node on the engine, game, cloud client, migrations and Python-parity tape) plus a Playwright smoke run that also drives two devices through the cloud save stand-in.
+
+**Cloud save + agile loop (2026-09-12, PR #7):** the same career now plays on the phone and on the web through one row in Nico's Supabase project (sync code, no login; design in the CLAUDE.md preface). Save format is versioned with a migration chain and a fixture per old version, so no addition ever resets a career. **Nico's one-time setup (5 minutes, on the phone is fine):** (1) Supabase → New project (any name, region near Sydney or Johannesburg); (2) SQL editor → paste `web/supabase/schema.sql` → Run; (3) Project settings → API → copy the Project URL and the anon public key; (4) either paste them into `web/src/config.js` in a session so every device has them, or type them under More → Cloud save on each device; (5) More → Cloud save → New code → Link this device; on the other device type the same code → Link. Not verifiable from the sandbox (supabase.com is blocked), so the first real link is Nico's test: if it fails, the error text on the card says why (the usual one is step 2 not run).
+
+**Backlog (Nico's list, 2026-09-12, order is his call each time; one addition per PR, playable, save-compatible):**
+- Fatigue (matches in a row, overs bowled; recovery between rounds; shows on the player card and the new-batter/bowler card).
+- Form (hot and cold streaks that move performance a little, visible as a form label; today "form" is just the last five scores).
+- Team momentum, team stress and player stress (winning runs and pressure games).
+- Player value and a transfer market (needs retirements and a free-agent pool first, so probably: retirements → market).
+- Player skill improvement (training, age curve already exists in `generator.ageFactor`).
+- Stadium (capacity, upgrades, home advantage or gate money).
+- Practice facilities (feeds skill improvement).
+- Marketing and sponsors (income side of a budget).
+- League structures (promotion/relegation, more clubs, a cup).
+Sensible dependency order when Nico has no preference: retirements and signings (already planned) → budget → fatigue → form → stress/momentum → training/facilities → stadium → sponsors → market → league structures. Each rung: engine or game change with a default that is a no-op for old saves, a visible stat with its setup, a migration, a fixture if the shape changed, a smoke screenshot.
 
 **Live-match design rung (2026-09-11):** the replay now stops for Nico's own batters and bowlers (stats card + Defend/Plan/Attack or Contain/Normal/Attack, re-simulated from that ball, saved in `state.live.instructions`), shows the full first-innings scorecard at the break and a collapsible scorecard on every ball, keeps the longest-in batter on top with the striker starred, and adds partnership, phase, projection, last-wicket and wickets-in-hand lines. Decisions recorded in the CLAUDE.md preface. Now 53 pytest + 56 node tests plus the smoke run (20 screenshots, one in dark mode). Not done, on purpose: fatigue (no such thing in the sim), pausing for opposition batters (a one-line blurb instead), a per-over bowler pick (rotation stays automatic).
 
