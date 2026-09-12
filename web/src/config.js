@@ -10,7 +10,7 @@
   return (Cricket.config = {
     cloud: {
       url: 'https://uqhqvavhhgrrcqcfwowy.supabase.co', // Nico's "cricket-sim" project (Supabase → Project settings → API)
-      anonKey: '',  // the "anon public" key from the same page (or a publishable key); blank = type it under More → Cloud save
+      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxaHF2YXZoaGdycmNxY2Z3b3d5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkxOTA2MjUsImV4cCI6MjEwNDc2NjYyNX0.77aQCp5YgMASfZvWiGMy3neQ2gGI9yQk5JuUjqazuS8', // the "anon public" key (public by design: the table is only reachable through the two functions, and those need a sync code's hash)
     },
   });
 });
