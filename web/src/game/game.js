@@ -17,7 +17,7 @@
 
   // Bump this and add a step to migrate() whenever the save shape changes.
   // Old saves must always load: web/test/fixtures/save-v*.json pin that.
-  const SAVE_VERSION = 2;
+  const SAVE_VERSION = 3;
 
   // ---- creation -----------------------------------------------------------
   function newLeague(seed) {
@@ -25,6 +25,7 @@
     return {
       version: SAVE_VERSION, seed, teams: lg.teams, players: lg.players,
       userTeamId: null, season: null, stats: {}, honours: [], userXI: null, live: null,
+      history: [], // every finished season, fixtures and scorecards included; never pruned
       settings: { ballMs: 3000 },
       meta: { savedAt: null, rev: 0 }, // savedAt: ISO time of the last local save; rev: cloud row revision
     };
@@ -52,6 +53,32 @@
   function nextFixture(state) { return state.season.fixtures.find((f) => !f.result) || null; }
   function nextUserFixture(state) { return userFixtures(state).find((f) => !f.result) || null; }
   function roundOf(state, fixture) { return state.season.fixtures.filter((f) => f.round === fixture.round); }
+  // Every season so far, oldest first (finished ones live in history).
+  function allSeasons(state) { return (state.history || []).concat(state.season ? [state.season] : []); }
+  function seasonByNo(state, no) { return allSeasons(state).find((x) => x.no === no) || null; }
+  function findFixture(state, seasonNo, id) { const sn = seasonByNo(state, seasonNo); return sn ? sn.fixtures.find((f) => f.id === id) || null : null; }
+
+  // One player's every match, newest first: what they did with bat and ball
+  // and how the match went for their side. Built from the stored scorecards.
+  function playerMatchLog(state, playerId) {
+    const out = [];
+    for (const sn of allSeasons(state)) {
+      for (const f of sn.fixtures) {
+        const r = f.result; if (!r) continue;
+        const side = r.xis.home.order.includes(playerId) ? 'home' : r.xis.away.order.includes(playerId) ? 'away' : null;
+        if (!side) continue;
+        const teamId = side === 'home' ? r.homeId : r.awayId, oppId = side === 'home' ? r.awayId : r.homeId;
+        let bat = null, bowl = null;
+        for (const inn of r.innings) {
+          if (inn.teamId === teamId) { const b = inn.batters.find((x) => x.id === playerId); if (b && (b.balls || b.out)) bat = { runs: b.runs, balls: b.balls, fours: b.fours, sixes: b.sixes, out: b.out, how: b.how, bowlerId: b.bowlerId, fielderId: b.fielderId }; }
+          else { const c = inn.bowlers.find((x) => x.id === playerId); if (c && c.balls) bowl = { balls: c.balls, runs: c.runs, wkts: c.wkts }; }
+        }
+        const res = r.outcome === 'TIE' ? 'T' : ((r.outcome === 'HOME_WIN') === (side === 'home') ? 'W' : 'L');
+        out.push({ seasonNo: sn.no, fixtureId: f.id, round: f.round, label: f.label || null, stage: f.stage, teamId, oppId, home: side === 'home', bat, bowl, res, resultLine: r.resultLine });
+      }
+    }
+    return out.reverse();
+  }
 
   // ---- visible view + user XI suggestion ----------------------------------
   // Everything the manager may see about a player: never the attributes.
@@ -230,17 +257,67 @@
       const k = after / before;
       for (const a of ['power', 'composure', 'attack', 'control']) p.attrs[a] = Math.round(p.attrs[a] * k * 100) / 100;
     }
+    state.history = state.history || [];
+    state.history.push(state.season); // the whole season, scorecards and all, stays forever
     startSeason(state, state.season.no + 1);
     state.live = null;
     return state;
   }
 
   // ---- save ---------------------------------------------------------------
-  function serialize(state) { return JSON.stringify(state); }
+  // In memory a scorecard is readable objects; on disk and in the cloud (save
+  // v3+) its three lists are packed into arrays, which makes a season about
+  // 2.5x smaller. pack/unpack are exact inverses; nothing is dropped.
+  const HOW = [null, 'b', 'c', 'c&b', 'st', 'lbw'];
+  function packInnings(i) {
+    return {
+      teamId: i.teamId, total: i.total, wickets: i.wickets, balls: i.balls, target: i.target, phaseRuns: i.phaseRuns,
+      B: i.batters.map((b) => [b.id, b.pos, b.runs, b.balls, b.fours, b.sixes, b.out ? 1 : 0, Math.max(0, HOW.indexOf(b.how)), b.bowlerId, b.fielderId]),
+      O: i.bowlers.map((c) => [c.id, c.balls, c.runs, c.wkts, c.dots]),
+      F: i.fall.map((f) => [f.w, f.score, f.ball, f.batterId]),
+    };
+  }
+  function unpackInnings(i) {
+    return {
+      teamId: i.teamId, total: i.total, wickets: i.wickets, balls: i.balls, target: i.target, phaseRuns: i.phaseRuns,
+      batters: i.B.map((a) => ({ id: a[0], pos: a[1], runs: a[2], balls: a[3], fours: a[4], sixes: a[5], out: !!a[6], how: HOW[a[7]] || null, bowlerId: a[8], fielderId: a[9] })),
+      bowlers: i.O.map((a) => ({ id: a[0], balls: a[1], runs: a[2], wkts: a[3], dots: a[4] })),
+      fall: i.F.map((a) => ({ w: a[0], score: a[1], ball: a[2], batterId: a[3] })),
+    };
+  }
+  const eachResult = (s, fn) => { for (const sn of allSeasons(s)) for (const f of sn.fixtures) if (f.result) fn(f.result); };
+  function packAll(s) { eachResult(s, (r) => { r.innings = r.innings.map(packInnings); }); return s; }
+  function unpackAll(s) { eachResult(s, (r) => { if (r.innings.length && r.innings[0].B) r.innings = r.innings.map(unpackInnings); }); return s; }
+  // The aggregate stats are a cache of the scorecards, rebuilt on every load.
+  // The only stats stored are "orphans": seasons from before v3 whose
+  // scorecards were not kept (v1/v2 dropped a season at rollover), so their
+  // totals survive too.
+  function rebuildStats(state) {
+    const stats = {};
+    for (const sn of allSeasons(state)) for (const f of sn.fixtures) if (f.result) S.applyResult(stats, sn.no, f.result);
+    return stats;
+  }
+  function orphanStats(state) {
+    const kept = new Set(allSeasons(state).map((x) => x.no));
+    const out = {};
+    for (const [pid, seasons] of Object.entries(state.stats || {})) for (const [no, x] of Object.entries(seasons)) if (!kept.has(Number(no))) { out[pid] = out[pid] || {}; out[pid][no] = x; }
+    return out;
+  }
+  function serialize(state) {
+    const copy = packAll(JSON.parse(JSON.stringify(state)));
+    const orphans = orphanStats(state);
+    if (Object.keys(orphans).length) copy.stats = orphans; else delete copy.stats;
+    return JSON.stringify(copy);
+  }
   function deserialize(text) {
     const s = JSON.parse(text);
     if (!s || typeof s !== 'object' || !s.version) throw new Error('not a Cricket save');
-    return migrate(s);
+    if (s.version >= 3) unpackAll(s);
+    migrate(s);
+    const rebuilt = rebuildStats(s);
+    for (const [pid, seasons] of Object.entries(orphanStats(s))) for (const [no, x] of Object.entries(seasons)) { rebuilt[pid] = rebuilt[pid] || {}; rebuilt[pid][no] = x; }
+    s.stats = rebuilt;
+    return s;
   }
   function migrate(s) {
     if (s.version > SAVE_VERSION) throw new Error(`save is from a newer game (v${s.version})`);
@@ -251,15 +328,22 @@
       s.meta = s.meta || { savedAt: null, rev: 0 };
       s.version = 2;
     }
+    if (s.version === 2) {
+      // v3 (2026-09-12): finished seasons kept in history; scorecards packed on disk.
+      s.history = s.history || [];
+      s.version = 3;
+    }
     // Belt and braces for fields older code may have left out.
     s.settings = s.settings || { ballMs: 3000 };
     s.meta = s.meta || { savedAt: null, rev: 0 };
+    s.history = s.history || [];
     if (s.live && !s.live.instructions) s.live.instructions = [];
     return s;
   }
 
   return (Cricket.game = {
     SAVE_VERSION, newLeague, chooseTeam, startSeason, teamById, squadOf, fixtureById, userFixtures, nextFixture, nextUserFixture, roundOf,
+    allSeasons, seasonByNo, findFixture, playerMatchLog, packAll, unpackAll, rebuildStats, orphanStats,
     visible, visibleSquad, suggestXI, suggestFrom, validateUserXI, aiXI, matchSeed, simulateFixture, playFixture, playOthersInRound, playRound,
     simToEndOfSeason, startLive, liveMatch, finishLive, instructionFor, instructor, instruct, nextSeason, serialize, deserialize, migrate,
   });

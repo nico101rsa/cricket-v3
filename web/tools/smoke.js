@@ -122,6 +122,20 @@ const url = 'file://' + DIST;
   await page.waitForSelector('.screen-hub');
   const no = await page.evaluate(() => window.CricketApp.state.season.no);
   must(no === 2, 'season 2 started');
+  // Season 1 is kept whole: its fixtures and scorecards open from the Fixtures screen and the Table screen.
+  await page.click('[data-action=go][data-screen=table]');
+  await page.waitForSelector('.screen-table');
+  await page.click('[data-action=fixturesSeason][data-no="1"]');
+  await page.waitForSelector('.screen-fixtures');
+  must((await page.$$('.screen-fixtures .fixture[data-action=viewResult]')).length === 48, 'all 48 season-1 matches kept');
+  await shot('16b-season1-fixtures');
+  await page.click('.screen-fixtures .fixture[data-action=viewResult]');
+  await page.waitForSelector('.screen-scorecard');
+  await page.evaluate(() => { const s = window.CricketApp.state; window.CricketApp.go('player', { id: s.history[0].fixtures[0].result.xis.home.order[0] }); });
+  await page.waitForSelector('.screen-player details summary');
+  await page.click('.screen-player details summary');
+  must((await page.$$('.screen-player details tr[data-action=viewResult]')).length >= 9, 'player match log lists season 1');
+  await shot('16c-player-log');
   // Export and re-import the save.
   await page.click('[data-action=go][data-screen=more]');
   await page.click('[data-action=exportSave]');
