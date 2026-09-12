@@ -21,6 +21,8 @@ const url = 'file://' + DIST;
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   const shot = (name) => page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: false });
+  // The build bakes Nico's Supabase URL and key into config.js; blank them so the More card shows the inputs and we can point at the stand-in.
+  const unbake = (p) => p.evaluate(() => { const c = window.Cricket.config.cloud; c.url = ''; c.anonKey = ''; window.CricketApp.render(); });
   const must = (cond, msg) => { if (!cond) throw new Error(`smoke: ${msg}`); };
 
   await page.goto(url);
@@ -130,6 +132,7 @@ const url = 'file://' + DIST;
   await page.waitForSelector('.screen-hub');
   // Cloud save against the stand-in server: link, push, then a second "device".
   await page.click('[data-action=go][data-screen=more]');
+  await unbake(page);
   await page.waitForSelector('#cloudUrl');
   await shot('17-cloud-setup');
   await page.fill('#cloudUrl', cloud.url);
@@ -162,6 +165,7 @@ const url = 'file://' + DIST;
   await p2.click('[data-action=newLeague]');
   await p2.waitForSelector('.team-card');
   await p2.evaluate(() => window.CricketApp.go('more'));
+  await unbake(p2);
   await p2.waitForSelector('#cloudUrl');
   await p2.fill('#cloudUrl', cloud.url);
   await p2.fill('#cloudKey', cloud.anonKey);

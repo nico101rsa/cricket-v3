@@ -467,7 +467,7 @@
       <section class="card"><h3>Save text</h3><p class="muted small">The save also lives in this browser. Copy the text somewhere safe now and then, or paste one back in.</p>${btn('exportSave', 'Show save text', '', '')}${app.view.export ? `<textarea id="exportBox" class="savebox" readonly>${esc(app.view.export)}</textarea>${btn('copySave', 'Copy to clipboard', '', 'primary')}` : ''}
       <details><summary>Import a save</summary><textarea id="importBox" class="savebox" placeholder="Paste save text here"></textarea>${btn('importSave', 'Load this save (replaces current)', '', 'danger')}</details></section>
       <section class="card"><h3>Season shortcuts</h3>${btn('simSeason', 'Sim to the end of the season', '', 'danger')}<p class="muted small">Plays every remaining match instantly with your current XI.</p></section>
-      <section class="card"><h3>League</h3><p class="muted small">Seed ${esc(s.seed)} · save v${s.version} · ${esc(window.CRICKET_BUILD || 'dev')}</p>${btn('go', 'New league', 'data-screen="home"', 'link')}</section>`;
+      <section class="card"><h3>League</h3><p class="muted small">Seed ${esc(s.seed)} · save v${s.version} · build ${esc(window.CRICKET_BUILD || 'dev')}</p>${btn('checkUpdate', 'Check for a new build', '', '')} ${btn('go', 'New league', 'data-screen="home"', 'link')}<p class="muted small">New builds normally install themselves the next time you open the game.</p></section>`;
   };
 
   // ---- actions ----------------------------------------------------------
@@ -684,6 +684,17 @@
   };
   A.cloudUnlink = () => { cloud.client = null; cloud.status = 'off'; cloud.cfg.code = ''; cloud.cfg.key = ''; cloudStore(); app.view.cloudCode = ''; app.flash = 'Unlinked. The save stays in the cloud and on this device.'; render(); };
   A.cloudSyncNow = () => { if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; } cloudPull('Loaded a newer save from the cloud.'); };
+  A.checkUpdate = async () => {
+    if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) { app.flash = 'Not installed as an offline app here; just reload the page.'; render(); return; }
+    app.flash = 'Checking…'; render();
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) { app.flash = 'No offline copy registered; reload the page.'; render(); return; }
+      await reg.update();
+      app.flash = reg.installing || reg.waiting ? 'New build found, installing. The game reloads itself in a moment.' : `You have the latest build (${window.CRICKET_BUILD || 'dev'}).`;
+    } catch (e) { app.flash = `Could not check: ${e.message}`; }
+    render();
+  };
   A.exportSave = () => { app.view.export = Game.serialize(st()); render(); };
   A.copySave = async () => {
     const box = document.getElementById('exportBox'); if (!box) return;
