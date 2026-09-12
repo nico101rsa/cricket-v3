@@ -151,24 +151,31 @@
     const po = s.season.fixtures.filter((f) => f.stage !== 'league');
     let playoffs = '';
     if (po.length) playoffs = `<section class="card"><h3>Playoffs</h3>${po.map((f) => fixtureRow(f)).join('')}</section>`;
-    return `<header class="title"><h2>League table</h2><p class="muted">Season ${s.season.no} · top four make the playoffs</p></header><section class="card">${tableHtml(rows)}</section>${playoffs}`;
+    const past = (s.history || []).slice().reverse().map((sn) => { const r = L.table(s.teams, sn.fixtures); const me = r.find((x) => x.teamId === s.userTeamId); return `<div class="fixture"><b>Season ${sn.no}</b> · Champions: ${esc(team(sn.champion).name)}<br><span class="muted small">You finished ${ordinal(me.pos)} (${me.w}-${me.l}${me.t ? `-${me.t}` : ''}, NRR ${nrrText(me.nrr)})</span> ${btn('fixturesSeason', 'Fixtures', `data-no="${sn.no}"`, 'mini')}</div>`; }).join('');
+    const history = past ? `<section class="card"><h3>Past seasons</h3>${past}</section>` : '';
+    return `<header class="title"><h2>League table</h2><p class="muted">Season ${s.season.no} · top four make the playoffs</p></header><section class="card">${tableHtml(rows)}</section>${playoffs}${history}`;
   };
 
-  function fixtureRow(f) {
+  function fixtureRow(f, seasonNo) {
     const mine = f.homeId === st().userTeamId || f.awayId === st().userTeamId;
     const line = f.result ? esc(f.result.resultLine) : '<span class="muted">to play</span>';
     const score = f.result ? `<span class="muted small">${scoreLine(f.result)}</span>` : '';
     const label = f.label ? `<span class="muted small">${esc(f.label)}</span> ` : '';
     const inner = `${label}<b>${esc(team(f.homeId).abbr)}</b> v <b>${esc(team(f.awayId).abbr)}</b><br>${line} ${score}`;
-    return f.result ? `<div class="fixture ${mine ? 'mine' : ''}" data-action="viewResult" data-id="${f.id}">${inner}</div>` : `<div class="fixture ${mine ? 'mine' : ''}">${inner}</div>`;
+    return f.result ? `<div class="fixture ${mine ? 'mine' : ''}" data-action="viewResult" data-id="${f.id}" data-season="${seasonNo || st().season.no}">${inner}</div>` : `<div class="fixture ${mine ? 'mine' : ''}">${inner}</div>`;
   }
   function scoreLine(r) { return r.innings.map((i) => `${esc(team(i.teamId).abbr)} ${i.total}/${i.wickets}`).join(' · '); }
 
   SCREENS.fixtures = () => {
     const s = st();
-    const rounds = [...new Set(s.season.fixtures.map((f) => f.round))];
-    return `<header class="title"><h2>Fixtures</h2><p class="muted">Tap a played match for the scorecard. Yours are marked.</p></header>
-      ${rounds.map((r) => { const fs = s.season.fixtures.filter((f) => f.round === r); return `<section class="card"><h3>${fs[0].stage === 'league' ? `Round ${r}` : (fs[0].stage === 'semi' ? 'Semi-finals' : 'Final')}</h3>${fs.map(fixtureRow).join('')}</section>`; }).join('')}`;
+    const seasons = Game.allSeasons(s);
+    const no = app.view.season || s.season.no;
+    const sn = Game.seasonByNo(s, no) || s.season;
+    const rounds = [...new Set(sn.fixtures.map((f) => f.round))];
+    const picker = seasons.length > 1 ? `<div class="toggle">${seasons.slice().reverse().map((x) => `<button class="chip ${x.no === sn.no ? 'active' : ''}" data-action="fixturesSeason" data-no="${x.no}">Season ${x.no}</button>`).join('')}</div>` : '';
+    const champ = sn.champion ? `<p class="muted">Champions: <b>${esc(team(sn.champion).name)}</b></p>` : '';
+    return `<header class="title"><h2>Fixtures</h2><p class="muted">Tap a played match for the scorecard. Yours are marked.</p></header>${picker}${champ}
+      ${rounds.map((r) => { const fs = sn.fixtures.filter((f) => f.round === r); return `<section class="card"><h3>${fs[0].stage === 'league' ? `Round ${r}` : (fs[0].stage === 'semi' ? 'Semi-finals' : 'Final')}</h3>${fs.map((f) => fixtureRow(f, sn.no)).join('')}</section>`; }).join('')}`;
   };
 
   // ---- squad and players ------------------------------------------------
@@ -190,13 +197,28 @@
   };
 
   SCREENS.player = () => {
-    const v = Game.visible(st(), player(app.view.id));
-    const t = team(app.view.teamId || st().userTeamId);
-    const block = (label, s) => `<h3>${label}</h3><table class="table"><thead><tr><th>M</th><th>I</th><th>NO</th><th>R</th><th>HS</th><th>Avg</th><th>SR</th><th>50s</th></tr></thead><tbody><tr><td>${s.matches}</td><td>${s.bat.inns}</td><td>${s.bat.no}</td><td>${s.bat.runs}</td><td>${S.hsText(s)}</td><td>${S.avgText(s)}</td><td>${S.fmt1(S.batSR(s))}</td><td>${s.bat.fifties}</td></tr></tbody></table>
-      <table class="table"><thead><tr><th>O</th><th>R</th><th>W</th><th>Best</th><th>Avg</th><th>Econ</th><th>3w</th></tr></thead><tbody><tr><td>${oversText(s.bowl.balls)}</td><td>${s.bowl.runs}</td><td>${s.bowl.wkts}</td><td>${S.bestText(s)}</td><td>${S.fmt1(S.bowlAvg(s))}</td><td>${S.fmt2(S.econ(s))}</td><td>${s.bowl.threes}</td></tr></tbody></table>`;
+    const s = st(), id = app.view.id;
+    const v = Game.visible(s, player(id));
+    const t = team(app.view.teamId || s.userTeamId);
+    const block = (label, x) => `<h3>${label}</h3><table class="table"><thead><tr><th>M</th><th>I</th><th>NO</th><th>R</th><th>HS</th><th>Avg</th><th>SR</th><th>50s</th></tr></thead><tbody><tr><td>${x.matches}</td><td>${x.bat.inns}</td><td>${x.bat.no}</td><td>${x.bat.runs}</td><td>${S.hsText(x)}</td><td>${S.avgText(x)}</td><td>${S.fmt1(S.batSR(x))}</td><td>${x.bat.fifties}</td></tr></tbody></table>
+      <table class="table"><thead><tr><th>O</th><th>R</th><th>W</th><th>Best</th><th>Avg</th><th>Econ</th><th>3w</th></tr></thead><tbody><tr><td>${oversText(x.bowl.balls)}</td><td>${x.bowl.runs}</td><td>${x.bowl.wkts}</td><td>${S.bestText(x)}</td><td>${S.fmt1(S.bowlAvg(x))}</td><td>${S.fmt2(S.econ(x))}</td><td>${x.bowl.threes}</td></tr></tbody></table>`;
+    // Season by season (every season played), then career.
+    const nos = Object.keys(s.stats[id] || {}).map(Number).sort((a, b) => b - a);
+    const bySeason = nos.length > 1 ? `<section class="card"><h3>Season by season</h3><table class="table"><thead><tr><th class="left">S</th><th>M</th><th>R</th><th>Avg</th><th>SR</th><th>W</th><th>Econ</th></tr></thead><tbody>${nos.map((n) => { const x = S.seasonOf(s.stats, id, n); return `<tr><td class="left">${n}</td><td>${x.matches}</td><td>${x.bat.inns ? x.bat.runs : '-'}</td><td>${x.bat.inns ? S.avgText(x) : '-'}</td><td>${x.bat.inns ? S.fmt1(S.batSR(x)) : '-'}</td><td>${x.bowl.balls ? x.bowl.wkts : '-'}</td><td>${x.bowl.balls ? S.fmt2(S.econ(x)) : '-'}</td></tr>`; }).join('')}</tbody></table></section>` : '';
+    // Every match, newest first, from the stored scorecards.
+    const log = Game.playerMatchLog(s, id);
+    const logRows = log.map((m) => {
+      const when = `S${m.seasonNo} ${m.label ? esc(m.label) : `R${m.round}`}`;
+      const bat = m.bat ? `${m.bat.runs}${m.bat.out ? '' : '*'} (${m.bat.balls})` : '-';
+      const bowl = m.bowl ? `${m.bowl.wkts}-${m.bowl.runs} (${oversText(m.bowl.balls)})` : '-';
+      return `<tr data-action="viewResult" data-id="${m.fixtureId}" data-season="${m.seasonNo}"><td class="left">${when}</td><td class="left">v ${esc(team(m.oppId).abbr)} <span class="muted small">${m.home ? 'h' : 'a'}</span></td><td>${bat}</td><td>${bowl}</td><td><span class="pill pill-${m.res}">${m.res}</span></td></tr>`;
+    }).join('');
+    const every = log.length ? `<section class="card"><details><summary>Every match (${log.length})</summary><table class="table sc"><thead><tr><th class="left">When</th><th class="left">Opp</th><th>Bat</th><th>Bowl</th><th></th></tr></thead><tbody>${logRows}</tbody></table><p class="muted small">Bat = runs (balls), * not out. Bowl = wickets-runs (overs). Tap a row for the scorecard.</p></details></section>` : '';
     return `<header class="title"><h2>${esc(v.firstName)} ${esc(v.surname)}</h2><p class="muted">${esc(t.name)} · age ${v.age} · ${roleText(v)}</p></header>
-      <section class="card">${block(`Season ${st().season.no}`, v.season)}<p class="muted small">Last innings: ${esc(S.last5Text(v.season))}</p></section>
+      <section class="card">${block(`Season ${s.season.no}`, v.season)}<p class="muted small">Last innings: ${esc(S.last5Text(v.season))}${v.season.bowl.balls ? ` · last spells: ${esc(S.last5BowlText(v.season))}` : ''}</p></section>
+      ${bySeason}
       <section class="card">${block('Career', v.career)}</section>
+      ${every}
       ${btn('back', 'Back', '', 'link')}`;
   };
 
@@ -453,9 +475,10 @@
     return `<section class="card"><p class="result-line"><b>${esc(r.resultLine)}</b></p><p class="muted small">Toss: ${esc(team(r.homeBatsFirst ? r.homeId : r.awayId).name)}, batted first</p></section><section class="card">${inningsCardHtml(r.innings[0])}</section><section class="card">${inningsCardHtml(r.innings[1])}</section>`;
   }
   SCREENS.scorecard = () => {
-    const f = Game.fixtureById(st(), app.view.fixtureId);
+    const no = app.view.season || st().season.no;
+    const f = Game.findFixture(st(), no, app.view.fixtureId);
     if (!f || !f.result) return SCREENS.hub();
-    return `<header class="title"><h2>${esc(team(f.homeId).name)} v ${esc(team(f.awayId).name)}</h2><p class="muted">${esc(f.label || `Round ${f.round}`)} · Season ${st().season.no}</p></header>${scorecardHtml(f.result)}${btn('back', 'Back', '', 'link')}`;
+    return `<header class="title"><h2>${esc(team(f.homeId).name)} v ${esc(team(f.awayId).name)}</h2><p class="muted">${esc(f.label || `Round ${f.round}`)} · Season ${no}</p></header>${scorecardHtml(f.result)}${btn('back', 'Back', '', 'link')}`;
   };
 
   // ---- more ---------------------------------------------------------------
@@ -468,7 +491,7 @@
       <section class="card"><h3>Save text</h3><p class="muted small">The save also lives in this browser. Copy the text somewhere safe now and then, or paste one back in.</p>${btn('exportSave', 'Show save text', '', '')}${app.view.export ? `<textarea id="exportBox" class="savebox" readonly>${esc(app.view.export)}</textarea>${btn('copySave', 'Copy to clipboard', '', 'primary')}` : ''}
       <details><summary>Import a save</summary><textarea id="importBox" class="savebox" placeholder="Paste save text here"></textarea>${btn('importSave', 'Load this save (replaces current)', '', 'danger')}</details></section>
       <section class="card"><h3>Season shortcuts</h3>${btn('simSeason', 'Sim to the end of the season', '', 'danger')}<p class="muted small">Plays every remaining match instantly with your current XI.</p></section>
-      <section class="card"><h3>League</h3><p class="muted small">Seed ${esc(s.seed)} · save v${s.version} · build ${esc(window.CRICKET_BUILD || 'dev')}</p>${btn('checkUpdate', 'Check for a new build', '', '')} ${btn('go', 'New league', 'data-screen="home"', 'link')}<p class="muted small">New builds normally install themselves the next time you open the game.</p></section>`;
+      <section class="card"><h3>League</h3><p class="muted small">Seed ${esc(s.seed)} · save v${s.version}, ${Math.round(Game.serialize(s).length / 1024)} KB, ${Game.allSeasons(s).length} season${Game.allSeasons(s).length === 1 ? '' : 's'} kept · build ${esc(window.CRICKET_BUILD || 'dev')}</p>${btn('checkUpdate', 'Check for a new build', '', '')} ${btn('go', 'New league', 'data-screen="home"', 'link')}<p class="muted small">New builds normally install themselves the next time you open the game.</p></section>`;
   };
 
   // ---- actions ----------------------------------------------------------
@@ -499,7 +522,8 @@
     if (!confirm('Sim every remaining match of the season instantly?')) return;
     Game.simToEndOfSeason(s); save(); go('hub');
   };
-  A.viewResult = (d) => go('scorecard', { fixtureId: Number(d.id), back: { screen: app.screen, view: app.view } });
+  A.viewResult = (d) => go('scorecard', { fixtureId: Number(d.id), season: d.season ? Number(d.season) : st().season.no, back: { screen: app.screen, view: app.view } });
+  A.fixturesSeason = (d) => go('fixtures', { season: Number(d.no) });
   A.player = (d, el) => { const teamId = d.team ? Number(d.team) : (team(st().userTeamId).squadIds.includes(Number(d.id)) ? st().userTeamId : st().teams.find((t) => t.squadIds.includes(Number(d.id))).id); go('player', { id: Number(d.id), teamId, back: { screen: app.screen, view: app.view } }); };
   A.squadView = (d) => go('squad', { which: d.which });
   A.ballMs = (d) => { st().settings.ballMs = Number(d.ms); if (st().live) { setPlaying(st().live.playing); } save(); render(); };
@@ -597,10 +621,10 @@
     cloud.busy = true; cloud.status = 'syncing'; cloudRender();
     try {
       const s = st();
-      const r = await cloud.client.put(cloud.cfg.key, s, s.meta.rev || null);
+      const r = await cloud.client.put(cloud.cfg.key, JSON.parse(Game.serialize(s)), s.meta.rev || null);
       if (r.conflict) {
         if (Cloud.newer(s.meta, r.data) === 'remote') { adoptRemote(r.data, r.rev, 'Loaded a newer save from the cloud.'); return; }
-        const r2 = await cloud.client.put(cloud.cfg.key, s, r.rev);
+        const r2 = await cloud.client.put(cloud.cfg.key, JSON.parse(Game.serialize(s)), r.rev);
         if (r2.conflict) throw new Error('cloud keeps changing under us; try again');
         s.meta.rev = r2.rev;
       } else s.meta.rev = r.rev;
@@ -624,7 +648,7 @@
   }
   function adoptRemote(data, rev, why, opts = {}) {
     let s;
-    try { s = Game.migrate(JSON.parse(JSON.stringify(data))); } catch (e) { cloudFail(new Error('cloud save is unreadable: ' + e.message)); return; }
+    try { s = Game.deserialize(JSON.stringify(data)); } catch (e) { cloudFail(new Error('cloud save is unreadable: ' + e.message)); return; }
     s.meta.rev = rev;
     app.state = s; app.sim = null;
     if (s.live) { ensureLive(); const l = s.live; l.cursor = liveCursorNow(); l.playing = false; l.anchorMs = null; l.anchorCursor = l.cursor; }

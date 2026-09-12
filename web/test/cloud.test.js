@@ -64,6 +64,9 @@ test('every old save fixture loads, migrates to the current version and keeps pl
     const raw = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
     const st = Game.deserialize(JSON.stringify(raw));
     assert.equal(st.version, Game.SAVE_VERSION, f);
+    const orphans = Game.orphanStats(st);
+    for (const [pid, seasons] of Object.entries(st.stats)) for (const no of Object.keys(seasons)) if (!(orphans[pid] && orphans[pid][no])) assert.deepEqual(seasons[no], Game.rebuildStats(st)[pid][no], `${f}: stats for player ${pid} season ${no} come from the scorecards`);
+    assert.ok(Array.isArray(st.history), `${f}: history`);
     assert.ok(st.meta && 'savedAt' in st.meta && 'rev' in st.meta, `${f}: meta`);
     if (st.live) { assert.ok(Array.isArray(st.live.instructions), `${f}: live.instructions`); const sim = Game.liveMatch(st); assert.ok(sim.match.innings1.events.length > 0); Game.finishLive(st, sim); }
     for (const seasons of Object.values(st.stats)) for (const x of Object.values(seasons)) assert.ok(Array.isArray(x.last5b), `${f}: last5b`);

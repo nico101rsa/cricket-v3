@@ -210,3 +210,61 @@ test('in-match instructions move the cricket the right way', () => {
   assert.ok(wAtk > wCon, `attacking bowlers take more wickets: ${wAtk} v ${wCon}`);
   assert.ok(rAtk > rCon, `attacking bowlers concede more: ${rAtk} v ${rCon}`);
 });
+
+test('history: every season is kept with its scorecards, and the match log reconciles with the stats', () => {
+  const st = fresh(21, 7);
+  Game.simToEndOfSeason(st); Game.nextSeason(st);
+  Game.simToEndOfSeason(st); Game.nextSeason(st);
+  assert.equal(st.history.length, 2);
+  assert.equal(st.season.no, 3);
+  for (const sn of st.history) { assert.equal(sn.fixtures.length, 48); assert.ok(sn.fixtures.every((f) => f.result && f.result.innings.length === 2)); assert.ok(sn.champion); }
+  assert.equal(Game.allSeasons(st).length, 3);
+  assert.equal(Game.seasonByNo(st, 1).no, 1);
+  assert.ok(Game.findFixture(st, 1, 1).result);
+  assert.equal(Game.findFixture(st, 3, 1).result, null);
+  // Every player's match log adds up to exactly their career stats.
+  for (const id of Object.keys(st.players).map(Number)) {
+    const log = Game.playerMatchLog(st, id);
+    const c = S.careerOf(st.stats, id);
+    assert.equal(log.length, c.matches, `matches for ${id}`);
+    const bat = log.filter((x) => x.bat);
+    assert.equal(bat.length, c.bat.inns);
+    assert.equal(bat.reduce((a, x) => a + x.bat.runs, 0), c.bat.runs);
+    assert.equal(bat.filter((x) => !x.bat.out).length, c.bat.no);
+    const bowl = log.filter((x) => x.bowl);
+    assert.equal(bowl.reduce((a, x) => a + x.bowl.wkts, 0), c.bowl.wkts);
+    assert.equal(bowl.reduce((a, x) => a + x.bowl.balls, 0), c.bowl.balls);
+    for (let i = 1; i < log.length; i++) assert.ok(log[i - 1].seasonNo > log[i].seasonNo || (log[i - 1].seasonNo === log[i].seasonNo && log[i - 1].fixtureId > log[i].fixtureId), 'newest first');
+  }
+  // Ages: everyone is two years older than at the start.
+  const st0 = fresh(21, 7);
+  for (const id of Object.keys(st.players)) assert.equal(st.players[id].age, st0.players[id].age + 2);
+});
+
+test('packed save: exact round trip, stats rebuilt from the scorecards, about 2.5x smaller', () => {
+  const st = fresh(22, 1);
+  Game.simToEndOfSeason(st); Game.nextSeason(st); Game.playRound(st);
+  const plain = JSON.stringify(st);
+  const packed = Game.serialize(st);
+  assert.ok(packed.length * 2.5 < plain.length, `packed ${packed.length} v plain ${plain.length}`);
+  assert.ok(packed.length < 140000, `one season packed is ${packed.length} bytes`);
+  assert.equal(JSON.parse(packed).stats, undefined, 'stats are not stored');
+  const back = Game.deserialize(packed);
+  assert.deepEqual(back, JSON.parse(plain), 'rebuilt stats equal the incrementally kept ones');
+  assert.equal(JSON.parse(packed).season.fixtures.find((f) => f.result).result.innings[0].B.length, 11, 'lists are arrays on disk');
+  // Packing is idempotent on already-unpacked memory state and never mutates it.
+  assert.equal(JSON.stringify(st), plain);
+});
+
+test('orphan stats: an old save whose season-1 scorecards were dropped keeps season-1 totals through save and load', () => {
+  const st = fresh(23, 2);
+  Game.simToEndOfSeason(st); Game.nextSeason(st); Game.playRound(st);
+  const before = JSON.parse(JSON.stringify(st.stats));
+  st.history = []; // what a v2 save looked like: season 1 gone, its totals still in stats
+  const orphans = Game.orphanStats(st);
+  assert.ok(Object.values(orphans).every((seasons) => Object.keys(seasons).join() === '1'));
+  const back = Game.deserialize(Game.serialize(st));
+  assert.deepEqual(back.stats, before, 'season 1 totals kept, season 2 rebuilt');
+  assert.equal(JSON.parse(Game.serialize(back)).stats[Object.keys(before)[0]]['2'], undefined, 'only orphans are stored');
+  assert.deepEqual(Game.deserialize(Game.serialize(back)).stats, before, 'stable across another round trip');
+});
