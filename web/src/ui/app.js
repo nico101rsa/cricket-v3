@@ -83,8 +83,9 @@
       cont = `<section class="card"><p>League created. Choose your club.</p>${btn('go', 'Choose a club', 'data-screen="pick"', 'primary')}</section>`;
     }
     const seed = app.view.seed || Math.floor(Math.random() * 900000 + 100000);
+    const link = s && s.userTeamId ? '' : cloudCardHtml('Already playing on another device?', 'Type the sync code from More → Cloud save on that device and your career loads here.');
     return `<header class="title"><h1>Cricket</h1><p class="muted">Text cricket management. Ten clubs, Pretoria v Sydney. You run one.</p></header>
-      ${cont}
+      ${cont}${link}
       <section class="card"><h3>${s ? 'Start a new league' : 'New league'}</h3>
       <label>League seed <input id="seed" type="text" inputmode="numeric" value="${esc(seed)}"></label>
       <p class="muted small">The same seed always makes the same ten clubs.</p>
@@ -577,7 +578,7 @@
   function cloudStore() { try { localStorage.setItem(CLOUD_KEY, JSON.stringify({ url: cloud.cfg.url, anonKey: cloud.cfg.anonKey, code: cloud.cfg.code, key: cloud.cfg.key, lastSync: cloud.lastSync })); } catch (e) { /* ignore */ } }
   const cloudLinked = () => !!cloud.client;
   const configBaked = () => !!(C.config && C.config.cloud && C.config.cloud.url && C.config.cloud.anonKey);
-  function cloudRender() { if (app.screen === 'more') { snapshotInputs(); render(); } }
+  function cloudRender() { if (app.screen === 'more' || app.screen === 'home') { snapshotInputs(); render(); } }
   function snapshotInputs() {
     for (const [id, k] of [['cloudUrl', 'cloudUrl'], ['cloudKey', 'cloudKey'], ['cloudCode', 'cloudCode']]) { const el = document.getElementById(id); if (el) app.view[k] = el.value; }
   }
@@ -632,10 +633,12 @@
     app.flash = why;
     if (s.live) go('live'); else if (!s.userTeamId) go('pick'); else if (opts.home || app.screen === 'live' || app.screen === 'home') go('hub'); else { if (app.screen === 'more') snapshotInputs(); render(); }
   }
+  // A cloud action from the home screen has no state yet: keep the typed seed.
+  function homeSeed() { const el = document.getElementById('seed'); if (el && el.value) app.view.seed = el.value; }
   function describeSave(d) {
     try { const t = d.teams.find((x) => x.id === d.userTeamId); return `${t ? t.name : 'no club yet'}, season ${d.season ? d.season.no : '-'}, saved ${d.meta && d.meta.savedAt ? new Date(d.meta.savedAt).toLocaleString() : 'unknown'}`; } catch (e) { return 'unknown'; }
   }
-  function cloudCardHtml() {
+  function cloudCardHtml(title = 'Cloud save', intro = 'Play the same career on the phone and on the web. The save goes to your Supabase project after every change and comes back when you open the game elsewhere; the later save wins.') {
     const cfg = cloud.cfg;
     const fmtT = (iso) => (iso ? new Date(iso).toLocaleTimeString() : 'never');
     let status = '';
@@ -651,16 +654,16 @@
         <p class="muted small">Both from Supabase → Project settings → API. Run <code>web/supabase/schema.sql</code> in the SQL editor once. Or commit them in <code>web/src/config.js</code> so every device has them.</p>`;
       status = `${setup}<label>Sync code <input id="cloudCode" type="text" autocapitalize="off" autocorrect="off" placeholder="abcd-efgh-jkmn-pqrs" value="${esc(app.view.cloudCode ?? cfg.code)}"></label>
         <p class="muted small">First device: make a new code. Other devices: type that code.</p>
-        ${btn('cloudGenCode', 'New code', '', '')} ${btn('cloudLink', 'Link this device', '', 'primary')}
+        ${btn('cloudLink', 'Link this device', '', 'primary')} ${btn('cloudGenCode', 'New code', '', '')}
         ${cloud.status === 'error' ? `<p class="error small">${esc(cloud.lastError)}</p>` : ''}`;
     }
-    return `<section class="card"><h3>Cloud save</h3><p class="muted small">Play the same career on the phone and on the web. The save goes to your Supabase project after every change and comes back when you open the game elsewhere; the later save wins.</p>${status}</section>`;
+    return `<section class="card cloud-card"><h3>${esc(title)}</h3><p class="muted small">${esc(intro)}</p>${status}</section>`;
   }
-  A.cloudGenCode = () => { snapshotInputs(); app.view.cloudCode = Cloud.genCode(); render(); };
+  A.cloudGenCode = () => { snapshotInputs(); homeSeed(); app.view.cloudCode = Cloud.genCode(); render(); };
   A.cloudShowCode = () => { app.view.showCode = !app.view.showCode; render(); };
   A.cloudCopyCode = async () => { try { await navigator.clipboard.writeText(cloud.cfg.code); app.flash = 'Code copied.'; } catch (e) { app.flash = cloud.cfg.code; } render(); };
   A.cloudLink = async () => {
-    snapshotInputs();
+    snapshotInputs(); homeSeed();
     const url = (configBaked() ? C.config.cloud.url : (app.view.cloudUrl || '')).trim();
     const anonKey = (configBaked() ? C.config.cloud.anonKey : (app.view.cloudKey || '')).trim();
     const code = Cloud.normCode(app.view.cloudCode || '');
@@ -722,13 +725,13 @@
 
   // ---- boot -------------------------------------------------------------
   app.state = load();
+  cloudLoad();
   // A match that was playing when the app closed catches up to the clock, then waits.
   if (app.state && app.state.live) { loadLive(); ensureLive(); const l = app.state.live; l.cursor = liveCursorNow(); l.playing = false; l.anchorMs = null; l.anchorCursor = l.cursor; }
   if (app.state && app.state.live) go('live');
   else if (app.state && app.state.userTeamId) go('hub');
   else if (app.state) go('pick');
   else go('home');
-  cloudLoad();
   if (cloudLinked()) cloudPull('Loaded a newer save from the cloud.');
 
   // Test hook.
