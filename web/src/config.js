@@ -9,8 +9,8 @@
 })(globalThis, function (Cricket) {
   return (Cricket.config = {
     cloud: {
-      url: '',      // e.g. 'https://abcdefghijkl.supabase.co' (Supabase → Project settings → API)
-      anonKey: '',  // the "anon public" key from the same page
+      url: 'https://uqhqvavhhgrrcqcfwowy.supabase.co', // Nico's "cricket-sim" project (Supabase → Project settings → API)
+      anonKey: '',  // the "anon public" key from the same page (or a publishable key); blank = type it under More → Cloud save
     },
   });
 });

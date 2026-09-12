@@ -27,14 +27,14 @@
     const f = fetchImpl || globalThis.fetch;
     const base = String(cfg.url || '').replace(/\/+$/, '');
     if (!base || !cfg.anonKey) throw new Error('cloud save is not configured');
+    // The legacy anon key is a JWT and also goes in Authorization; the newer
+    // publishable keys (sb_publishable_…) go in apikey only.
+    const headers = { 'Content-Type': 'application/json', apikey: cfg.anonKey };
+    if (/^eyJ/.test(cfg.anonKey)) headers.Authorization = `Bearer ${cfg.anonKey}`;
     async function rpc(name, body) {
       let res;
       try {
-        res = await f(`${base}/rest/v1/rpc/${name}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', apikey: cfg.anonKey, Authorization: `Bearer ${cfg.anonKey}` },
-          body: JSON.stringify(body),
-        });
+        res = await f(`${base}/rest/v1/rpc/${name}`, { method: 'POST', headers, body: JSON.stringify(body) });
       } catch (e) { throw new Error('offline or blocked: ' + e.message); }
       const text = await res.text();
       let json = null;
