@@ -3,8 +3,8 @@
 (function () {
   'use strict';
   const C = globalThis.Cricket;
-  const Game = C.game, S = C.stats, L = C.league, I = C.intent, Inn = C.innings;
-  const KEY = 'cricket-v3-save', LIVE_KEY = 'cricket-v3-live';
+  const Game = C.game, S = C.stats, L = C.league, I = C.intent, Inn = C.innings, Cloud = C.cloud;
+  const KEY = 'cricket-v3-save', LIVE_KEY = 'cricket-v3-live', CLOUD_KEY = 'cricket-v3-cloud';
   const SPEEDS = [1, 3, 10];
 
   const app = { state: null, screen: 'home', view: {}, sim: null, timeline: null, timer: null, flash: '' };
@@ -13,11 +13,19 @@
   function load() {
     try { const t = localStorage.getItem(KEY); return t ? Game.deserialize(t) : null; } catch (e) { console.warn('load failed', e); return null; }
   }
+  // Every local save stamps meta.savedAt (the cloud tie-breaker) and queues a
+  // cloud push. persistLocal() writes without stamping (used after a pull).
   function save() {
+    if (app.state) { app.state.meta = app.state.meta || { savedAt: null, rev: 0 }; app.state.meta.savedAt = new Date().toISOString(); }
+    persistLocal();
+    scheduleCloudPush(1500);
+  }
+  function persistLocal() {
     try { if (app.state) localStorage.setItem(KEY, Game.serialize(app.state)); } catch (e) { console.warn('save failed', e); app.flash = 'Could not save (storage full or blocked).'; }
   }
   function saveLive() {
     try { if (app.state && app.state.live) localStorage.setItem(LIVE_KEY, JSON.stringify(app.state.live)); else localStorage.removeItem(LIVE_KEY); } catch (e) { /* ignore */ }
+    scheduleCloudPush(15000);
   }
   function loadLive() {
     try { const t = localStorage.getItem(LIVE_KEY); if (t && app.state && app.state.live) { const l = JSON.parse(t); if (l.fixtureId === app.state.live.fixtureId) Object.assign(app.state.live, l); } } catch (e) { /* ignore */ }
@@ -455,7 +463,8 @@
     const bm = s.settings.ballMs;
     return `<header class="title"><h2>More</h2></header>
       <section class="card"><h3>Ball speed</h3><div class="toggle">${[2000, 3000, 4000].map((ms) => `<button class="chip ${bm === ms ? 'active' : ''}" data-action="ballMs" data-ms="${ms}">${ms / 1000}s</button>`).join('')}</div><p class="muted small">Seconds per ball at 1× in a live match.</p></section>
-      <section class="card"><h3>Save</h3><p class="muted small">Your league lives in this browser. Copy the save text somewhere safe now and then, or paste one back in.</p>${btn('exportSave', 'Show save text', '', '')}${app.view.export ? `<textarea id="exportBox" class="savebox" readonly>${esc(app.view.export)}</textarea>${btn('copySave', 'Copy to clipboard', '', 'primary')}` : ''}
+      ${cloudCardHtml()}
+      <section class="card"><h3>Save text</h3><p class="muted small">The save also lives in this browser. Copy the text somewhere safe now and then, or paste one back in.</p>${btn('exportSave', 'Show save text', '', '')}${app.view.export ? `<textarea id="exportBox" class="savebox" readonly>${esc(app.view.export)}</textarea>${btn('copySave', 'Copy to clipboard', '', 'primary')}` : ''}
       <details><summary>Import a save</summary><textarea id="importBox" class="savebox" placeholder="Paste save text here"></textarea>${btn('importSave', 'Load this save (replaces current)', '', 'danger')}</details></section>
       <section class="card"><h3>Season shortcuts</h3>${btn('simSeason', 'Sim to the end of the season', '', 'danger')}<p class="muted small">Plays every remaining match instantly with your current XI.</p></section>
       <section class="card"><h3>League</h3><p class="muted small">Seed ${esc(s.seed)} · save v${s.version} · ${esc(window.CRICKET_BUILD || 'dev')}</p>${btn('go', 'New league', 'data-screen="home"', 'link')}</section>`;
@@ -469,7 +478,7 @@
     const el = document.getElementById('seed');
     const raw = (el && el.value.trim()) || String(Math.floor(Math.random() * 1e6));
     const seed = /^\d+$/.test(raw) ? Number(raw) >>> 0 : raw;
-    if (st() && st().userTeamId && !confirm('Start a new league? Your current save will be replaced.')) return;
+    if (st() && st().userTeamId && !confirm(`Start a new league? Your current save will be replaced${cloudLinked() ? ', in the cloud too' : ''}.`)) return;
     app.state = Game.newLeague(seed); app.sim = null;
     localStorage.removeItem(LIVE_KEY);
     save(); go('pick');
@@ -550,6 +559,131 @@
     render();
   };
   A.liveFinish = () => { const s = st(); const f = Game.finishLive(s, app.sim.sim); app.sim = null; save(); saveLive(); go('scorecard', { fixtureId: f.id, back: { screen: 'hub' } }); };
+  // ---- cloud save (Supabase) --------------------------------------------
+  // Settings per device in localStorage: url + anon key (or the build's
+  // config.js) and the sync code. The save is pushed a moment after every
+  // local save and pulled when the app opens or comes back to the front.
+  // The later savedAt wins; the cloud row's rev catches stale overwrites.
+  const cloud = { cfg: null, client: null, status: 'off', lastSync: null, lastError: '', timer: null, due: 0, busy: false, again: false, lastPull: 0 };
+  function cloudLoad() {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem(CLOUD_KEY) || '{}') || {}; } catch (e) { saved = {}; }
+    const def = (C.config && C.config.cloud) || {};
+    cloud.cfg = { url: saved.url || def.url || '', anonKey: saved.anonKey || def.anonKey || '', code: saved.code || '', key: saved.key || '', lastSync: saved.lastSync || null };
+    cloud.lastSync = cloud.cfg.lastSync;
+    cloud.client = null;
+    if (cloud.cfg.url && cloud.cfg.anonKey && cloud.cfg.key) { try { cloud.client = Cloud.makeClient(cloud.cfg); cloud.status = 'idle'; } catch (e) { cloud.status = 'off'; } } else cloud.status = 'off';
+  }
+  function cloudStore() { try { localStorage.setItem(CLOUD_KEY, JSON.stringify({ url: cloud.cfg.url, anonKey: cloud.cfg.anonKey, code: cloud.cfg.code, key: cloud.cfg.key, lastSync: cloud.lastSync })); } catch (e) { /* ignore */ } }
+  const cloudLinked = () => !!cloud.client;
+  const configBaked = () => !!(C.config && C.config.cloud && C.config.cloud.url && C.config.cloud.anonKey);
+  function cloudRender() { if (app.screen === 'more') { snapshotInputs(); render(); } }
+  function snapshotInputs() {
+    for (const [id, k] of [['cloudUrl', 'cloudUrl'], ['cloudKey', 'cloudKey'], ['cloudCode', 'cloudCode']]) { const el = document.getElementById(id); if (el) app.view[k] = el.value; }
+  }
+  function cloudFail(e) { cloud.status = 'error'; cloud.lastError = e && e.message ? e.message : String(e); console.warn('cloud', e); cloudRender(); }
+  function scheduleCloudPush(ms) {
+    if (!cloudLinked() || !app.state) return;
+    const due = Date.now() + ms;
+    if (cloud.timer && cloud.due <= due) return;
+    if (cloud.timer) clearTimeout(cloud.timer);
+    cloud.due = due;
+    cloud.timer = setTimeout(() => { cloud.timer = null; cloudPush(); }, ms);
+  }
+  async function cloudPush() {
+    if (!cloudLinked() || !app.state) return;
+    if (cloud.busy) { cloud.again = true; return; }
+    cloud.busy = true; cloud.status = 'syncing'; cloudRender();
+    try {
+      const s = st();
+      const r = await cloud.client.put(cloud.cfg.key, s, s.meta.rev || null);
+      if (r.conflict) {
+        if (Cloud.newer(s.meta, r.data) === 'remote') { adoptRemote(r.data, r.rev, 'Loaded a newer save from the cloud.'); return; }
+        const r2 = await cloud.client.put(cloud.cfg.key, s, r.rev);
+        if (r2.conflict) throw new Error('cloud keeps changing under us; try again');
+        s.meta.rev = r2.rev;
+      } else s.meta.rev = r.rev;
+      persistLocal();
+      cloud.status = 'idle'; cloud.lastError = ''; cloud.lastSync = new Date().toISOString(); cloudStore(); cloudRender();
+    } catch (e) { cloudFail(e); }
+    finally { cloud.busy = false; if (cloud.again) { cloud.again = false; scheduleCloudPush(500); } }
+  }
+  async function cloudPull(why) {
+    if (!cloudLinked()) return;
+    cloud.lastPull = Date.now();
+    cloud.status = 'syncing'; cloudRender();
+    try {
+      const r = await cloud.client.get(cloud.cfg.key);
+      if (!r) { if (app.state) await cloudPush(); else { cloud.status = 'idle'; cloudRender(); } return; }
+      if (!app.state || Cloud.newer(st().meta, r.data) === 'remote') { adoptRemote(r.data, r.rev, why || 'Loaded your save from the cloud.'); return; }
+      st().meta.rev = r.rev; persistLocal();
+      if ((st().meta.savedAt || '') > ((r.data.meta && r.data.meta.savedAt) || '')) await cloudPush();
+      else { cloud.status = 'idle'; cloud.lastError = ''; cloud.lastSync = new Date().toISOString(); cloudStore(); cloudRender(); }
+    } catch (e) { cloudFail(e); }
+  }
+  function adoptRemote(data, rev, why, opts = {}) {
+    let s;
+    try { s = Game.migrate(JSON.parse(JSON.stringify(data))); } catch (e) { cloudFail(new Error('cloud save is unreadable: ' + e.message)); return; }
+    s.meta.rev = rev;
+    app.state = s; app.sim = null;
+    if (s.live) { ensureLive(); const l = s.live; l.cursor = liveCursorNow(); l.playing = false; l.anchorMs = null; l.anchorCursor = l.cursor; }
+    persistLocal(); saveLive();
+    cloud.status = 'idle'; cloud.lastError = ''; cloud.lastSync = new Date().toISOString(); cloudStore();
+    app.flash = why;
+    if (s.live) go('live'); else if (!s.userTeamId) go('pick'); else if (opts.home || app.screen === 'live' || app.screen === 'home') go('hub'); else { if (app.screen === 'more') snapshotInputs(); render(); }
+  }
+  function describeSave(d) {
+    try { const t = d.teams.find((x) => x.id === d.userTeamId); return `${t ? t.name : 'no club yet'}, season ${d.season ? d.season.no : '-'}, saved ${d.meta && d.meta.savedAt ? new Date(d.meta.savedAt).toLocaleString() : 'unknown'}`; } catch (e) { return 'unknown'; }
+  }
+  function cloudCardHtml() {
+    const cfg = cloud.cfg;
+    const fmtT = (iso) => (iso ? new Date(iso).toLocaleTimeString() : 'never');
+    let status = '';
+    if (cloudLinked()) {
+      const code = app.view.showCode ? cfg.code : cfg.code.replace(/[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}/, '····-····-····');
+      const line = cloud.status === 'error' ? `<span class="error">Problem: ${esc(cloud.lastError)}</span>` : cloud.status === 'syncing' ? 'Syncing…' : `Synced ${fmtT(cloud.lastSync)}${st() && st().meta.rev ? ` · rev ${st().meta.rev}` : ''}`;
+      status = `<p>Linked with code <b class="mono">${esc(code)}</b> ${btn('cloudShowCode', app.view.showCode ? 'Hide' : 'Show', '', 'mini')} ${btn('cloudCopyCode', 'Copy', '', 'mini')}</p><p class="small">${line}</p>
+        <p class="muted small">Type the same code into the game on your other device and it plays the same career. Anyone with the code can read and overwrite it, so keep it to yourself.</p>
+        ${btn('cloudSyncNow', 'Sync now', '', '')} ${btn('cloudUnlink', 'Unlink this device', '', 'link')}`;
+    } else {
+      const setup = configBaked() ? '' : `<label>Project URL <input id="cloudUrl" type="text" autocapitalize="off" autocorrect="off" placeholder="https://xxxx.supabase.co" value="${esc(app.view.cloudUrl ?? cfg.url)}"></label>
+        <label>Anon key <input id="cloudKey" type="text" autocapitalize="off" autocorrect="off" placeholder="eyJ…" value="${esc(app.view.cloudKey ?? cfg.anonKey)}"></label>
+        <p class="muted small">Both from Supabase → Project settings → API. Run <code>web/supabase/schema.sql</code> in the SQL editor once. Or commit them in <code>web/src/config.js</code> so every device has them.</p>`;
+      status = `${setup}<label>Sync code <input id="cloudCode" type="text" autocapitalize="off" autocorrect="off" placeholder="abcd-efgh-jkmn-pqrs" value="${esc(app.view.cloudCode ?? cfg.code)}"></label>
+        <p class="muted small">First device: make a new code. Other devices: type that code.</p>
+        ${btn('cloudGenCode', 'New code', '', '')} ${btn('cloudLink', 'Link this device', '', 'primary')}
+        ${cloud.status === 'error' ? `<p class="error small">${esc(cloud.lastError)}</p>` : ''}`;
+    }
+    return `<section class="card"><h3>Cloud save</h3><p class="muted small">Play the same career on the phone and on the web. The save goes to your Supabase project after every change and comes back when you open the game elsewhere; the later save wins.</p>${status}</section>`;
+  }
+  A.cloudGenCode = () => { snapshotInputs(); app.view.cloudCode = Cloud.genCode(); render(); };
+  A.cloudShowCode = () => { app.view.showCode = !app.view.showCode; render(); };
+  A.cloudCopyCode = async () => { try { await navigator.clipboard.writeText(cloud.cfg.code); app.flash = 'Code copied.'; } catch (e) { app.flash = cloud.cfg.code; } render(); };
+  A.cloudLink = async () => {
+    snapshotInputs();
+    const url = (configBaked() ? C.config.cloud.url : (app.view.cloudUrl || '')).trim();
+    const anonKey = (configBaked() ? C.config.cloud.anonKey : (app.view.cloudKey || '')).trim();
+    const code = Cloud.normCode(app.view.cloudCode || '');
+    if (!/^https?:\/\//.test(url)) { app.flash = 'Enter the project URL (starts with https://).'; render(); return; }
+    if (!anonKey) { app.flash = 'Enter the anon key.'; render(); return; }
+    if (code.replace(/-/g, '').length < 12) { app.flash = 'A sync code is at least 12 characters. Tap New code to make one.'; render(); return; }
+    let key;
+    try { key = await Cloud.hashCode(code); } catch (e) { app.flash = e.message; render(); return; }
+    cloud.cfg = { url, anonKey, code, key, lastSync: null };
+    try { cloud.client = Cloud.makeClient(cloud.cfg); } catch (e) { cloud.client = null; app.flash = e.message; render(); return; }
+    cloud.status = 'syncing'; cloud.lastError = ''; cloudStore(); render();
+    try {
+      const r = await cloud.client.get(key);
+      if (!r) { if (app.state) await cloudPush(); else { cloud.status = 'idle'; cloudStore(); render(); } app.flash = app.state ? 'Linked. Your save is in the cloud.' : 'Linked. Nothing in the cloud yet: create a league.'; render(); return; }
+      if (!app.state) { adoptRemote(r.data, r.rev, 'Linked. Loaded your save from the cloud.', { home: true }); return; }
+      const same = r.data.seed === st().seed && r.data.meta && r.data.meta.savedAt === st().meta.savedAt;
+      if (same) { st().meta.rev = r.rev; persistLocal(); cloud.status = 'idle'; cloud.lastSync = new Date().toISOString(); cloudStore(); app.flash = 'Linked. Already in sync.'; render(); return; }
+      if (confirm(`The cloud already has a save: ${describeSave(r.data)}.\n\nOK loads it onto this device (replacing this device's save). Cancel keeps this device's save and overwrites the cloud.`)) adoptRemote(r.data, r.rev, 'Linked. Loaded your save from the cloud.', { home: true });
+      else { st().meta.rev = r.rev; save(); await cloudPush(); app.flash = 'Linked. This device\'s save is now in the cloud.'; render(); }
+    } catch (e) { cloudFail(e); }
+  };
+  A.cloudUnlink = () => { cloud.client = null; cloud.status = 'off'; cloud.cfg.code = ''; cloud.cfg.key = ''; cloudStore(); app.view.cloudCode = ''; app.flash = 'Unlinked. The save stays in the cloud and on this device.'; render(); };
+  A.cloudSyncNow = () => { if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; } cloudPull('Loaded a newer save from the cloud.'); };
   A.exportSave = () => { app.view.export = Game.serialize(st()); render(); };
   A.copySave = async () => {
     const box = document.getElementById('exportBox'); if (!box) return;
@@ -558,7 +692,7 @@
   };
   A.importSave = () => {
     const box = document.getElementById('importBox'); if (!box || !box.value.trim()) { app.flash = 'Paste a save first.'; render(); return; }
-    try { const s = Game.deserialize(box.value.trim()); if (!confirm('Replace your current league with this save?')) return; app.state = s; app.sim = null; localStorage.removeItem(LIVE_KEY); save(); go('hub'); }
+    try { const s = Game.deserialize(box.value.trim()); if (!confirm(`Replace your current league with this save${cloudLinked() ? ' (in the cloud too)' : ''}?`)) return; app.state = s; app.sim = null; localStorage.removeItem(LIVE_KEY); save(); go('hub'); }
     catch (e) { app.flash = `That is not a valid save: ${e.message}`; render(); }
   };
 
@@ -568,17 +702,24 @@
     const fn = A[el.dataset.action];
     if (fn) { e.preventDefault(); fn(el.dataset, el); }
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { if (cloud.timer) { clearTimeout(cloud.timer); cloud.timer = null; cloudPush(); } return; }
+    tick();
+    if (cloudLinked() && Date.now() - cloud.lastPull > 20000) cloudPull('Loaded a newer save from the cloud.');
+  });
   window.addEventListener('pageshow', () => tick());
 
   // ---- boot -------------------------------------------------------------
   app.state = load();
-  if (app.state && app.state.live) { loadLive(); ensureLive(); app.state.live.playing = false; app.state.live.anchorMs = null; app.state.live.anchorCursor = app.state.live.cursor; }
+  // A match that was playing when the app closed catches up to the clock, then waits.
+  if (app.state && app.state.live) { loadLive(); ensureLive(); const l = app.state.live; l.cursor = liveCursorNow(); l.playing = false; l.anchorMs = null; l.anchorCursor = l.cursor; }
   if (app.state && app.state.live) go('live');
   else if (app.state && app.state.userTeamId) go('hub');
   else if (app.state) go('pick');
   else go('home');
+  cloudLoad();
+  if (cloudLinked()) cloudPull('Loaded a newer save from the cloud.');
 
   // Test hook.
-  window.CricketApp = { app, actions: A, go, render, Game, get state() { return app.state; } };
+  window.CricketApp = { app, actions: A, go, render, Game, cloud, cloudPull, cloudPush, get state() { return app.state; } };
 })();

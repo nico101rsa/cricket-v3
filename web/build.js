@@ -8,8 +8,9 @@ const ROOT = __dirname;
 const SRC = path.join(ROOT, 'src');
 const DIST = path.join(ROOT, 'dist');
 const ORDER = [
+  'config.js',
   'engine/tuning.js', 'engine/rng.js', 'engine/model.js', 'engine/ball.js', 'engine/intent.js', 'engine/bowling.js', 'engine/innings.js', 'engine/match.js',
-  'game/names.js', 'game/generator.js', 'game/stats.js', 'game/league.js', 'game/game.js',
+  'game/names.js', 'game/generator.js', 'game/stats.js', 'game/league.js', 'game/game.js', 'game/cloud.js',
   'ui/app.js',
 ];
 

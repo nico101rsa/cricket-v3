@@ -5,6 +5,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { chromium, devices } = require(require.resolve('playwright', { paths: [process.env.NODE_PATH || '/opt/node22/lib/node_modules'] }));
+const mock = require('./mock_supabase.js');
 
 const DIST = path.join(__dirname, '..', 'dist', 'index.html');
 const SHOTS = path.join(__dirname, 'shots');
@@ -12,6 +13,7 @@ fs.mkdirSync(SHOTS, { recursive: true });
 const url = 'file://' + DIST;
 
 (async () => {
+  const cloud = await mock.start();
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || undefined });
   const ctx = await browser.newContext({ ...devices['iPhone 13'], locale: 'en-ZA' });
   const page = await ctx.newPage();
@@ -126,7 +128,69 @@ const url = 'file://' + DIST;
   await page.fill('#importBox', text);
   await page.click('[data-action=importSave]');
   await page.waitForSelector('.screen-hub');
+  // Cloud save against the stand-in server: link, push, then a second "device".
+  await page.click('[data-action=go][data-screen=more]');
+  await page.waitForSelector('#cloudUrl');
+  await shot('17-cloud-setup');
+  await page.fill('#cloudUrl', cloud.url);
+  await page.fill('#cloudKey', cloud.anonKey);
+  await page.click('[data-action=cloudGenCode]');
+  const code = await page.inputValue('#cloudCode');
+  must(/^[a-z2-9]{4}(-[a-z2-9]{4}){3}$/.test(code), `generated code ${code}`);
+  await page.click('[data-action=cloudLink]');
+  await page.waitForFunction(() => window.CricketApp.cloud.status === 'idle' && window.CricketApp.state.meta.rev >= 1, null, { timeout: 5000 });
+  must(cloud.rows.size === 1, 'one row in the cloud');
+  await shot('18-cloud-linked');
+  // A change on this device reaches the cloud.
+  const revBefore = await page.evaluate(() => window.CricketApp.state.meta.rev);
+  await page.click('[data-action=go][data-screen=hub]');
+  await page.click('[data-action=simRound]');
+  await page.waitForSelector('.screen-scorecard');
+  await page.waitForFunction((r) => window.CricketApp.state.meta.rev > r, revBefore, { timeout: 8000 });
+  const played1 = await page.evaluate(() => window.CricketApp.state.season.fixtures.filter((f) => f.result).length);
+  must([...cloud.rows.values()][0].data.season.fixtures.filter((f) => f.result).length === played1, 'cloud row has the new round');
+  // Reload keeps the link and the save.
+  await page.reload();
+  await page.waitForSelector('.screen-hub');
+  must(await page.evaluate(() => !!window.CricketApp.cloud.client), 'still linked after reload');
+  // Second device: fresh browser context, same code, gets the same career.
+  const ctx2 = await browser.newContext({ ...devices['iPhone 13'], locale: 'en-ZA' });
+  const p2 = await ctx2.newPage();
+  p2.on('pageerror', (e) => errors.push('dev2 ' + String(e)));
+  await p2.goto(url);
+  await p2.waitForSelector('#seed');
+  await p2.click('[data-action=newLeague]');
+  await p2.waitForSelector('.team-card');
+  await p2.evaluate(() => window.CricketApp.go('more'));
+  await p2.waitForSelector('#cloudUrl');
+  await p2.fill('#cloudUrl', cloud.url);
+  await p2.fill('#cloudKey', cloud.anonKey);
+  await p2.fill('#cloudCode', code.toUpperCase());
+  p2.on('dialog', (d) => d.accept());
+  await p2.click('[data-action=cloudLink]');
+  await p2.waitForSelector('.screen-hub', { timeout: 8000 });
+  const seed2 = await p2.evaluate(() => window.CricketApp.state.seed);
+  const seed1 = await page.evaluate(() => window.CricketApp.state.seed);
+  const played2 = await p2.evaluate(() => window.CricketApp.state.season.fixtures.filter((f) => f.result).length);
+  must(seed1 === seed2 && played1 === played2, `second device has the same career (${seed1}/${played1} v ${seed2}/${played2})`);
+  await p2.evaluate(() => window.CricketApp.go('more'));
+  await p2.waitForSelector('.screen-more');
+  await shot.call(null, '19-cloud-second-device').catch(() => {});
+  await p2.screenshot({ path: path.join(SHOTS, '19-cloud-second-device.png') });
+  // Play a round on device 2, then device 1 comes back to the front and picks it up.
+  await p2.evaluate(() => window.CricketApp.go('hub'));
+  await p2.click('[data-action=simRound]');
+  await p2.waitForSelector('.screen-scorecard');
+  await p2.waitForFunction((n) => window.CricketApp.state.meta.rev > n, played2, { timeout: 8000 }).catch(() => {});
+  const played3 = await p2.evaluate(() => window.CricketApp.state.season.fixtures.filter((f) => f.result).length);
+  must(played3 > played2, 'device 2 played a round');
+  await page.evaluate(() => window.CricketApp.cloudPull('test'));
+  await page.waitForFunction((n) => window.CricketApp.state.season.fixtures.filter((f) => f.result).length === n, played3, { timeout: 8000 });
+  await page.waitForSelector('.screen-hub');
+  await shot('20-cloud-pulled');
+  await ctx2.close();
   must(errors.length === 0, `console errors: ${errors.join(' | ')}`);
-  console.log(`smoke OK: ${fs.readdirSync(SHOTS).length} screenshots in ${SHOTS}, save ${(text.length / 1024).toFixed(0)} KB`);
+  console.log(`smoke OK: ${fs.readdirSync(SHOTS).length} screenshots in ${SHOTS}, save ${(text.length / 1024).toFixed(0)} KB, cloud rev ${[...cloud.rows.values()][0].rev}`);
   await browser.close();
+  await cloud.close();
 })().catch((e) => { console.error(e); process.exit(1); });

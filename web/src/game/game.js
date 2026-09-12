@@ -15,7 +15,9 @@
   const S = require ? require('./stats.js') : Cricket.stats;
   const L = require ? require('./league.js') : Cricket.league;
 
-  const SAVE_VERSION = 1;
+  // Bump this and add a step to migrate() whenever the save shape changes.
+  // Old saves must always load: web/test/fixtures/save-v*.json pin that.
+  const SAVE_VERSION = 2;
 
   // ---- creation -----------------------------------------------------------
   function newLeague(seed) {
@@ -24,6 +26,7 @@
       version: SAVE_VERSION, seed, teams: lg.teams, players: lg.players,
       userTeamId: null, season: null, stats: {}, honours: [], userXI: null, live: null,
       settings: { ballMs: 3000 },
+      meta: { savedAt: null, rev: 0 }, // savedAt: ISO time of the last local save; rev: cloud row revision
     };
   }
 
@@ -240,9 +243,17 @@
     return migrate(s);
   }
   function migrate(s) {
-    // Add migrations here as the format grows: if (s.version === 1) {...; s.version = 2;}
     if (s.version > SAVE_VERSION) throw new Error(`save is from a newer game (v${s.version})`);
+    if (s.version === 1) {
+      // v2 (2026-09-12): in-match instructions, bowling form, save meta for cloud sync.
+      if (s.live && !s.live.instructions) s.live.instructions = [];
+      for (const seasons of Object.values(s.stats || {})) for (const x of Object.values(seasons)) if (!x.last5b) x.last5b = [];
+      s.meta = s.meta || { savedAt: null, rev: 0 };
+      s.version = 2;
+    }
+    // Belt and braces for fields older code may have left out.
     s.settings = s.settings || { ballMs: 3000 };
+    s.meta = s.meta || { savedAt: null, rev: 0 };
     if (s.live && !s.live.instructions) s.live.instructions = [];
     return s;
   }
